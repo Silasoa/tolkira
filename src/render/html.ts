@@ -28,6 +28,7 @@ function formatDuration(milliseconds: number): string {
 function summaryLine(summary: ReportSummary): string {
   const { scenarios } = summary.counts;
   const parts = [
+    `${summary.counts.features} ${summary.counts.features === 1 ? 'feature' : 'features'}`,
     `${scenarios.total} ${scenarios.total === 1 ? 'scenario' : 'scenarios'}`,
     `${scenarios.passed} passed`,
   ];
@@ -70,10 +71,75 @@ function reportHeader(
 <div class="tolkira-brand">${logoMarkup}<div>
 <h1 class="tolkira-title">${escapeHtml(title)}</h1>
 <p class="tolkira-summary tolkira-summary-${summary.status}">${escapeHtml(summaryLine(summary))}</p>
+</div><div class="tolkira-actions">
+<button type="button" class="tolkira-action" data-tolkira-action="expand">Expand all</button>
+<button type="button" class="tolkira-action" data-tolkira-action="collapse">Collapse all</button>
 </div></div>
 ${items ? `<div class="tolkira-meta">${items}</div>` : ''}
 </header>`;
 }
+
+const SHELL_SCRIPT = `<script>
+(function () {
+  function featureButtons() {
+    return Array.prototype.slice.call(
+      document.querySelectorAll('button[aria-expanded]')
+    ).filter(function (button) {
+      return !button.hasAttribute('data-tolkira-action');
+    });
+  }
+  function imageDetails() {
+    return Array.prototype.slice.call(document.querySelectorAll('details')).filter(function (details) {
+      return details.querySelector('img[src^="data:image/"]');
+    });
+  }
+  function setAll(open) {
+    featureButtons().forEach(function (button) {
+      if ((button.getAttribute('aria-expanded') === 'true') !== open) button.click();
+    });
+    function setDetails() {
+      imageDetails().forEach(function (details) {
+        if (details.open !== open) {
+          var summary = details.querySelector('summary');
+          if (summary) summary.click();
+        }
+      });
+    }
+    if (open) setTimeout(setDetails, 100); else setDetails();
+  }
+  function action(name) {
+    return document.querySelector('[data-tolkira-action="' + name + '"]');
+  }
+  function wire() {
+    var expand = action('expand');
+    var collapse = action('collapse');
+    if (!expand || !collapse || expand.dataset.tolkiraWired) return;
+    expand.dataset.tolkiraWired = 'true';
+    collapse.dataset.tolkiraWired = 'true';
+    expand.addEventListener('click', function () { setAll(true); });
+    collapse.addEventListener('click', function () { setAll(false); });
+  }
+  function openImages() {
+    imageDetails().forEach(function (details) {
+      if (!details.open) {
+        var summary = details.querySelector('summary');
+        if (summary) summary.click();
+      }
+    });
+  }
+  function boot() {
+    wire();
+    openImages();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+  window.addEventListener('load', boot);
+  setTimeout(boot, 100);
+})();
+</script>`;
 
 const CSP = (scriptHashes: string[]): string =>
   `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; media-src data: blob:; style-src 'unsafe-inline'; script-src ${scriptHashes.join(' ') || "'none'"}; script-src-attr 'none'; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
@@ -93,13 +159,16 @@ const SHELL_STYLE = `<style>
 .tolkira-header{padding:18px 20px;border-top:4px solid var(--tolkira-accent,#1b5e20);border-bottom:1px solid #e5e5e5;background:#fafafa;font-family:system-ui,sans-serif;color:#222}
 .tolkira-brand{display:flex;align-items:center;gap:14px}
 .tolkira-logo{display:block;max-height:48px;max-width:160px;object-fit:contain}
+.tolkira-actions{display:flex;gap:8px;margin-left:auto}
+.tolkira-action{border:1px solid #bbb;border-radius:4px;background:#fff;color:#222;padding:6px 10px;font:12px/1.2 system-ui,sans-serif;cursor:pointer}
+.tolkira-action:hover,.tolkira-action:focus-visible{border-color:var(--tolkira-accent,#1b5e20);outline:2px solid var(--tolkira-accent,#1b5e20);outline-offset:1px}
 .tolkira-title{margin:0 0 6px;font-size:22px;line-height:1.25}
 .tolkira-summary{margin:0;font-size:14px;line-height:1.4;color:#444}
 .tolkira-summary-failed{color:#a4161a}
 .tolkira-summary-passed{color:#1b5e20}
 .tolkira-meta{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:10px;font-size:13px;line-height:1.4}
 .tolkira-meta-item{white-space:nowrap}
-@media (prefers-color-scheme:dark){.tolkira-header{background:#1f1f1f;border-color:#333;color:#e8e8e8}.tolkira-summary{color:#bbb}.tolkira-summary-failed{color:#ff8a80}.tolkira-summary-passed{color:#8fd694}}
+@media (prefers-color-scheme:dark){.tolkira-header{background:#1f1f1f;border-color:#333;color:#e8e8e8}.tolkira-summary{color:#bbb}.tolkira-summary-failed{color:#ff8a80}.tolkira-summary-passed{color:#8fd694}.tolkira-action{background:#2a2a2a;border-color:#555;color:#eee}}
 </style>`;
 
 export async function renderHtml(envelopes: Envelope[], options: RenderOptions): Promise<string> {
@@ -131,15 +200,16 @@ export async function renderHtml(envelopes: Envelope[], options: RenderOptions):
   const accentStyle = isValidAccent(options.accent)
     ? `<style>:root{--tolkira-accent:${options.accent}}</style>`
     : '';
-  html = html.replace(
-    '</head>',
-    () => `${CSP(inlineScriptHashes(html))}${SHELL_STYLE}${accentStyle}</head>`,
-  );
   if (html.includes('<div id="content">')) {
     html = html.replace('<div id="content">', () => `${header}<div id="content">`);
   } else {
     html = html.replace('</body>', () => `${header}</body>`);
   }
+  html = html.replace('</body>', () => `${SHELL_SCRIPT}</body>`);
+  html = html.replace(
+    '</head>',
+    () => `${CSP(inlineScriptHashes(html))}${SHELL_STYLE}${accentStyle}</head>`,
+  );
 
   return html;
 }

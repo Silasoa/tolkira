@@ -39,7 +39,6 @@ test('renders a messages report in the browser', async ({ page }) => {
       page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
     ).toBeVisible();
     await expect(page.getByText('screenshot.png')).toBeVisible();
-    await page.getByText('screenshot.png').click();
     await expect(
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
@@ -128,15 +127,18 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
     await page.goto(pathToFileURL(output).href);
     await expect(page).toHaveTitle('Legacy E2E');
     const feature = page.getByRole('button', { name: /happy\.feature/ });
-    if ((await feature.getAttribute('aria-expanded')) === 'false') {
-      await feature.click();
-    }
+    await expect(feature).toHaveAttribute('aria-expanded', 'false');
+    await page.getByRole('button', { name: 'Expand all' }).click();
     await expect(page.getByText('attachment-1.png')).toBeVisible();
     await expect(page.getByText('1 hooks').first()).toBeVisible();
-    await page.getByText('attachment-1.png').click();
     await expect(
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Collapse all' }).click();
+    await expect(page.getByText('attachment-1.png')).toBeHidden();
+    await page.getByRole('button', { name: 'Expand all' }).click();
+    await expect(page.getByText('attachment-1.png')).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

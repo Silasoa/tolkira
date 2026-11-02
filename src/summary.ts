@@ -66,6 +66,7 @@ export interface ReportSummary {
   status: SummaryStatus;
   durationMs: number;
   counts: {
+    features: number;
     scenarios: StatusCounts;
     steps: StatusCounts;
   };
@@ -322,6 +323,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   const stepCounts = emptyCounts();
   const scenarios: SummaryScenario[] = [];
   const countedAttachments = new Set<Attachment>();
+  const featureSet = new Set<Feature>();
   let totalDuration = 0;
 
   for (const pickle of pickles.values()) {
@@ -332,10 +334,11 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     const resultByStep = new Map(
       finished.map((entry) => [entry.testStepId, entry.testStepResult]),
     );
-    const tree = treeOf(
+    const feature =
       scenarioFeatures.get(pickle.astNodeIds[0] ?? '') ??
-        features.get(pickle.uri),
-    );
+      features.get(pickle.uri);
+    if (feature) featureSet.add(feature);
+    const tree = treeOf(feature);
     const pickleSteps = new Map(
       (pickle.steps ?? []).map((step) => [step.id, step]),
     );
@@ -416,6 +419,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     status: overall,
     durationMs: Math.round(totalDuration * 1000) / 1000,
     counts: {
+      features: featureSet.size,
       scenarios: scenarioCounts,
       steps: stepCounts,
     },

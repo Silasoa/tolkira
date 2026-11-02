@@ -144,6 +144,7 @@ describe('machine-readable summary', () => {
     const second = await summarizeReport(messages);
 
     expect(first).toEqual(second);
+    expect(first.counts.features).toBe(1);
     expect(Object.keys(first.counts.scenarios)).toEqual([
       'total',
       'passed',

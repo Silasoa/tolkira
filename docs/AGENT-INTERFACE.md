@@ -76,6 +76,7 @@ omitted.
   "status": "failed",
   "durationMs": 12.4,
   "counts": {
+    "features": 1,
     "scenarios": {
       "total": 2,
       "passed": 1,
@@ -135,6 +136,7 @@ Field contract:
   `ambiguous`, `unknown`.
 - `status` is the worst scenario status. A scenario is the worst step status,
   using the standard Cucumber severity order.
+- `counts.features` is the number of distinct Gherkin documents.
 - `counts.scenarios` and `counts.steps` always contain every status key, even
   when the value is `0`. `total` is the sum.
 - `durationMs` is a number of milliseconds. `steps[].durationMs` is rounded to

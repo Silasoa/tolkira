@@ -16,6 +16,10 @@ describe('messages rendering', () => {
 
     expect(html).toContain('<title>Tolkira test</title>');
     expect(html).toContain('<h1 class="tolkira-title">Tolkira test</h1>');
+    expect(html).toContain('data-tolkira-action="expand"');
+    expect(html).toContain('data-tolkira-action="collapse"');
+    expect(html).toContain('tolkira-action');
+    expect(html).toContain('1 feature');
     expect(html).toContain('2 scenarios');
     expect(html).toContain('1 passed');
     expect(html).toContain('1 failed');
