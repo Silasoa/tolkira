@@ -34,7 +34,8 @@ One package. One CLI. One HTML output. No monorepo, no server, no database.
 The hard part. It normalises Cucumber JSON from cucumber-js, cucumber-jvm,
 cucumber-ruby and Behave into Messages:
 
-- Gherkin documents, features, scenarios, backgrounds, rules, outlines;
+- Gherkin documents, features, scenarios, background steps, expanded outline
+  rows, steps and hooks;
 - test cases, test steps, hooks, statuses, durations;
 - tags, data tables, doc strings;
 - **embeddings → attachments**, including base64 screenshots and MIME types.

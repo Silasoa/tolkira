@@ -8,6 +8,7 @@ export function isValidAccent(value: string | undefined): value is string {
 export function isLogoDataUri(value: string | undefined): value is string {
   return (
     value !== undefined &&
+    value.length <= 3 * 1024 * 1024 &&
     /^data:image\/(?:png|jpeg|gif|webp|svg\+xml);base64,[a-z0-9+/=]+$/i.test(
       value,
     )

@@ -1,0 +1,23 @@
+[
+  {
+    "uri": "features/minimal.feature",
+    "name": "Minimal feature",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "Minimal scenario",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a minimal step",
+            "result": {
+              "status": "passed",
+              "duration": 1000
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

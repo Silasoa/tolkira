@@ -219,6 +219,18 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   const results = new Map<string, TestStepFinished[]>();
   const attachments = new Map<string, Attachment[]>();
   const attachmentList: Attachment[] = [];
+  const finishedIds = new Set<string>();
+  const scenarioFeatures = new Map<string, Feature>();
+
+  const indexFeature = (feature: Feature): void => {
+    const visit = (children: readonly (FeatureChild | RuleChild)[]): void => {
+      for (const child of children) {
+        if (child.scenario) scenarioFeatures.set(child.scenario.id, feature);
+        if ('rule' in child && child.rule) visit(child.rule.children ?? []);
+      }
+    };
+    visit(feature.children ?? []);
+  };
 
   for (const envelope of envelopes) {
     if (envelope.gherkinDocument?.feature) {
@@ -226,6 +238,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         envelope.gherkinDocument.uri ?? '',
         envelope.gherkinDocument.feature,
       );
+      indexFeature(envelope.gherkinDocument.feature);
     }
     if (envelope.pickle) pickles.set(envelope.pickle.id, envelope.pickle);
     if (envelope.testCase) {
@@ -238,6 +251,9 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         startedByTestCase.get(envelope.testCaseStarted.testCaseId) ?? [];
       list.push(envelope.testCaseStarted);
       startedByTestCase.set(envelope.testCaseStarted.testCaseId, list);
+    }
+    if (envelope.testCaseFinished) {
+      finishedIds.add(envelope.testCaseFinished.testCaseStartedId);
     }
     if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
     if (envelope.testStepFinished) {
@@ -256,23 +272,36 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     }
   }
 
+  const treeCache = new Map<
+    Feature,
+    { featureName: string; stepKeywords: Map<string, string> }
+  >();
+  const treeOf = (
+    feature: Feature | undefined,
+  ): { featureName: string; stepKeywords: Map<string, string> } => {
+    if (!feature) return { featureName: '', stepKeywords: new Map() };
+    const cached = treeCache.get(feature);
+    if (cached) return cached;
+    const tree = featureTree(feature);
+    treeCache.set(feature, tree);
+    return tree;
+  };
+
   const latestByPickle = new Map<string, TestCaseStarted>();
   for (const [pickleId, testCases] of testCasesByPickle) {
     const candidates = testCases.flatMap(
       (testCase) => startedByTestCase.get(testCase.id) ?? [],
     );
+    const finishedCandidates = candidates.filter((candidate) =>
+      finishedIds.has(candidate.id),
+    );
+    const pool = finishedCandidates.length
+      ? finishedCandidates
+      : candidates.filter((candidate) => (results.get(candidate.id)?.length ?? 0) > 0);
     let latest: TestCaseStarted | undefined;
-    for (const candidate of candidates) {
-      const complete = (results.get(candidate.id)?.length ?? 0) > 0;
-      const currentComplete = latest
-        ? (results.get(latest.id)?.length ?? 0) > 0
-        : false;
+    for (const candidate of pool) {
       if (!latest) {
         latest = candidate;
-        continue;
-      }
-      if (complete !== currentComplete) {
-        if (complete) latest = candidate;
         continue;
       }
       const newer =
@@ -303,7 +332,10 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     const resultByStep = new Map(
       finished.map((entry) => [entry.testStepId, entry.testStepResult]),
     );
-    const tree = featureTree(features.get(pickle.uri));
+    const tree = treeOf(
+      scenarioFeatures.get(pickle.astNodeIds[0] ?? '') ??
+        features.get(pickle.uri),
+    );
     const pickleSteps = new Map(
       (pickle.steps ?? []).map((step) => [step.id, step]),
     );

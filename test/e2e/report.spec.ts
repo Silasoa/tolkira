@@ -61,6 +61,59 @@ test('renders a messages report in the browser', async ({ page }) => {
   }
 });
 
+test('filters by status', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-filter-e2e-'));
+  const output = path.join(dir, 'filter.html');
+
+  try {
+    const code = await runCli(
+      [fixture, '--out', output, '--title', 'Tolkira filter'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const failedFilter = page.getByRole('checkbox', { name: /failed/ });
+    await expect(failedFilter).toBeVisible();
+    await expect(failedFilter).toBeChecked();
+    await failedFilter.focus();
+    await page.keyboard.press('Space');
+    await expect(failedFilter).not.toBeChecked();
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+    ).toBeHidden();
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
+    ).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('searches by tag', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-tag-e2e-'));
+  const output = path.join(dir, 'tag.html');
+
+  try {
+    const code = await runCli(
+      [fixture, '--out', output, '--title', 'Tolkira tag'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await page.getByRole('textbox', { name: 'Search' }).fill('@failing');
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
+    ).toBeHidden();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('renders a legacy screenshot in the browser', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-legacy-e2e-'));
   const output = path.join(dir, 'legacy.html');
@@ -79,6 +132,7 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
       await feature.click();
     }
     await expect(page.getByText('attachment-1.png')).toBeVisible();
+    await expect(page.getByText('1 hooks').first()).toBeVisible();
     await page.getByText('attachment-1.png').click();
     await expect(
       page.locator('img[src^="data:image/png"]').first(),

@@ -1,11 +1,13 @@
+import { createHash } from 'node:crypto';
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Envelope } from '@cucumber/messages';
-import { parseLegacyJson } from './legacy.js';
+import { parseLegacyJson, parseLegacyValue } from './legacy.js';
 import { isEnvelopeLike, parseMessages } from './messages.js';
 
 const SUPPORTED_EXTENSIONS = new Set(['.json', '.jsonl', '.ndjson']);
-const MAX_INPUT_BYTES = 100 * 1024 * 1024;
+const MESSAGES_EXTENSIONS = new Set(['.jsonl', '.ndjson']);
+const MAX_TOTAL_INPUT_BYTES = 100 * 1024 * 1024;
 
 type JsonObject = Record<string, unknown>;
 
@@ -16,24 +18,28 @@ function isObject(value: unknown): value is JsonObject {
 function isFeatureLike(value: unknown): boolean {
   return (
     isObject(value) &&
-    (Array.isArray(value.elements) || typeof value.uri === 'string')
+    (Array.isArray(value.elements) ||
+      (typeof value.keyword === 'string' && typeof value.name === 'string'))
   );
 }
 
-function parseLegacyCandidate(content: string): unknown[] | undefined {
+type LegacySniff =
+  | { kind: 'legacy'; parsed: unknown[] }
+  | { kind: 'malformed' }
+  | undefined;
+
+function sniffLegacy(content: string): LegacySniff {
   const trimmed = content.replace(/^\uFEFF/, '').trimStart();
   if (!trimmed.startsWith('[')) return undefined;
   try {
     const parsed: unknown = JSON.parse(trimmed);
     if (!Array.isArray(parsed)) return undefined;
-    return parsed.every(isFeatureLike) ? parsed : undefined;
+    return parsed.every(isFeatureLike)
+      ? { kind: 'legacy', parsed }
+      : undefined;
   } catch {
-    return undefined;
+    return { kind: 'malformed' };
   }
-}
-
-function looksLikeLegacyJson(content: string): boolean {
-  return parseLegacyCandidate(content) !== undefined;
 }
 
 function looksLikeMessages(content: string): boolean {
@@ -48,6 +54,16 @@ function looksLikeMessages(content: string): boolean {
   } catch {
     return false;
   }
+}
+
+function invalidJson(content: string, file: string): never {
+  try {
+    JSON.parse(content.replace(/^\uFEFF/, '').trimStart());
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid JSON in ${file}: ${detail}`);
+  }
+  throw new Error(`Unsupported input: ${file}`);
 }
 
 interface InputFile {
@@ -108,47 +124,51 @@ export async function loadEnvelopes(inputs: string | string[]): Promise<Envelope
   );
 
   const envelopes: Envelope[] = [];
+  const seenContent = new Set<string>();
+  let totalBytes = 0;
+
   for (const [index, input] of ordered.entries()) {
     const info = await stat(input.file);
-    if (info.size > MAX_INPUT_BYTES) {
+    if (totalBytes + info.size > MAX_TOTAL_INPUT_BYTES) {
       throw new Error(
-        `Input is larger than 100 MB: ${input.file}. Split the report or use external attachments.`,
+        'Inputs exceed 100 MB in total. Split the report or use external attachments.',
       );
     }
-
     const content = await readFile(input.file, 'utf8');
-    const legacy = looksLikeLegacyJson(content);
-    const messages = looksLikeMessages(content);
+    const hash = createHash('sha256').update(content).digest('hex');
+    if (seenContent.has(hash)) continue;
+    seenContent.add(hash);
 
-    if (!legacy && !messages) {
-      const trimmed = content.replace(/^\uFEFF/, '').trimStart();
-      if (input.explicit) {
-        if (trimmed.startsWith('[')) {
-          try {
-            JSON.parse(trimmed);
-          } catch {
-            // Parse to produce a precise error for malformed legacy JSON.
-            parseLegacyJson(content, input.file, { idPrefix: `legacy-${index}` });
-          }
-        } else {
-          try {
-            JSON.parse(trimmed);
-          } catch (error) {
-            const detail = error instanceof Error ? error.message : String(error);
-            throw new Error(`Invalid JSON in ${input.file}: ${detail}`);
-          }
-        }
-        throw new Error(`Unsupported input: ${input.file}`);
-      }
+    totalBytes += info.size;
+
+    const extension = path.extname(input.file).toLowerCase();
+    const legacy = sniffLegacy(content);
+
+    if (legacy?.kind === 'legacy') {
+      envelopes.push(
+        ...parseLegacyValue(legacy.parsed, input.file, {
+          idPrefix: `legacy-${index}`,
+        }),
+      );
       continue;
     }
 
-    if (legacy) {
-      envelopes.push(
-        ...parseLegacyJson(content, input.file, { idPrefix: `legacy-${index}` }),
-      );
-    } else {
+    if (legacy?.kind === 'malformed') {
+      parseLegacyJson(content, input.file, { idPrefix: `legacy-${index}` });
+      continue;
+    }
+
+    if (looksLikeMessages(content)) {
       envelopes.push(...parseMessages(content, input.file));
+      continue;
+    }
+
+    if (input.explicit) {
+      invalidJson(content, input.file);
+    }
+
+    if (MESSAGES_EXTENSIONS.has(extension)) {
+      parseMessages(content, input.file);
     }
   }
 

@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { summarizeReport } from '../src/index.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
+import { renderHtml } from '../src/render/html.js';
 import { summarizeEnvelopes } from '../src/summary.js';
 
 const messages = fileURLToPath(
@@ -90,7 +91,7 @@ describe('machine-readable summary', () => {
     );
   });
 
-  it('counts every status from a decision table', () => {
+  it('counts every status from a decision table', async () => {
     const statuses = [
       'passed',
       'failed',
@@ -131,6 +132,11 @@ describe('machine-readable summary', () => {
       ambiguous: 1,
     });
     expect(summary.counts.steps.total).toBe(6);
+
+    const html = await renderHtml(envelopes, { title: 'Statuses' });
+    for (const status of statuses) {
+      expect(html.toLowerCase()).toContain(status);
+    }
   });
 
   it('keeps the schema stable and counts self-consistent', async () => {

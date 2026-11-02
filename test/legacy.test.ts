@@ -19,6 +19,9 @@ const failed = fileURLToPath(
 const behave = fileURLToPath(
   new URL('./fixtures/legacy/behave.json', import.meta.url),
 );
+const minimal = fileURLToPath(
+  new URL('./fixtures/legacy/minimal.json', import.meta.url),
+);
 
 async function legacyEnvelopes(path: string) {
   const content = await readFile(path, 'utf8');
@@ -221,6 +224,89 @@ describe('legacy JSON adapter', () => {
     expect(html).toContain('a background step');
     expect(html).toContain('image/png');
     expect(html).toContain('attachment-1.png');
+  });
+
+  it('rejects unknown legacy result statuses', () => {
+    expect(() =>
+      parseLegacyJson(
+        JSON.stringify([
+          {
+            name: 'Bad status',
+            elements: [
+              {
+                keyword: 'Scenario',
+                name: 'Bad scenario',
+                steps: [
+                  {
+                    keyword: 'Given ',
+                    name: 'a step',
+                    result: { status: 'BANANA' },
+                  },
+                ],
+              },
+            ],
+          },
+        ]),
+        'bad-status.json',
+      ),
+    ).toThrow('result.status');
+  });
+
+  it('maps Behave doc strings, tables and locations', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          location: 'features/behave.feature:1',
+          name: 'Behave arguments',
+          elements: [
+            {
+              type: 'scenario',
+              name: 'Arguments',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a doc string',
+                  text: 'line one\nline two',
+                  result: { status: 'passed', duration: 1 },
+                },
+                {
+                  keyword: 'And ',
+                  name: 'a table',
+                  table: {
+                    headings: ['name', 'value'],
+                    rows: [['a', '1']],
+                  },
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'behave-args.json',
+    );
+
+    const document = envelopes.find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument;
+    expect(document?.uri).toBe('features/behave.feature');
+    const steps = document?.feature?.children[0]?.scenario?.steps ?? [];
+    expect(steps[0]?.docString?.content).toContain('line one');
+    expect(steps[1]?.dataTable?.rows).toHaveLength(2);
+    expect(steps[1]?.dataTable?.rows[1]?.cells.map((cell) => cell.value)).toEqual([
+      'a',
+      '1',
+    ]);
+  });
+
+  it('renders a minimal legacy fixture without attachments', async () => {
+    const summary = await summarizeReport(minimal);
+    expect(summary.counts.scenarios.total).toBe(1);
+    expect(summary.attachments.total).toBe(0);
+
+    const html = await renderReport(minimal, { title: 'Minimal' });
+    expect(html).toContain('Minimal feature');
+    expect(html).toContain('a minimal step');
   });
 
   it('uses deterministic IDs when a prefix is given', async () => {

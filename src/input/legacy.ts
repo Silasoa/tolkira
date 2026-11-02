@@ -55,13 +55,16 @@ interface LegacyResult {
 
 interface LegacyDocString {
   content?: string;
+  value?: string;
   line?: number;
   contentType?: string;
+  content_type?: string;
 }
 
 interface LegacyStep {
   keyword?: string;
   name?: string;
+  text?: string;
   line?: number;
   hidden?: boolean;
   result?: LegacyResult;
@@ -69,7 +72,10 @@ interface LegacyStep {
   arguments?: LegacyArgument[];
   docString?: string | LegacyDocString;
   rows?: Array<{ cells?: string[] }>;
-  table?: { rows?: Array<{ cells?: string[] }> } | Array<{ cells?: string[] }>;
+  table?:
+    | { headings?: string[]; rows?: string[][] }
+    | { rows?: Array<{ cells?: string[] }> }
+    | Array<{ cells?: string[] }>;
   match?: { location?: string };
 }
 
@@ -87,6 +93,7 @@ interface LegacyElement {
 
 interface LegacyFeature {
   uri?: string;
+  location?: string;
   keyword?: string;
   name?: string;
   description?: string | string[];
@@ -104,6 +111,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+const LEGACY_STATUSES = new Set([
+  'passed',
+  'failed',
+  'skipped',
+  'pending',
+  'undefined',
+  'ambiguous',
+  'unknown',
+]);
+
 function invalidLegacy(source: string, detail: string): Error {
   return new Error(`Invalid legacy JSON in ${source}: ${detail}`);
 }
@@ -117,15 +134,41 @@ function validateStep(
     throw invalidLegacy(source, `${where}.embeddings must be an array.`);
   }
   for (const embedding of step.embeddings ?? []) {
-    if (!isRecord(embedding) || (embedding.data !== undefined && typeof embedding.data !== 'string')) {
+    if (
+      !isRecord(embedding) ||
+      (embedding.data !== undefined && typeof embedding.data !== 'string')
+    ) {
       throw invalidLegacy(source, `${where}.embeddings entries must have string data.`);
+    }
+    if (
+      embedding.media !== undefined &&
+      (!isRecord(embedding.media) ||
+        (embedding.media.type !== undefined &&
+          typeof embedding.media.type !== 'string'))
+    ) {
+      throw invalidLegacy(source, `${where}.embeddings media type must be a string.`);
+    }
+    if (
+      embedding.mime_type !== undefined &&
+      typeof embedding.mime_type !== 'string'
+    ) {
+      throw invalidLegacy(source, `${where}.embeddings mime_type must be a string.`);
     }
   }
   if (step.arguments !== undefined && !Array.isArray(step.arguments)) {
     throw invalidLegacy(source, `${where}.arguments must be an array.`);
   }
-  if (step.result !== undefined && !isRecord(step.result)) {
-    throw invalidLegacy(source, `${where}.result must be an object.`);
+  if (step.result !== undefined) {
+    if (!isRecord(step.result)) {
+      throw invalidLegacy(source, `${where}.result must be an object.`);
+    }
+    if (
+      step.result.status !== undefined &&
+      (typeof step.result.status !== 'string' ||
+        !LEGACY_STATUSES.has(step.result.status.toLowerCase()))
+    ) {
+      throw invalidLegacy(source, `${where}.result.status must be a known status.`);
+    }
   }
   if (
     step.docString !== undefined &&
@@ -154,6 +197,25 @@ function validateLegacyFeatures(
         `feature ${featureIndex + 1}.elements must be an array.`,
       );
     }
+    if (feature.uri !== undefined && typeof feature.uri !== 'string') {
+      throw invalidLegacy(source, `feature ${featureIndex + 1}.uri must be a string.`);
+    }
+    if (feature.location !== undefined && typeof feature.location !== 'string') {
+      throw invalidLegacy(
+        source,
+        `feature ${featureIndex + 1}.location must be a string.`,
+      );
+    }
+    if (
+      feature.description !== undefined &&
+      typeof feature.description !== 'string' &&
+      !Array.isArray(feature.description)
+    ) {
+      throw invalidLegacy(
+        source,
+        `feature ${featureIndex + 1}.description must be a string or array.`,
+      );
+    }
     if (feature.tags !== undefined && !Array.isArray(feature.tags)) {
       throw invalidLegacy(
         source,
@@ -180,6 +242,16 @@ function validateLegacyFeatures(
       }
       if (element.tags !== undefined && !Array.isArray(element.tags)) {
         throw invalidLegacy(source, `${where}.tags must be an array.`);
+      }
+      if (
+        element.description !== undefined &&
+        typeof element.description !== 'string' &&
+        !Array.isArray(element.description)
+      ) {
+        throw invalidLegacy(
+          source,
+          `${where}.description must be a string or array.`,
+        );
       }
       for (const [stepIndex, step] of (element.steps ?? []).entries()) {
         if (!isRecord(step)) {
@@ -215,11 +287,12 @@ function createIdFactory(prefix: string): (kind: string) => string {
 
 function normalizeUri(uri: string | undefined, index: number): string {
   if (!uri) return `features/legacy-${index}.feature`;
-  const normalized = uri.replace(/\\/g, '/').replace(/^\.?\//, '');
-  if (/^[a-z]:\//i.test(normalized) || normalized.startsWith('/')) {
-    const marker = normalized.lastIndexOf('/features/');
-    if (marker >= 0) return normalized.slice(marker + 1);
-    const parts = normalized.split('/').filter(Boolean);
+  const slashed = uri.replace(/\\/g, '/');
+  const normalized = slashed.replace(/^\.\//, '');
+  if (/^[a-z]:\//i.test(normalized) || slashed.startsWith('/')) {
+    const marker = slashed.lastIndexOf('/features/');
+    if (marker >= 0) return slashed.slice(marker + 1);
+    const parts = slashed.split('/').filter(Boolean);
     return parts.slice(-2).join('/') || `features/legacy-${index}.feature`;
   }
   return normalized || `features/legacy-${index}.feature`;
@@ -330,6 +403,26 @@ function mapDocString(
   };
 }
 
+function tableRows(
+  table: LegacyStep['table'],
+): Array<{ cells?: string[] }> | undefined {
+  if (table === undefined) return undefined;
+  if (Array.isArray(table)) return table;
+  if ('headings' in table && table.headings && table.rows) {
+    return [
+      { cells: table.headings },
+      ...table.rows.map((row) => ({ cells: row })),
+    ];
+  }
+  if ('rows' in table && table.rows) {
+    if (Array.isArray(table.rows[0])) {
+      return (table.rows as string[][]).map((cells) => ({ cells }));
+    }
+    return table.rows as Array<{ cells?: string[] }>;
+  }
+  return undefined;
+}
+
 function stepArgument(legacyStep: LegacyStep): {
   content?: string;
   rows?: Array<{ cells?: string[] }>;
@@ -343,17 +436,18 @@ function stepArgument(legacyStep: LegacyStep): {
       typeof legacyStep.docString === 'string'
         ? { content: legacyStep.docString }
         : legacyStep.docString;
-    return { content: docString.content ?? '', line: docString.line ?? legacyStep.line };
+    return {
+      content: docString.content ?? docString.value ?? '',
+      line: docString.line ?? legacyStep.line,
+    };
   }
 
-  if (legacyStep.rows !== undefined) {
-    return { rows: legacyStep.rows, line: legacyStep.line };
+  if (legacyStep.text !== undefined) {
+    return { content: legacyStep.text, line: legacyStep.line };
   }
 
-  if (legacyStep.table !== undefined) {
-    const rows = Array.isArray(legacyStep.table)
-      ? legacyStep.table
-      : legacyStep.table.rows;
+  const rows = tableRows(legacyStep.rows ?? legacyStep.table);
+  if (rows !== undefined) {
     return { rows, line: legacyStep.line };
   }
 
@@ -458,7 +552,14 @@ export function parseLegacyJson(
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(`Invalid legacy JSON in ${source}: ${detail}`);
   }
+  return parseLegacyValue(parsed, source, options);
+}
 
+export function parseLegacyValue(
+  parsed: unknown,
+  source: string,
+  options: LegacyJsonOptions = {},
+): Envelope[] {
   if (!Array.isArray(parsed)) {
     throw new Error(`Invalid legacy JSON in ${source}: expected an array of features.`);
   }
@@ -485,7 +586,10 @@ export function parseLegacyJson(
   let clock = timestamp(startedAt);
 
   for (const [featureIndex, legacyFeature] of features.entries()) {
-    const uri = normalizeUri(legacyFeature.uri, featureIndex);
+    const uri = normalizeUri(
+      legacyFeature.uri ?? legacyFeature.location?.replace(/:\d+$/, ''),
+      featureIndex,
+    );
     const featureTags = mapTags(legacyFeature.tags, nextId);
     const featureChildren: FeatureChild[] = [];
     const scenarioEnvelopes: Envelope[] = [];

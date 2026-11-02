@@ -100,6 +100,47 @@ describe('input merging', () => {
     );
   });
 
+  it('rejects a malformed report inside a directory', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-broken-'));
+    tempDirs.push(dir);
+    await copyFile(messages, path.join(dir, 'messages.ndjson'));
+    await writeFile(
+      path.join(dir, 'broken.json'),
+      '[{"name":"Broken","elements":[',
+      'utf8',
+    );
+
+    await expect(renderReport(dir, { title: 'Broken' })).rejects.toThrow(
+      'Invalid legacy JSON',
+    );
+  });
+
+  it('rejects a truncated Messages file inside a directory', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-broken-'));
+    tempDirs.push(dir);
+    await copyFile(messages, path.join(dir, 'messages.ndjson'));
+    await writeFile(path.join(dir, 'broken.ndjson'), '{"meta":', 'utf8');
+
+    await expect(renderReport(dir, { title: 'Broken' })).rejects.toThrow(
+      'Invalid Cucumber Messages',
+    );
+  });
+
+  it('deduplicates identical content under different names', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-copy-'));
+    tempDirs.push(dir);
+    const copy = path.join(dir, 'copy.ndjson');
+    await copyFile(messages, copy);
+
+    const summary = await summarizeReport([messages, copy]);
+    expect(summary.counts.scenarios.total).toBe(2);
+    expect(summary.attachments.total).toBe(1);
+
+    const single = await renderReport(messages, { title: 'Copy' });
+    const doubled = await renderReport([messages, copy], { title: 'Copy' });
+    expect(doubled).toBe(single);
+  });
+
   it('deduplicates the same file passed twice', async () => {
     const summary = await summarizeReport([messages, messages]);
 

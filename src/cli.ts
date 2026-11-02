@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -96,21 +96,35 @@ async function readLogo(file: string): Promise<string> {
       `Unsupported logo type "${extension}". Use PNG, JPEG, GIF, WebP or SVG.`,
     );
   }
-  const data = await readFile(file);
-  if (data.byteLength > MAX_LOGO_BYTES) {
+  const info = await stat(file);
+  if (info.size > MAX_LOGO_BYTES) {
     throw new Error('Logo is larger than 2 MB.');
   }
-  const valid =
-    (extension === '.png' && data.subarray(0, 8).toString('hex') === '89504e470d0a1a0a') ||
-    (extension === '.jpg' || extension === '.jpeg'
-      ? data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff
-      : false) ||
-    ((extension === '.gif') && data.subarray(0, 4).toString('ascii') === 'GIF8') ||
-    (extension === '.webp' &&
-      data.subarray(0, 4).toString('ascii') === 'RIFF' &&
-      data.subarray(8, 12).toString('ascii') === 'WEBP') ||
-    (extension === '.svg' &&
-      data.toString('utf8', 0, 512).trimStart().startsWith('<svg'));
+  const data = await readFile(file);
+  let valid = false;
+  switch (extension) {
+    case '.png':
+      valid = data.subarray(0, 8).toString('hex') === '89504e470d0a1a0a';
+      break;
+    case '.jpg':
+    case '.jpeg':
+      valid = data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
+      break;
+    case '.gif':
+      valid = data.subarray(0, 4).toString('ascii') === 'GIF8';
+      break;
+    case '.webp':
+      valid =
+        data.subarray(0, 4).toString('ascii') === 'RIFF' &&
+        data.subarray(8, 12).toString('ascii') === 'WEBP';
+      break;
+    case '.svg':
+      valid =
+        /^\s*(?:<\?xml[\s\S]*?\?>\s*)?(?:<!DOCTYPE[\s\S]*?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg\b/i.test(
+          data.toString('utf8', 0, 1024),
+        );
+      break;
+  }
   if (!valid) {
     throw new Error(`Logo content does not match the "${extension}" extension.`);
   }

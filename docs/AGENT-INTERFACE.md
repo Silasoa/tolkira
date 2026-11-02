@@ -165,11 +165,13 @@ reduced to a report-relative form (`features/...`).
 - Remote attachments (`attachment.url`, `externalAttachment`) are rejected on
   purpose; the report must work offline. Inline the bytes.
 - Markdown images with remote URLs are stripped from descriptions.
-- Inputs are capped at 100 MB; attachments at 50 MB each and 100 MB total.
+- Inputs are capped at 100 MB in total; attachments at 50 MB each and 100 MB
+  total.
 - The HTML report includes a hash-based CSP and never executes attachments.
 - History, trends, retries beyond the latest attempt and JUnit/Playwright
   adapters are not part of v0.1.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
-  outline `examples` table is not reconstructed.
+  outline `examples` table is not reconstructed. Behave-shaped durations are
+  interpreted as nanoseconds, like cucumber-js.
 - cucumber-js, Behave-shaped and Messages inputs are covered by fixtures;
   cucumber-jvm and cucumber-ruby fixtures are follow-ups.

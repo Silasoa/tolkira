@@ -188,6 +188,26 @@ describe('CLI', () => {
     await expect(readFile(output, 'utf8')).resolves.toContain('<html');
   });
 
+  it('accepts a valid SVG logo with an XML declaration', async () => {
+    const dir = await tempDir();
+    const logo = path.join(dir, 'logo.svg');
+    const output = path.join(dir, 'svg.html');
+    await writeFile(
+      logo,
+      '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>',
+      'utf8',
+    );
+
+    const code = await runCli(
+      [legacyFixture, '--out', output, '--logo', logo],
+      io,
+    );
+
+    expect(code).toBe(0);
+    const html = await readFile(output, 'utf8');
+    expect(html).toContain('data:image/svg+xml;base64,');
+  });
+
   it('rejects invalid accent values and logo types as usage errors', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'report.html');

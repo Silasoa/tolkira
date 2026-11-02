@@ -50,8 +50,8 @@ test-first and should fit in roughly two hours.
 - [x] 5.1 RED/GREEN: visible title, summary counts, duration, metadata block
   and key/value entries; escape all values.
 - [x] 5.2 RED/GREEN: system dark mode, accent theme token, embedded logo.
-- [ ] 5.3 Accessibility check: status text not colour-only, keyboard access to
-  attachments and filters.
+- [x] 5.3 Accessibility check: status text not colour-only, keyboard access to
+  status filters, native disclosure controls for attachments.
 
 ## 6. Security
 
@@ -82,9 +82,9 @@ test-first and should fit in roughly two hours.
 - [x] 8.2 Verify `npm pack` contents, package size, license and third-party
   notices. 20 files, 78.8 kB packed; AGENT-INTERFACE and GLOSSARY included.
 - [x] 8.3 Run the full gate in the foreground: typecheck, lint, tests, build,
-  browser test; record the results. Green on 2026-11-02 after fixes: 51 unit
-  tests, 3 Playwright tests, 0 audit vulnerabilities.
-- [ ] 8.4 Run the blind review set (SCR, CR, DAR, SEC) and fix findings.
+  browser test; record the results. Green on 2026-11-02 after fixes: 58 unit
+  tests, 5 Playwright tests, 0 audit vulnerabilities.
+- [x] 8.4 Run the blind review set (SCR, CR, DAR, SEC) and fix findings.
 - [ ] 8.5 User approval, tag `v0.1.0`, publish with provenance.
 
 ## 9. Agent interface
