@@ -19,6 +19,7 @@ report options and equivalent scenario, story and group inputs.
 
 ## Screenshots
 
+Overview: [`overview.png`](comparison/overview.png).
 All images are in [`docs/comparison/`](comparison/).
 
 | Mode | Old reporter | Tolkira |
