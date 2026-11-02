@@ -48,6 +48,8 @@ accepts both JSON and Messages and preserves screenshots**.
   `srcdoc`, CI artefact).
 - CI engineers who need one offline file and no server.
 - Teams migrating from legacy JSON to Messages at their own pace.
+- AI agents and CI tools that need the test outcome as structured data, not only
+  as a human-readable page.
 
 ## Jobs to be done
 
@@ -55,7 +57,8 @@ accepts both JSON and Messages and preserves screenshots**.
 - “Give me one HTML file I can attach to a ticket or CI run.”
 - “Keep our old JSON reports working while we move to Messages.”
 - “Add our logo, title and environment metadata without forking a UI.”
-- “Do not send our test data to a third party.”
+- "Do not send our test data to a third party."
+- "Give my agent a stable summary it can read without scraping HTML."
 
 ## Scope
 
@@ -69,13 +72,14 @@ accepts both JSON and Messages and preserves screenshots**.
 - Official Cucumber rendering components for Gherkin, steps, errors and
   attachments.
 - Shell: title, metadata, summary, dark mode, logo, brand colours, basic CSS.
+- Machine-readable JSON summary with a versioned schema for agents and CI.
 - Search, status filters, tag filters.
 - Security baseline: escaping, safe attachments, no telemetry.
 - Tests with fixtures from several Cucumber implementations.
 
 ### v0.2 and later
 
-- External attachments / split-assets mode for large media and strict CSP.
+- External attachments / split-assets mode for large media.
 - History/trends via an optional history file.
 - PDF/email summary.
 - German UI/localisation.
@@ -118,6 +122,8 @@ accepts both JSON and Messages and preserves screenshots**.
 - A user can generate a report from a real legacy JSON file in one command.
 - Screenshots survive the legacy adapter.
 - A report contains no external asset requests and no telemetry.
+- An agent can read the JSON summary and identify every failing scenario
+  without parsing HTML.
 - A group report can merge multiple runs without losing scenarios.
 - The first external user can generate a report without reading the source.
 - The package stays small and the dependency count stays low.

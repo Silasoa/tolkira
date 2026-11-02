@@ -1,6 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { renderReport } from '../src/index.js';
+import { parseLegacyJson } from '../src/input/legacy.js';
+import { renderHtml } from '../src/render/html.js';
 
 const fixture = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
@@ -11,6 +13,11 @@ describe('messages rendering', () => {
     const html = await renderReport(fixture, { title: 'Tolkira test' });
 
     expect(html).toContain('<title>Tolkira test</title>');
+    expect(html).toContain('<h1 class="tolkira-title">Tolkira test</h1>');
+    expect(html).toContain('2 scenarios');
+    expect(html).toContain('1 passed');
+    expect(html).toContain('1 failed');
+    expect(html).toContain('1 attachment');
     expect(html).toContain('Screenshot attachment');
     expect(html).toContain('screenshot.png');
     expect(html).toContain('image/png');
@@ -46,5 +53,35 @@ describe('messages rendering', () => {
 
     expect(html).not.toMatch(/<script[^>]+src=["']https?:/i);
     expect(html).not.toMatch(/<link[^>]+href=["']https?:/i);
+  });
+
+  it('escapes untrusted feature, scenario and step names', async () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: '<img src=x onerror=alert(1)>',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: '<script>alert(2)</script>',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: '<svg onload=alert(3)>',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'xss-names.json',
+    );
+
+    const html = await renderHtml(envelopes, { title: 'XSS names' });
+
+    expect(html).not.toContain('<img src=x');
+    expect(html).not.toContain('<script>alert(2)</script>');
+    expect(html).not.toContain('<svg onload=alert(3)>');
   });
 });

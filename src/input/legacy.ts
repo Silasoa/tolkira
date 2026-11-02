@@ -61,6 +61,7 @@ interface LegacyStep {
 
 interface LegacyElement {
   keyword?: string;
+  type?: string;
   name?: string;
   description?: string;
   line?: number;
@@ -81,6 +82,49 @@ interface LegacyFeature {
 interface LegacyJsonOptions {
   idPrefix?: string;
   startedAt?: Date;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateLegacyFeatures(
+  values: unknown[],
+  source: string,
+): asserts values is LegacyFeature[] {
+  for (const [featureIndex, feature] of values.entries()) {
+    if (!isRecord(feature)) {
+      throw new Error(
+        `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} must be an object.`,
+      );
+    }
+
+    if (feature.elements !== undefined && !Array.isArray(feature.elements)) {
+      throw new Error(
+        `Invalid legacy JSON in ${source}: feature ${featureIndex + 1}.elements must be an array.`,
+      );
+    }
+
+    for (const [elementIndex, element] of (feature.elements ?? []).entries()) {
+      if (!isRecord(element)) {
+        throw new Error(
+          `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} element ${elementIndex + 1} must be an object.`,
+        );
+      }
+      if (element.steps !== undefined && !Array.isArray(element.steps)) {
+        throw new Error(
+          `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} element ${elementIndex + 1}.steps must be an array.`,
+        );
+      }
+      for (const [stepIndex, step] of (element.steps ?? []).entries()) {
+        if (!isRecord(step)) {
+          throw new Error(
+            `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} element ${elementIndex + 1} step ${stepIndex + 1} must be an object.`,
+          );
+        }
+      }
+    }
+  }
 }
 
 interface StepPlan {
@@ -149,6 +193,13 @@ function statusOf(value: string | undefined): TestStepResultStatus {
 function isHook(step: LegacyStep): boolean {
   if (step.hidden === true) return true;
   return /^(before|after)\b/i.test((step.keyword ?? '').trim());
+}
+
+function isBackgroundElement(element: LegacyElement): boolean {
+  return (
+    (element.type ?? '').toLowerCase() === 'background' ||
+    /^background\b/i.test((element.keyword ?? '').trim())
+  );
 }
 
 function mapTags(tags: LegacyTag[] | undefined, nextId: (kind: string) => string): Tag[] {
@@ -251,9 +302,25 @@ function resultOf(legacyStep: LegacyStep): TestStepResult {
   return result;
 }
 
+const MIME_EXTENSIONS: Record<string, string> = {
+  'application/json': 'json',
+  'application/octet-stream': 'bin',
+  'image/gif': 'gif',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/svg+xml': 'svg',
+  'text/html': 'html',
+  'text/plain': 'txt',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+};
+
 function attachmentFileName(mediaType: string, index: number): string {
-  const subtype = mediaType.split('/')[1]?.split(';')[0]?.trim() || 'bin';
-  return `attachment-${index + 1}.${subtype}`;
+  const extension =
+    MIME_EXTENSIONS[mediaType.toLowerCase()] ??
+    mediaType.split('/')[1]?.split(';')[0]?.trim() ??
+    'bin';
+  return `attachment-${index + 1}.${extension}`;
 }
 
 export function parseLegacyJson(
@@ -263,7 +330,7 @@ export function parseLegacyJson(
 ): Envelope[] {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(content);
+    parsed = JSON.parse(content.replace(/^\uFEFF/, ''));
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(`Invalid legacy JSON in ${source}: ${detail}`);
@@ -273,12 +340,14 @@ export function parseLegacyJson(
     throw new Error(`Invalid legacy JSON in ${source}: expected an array of features.`);
   }
 
-  const features = parsed as LegacyFeature[];
+  validateLegacyFeatures(parsed, source);
+  const features = parsed;
   const nextId = createIdFactory(options.idPrefix ?? 'legacy');
   const startedAt = Math.floor((options.startedAt ?? new Date()).getTime() / 1000);
   const runId = nextId('run');
   const envelopes: Envelope[] = [];
   const statuses: TestStepResultStatus[] = [];
+  let attachmentCounter = 0;
 
   const meta: Meta = {
     protocolVersion: messagesVersion,
@@ -307,7 +376,9 @@ export function parseLegacyJson(
       children: [],
     };
 
-    const scenarios: LegacyElement[] = legacyFeature.elements ?? [];
+    const scenarios: LegacyElement[] = (legacyFeature.elements ?? []).filter(
+      (element) => !isBackgroundElement(element),
+    );
 
     for (const [scenarioIndex, element] of scenarios.entries()) {
       const scenarioId = nextId('scenario');
@@ -446,16 +517,14 @@ export function parseLegacyJson(
           },
         });
 
-        for (const [embeddingIndex, embedding] of (
-          plan.legacyStep.embeddings ?? []
-        ).entries()) {
+        for (const embedding of plan.legacyStep.embeddings ?? []) {
           if (!embedding.data) continue;
           const mediaType = embedding.media?.type ?? 'application/octet-stream';
           const attachment: Attachment = {
             body: embedding.data,
             contentEncoding: AttachmentContentEncoding.BASE64,
             mediaType,
-            fileName: attachmentFileName(mediaType, embeddingIndex),
+            fileName: attachmentFileName(mediaType, attachmentCounter++),
             testCaseStartedId,
             testStepId: plan.testStep.id,
             timestamp: finishedAt,

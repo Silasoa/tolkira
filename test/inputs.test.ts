@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,5 +38,36 @@ describe('input merging', () => {
 
     expect(html).toContain('Screenshot attachment');
     expect(html).toContain('Happy HTML reporting');
+  });
+
+  it('detects a Messages file with a .json extension', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-sniff-'));
+    tempDirs.push(dir);
+    const renamed = path.join(dir, 'messages.json');
+    await copyFile(messages, renamed);
+
+    const html = await renderReport(renamed, { title: 'Sniffed messages' });
+    expect(html).toContain('Screenshot attachment');
+  });
+
+  it('detects a legacy file with an .ndjson extension', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-sniff-'));
+    tempDirs.push(dir);
+    const renamed = path.join(dir, 'legacy.ndjson');
+    await copyFile(legacy, renamed);
+
+    const html = await renderReport(renamed, { title: 'Sniffed legacy' });
+    expect(html).toContain('Happy HTML reporting');
+  });
+
+  it('skips unrelated JSON files in a directory', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-skip-'));
+    tempDirs.push(dir);
+    await copyFile(messages, path.join(dir, 'messages.ndjson'));
+    await writeFile(path.join(dir, 'package.json'), '{"name":"not-a-report"}\n', 'utf8');
+
+    const html = await renderReport(dir, { title: 'Skipped' });
+    expect(html).toContain('Screenshot attachment');
+    expect(html).not.toContain('not-a-report');
   });
 });

@@ -23,6 +23,8 @@ created. This proposal is the planning contract until the issue exists.
 - Add a **report shell** around the official Cucumber React components:
   title, metadata, summary, search/status/tag filters, dark mode, logo and
   brand colours.
+- Add a **machine-readable summary** with a stable JSON schema for CI tools and
+  AI agents, exposed through `--json` and the programmatic API.
 - Add a **security baseline**: escape user content, handle attachments safely,
   no HTML execution, no network requests and no telemetry.
 - Add a test suite with real fixtures from cucumber-js, cucumber-jvm,
@@ -52,6 +54,6 @@ None; this is the initial change.
 
 - New npm package `tolkira` (ESM, Node >= 22).
 - Runtime dependencies: `@cucumber/html-formatter`, `@cucumber/messages`.
-- Dev dependencies: TypeScript, esbuild, Vitest, ESLint, Playwright.
+- Dev dependencies: TypeScript, esbuild, Vitest, oxlint, Playwright.
 - New repository docs, OpenSpec contract, ADRs, CI and release workflow.
 - No migration of existing data; legacy JSON support is additive.

@@ -54,6 +54,33 @@ as the CLI and returns the generated HTML.
 - **WHEN** a caller invokes the API with malformed input
 - **THEN** the API rejects with a clear error
 
+### Requirement: Provide a machine-readable summary
+
+The CLI SHALL support `--json` and print exactly one stable JSON document to
+stdout. The summary SHALL contain the overall status, status counts, duration,
+attachments and per-scenario results. The programmatic API SHALL expose the
+same summary without writing HTML.
+
+#### Scenario: JSON summary without HTML
+- **WHEN** the user runs the CLI with one or more supported inputs and `--json`
+  without `--out`
+- **THEN** the CLI prints the JSON summary and writes no HTML file
+
+#### Scenario: JSON summary with HTML
+- **WHEN** the user runs the CLI with `--out` and `--json`
+- **THEN** the CLI writes the HTML report and prints only the JSON summary to
+  stdout
+
+#### Scenario: Failing tests in the summary
+- **WHEN** the input contains failed scenarios
+- **THEN** the summary reports `status: "failed"`, the failing scenario and its
+  step messages, and the CLI still exits with code 0
+
+#### Scenario: Stable schema
+- **WHEN** the input is summarized more than once
+- **THEN** scenarios are ordered deterministically and every status key is
+  present with a numeric value, including zero counts
+
 ### Requirement: Support title, metadata and output options
 
 The CLI and API SHALL support a report title, repeated metadata entries and an

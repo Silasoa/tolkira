@@ -29,14 +29,33 @@ test('renders a messages report in the browser', async ({ page }) => {
     await page.goto(pathToFileURL(output).href);
     await expect(page).toHaveTitle('Tolkira E2E');
     await expect(
+      page.getByRole('heading', { name: 'Tolkira E2E', level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText('2 scenarios')).toBeVisible();
+    await expect(
       page.getByRole('heading', { name: /features\/screenshot\.feature/ }),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: /screenshot\.feature/ }).click();
     await expect(
-      page.getByRole('heading', { name: /Screenshot attachment/ }),
+      page.getByRole('heading', { name: /features\/screenshot\.feature/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
     ).toBeVisible();
     await expect(page.getByText('screenshot.png')).toBeVisible();
+
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+    ).toBeVisible();
+    await expect(page.getByText('Expected 1 to equal 2')).toBeVisible();
+
+    await page.getByRole('textbox', { name: 'Search' }).fill('Failing');
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
+    ).toBeHidden();
+    await expect(
+      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+    ).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

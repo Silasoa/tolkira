@@ -28,6 +28,13 @@ Gherkin, steps, errors and attachments.
 **Shell** — Tolkira's own wrapper around the renderer: title, metadata, summary,
 theme, logo.
 
+**Summary** — the stable, renderer-independent JSON document emitted by
+`--json` / `summarizeReport` for agents and CI. It is versioned and is not the
+HTML report.
+
+**Schema version** — the integer in `summary.schemaVersion`. A breaking change
+increments it; consumers may reject versions they do not know.
+
 **Fixture** — a small, real or realistic input file used by tests.
 
 **Vertical slice** — a small end-to-end change: input → normalise → render →

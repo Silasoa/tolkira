@@ -34,8 +34,9 @@ test-first and should fit in roughly two hours.
 - [x] 3.3 RED: embedding test — a base64 PNG becomes an attachment and appears
   in the rendered report.
 - [x] 3.4 GREEN: implement embeddings → attachments with media types.
-- [x] 3.5 RED/GREEN: preserve tags, hooks, backgrounds, outlines, data tables,
-  doc strings and error messages; add one test per behaviour.
+- [x] 3.5 RED/GREEN: preserve tags, hooks, background steps, expanded outline
+  rows, data tables, doc strings and error messages; add one test per behaviour.
+  Reconstructing the original outline `examples` table is deferred.
 
 ## 4. Multiple inputs and groups
 
@@ -46,9 +47,9 @@ test-first and should fit in roughly two hours.
 
 ## 5. Shell, metadata and branding
 
-- [x] 5.1 RED/GREEN: metadata block with title, counts, duration and key/value
-  entries; escape all values.
-- [ ] 5.2 RED/GREEN: dark mode, theme tokens, logo and basic custom CSS.
+- [x] 5.1 RED/GREEN: visible title, summary counts, duration, metadata block
+  and key/value entries; escape all values.
+- [x] 5.2 RED/GREEN: system dark mode, accent theme token, embedded logo.
 - [ ] 5.3 Accessibility check: status text not colour-only, keyboard access to
   attachments and filters.
 
@@ -59,7 +60,7 @@ test-first and should fit in roughly two hours.
 - [x] 6.2 RED/GREEN: HTML/SVG attachments do not execute scripts; show safe
   content.
 - [x] 6.3 RED/GREEN: generated HTML has no remote asset URLs, CDN links,
-  telemetry or remote fonts.
+  telemetry or remote fonts, and carries a restrictive CSP.
 - [ ] 6.4 RED/GREEN: invalid output paths and path traversal attempts fail
   without writing outside the target directory.
 
@@ -80,14 +81,28 @@ test-first and should fit in roughly two hours.
   `docs/CHANGELOG.md` and `GLOSSARY.md` with shipped behaviour and limitations.
 - [ ] 8.2 Verify `npm pack` contents, package size, license and third-party
   notices.
-- [ ] 8.3 Run the full gate in the foreground: typecheck, lint, tests, build,
-  browser test; record the results.
+- [x] 8.3 Run the full gate in the foreground: typecheck, lint, tests, build,
+  browser test; record the results. Green on 2026-11-02: 36 unit tests, 3
+  Playwright tests, 0 audit vulnerabilities.
 - [ ] 8.4 Run the blind review set (SCR, CR, DAR, SEC) and fix findings.
 - [ ] 8.5 User approval, tag `v0.1.0`, publish with provenance.
 
+## 9. Agent interface
+
+- [x] 9.1 RED/GREEN: `summarizeReport` returns a stable schema with status,
+  counts, duration, attachments and per-scenario steps and messages.
+- [x] 9.2 RED/GREEN: CLI `--json` prints exactly one summary document, with or
+  without `--out`, while failing tests still exit with code 0.
+- [x] 9.3 Document the schema, exit codes and agent workflow in
+  `docs/AGENT-INTERFACE.md` and README.
+- [x] 9.4 Reject remote attachments and strip remote Markdown images before
+  summarising or rendering.
+
 ## Deferred follow-ups
 
-- External attachments/split assets/CSP.
+- External attachments/split assets for oversized reports.
+- Logo, brand colours and user-supplied CSS.
+- Legacy outline `examples` reconstruction.
 - History/trends.
 - PDF/email.
 - German localisation.

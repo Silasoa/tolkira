@@ -16,13 +16,21 @@ Keep a Changelog and the project uses semantic versioning.
 - Legacy Cucumber JSON adapter with features, scenarios, steps, tags, hooks,
   outlines, doc strings, data tables, statuses, durations and embeddings.
 - Screenshot/text attachment preservation and a safe HTML attachment check.
-- CLI and API: multiple inputs, directory input, title and repeated metadata.
-- Escaped title/metadata, metadata bar, offline/no-CDN check.
-- Fixtures for messages, legacy JSON, failed/pending/undefined/skipped statuses,
-  screenshots and HTML attachments.
-- Unit, golden-ish and Playwright browser tests.
+- CLI and API: multiple inputs, directory input, content-based detection, title
+  and repeated metadata.
+- Stable JSON summary (`--json`, `summarizeReport`, `generateReport`) with
+  status counts, durations, attachments and per-scenario failures.
+- Visible report shell with title, summary counts, metadata, optional logo and
+  accent colour, and system dark mode.
+- Escaped title/metadata/names, metadata bar, offline/no-CDN check.
+- Restrictive CSP, remote attachment rejection, remote Markdown image
+  stripping, atomic output writes and a 10 MB size warning.
+- Fixtures for Messages (passing and failing), legacy JSON,
+  failed/pending/undefined/skipped statuses, screenshots and HTML attachments.
+- Unit and Playwright browser tests, including search and an HTML attachment
+  execution check.
 
 ### Not yet implemented
 
-- Branding/dark-mode controls, external attachment mode, full edge-case matrix,
-  JVM/Ruby/Behave fixtures beyond the adapter tests, release 0.1.0.
+- Logo/brand controls and custom CSS, external attachment mode, full edge-case
+  matrix, JVM/Ruby/Behave fixtures beyond the adapter tests, release 0.1.0.

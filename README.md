@@ -3,9 +3,10 @@
 > **The interpreter for your test results.**
 > Clear, embeddable HTML reports for Cucumber JSON, Messages, and beyond.
 
-**Status: v0.1 core in development.** Messages and legacy Cucumber JSON now
-render to one self-contained HTML file; the CLI/API, title/metadata, screenshot
-attachments and browser tests are in place. Remaining v0.1 work is tracked in
+**Status: v0.1 core in development.** Messages and legacy Cucumber JSON render
+to one self-contained HTML file; the CLI/API, title/metadata, screenshot
+attachments, browser tests and a stable JSON summary for agents are in place.
+Remaining v0.1 work is tracked in
 `openspec/changes/bootstrap-tolkira-core/tasks.md`.
 
 ## What is Tolkira?
@@ -38,6 +39,7 @@ The name is pronounced approximately **TOL-kee-rah**.
 ## Planned v0.1
 
 - CLI and programmatic API: one input or many, one output HTML file.
+- Stable JSON summary for agents and CI (`--json`, `summarizeReport`).
 - Legacy JSON + Messages input, including multiple runs and groups.
 - Screenshots and attachments preserved inline.
 - Summary, durations, errors, stack traces, hooks, outlines, tables, doc strings.
@@ -74,6 +76,7 @@ The name is pronounced approximately **TOL-kee-rah**.
 
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — vision, audience, scope, market context.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system shape and decisions.
+- [`docs/AGENT-INTERFACE.md`](docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
 - [`docs/agents/review.md`](docs/agents/review.md) — review and audit protocol.
 - [`GLOSSARY.md`](GLOSSARY.md) — shared language.
 - [`AGENTS.md`](AGENTS.md) — how agents work in this repository.
@@ -96,12 +99,24 @@ npm run build
 node dist/cli.js test/fixtures/legacy/happy.json \
   --out report.html \
   --title "My report" \
-  --meta Browser=Chrome
+  --meta Browser=Chrome \
+  --logo logo.png \
+  --accent "#1b5e20"
 ```
 
 The check runs typecheck, lint, unit tests and build. The browser test renders
-both a Messages report and a legacy JSON report, opens a screenshot and checks
-that an HTML attachment does not execute.
+both a Messages report and a legacy JSON report, opens a screenshot, exercises
+search, and checks that an HTML attachment does not execute.
+
+For agents and CI, print the stable summary instead of scraping HTML:
+
+```shell
+node dist/cli.js test-results/ --out report.html --json
+node dist/cli.js test-results/ --json
+```
+
+See [`docs/AGENT-INTERFACE.md`](docs/AGENT-INTERFACE.md) for the schema and exit
+codes.
 
 ## License
 

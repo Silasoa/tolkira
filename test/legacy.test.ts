@@ -108,6 +108,49 @@ describe('legacy JSON adapter', () => {
     expect(html).toContain('Expected values to be strictly equal');
   });
 
+  it('does not turn a background element into a scenario', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'Background feature',
+          elements: [
+            {
+              keyword: 'Background',
+              type: 'background',
+              name: 'Shared setup',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a shared step',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+            {
+              keyword: 'Scenario',
+              type: 'scenario',
+              name: 'Real scenario',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a shared step',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'background.json',
+    );
+
+    const pickles = envelopes.flatMap((envelope) =>
+      envelope.pickle ? [envelope.pickle] : [],
+    );
+    expect(pickles).toHaveLength(1);
+    expect(pickles[0]?.name).toBe('Real scenario');
+  });
+
   it('uses deterministic IDs when a prefix is given', async () => {
     const first = await legacyEnvelopes(happy);
     const second = await legacyEnvelopes(happy);

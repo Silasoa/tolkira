@@ -46,19 +46,32 @@ risk and the main differentiator.
 
 ### `src/render`
 
-- Uses `@cucumber/html-formatter` / `@cucumber/react-components` (MIT) as the
-  rendering engine.
+- Uses `@cucumber/html-formatter` (MIT) as the rendering engine.
 - Produces one HTML file with inline CSS/JS and inline attachments by default.
-- Adds a small shell: title, metadata, summary, theme tokens, logo.
+- Adds a small shell: visible title, summary counts, metadata, optional logo
+  and accent colour, system dark mode.
 - No CDN, no external fonts, no network requests.
+- Injects a restrictive Content-Security-Policy meta tag.
 - Optional external-attachments mode is a later change.
+
+### `src/summary`
+
+- Builds a renderer-independent, stable JSON summary from Messages.
+- Reports overall status, scenario/step counts, durations, attachments and
+  per-scenario step results with failure messages.
+- Exposed as `summarizeReport` and through the CLI `--json` flag.
+- Schema version 1 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
+  bump the version.
 
 ### `src/cli`
 
-- `tolkira <input...> --out <file> [--title <title>] [--meta key=value]`.
-- Auto-detects `.ndjson`, `.json`, files and directories.
+- `tolkira <input...> [--out <file>] [--json] [--title <title>] [--meta key=value]`
+  `[--logo <file>] [--accent <hex>] [--max-size <mb>]`.
+- Auto-detects Messages and legacy JSON by content, not by file extension.
 - Exit codes: 0 success, 1 parse/render error, 2 usage error.
 - Failing tests do not fail report generation; malformed input does.
+- Writes atomically through a temporary file in the output directory.
+- Warns when the report exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
 ### `src/index`
@@ -67,6 +80,8 @@ Programmatic API:
 
 ```ts
 renderReport(inputs, options): Promise<string>
+generateReport(inputs, options): Promise<{ html, summary }>
+summarizeReport(inputs): Promise<ReportSummary>
 ```
 
 The CLI is a thin wrapper around the API.
@@ -78,17 +93,20 @@ Test names, metadata, file names and attachments are untrusted input.
 - Escape all text injected into the shell.
 - Do not execute HTML/SVG attachments; render them as text or in a sandboxed
   viewer.
+- Reject remote attachment URLs and external attachments; strip remote Markdown
+  images. Reports must stay offline.
 - Validate MIME types and size limits.
 - No network requests, telemetry or remote fonts.
 - No path traversal when writing output or external attachments.
-- A CSP/split-assets mode is planned; v0.1 defaults to inline assets.
+- A restrictive CSP is injected into every report; v0.1 defaults to inline
+  assets.
 
 ## Performance
 
 - Messages are streamed into the formatter; avoid building a second full model.
 - Legacy JSON is parsed once; large files should fail with a useful message
   rather than exhausting memory.
-- Warn when the generated file exceeds a configurable size.
+- Warn when the generated file exceeds 10 MB.
 - External attachments are the escape hatch for large screenshots/videos.
 
 ## Testing
@@ -127,8 +145,9 @@ Test names, metadata, file names and attachments are untrusted input.
 
 ## Open questions
 
-- Exact shell approach: `CucumberHtmlStream` + custom CSS/JS first, or a small
-  React shell on `@cucumber/react-components` from day one?
+- Logo/branding controls and user-supplied custom CSS for v0.1 or v0.1.1?
 - How much metadata can be injected without forking the official template?
-- Attachment externalisation and CSP in v0.1 or v0.1.1?
+- Attachment externalisation for oversized reports in v0.1.1?
 - Which legacy implementations are v0.1 must-haves vs. fixtures-only?
+- Legacy outline `examples` reconstruction: needed for agents, or are expanded
+  scenarios enough?
