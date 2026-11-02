@@ -1,4 +1,7 @@
+import { TestStepResultStatus } from '@cucumber/messages';
 import type { Envelope } from '@cucumber/messages';
+
+const STATUS_VALUES = new Set(Object.values(TestStepResultStatus));
 
 const ENVELOPE_KEYS = new Set([
   'attachment',
@@ -80,6 +83,34 @@ function requireArray(
   }
 }
 
+function requireStepResult(
+  payload: JsonObject,
+  field: string,
+  key: string,
+  source: string,
+  line: number,
+): void {
+  requireObject(payload, field, key, source, line);
+  const result = payload[field] as JsonObject;
+  if (!isString(result.status) || !STATUS_VALUES.has(result.status as TestStepResultStatus)) {
+    throw new Error(
+      `Invalid Cucumber Messages on line ${line} of ${source}: "${key}.${field}.status" must be a known Cucumber status.`,
+    );
+  }
+  if (!isObject(result.duration)) {
+    throw new Error(
+      `Invalid Cucumber Messages on line ${line} of ${source}: "${key}.${field}.duration" must be an object.`,
+    );
+  }
+  for (const part of ['seconds', 'nanos']) {
+    if (typeof result.duration[part] !== 'number') {
+      throw new Error(
+        `Invalid Cucumber Messages on line ${line} of ${source}: "${key}.${field}.duration.${part}" must be a number.`,
+      );
+    }
+  }
+}
+
 function validatePayload(
   key: string,
   payload: JsonObject,
@@ -128,7 +159,7 @@ function validatePayload(
     case 'testStepFinished':
       requireString(payload, 'testCaseStartedId', key, source, line);
       requireString(payload, 'testStepId', key, source, line);
-      requireObject(payload, 'testStepResult', key, source, line);
+      requireStepResult(payload, 'testStepResult', key, source, line);
       requireObject(payload, 'timestamp', key, source, line);
       break;
     case 'testCaseFinished':
@@ -170,7 +201,7 @@ function validatePayload(
       break;
     case 'testRunHookFinished':
       requireString(payload, 'testRunHookStartedId', key, source, line);
-      requireObject(payload, 'result', key, source, line);
+      requireStepResult(payload, 'result', key, source, line);
       requireObject(payload, 'timestamp', key, source, line);
       break;
     case 'parseError':
@@ -193,16 +224,19 @@ export function isEnvelopeLike(value: unknown): value is Envelope {
 export function parseMessages(content: string, source: string): Envelope[] {
   const lines = content
     .split(/\r?\n/)
-    .map((line) => line.replace(/^\uFEFF/, '').trim())
-    .filter(Boolean);
+    .map((line, index) => ({
+      text: line.replace(/^\uFEFF/, '').trim(),
+      number: index + 1,
+    }))
+    .filter((line) => line.text.length > 0);
 
   if (lines.length === 0) {
     throw new Error(`Input is empty: ${source}`);
   }
 
-  return lines.map((line, index) => {
+  return lines.map(({ text, number }) => {
     try {
-      const value: unknown = JSON.parse(line);
+      const value: unknown = JSON.parse(text);
       if (!isEnvelopeLike(value)) {
         throw new Error(
           'expected a Cucumber Messages envelope with exactly one known key',
@@ -214,11 +248,17 @@ export function parseMessages(content: string, source: string): Envelope[] {
       if (!isObject(payload)) {
         throw new Error(`"${key}" must be an object`);
       }
-      validatePayload(key, payload, source, index + 1);
+      validatePayload(key, payload, source, number);
       return value;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      throw new Error(`Invalid Cucumber Messages on line ${index + 1} of ${source}: ${detail}`);
+      const clean = detail.replace(
+        /^Invalid Cucumber Messages on line \d+ of .*?: /,
+        '',
+      );
+      throw new Error(
+        `Invalid Cucumber Messages on line ${number} of ${source}: ${clean}`,
+      );
     }
   });
 }

@@ -25,11 +25,11 @@ One package. One CLI. One HTML output. No monorepo, no server, no database.
 ### `src/input/messages`
 
 - Reads NDJSON.
-- Parses each line with `@cucumber/messages`.
+- Parses and validates each line with a strict envelope validator.
 - Rejects malformed input with a clear error and no partial output.
 - Merges multiple message streams; IDs are expected to be unique per run.
 
-### `src/input/legacy-json`
+### `src/input/legacy`
 
 The hard part. It normalises Cucumber JSON from cucumber-js, cucumber-jvm,
 cucumber-ruby and Behave into Messages:
@@ -68,6 +68,8 @@ risk and the main differentiator.
 - `tolkira <input...> [--out <file>] [--json] [--title <title>] [--meta key=value]`
   `[--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
+- Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
+  content; duplicate paths are resolved and read once.
 - Exit codes: 0 success, 1 parse/render error, 2 usage error.
 - Failing tests do not fail report generation; malformed input does.
 - Writes atomically through a temporary file in the output directory.
@@ -95,7 +97,8 @@ Test names, metadata, file names and attachments are untrusted input.
   viewer.
 - Reject remote attachment URLs and external attachments; strip remote Markdown
   images. Reports must stay offline.
-- Validate MIME types and size limits.
+- Validate attachment media type and size fields, and enforce input/attachment
+  limits (100 MB input, 50 MB per attachment, 100 MB total attachments).
 - No network requests, telemetry or remote fonts.
 - No path traversal when writing output or external attachments.
 - A restrictive CSP is injected into every report; v0.1 defaults to inline
@@ -103,8 +106,9 @@ Test names, metadata, file names and attachments are untrusted input.
 
 ## Performance
 
-- Messages are streamed into the formatter; avoid building a second full model.
-- Legacy JSON is parsed once; large files should fail with a useful message
+- Messages are accumulated and validated before rendering; the formatter then
+  produces the single HTML string.
+- Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
 - Warn when the generated file exceeds 10 MB.
 - External attachments are the escape hatch for large screenshots/videos.
@@ -112,13 +116,13 @@ Test names, metadata, file names and attachments are untrusted input.
 ## Testing
 
 - Unit tests: Vitest.
-- Fixtures: small, real reports from cucumber-js, cucumber-jvm, cucumber-ruby
-  and Behave; compatibility-kit messages where possible.
-- Golden HTML tests for structural guarantees.
-- One Playwright browser test per critical flow: render, expand a failure,
-  open a screenshot, search/filter.
-- Security tests: XSS payloads in names/metadata, HTML attachments, malicious
-  file names.
+- Fixtures: cucumber-js legacy JSON, a Behave-shaped legacy report and a
+  hand-built Messages stream with passing/failing scenarios and attachments.
+  cucumber-jvm/ruby fixtures are follow-ups.
+- Browser test per critical flow: render, search, open a screenshot, verify an
+  HTML attachment does not execute.
+- Security tests: XSS payloads in names/metadata, malicious attachment names,
+  remote attachments, HTML attachments, CSP and offline asset checks.
 - ISTQB-inspired edge cases: equivalence classes, boundaries, decision tables
   for statuses, state transitions for multiple runs.
 
@@ -134,18 +138,17 @@ Test names, metadata, file names and attachments are untrusted input.
 
 ## Key decisions
 
-- [ADR 0001](docs/adr/0001-hybrid-report-engine.md) — use official Cucumber
+- [ADR 0001](adr/0001-hybrid-report-engine.md) — use official Cucumber
   components, build adapters and shell; do not fork the old reporter.
-- [ADR 0002](docs/adr/0002-single-package-esm-node22.md) — one package, ESM,
+- [ADR 0002](adr/0002-single-package-esm-node22.md) — one package, ESM,
   Node 22+.
-- [ADR 0003](docs/adr/0003-name-tolkira.md) — name origin and preliminary
+- [ADR 0003](adr/0003-name-tolkira.md) — name origin and preliminary
   clearance.
-- [ADR 0004](docs/adr/0004-normalize-to-messages.md) — normalise legacy JSON to
+- [ADR 0004](adr/0004-normalize-to-messages.md) — normalise legacy JSON to
   Messages instead of maintaining two renderers.
 
 ## Open questions
 
-- Logo/branding controls and user-supplied custom CSS for v0.1 or v0.1.1?
 - How much metadata can be injected without forking the official template?
 - Attachment externalisation for oversized reports in v0.1.1?
 - Which legacy implementations are v0.1 must-haves vs. fixtures-only?

@@ -3,6 +3,17 @@ import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { sanitizeEnvelopes } from '../src/input/sanitize.js';
 
+function finishedStep(status: string, duration: unknown = { seconds: 0, nanos: 1 }) {
+  return {
+    testStepFinished: {
+      testCaseStartedId: 'started-1',
+      testStepId: 'step-1',
+      testStepResult: { status, duration },
+      timestamp: { seconds: 1, nanos: 0 },
+    },
+  };
+}
+
 describe('input sanitisation', () => {
   it('rejects remote attachment URLs', () => {
     const envelopes = parseMessages(
@@ -55,5 +66,51 @@ describe('input sanitisation', () => {
 
     expect(description).toContain('pixel');
     expect(description).not.toContain('tolkira-probe.invalid');
+  });
+
+  it('strips reference-style and angle-bracket remote images', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'Reference image feature',
+          description:
+            'A ![pixel][ref] and ![angle](<https://tolkira-probe.invalid/x.png>)\n\n[ref]: https://tolkira-probe.invalid/x.png',
+          elements: [],
+        },
+      ]),
+      'reference.json',
+    );
+
+    const description = sanitizeEnvelopes(envelopes).find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument?.feature?.description;
+
+    expect(description).not.toContain('tolkira-probe.invalid');
+    expect(description).toContain('pixel');
+  });
+
+  it('rejects unknown and missing step statuses', () => {
+    expect(() =>
+      parseMessages(
+        JSON.stringify(finishedStep('BANANA')),
+        'banana.ndjson',
+      ),
+    ).toThrow('known Cucumber status');
+
+    expect(() =>
+      parseMessages(
+        JSON.stringify(finishedStep(undefined as unknown as string)),
+        'missing.ndjson',
+      ),
+    ).toThrow('known Cucumber status');
+  });
+
+  it('rejects a missing duration', () => {
+    expect(() =>
+      parseMessages(
+        JSON.stringify(finishedStep('PASSED', {})),
+        'duration.ndjson',
+      ),
+    ).toThrow('duration');
   });
 });

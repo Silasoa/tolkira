@@ -6,11 +6,13 @@ import {
 } from '@cucumber/messages';
 import type {
   Attachment,
+  Background,
   DataTable,
   DocString,
   Duration,
   Envelope,
   Feature,
+  FeatureChild,
   Hook,
   Location,
   Meta,
@@ -31,6 +33,8 @@ interface LegacyTag {
   line?: number;
 }
 
+type LegacyTags = Array<LegacyTag | string> | undefined;
+
 interface LegacyArgument {
   content?: string;
   line?: number;
@@ -40,12 +44,19 @@ interface LegacyArgument {
 interface LegacyEmbedding {
   data?: string;
   media?: { type?: string };
+  mime_type?: string;
 }
 
 interface LegacyResult {
   status?: string;
   duration?: number;
   error_message?: string;
+}
+
+interface LegacyDocString {
+  content?: string;
+  line?: number;
+  contentType?: string;
 }
 
 interface LegacyStep {
@@ -56,6 +67,9 @@ interface LegacyStep {
   result?: LegacyResult;
   embeddings?: LegacyEmbedding[];
   arguments?: LegacyArgument[];
+  docString?: string | LegacyDocString;
+  rows?: Array<{ cells?: string[] }>;
+  table?: { rows?: Array<{ cells?: string[] }> } | Array<{ cells?: string[] }>;
   match?: { location?: string };
 }
 
@@ -63,19 +77,21 @@ interface LegacyElement {
   keyword?: string;
   type?: string;
   name?: string;
-  description?: string;
+  description?: string | string[];
   line?: number;
-  tags?: LegacyTag[];
+  tags?: LegacyTags;
   steps?: LegacyStep[];
+  before?: LegacyStep[];
+  after?: LegacyStep[];
 }
 
 interface LegacyFeature {
   uri?: string;
   keyword?: string;
   name?: string;
-  description?: string;
+  description?: string | string[];
   line?: number;
-  tags?: LegacyTag[];
+  tags?: LegacyTags;
   elements?: LegacyElement[];
 }
 
@@ -88,40 +104,100 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function invalidLegacy(source: string, detail: string): Error {
+  return new Error(`Invalid legacy JSON in ${source}: ${detail}`);
+}
+
+function validateStep(
+  step: Record<string, unknown>,
+  source: string,
+  where: string,
+): void {
+  if (step.embeddings !== undefined && !Array.isArray(step.embeddings)) {
+    throw invalidLegacy(source, `${where}.embeddings must be an array.`);
+  }
+  for (const embedding of step.embeddings ?? []) {
+    if (!isRecord(embedding) || (embedding.data !== undefined && typeof embedding.data !== 'string')) {
+      throw invalidLegacy(source, `${where}.embeddings entries must have string data.`);
+    }
+  }
+  if (step.arguments !== undefined && !Array.isArray(step.arguments)) {
+    throw invalidLegacy(source, `${where}.arguments must be an array.`);
+  }
+  if (step.result !== undefined && !isRecord(step.result)) {
+    throw invalidLegacy(source, `${where}.result must be an object.`);
+  }
+  if (
+    step.docString !== undefined &&
+    typeof step.docString !== 'string' &&
+    !isRecord(step.docString)
+  ) {
+    throw invalidLegacy(source, `${where}.docString must be a string or object.`);
+  }
+  if (step.rows !== undefined && !Array.isArray(step.rows)) {
+    throw invalidLegacy(source, `${where}.rows must be an array.`);
+  }
+}
+
 function validateLegacyFeatures(
   values: unknown[],
   source: string,
 ): asserts values is LegacyFeature[] {
   for (const [featureIndex, feature] of values.entries()) {
     if (!isRecord(feature)) {
-      throw new Error(
-        `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} must be an object.`,
-      );
+      throw invalidLegacy(source, `feature ${featureIndex + 1} must be an object.`);
     }
 
     if (feature.elements !== undefined && !Array.isArray(feature.elements)) {
-      throw new Error(
-        `Invalid legacy JSON in ${source}: feature ${featureIndex + 1}.elements must be an array.`,
+      throw invalidLegacy(
+        source,
+        `feature ${featureIndex + 1}.elements must be an array.`,
+      );
+    }
+    if (feature.tags !== undefined && !Array.isArray(feature.tags)) {
+      throw invalidLegacy(
+        source,
+        `feature ${featureIndex + 1}.tags must be an array.`,
       );
     }
 
     for (const [elementIndex, element] of (feature.elements ?? []).entries()) {
       if (!isRecord(element)) {
-        throw new Error(
-          `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} element ${elementIndex + 1} must be an object.`,
+        throw invalidLegacy(
+          source,
+          `feature ${featureIndex + 1} element ${elementIndex + 1} must be an object.`,
         );
       }
+      const where = `feature ${featureIndex + 1} element ${elementIndex + 1}`;
       if (element.steps !== undefined && !Array.isArray(element.steps)) {
-        throw new Error(
-          `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} element ${elementIndex + 1}.steps must be an array.`,
-        );
+        throw invalidLegacy(source, `${where}.steps must be an array.`);
+      }
+      if (element.before !== undefined && !Array.isArray(element.before)) {
+        throw invalidLegacy(source, `${where}.before must be an array.`);
+      }
+      if (element.after !== undefined && !Array.isArray(element.after)) {
+        throw invalidLegacy(source, `${where}.after must be an array.`);
+      }
+      if (element.tags !== undefined && !Array.isArray(element.tags)) {
+        throw invalidLegacy(source, `${where}.tags must be an array.`);
       }
       for (const [stepIndex, step] of (element.steps ?? []).entries()) {
         if (!isRecord(step)) {
-          throw new Error(
-            `Invalid legacy JSON in ${source}: feature ${featureIndex + 1} element ${elementIndex + 1} step ${stepIndex + 1} must be an object.`,
+          throw invalidLegacy(
+            source,
+            `${where} step ${stepIndex + 1} must be an object.`,
           );
         }
+        validateStep(step, source, `${where} step ${stepIndex + 1}`);
+      }
+      for (const [stepIndex, step] of [
+        ...(element.before ?? []),
+        ...(element.after ?? []),
+      ].entries()) {
+        if (!isRecord(step)) {
+          throw invalidLegacy(source, `${where} hook ${stepIndex + 1} must be an object.`);
+        }
+        validateStep(step, source, `${where} hook ${stepIndex + 1}`);
       }
     }
   }
@@ -139,10 +215,23 @@ function createIdFactory(prefix: string): (kind: string) => string {
 
 function normalizeUri(uri: string | undefined, index: number): string {
   if (!uri) return `features/legacy-${index}.feature`;
-  const normalized = uri.replace(/\\/g, '/');
-  const parts = normalized.split('/').filter(Boolean);
-  const name = parts.at(-1) ?? `legacy-${index}.feature`;
-  return `features/${name}`;
+  const normalized = uri.replace(/\\/g, '/').replace(/^\.?\//, '');
+  if (/^[a-z]:\//i.test(normalized) || normalized.startsWith('/')) {
+    const marker = normalized.lastIndexOf('/features/');
+    if (marker >= 0) return normalized.slice(marker + 1);
+    const parts = normalized.split('/').filter(Boolean);
+    return parts.slice(-2).join('/') || `features/legacy-${index}.feature`;
+  }
+  return normalized || `features/legacy-${index}.feature`;
+}
+
+function normalizeText(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value.join('\n');
+  return value ?? '';
+}
+
+function normalizeTags(tags: LegacyTags): LegacyTag[] {
+  return (tags ?? []).map((tag) => (typeof tag === 'string' ? { name: tag } : tag));
 }
 
 function location(line?: number, column?: number): Location {
@@ -202,8 +291,8 @@ function isBackgroundElement(element: LegacyElement): boolean {
   );
 }
 
-function mapTags(tags: LegacyTag[] | undefined, nextId: (kind: string) => string): Tag[] {
-  return (tags ?? []).map((tag) => ({
+function mapTags(tags: LegacyTags, nextId: (kind: string) => string): Tag[] {
+  return normalizeTags(tags).map((tag) => ({
     id: nextId('tag'),
     name: tag.name ?? '',
     location: location(tag.line),
@@ -211,17 +300,18 @@ function mapTags(tags: LegacyTag[] | undefined, nextId: (kind: string) => string
 }
 
 function mapDataTable(
-  argument: LegacyArgument,
+  rows: Array<{ cells?: string[] }> | undefined,
+  line: number | undefined,
   nextId: (kind: string) => string,
 ): DataTable {
   return {
-    location: location(argument.line),
-    rows: (argument.rows ?? []).map(
+    location: location(line),
+    rows: (rows ?? []).map(
       (row): TableRow => ({
         id: nextId('row'),
-        location: location(argument.line),
+        location: location(line),
         cells: (row.cells ?? []).map((value) => ({
-          location: location(argument.line),
+          location: location(line),
           value,
         })),
       }),
@@ -229,25 +319,59 @@ function mapDataTable(
   };
 }
 
-function mapDocString(argument: LegacyArgument): DocString {
+function mapDocString(
+  content: string,
+  line: number | undefined,
+): DocString {
   return {
-    location: location(argument.line),
-    content: argument.content ?? '',
+    location: location(line),
+    content,
     delimiter: '"""',
   };
+}
+
+function stepArgument(legacyStep: LegacyStep): {
+  content?: string;
+  rows?: Array<{ cells?: string[] }>;
+  line?: number;
+} {
+  const argument = legacyStep.arguments?.[0];
+  if (argument) return argument;
+
+  if (legacyStep.docString !== undefined) {
+    const docString =
+      typeof legacyStep.docString === 'string'
+        ? { content: legacyStep.docString }
+        : legacyStep.docString;
+    return { content: docString.content ?? '', line: docString.line ?? legacyStep.line };
+  }
+
+  if (legacyStep.rows !== undefined) {
+    return { rows: legacyStep.rows, line: legacyStep.line };
+  }
+
+  if (legacyStep.table !== undefined) {
+    const rows = Array.isArray(legacyStep.table)
+      ? legacyStep.table
+      : legacyStep.table.rows;
+    return { rows, line: legacyStep.line };
+  }
+
+  return {};
 }
 
 function mapStepArguments(
   legacyStep: LegacyStep,
   nextId: (kind: string) => string,
 ): { docString?: DocString; dataTable?: DataTable } {
-  const argument = legacyStep.arguments?.[0];
-  if (!argument) return {};
+  const argument = stepArgument(legacyStep);
   if (argument.rows !== undefined) {
-    return { dataTable: mapDataTable(argument, nextId) };
+    return {
+      dataTable: mapDataTable(argument.rows, argument.line, nextId),
+    };
   }
   if (argument.content !== undefined) {
-    return { docString: mapDocString(argument) };
+    return { docString: mapDocString(argument.content, argument.line) };
   }
   return {};
 }
@@ -271,8 +395,7 @@ function mapStep(
 function mapPickleArgument(
   legacyStep: LegacyStep,
 ): PickleStep['argument'] {
-  const argument = legacyStep.arguments?.[0];
-  if (!argument) return undefined;
+  const argument = stepArgument(legacyStep);
   if (argument.rows !== undefined) {
     return {
       dataTable: {
@@ -364,7 +487,7 @@ export function parseLegacyJson(
   for (const [featureIndex, legacyFeature] of features.entries()) {
     const uri = normalizeUri(legacyFeature.uri, featureIndex);
     const featureTags = mapTags(legacyFeature.tags, nextId);
-    const featureChildren: Array<{ scenario: Scenario }> = [];
+    const featureChildren: FeatureChild[] = [];
     const scenarioEnvelopes: Envelope[] = [];
     const featureNode: Feature = {
       location: location(legacyFeature.line),
@@ -372,9 +495,29 @@ export function parseLegacyJson(
       language: 'en',
       keyword: 'Feature',
       name: legacyFeature.name ?? `Feature ${featureIndex + 1}`,
-      description: legacyFeature.description ?? '',
+      description: normalizeText(legacyFeature.description),
       children: [],
     };
+
+    const backgroundElement = (legacyFeature.elements ?? []).find(
+      isBackgroundElement,
+    );
+    const backgroundSteps = (backgroundElement?.steps ?? []).filter(
+      (step) => !isHook(step),
+    );
+    const backgroundNodes = backgroundSteps.map((step) => mapStep(step, nextId));
+
+    if (backgroundElement) {
+      const background: Background = {
+        id: nextId('background'),
+        location: location(backgroundElement.line),
+        keyword: 'Background',
+        name: backgroundElement.name ?? 'Background',
+        description: normalizeText(backgroundElement.description),
+        steps: backgroundNodes,
+      };
+      featureChildren.push({ background });
+    }
 
     const scenarios: LegacyElement[] = (legacyFeature.elements ?? []).filter(
       (element) => !isBackgroundElement(element),
@@ -385,6 +528,22 @@ export function parseLegacyJson(
       const scenarioTags = mapTags(element.tags, nextId);
       const scenarioSteps = (element.steps ?? []).filter((step) => !isHook(step));
       const stepNodes = scenarioSteps.map((step) => mapStep(step, nextId));
+      const backgroundInline =
+        backgroundSteps.length > 0 &&
+        backgroundSteps.every((backgroundStep) =>
+          scenarioSteps.some(
+            (step) =>
+              step.name === backgroundStep.name &&
+              (step.keyword ?? '').trim() ===
+                (backgroundStep.keyword ?? '').trim(),
+          ),
+        );
+      const executableSteps = backgroundInline
+        ? scenarioSteps
+        : [...backgroundSteps, ...scenarioSteps];
+      const executableNodes = backgroundInline
+        ? stepNodes
+        : [...backgroundNodes, ...stepNodes];
 
       const scenario: Scenario = {
         id: scenarioId,
@@ -392,23 +551,25 @@ export function parseLegacyJson(
         tags: scenarioTags,
         keyword: (element.keyword ?? 'Scenario').trim() || 'Scenario',
         name: element.name ?? `Scenario ${scenarioIndex + 1}`,
-        description: element.description ?? '',
+        description: normalizeText(element.description),
         steps: stepNodes,
         examples: [],
       };
       featureChildren.push({ scenario });
 
-      const pickleSteps: PickleStep[] = scenarioSteps.map((legacyStep, index) => {
-        const step = stepNodes[index] as Step;
-        const pickleStep: PickleStep = {
-          id: nextId('pickle-step'),
-          text: step.text,
-          astNodeIds: [step.id],
-        };
-        const argument = mapPickleArgument(legacyStep);
-        if (argument) pickleStep.argument = argument;
-        return pickleStep;
-      });
+      const pickleSteps: PickleStep[] = executableSteps.map(
+        (legacyStep, index) => {
+          const step = executableNodes[index] as Step;
+          const pickleStep: PickleStep = {
+            id: nextId('pickle-step'),
+            text: step.text,
+            astNodeIds: [step.id],
+          };
+          const argument = mapPickleArgument(legacyStep);
+          if (argument) pickleStep.argument = argument;
+          return pickleStep;
+        },
+      );
 
       const pickle: Pickle = {
         id: nextId('pickle'),
@@ -426,13 +587,19 @@ export function parseLegacyJson(
 
       const plans: StepPlan[] = [];
       const hooks: Envelope[] = [];
-      const hookSteps = (element.steps ?? []).filter((step) => isHook(step));
-      const beforeHooks = hookSteps.filter(
-        (step) => !/^after/i.test((step.keyword ?? '').trim()),
-      );
-      const afterHooks = hookSteps.filter((step) =>
-        /^after/i.test((step.keyword ?? '').trim()),
-      );
+      const inlineHooks = (element.steps ?? []).filter((step) => isHook(step));
+      const beforeHooks = [
+        ...(element.before ?? []),
+        ...inlineHooks.filter(
+          (step) => !/^after/i.test((step.keyword ?? '').trim()),
+        ),
+      ];
+      const afterHooks = [
+        ...inlineHooks.filter((step) =>
+          /^after/i.test((step.keyword ?? '').trim()),
+        ),
+        ...(element.after ?? []),
+      ];
 
       for (const hookStep of beforeHooks) {
         const hookId = nextId('hook');
@@ -452,7 +619,7 @@ export function parseLegacyJson(
       }
 
       for (const [index, pickleStep] of pickleSteps.entries()) {
-        const legacyStep = scenarioSteps[index] as LegacyStep;
+        const legacyStep = executableSteps[index] as LegacyStep;
         plans.push({
           testStep: { id: nextId('test-step'), pickleStepId: pickleStep.id },
           legacyStep,
@@ -519,7 +686,10 @@ export function parseLegacyJson(
 
         for (const embedding of plan.legacyStep.embeddings ?? []) {
           if (!embedding.data) continue;
-          const mediaType = embedding.media?.type ?? 'application/octet-stream';
+          const mediaType =
+            embedding.media?.type ??
+            embedding.mime_type ??
+            'application/octet-stream';
           const attachment: Attachment = {
             body: embedding.data,
             contentEncoding: AttachmentContentEncoding.BASE64,

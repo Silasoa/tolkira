@@ -1,6 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { summarizeReport } from '../src/index.js';
+import { parseLegacyJson } from '../src/input/legacy.js';
+import { summarizeEnvelopes } from '../src/summary.js';
 
 const messages = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
@@ -86,5 +88,79 @@ describe('machine-readable summary', () => {
     expect(summary.scenarios.map((scenario) => scenario.uri)).toContain(
       'features/happy.feature',
     );
+  });
+
+  it('counts every status from a decision table', () => {
+    const statuses = [
+      'passed',
+      'failed',
+      'skipped',
+      'pending',
+      'undefined',
+      'ambiguous',
+    ];
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'Status feature',
+          elements: statuses.map((status) => ({
+            keyword: 'Scenario',
+            name: `Status ${status}`,
+            steps: [
+              {
+                keyword: 'Given ',
+                name: `a ${status} step`,
+                result: { status, duration: 1 },
+              },
+            ],
+          })),
+        },
+      ]),
+      'statuses.json',
+    );
+
+    const summary = summarizeEnvelopes(envelopes);
+    expect(summary.status).toBe('failed');
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 6,
+      passed: 1,
+      failed: 1,
+      skipped: 1,
+      pending: 1,
+      undefined: 1,
+      ambiguous: 1,
+    });
+    expect(summary.counts.steps.total).toBe(6);
+  });
+
+  it('keeps the schema stable and counts self-consistent', async () => {
+    const first = await summarizeReport(messages);
+    const second = await summarizeReport(messages);
+
+    expect(first).toEqual(second);
+    expect(Object.keys(first.counts.scenarios)).toEqual([
+      'total',
+      'passed',
+      'failed',
+      'skipped',
+      'pending',
+      'undefined',
+      'ambiguous',
+      'unknown',
+    ]);
+    for (const counts of [first.counts.scenarios, first.counts.steps]) {
+      const { total, ...statuses } = counts;
+      expect(total).toBe(
+        Object.values(statuses).reduce((sum, value) => sum + value, 0),
+      );
+    }
+    const attachmentCount = first.scenarios.reduce(
+      (sum, scenario) => sum + scenario.attachments,
+      0,
+    );
+    expect(first.attachments.total).toBe(attachmentCount);
+
+    const keys = first.scenarios.map((scenario) => `${scenario.uri}\0${scenario.name}`);
+    expect(keys).toEqual([...keys].sort((a, b) => a.localeCompare(b)));
   });
 });

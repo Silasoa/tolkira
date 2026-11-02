@@ -3,10 +3,11 @@ import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { generateReport, version } from './index.js';
+import { generateReport, summarizeReport, version } from './index.js';
+import { ACCENT_PATTERN } from './validation.js';
 
 const DEFAULT_MAX_SIZE_MB = 10;
-const ACCENT_PATTERN = /^#[0-9a-f]{3,8}$/i;
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_MIME: Record<string, string> = {
   '.gif': 'image/gif',
   '.jpeg': 'image/jpeg',
@@ -88,11 +89,31 @@ function parseAccent(value: string | undefined): string | undefined {
 }
 
 async function readLogo(file: string): Promise<string> {
-  const mime = LOGO_MIME[path.extname(file).toLowerCase()];
+  const extension = path.extname(file).toLowerCase();
+  const mime = LOGO_MIME[extension];
   if (!mime) {
-    throw new Error(`Unsupported logo type "${path.extname(file)}". Use PNG, JPEG, GIF, WebP or SVG.`);
+    throw new Error(
+      `Unsupported logo type "${extension}". Use PNG, JPEG, GIF, WebP or SVG.`,
+    );
   }
   const data = await readFile(file);
+  if (data.byteLength > MAX_LOGO_BYTES) {
+    throw new Error('Logo is larger than 2 MB.');
+  }
+  const valid =
+    (extension === '.png' && data.subarray(0, 8).toString('hex') === '89504e470d0a1a0a') ||
+    (extension === '.jpg' || extension === '.jpeg'
+      ? data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff
+      : false) ||
+    ((extension === '.gif') && data.subarray(0, 4).toString('ascii') === 'GIF8') ||
+    (extension === '.webp' &&
+      data.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      data.subarray(8, 12).toString('ascii') === 'WEBP') ||
+    (extension === '.svg' &&
+      data.toString('utf8', 0, 512).trimStart().startsWith('<svg'));
+  if (!valid) {
+    throw new Error(`Logo content does not match the "${extension}" extension.`);
+  }
   return `data:${mime};base64,${data.toString('base64')}`;
 }
 
@@ -104,7 +125,7 @@ async function writeAtomic(output: string, content: string): Promise<void> {
   );
 
   try {
-    await writeFile(temp, content, 'utf8');
+    await writeFile(temp, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
     await rename(temp, output);
   } catch (error) {
     await rm(temp, { force: true }).catch(() => undefined);
@@ -151,10 +172,13 @@ export async function runCli(
   let metadata: Record<string, string>;
   let maxSizeMb: number;
   let accent: string | undefined;
+  let logo: string | undefined;
   try {
     metadata = parseMetadata(parsed.values.meta);
     maxSizeMb = parseMaxSize(parsed.values['max-size']);
     accent = parseAccent(parsed.values.accent);
+    logo =
+      output && parsed.values.logo ? await readLogo(parsed.values.logo) : undefined;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
@@ -162,9 +186,12 @@ export async function runCli(
   }
 
   try {
-    const logo = parsed.values.logo
-      ? await readLogo(parsed.values.logo)
-      : undefined;
+    if (!output) {
+      const summary = await summarizeReport(inputs);
+      io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
+      return 0;
+    }
+
     const { html, summary } = await generateReport(inputs, {
       title: parsed.values.title,
       metadata,
@@ -172,22 +199,20 @@ export async function runCli(
       accent,
     });
 
-    if (output) {
-      await writeAtomic(output, html);
-      const bytes = Buffer.byteLength(html, 'utf8');
-      const maxBytes = maxSizeMb * 1024 * 1024;
-      if (bytes > maxBytes) {
-        io.stderr(
-          `tolkira: warning: report is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
-            `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
-            `inflate the single-file report.\n`,
-        );
-      }
+    await writeAtomic(output, html);
+    const bytes = Buffer.byteLength(html, 'utf8');
+    const maxBytes = maxSizeMb * 1024 * 1024;
+    if (bytes > maxBytes) {
+      io.stderr(
+        `tolkira: warning: report is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
+          `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
+          `inflate the single-file report.\n`,
+      );
     }
 
     if (wantsJson) {
       io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
-    } else if (output) {
+    } else {
       io.stdout(`Report written to ${output}\n`);
     }
     return 0;

@@ -44,7 +44,7 @@ context: |
 
   - Node.js 22, 24, 26 in CI; engines >= 22.
   - TypeScript, ESM, one npm package, no monorepo.
-  - esbuild, Vitest, ESLint, Playwright.
+  - esbuild, Vitest, oxlint, Playwright.
   - npm trusted publishing with provenance.
   - Name: Tolkira (coined from Scandinavian "tolk", interpreter). Preliminary
     name checks are in docs/adr/0003; formal trademark clearance is pending.

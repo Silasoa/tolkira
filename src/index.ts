@@ -32,14 +32,16 @@ export async function generateReport(
   options: RenderReportOptions = {},
 ): Promise<GeneratedReport> {
   const envelopes = await loadEnvelopes(inputs);
+  const summary = summarizeEnvelopes(envelopes);
   return {
     html: await renderHtml(envelopes, {
       title: options.title ?? 'Tolkira report',
       metadata: options.metadata,
       logo: options.logo,
       accent: options.accent,
+      summary,
     }),
-    summary: summarizeEnvelopes(envelopes),
+    summary,
   };
 }
 

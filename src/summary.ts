@@ -13,7 +13,6 @@ import type {
   RuleChild,
   TestCase,
   TestCaseStarted,
-  TestStep,
   TestStepFinished,
   TestStepResult,
 } from '@cucumber/messages';
@@ -87,8 +86,21 @@ const STATUS_ORDER: TestStepResultStatus[] = [
   TestStepResultStatus.FAILED,
 ];
 
-function toStatus(status: TestStepResultStatus): SummaryStatus {
-  return status.toLowerCase() as SummaryStatus;
+const VALID_STATUSES = new Set<SummaryStatus>([
+  'passed',
+  'failed',
+  'skipped',
+  'pending',
+  'undefined',
+  'ambiguous',
+  'unknown',
+]);
+
+function toStatus(status: unknown): SummaryStatus {
+  const normalized = typeof status === 'string' ? status.toLowerCase() : '';
+  return VALID_STATUSES.has(normalized as SummaryStatus)
+    ? (normalized as SummaryStatus)
+    : 'unknown';
 }
 
 function emptyCounts(): StatusCounts {
@@ -106,19 +118,36 @@ function emptyCounts(): StatusCounts {
 
 function countStatus(counts: StatusCounts, status: SummaryStatus): void {
   counts.total += 1;
-  counts[status] += 1;
+  switch (status) {
+    case 'passed':
+      counts.passed += 1;
+      break;
+    case 'failed':
+      counts.failed += 1;
+      break;
+    case 'skipped':
+      counts.skipped += 1;
+      break;
+    case 'pending':
+      counts.pending += 1;
+      break;
+    case 'undefined':
+      counts.undefined += 1;
+      break;
+    case 'ambiguous':
+      counts.ambiguous += 1;
+      break;
+    default:
+      counts.unknown += 1;
+      break;
+  }
 }
 
 function durationMs(duration: Duration | undefined): number {
   if (!duration) return 0;
-  return Math.round((duration.seconds * 1000 + duration.nanos / 1_000_000) * 1000) / 1000;
-}
-
-function attachmentBytes(attachment: Attachment): number {
-  if (attachment.contentEncoding === 'BASE64') {
-    return Buffer.from(attachment.body ?? '', 'base64').byteLength;
-  }
-  return Buffer.byteLength(attachment.body ?? '', 'utf8');
+  const seconds = Number.isFinite(duration.seconds) ? duration.seconds : 0;
+  const nanos = Number.isFinite(duration.nanos) ? duration.nanos : 0;
+  return Math.round((seconds * 1000 + nanos / 1_000_000) * 1000) / 1000;
 }
 
 function scenarioStatus(results: TestStepResult[]): SummaryStatus {
@@ -128,6 +157,16 @@ function scenarioStatus(results: TestStepResult[]): SummaryStatus {
 
 function statusOrdinal(status: SummaryStatus): number {
   return STATUS_ORDER.indexOf(status.toUpperCase() as TestStepResultStatus);
+}
+
+function displayUri(uri: string): string {
+  const normalized = uri.replace(/\\/g, '/');
+  if (!/^[a-z]:\//i.test(normalized) && !normalized.startsWith('/')) {
+    return normalized;
+  }
+  const marker = normalized.lastIndexOf('/features/');
+  if (marker >= 0) return normalized.slice(marker + 1);
+  return normalized.split('/').filter(Boolean).slice(-2).join('/');
 }
 
 function featureTree(document: Feature | undefined): {
@@ -140,21 +179,30 @@ function featureTree(document: Feature | undefined): {
   const visit = (children: readonly (FeatureChild | RuleChild)[]): void => {
     for (const child of children) {
       if (child.background) {
-        for (const step of child.background.steps) {
+        for (const step of child.background.steps ?? []) {
           stepKeywords.set(step.id, step.keyword ?? '');
         }
       }
       if (child.scenario) {
-        for (const step of child.scenario.steps) {
+        for (const step of child.scenario.steps ?? []) {
           stepKeywords.set(step.id, step.keyword ?? '');
         }
       }
-      if ('rule' in child && child.rule) visit(child.rule.children);
+      if ('rule' in child && child.rule) visit(child.rule.children ?? []);
     }
   };
 
-  visit(document.children);
-  return { featureName: document.name, stepKeywords };
+  visit(document.children ?? []);
+  return { featureName: document.name ?? '', stepKeywords };
+}
+
+function attachmentBytes(attachment: Attachment): number {
+  const body = attachment.body ?? '';
+  if (attachment.contentEncoding === 'BASE64') {
+    const padding = body.endsWith('==') ? 2 : body.endsWith('=') ? 1 : 0;
+    return Math.max(0, Math.floor((body.length * 3) / 4) - padding);
+  }
+  return Buffer.byteLength(body, 'utf8');
 }
 
 /**
@@ -165,9 +213,8 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   const envelopes = sanitizeEnvelopes(input);
   const features = new Map<string, Feature>();
   const pickles = new Map<string, Pickle>();
-  const testCases = new Map<string, TestCase>();
-  const testCaseStarteds = new Map<string, TestCaseStarted>();
-  const testSteps = new Map<string, TestStep>();
+  const testCasesByPickle = new Map<string, TestCase[]>();
+  const startedByTestCase = new Map<string, TestCaseStarted[]>();
   const hooks = new Map<string, Hook>();
   const results = new Map<string, TestStepFinished[]>();
   const attachments = new Map<string, Attachment[]>();
@@ -175,15 +222,22 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
 
   for (const envelope of envelopes) {
     if (envelope.gherkinDocument?.feature) {
-      features.set(envelope.gherkinDocument.uri ?? '', envelope.gherkinDocument.feature);
+      features.set(
+        envelope.gherkinDocument.uri ?? '',
+        envelope.gherkinDocument.feature,
+      );
     }
     if (envelope.pickle) pickles.set(envelope.pickle.id, envelope.pickle);
     if (envelope.testCase) {
-      testCases.set(envelope.testCase.id, envelope.testCase);
-      for (const step of envelope.testCase.testSteps) testSteps.set(step.id, step);
+      const list = testCasesByPickle.get(envelope.testCase.pickleId) ?? [];
+      list.push(envelope.testCase);
+      testCasesByPickle.set(envelope.testCase.pickleId, list);
     }
     if (envelope.testCaseStarted) {
-      testCaseStarteds.set(envelope.testCaseStarted.id, envelope.testCaseStarted);
+      const list =
+        startedByTestCase.get(envelope.testCaseStarted.testCaseId) ?? [];
+      list.push(envelope.testCaseStarted);
+      startedByTestCase.set(envelope.testCaseStarted.testCaseId, list);
     }
     if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
     if (envelope.testStepFinished) {
@@ -203,40 +257,59 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   }
 
   const latestByPickle = new Map<string, TestCaseStarted>();
-  for (const testCase of testCases.values()) {
-    for (const started of testCaseStarteds.values()) {
-      if (started.testCaseId !== testCase.id) continue;
-      const current = latestByPickle.get(testCase.pickleId);
-      if (
-        !current ||
-        started.attempt > current.attempt ||
-        (started.attempt === current.attempt &&
-          (started.timestamp?.seconds ?? 0) > (current.timestamp?.seconds ?? 0))
-      ) {
-        latestByPickle.set(testCase.pickleId, started);
+  for (const [pickleId, testCases] of testCasesByPickle) {
+    const candidates = testCases.flatMap(
+      (testCase) => startedByTestCase.get(testCase.id) ?? [],
+    );
+    let latest: TestCaseStarted | undefined;
+    for (const candidate of candidates) {
+      const complete = (results.get(candidate.id)?.length ?? 0) > 0;
+      const currentComplete = latest
+        ? (results.get(latest.id)?.length ?? 0) > 0
+        : false;
+      if (!latest) {
+        latest = candidate;
+        continue;
       }
+      if (complete !== currentComplete) {
+        if (complete) latest = candidate;
+        continue;
+      }
+      const newer =
+        candidate.attempt > latest.attempt ||
+        (candidate.attempt === latest.attempt &&
+          (candidate.timestamp?.seconds ?? 0) >
+            (latest.timestamp?.seconds ?? 0)) ||
+        (candidate.attempt === latest.attempt &&
+          (candidate.timestamp?.seconds ?? 0) ===
+            (latest.timestamp?.seconds ?? 0) &&
+          (candidate.timestamp?.nanos ?? 0) > (latest.timestamp?.nanos ?? 0));
+      if (newer) latest = candidate;
     }
+    if (latest) latestByPickle.set(pickleId, latest);
   }
 
   const scenarioCounts = emptyCounts();
   const stepCounts = emptyCounts();
   const scenarios: SummaryScenario[] = [];
+  const countedAttachments = new Set<Attachment>();
   let totalDuration = 0;
 
   for (const pickle of pickles.values()) {
-    const testCase = [...testCases.values()].find(
-      (candidate) => candidate.pickleId === pickle.id,
-    );
+    const testCases = testCasesByPickle.get(pickle.id) ?? [];
+    const testSteps = testCases.flatMap((testCase) => testCase.testSteps);
     const started = latestByPickle.get(pickle.id);
     const finished = started ? (results.get(started.id) ?? []) : [];
     const resultByStep = new Map(
       finished.map((entry) => [entry.testStepId, entry.testStepResult]),
     );
     const tree = featureTree(features.get(pickle.uri));
-    const pickleSteps = new Map(pickle.steps.map((step) => [step.id, step]));
+    const pickleSteps = new Map(
+      (pickle.steps ?? []).map((step) => [step.id, step]),
+    );
 
     const steps: SummaryStep[] = [];
-    for (const testStep of testCase?.testSteps ?? []) {
+    for (const testStep of testSteps) {
       const result = resultByStep.get(testStep.id);
       if (!result) continue;
 
@@ -244,7 +317,9 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         const pickleStep = pickleSteps.get(testStep.pickleStepId);
         const astNodeId = pickleStep?.astNodeIds[0];
         steps.push({
-          keyword: astNodeId ? (tree.stepKeywords.get(astNodeId) ?? '') : '',
+          keyword: astNodeId
+            ? (tree.stepKeywords.get(astNodeId) ?? '').trim()
+            : '',
           text: pickleStep?.text ?? '',
           status: toStatus(result.status),
           durationMs: durationMs(result.duration),
@@ -262,29 +337,31 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
       }
     }
 
-    const rawResults = finished.map((entry) => entry.testStepResult);
-    const status = scenarioStatus(rawResults);
+    const status = scenarioStatus(finished.map((entry) => entry.testStepResult));
     const scenarioDuration = steps.reduce((sum, step) => sum + step.durationMs, 0);
     const scenarioAttachments = started ? (attachments.get(started.id) ?? []) : [];
+    for (const attachment of scenarioAttachments) countedAttachments.add(attachment);
 
     countStatus(scenarioCounts, status);
     for (const step of steps) countStatus(stepCounts, step.status);
     totalDuration += scenarioDuration;
 
     scenarios.push({
-      name: pickle.name,
-      uri: pickle.uri,
+      name: pickle.name ?? '',
+      uri: displayUri(pickle.uri ?? ''),
       feature: tree.featureName,
       status,
       durationMs: Math.round(scenarioDuration * 1000) / 1000,
       attempt: started?.attempt ?? 0,
-      tags: pickle.tags.map((tag) => tag.name),
+      tags: (pickle.tags ?? []).map((tag) => tag.name),
       attachments: scenarioAttachments.length,
       steps,
     });
   }
 
-  scenarios.sort((a, b) => a.uri.localeCompare(b.uri) || a.name.localeCompare(b.name));
+  scenarios.sort(
+    (a, b) => a.uri.localeCompare(b.uri) || a.name.localeCompare(b.name),
+  );
 
   const overall =
     scenarios.length === 0
@@ -297,6 +374,11 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           'unknown' as SummaryStatus,
         );
 
+  const orphanAttachments = attachmentList.filter(
+    (attachment) =>
+      !attachment.testCaseStartedId || countedAttachments.has(attachment),
+  );
+
   return {
     schemaVersion: SUMMARY_SCHEMA_VERSION,
     status: overall,
@@ -306,8 +388,8 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
       steps: stepCounts,
     },
     attachments: {
-      total: attachmentList.length,
-      bytes: attachmentList.reduce(
+      total: orphanAttachments.length,
+      bytes: orphanAttachments.reduce(
         (sum, attachment) => sum + attachmentBytes(attachment),
         0,
       ),

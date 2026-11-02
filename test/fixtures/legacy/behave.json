@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Behave feature",
+    "description": [
+      "  As a user",
+      "  I want Behave support"
+    ],
+    "tags": [
+      "@behave"
+    ],
+    "uri": "features/behave.feature",
+    "elements": [
+      {
+        "type": "background",
+        "keyword": "Background",
+        "name": "Shared setup",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a background step",
+            "result": {
+              "status": "passed",
+              "duration": 1000
+            }
+          }
+        ]
+      },
+      {
+        "type": "scenario",
+        "keyword": "Scenario",
+        "name": "Behave scenario",
+        "description": [
+          "  A scenario description"
+        ],
+        "tags": [
+          "@behave",
+          "@scenario"
+        ],
+        "before": [
+          {
+            "keyword": "Before",
+            "name": "setup hook",
+            "result": {
+              "status": "passed",
+              "duration": 100
+            }
+          }
+        ],
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a step with a screenshot",
+            "result": {
+              "status": "passed",
+              "duration": 2000
+            },
+            "embeddings": [
+              {
+                "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+                "mime_type": "image/png"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

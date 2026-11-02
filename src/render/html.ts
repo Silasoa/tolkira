@@ -1,10 +1,12 @@
 import { CucumberHtmlStream } from '@cucumber/html-formatter';
 import type { Envelope } from '@cucumber/messages';
+import { createHash } from 'node:crypto';
 import { Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { sanitizeEnvelopes } from '../input/sanitize.js';
 import type { ReportSummary } from '../summary.js';
 import { summarizeEnvelopes } from '../summary.js';
+import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { escapeHtml } from './escape.js';
 
 export interface RenderOptions {
@@ -12,9 +14,11 @@ export interface RenderOptions {
   metadata?: Record<string, string>;
   logo?: string;
   accent?: string;
+  summary?: ReportSummary;
 }
 
-const ACCENT_PATTERN = /^#[0-9a-f]{3,8}$/i;
+
+
 
 function formatDuration(milliseconds: number): string {
   if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`;
@@ -59,7 +63,7 @@ function reportHeader(
   logo: string | undefined,
 ): string {
   const items = metadataItems(metadata);
-  const logoMarkup = logo
+  const logoMarkup = isLogoDataUri(logo)
     ? `<img class="tolkira-logo" src="${escapeHtml(logo)}" alt="">`
     : '';
   return `<header class="tolkira-header">
@@ -71,7 +75,19 @@ ${items ? `<div class="tolkira-meta">${items}</div>` : ''}
 </header>`;
 }
 
-const CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; media-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
+const CSP = (scriptHashes: string[]): string =>
+  `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; media-src data: blob:; style-src 'unsafe-inline'; script-src ${scriptHashes.join(' ') || "'none'"}; script-src-attr 'none'; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
+
+function inlineScriptHashes(html: string): string[] {
+  const hashes = new Set<string>();
+  for (const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const content = match[1] ?? '';
+    hashes.add(
+      `'sha256-${createHash('sha256').update(content, 'utf8').digest('base64')}'`,
+    );
+  }
+  return [...hashes];
+}
 
 const SHELL_STYLE = `<style>
 .tolkira-header{padding:18px 20px;border-top:4px solid var(--tolkira-accent,#1b5e20);border-bottom:1px solid #e5e5e5;background:#fafafa;font-family:system-ui,sans-serif;color:#222}
@@ -88,7 +104,7 @@ const SHELL_STYLE = `<style>
 
 export async function renderHtml(envelopes: Envelope[], options: RenderOptions): Promise<string> {
   const safeEnvelopes = sanitizeEnvelopes(envelopes);
-  const summary = summarizeEnvelopes(safeEnvelopes);
+  const summary = options.summary ?? summarizeEnvelopes(safeEnvelopes);
   const chunks: Buffer[] = [];
 
   const sink = new Writable({
@@ -112,11 +128,13 @@ export async function renderHtml(envelopes: Envelope[], options: RenderOptions):
     options.metadata,
     options.logo,
   );
-  const accentStyle =
-    options.accent && ACCENT_PATTERN.test(options.accent)
-      ? `<style>:root{--tolkira-accent:${options.accent}}</style>`
-      : '';
-  html = html.replace('</head>', () => `${CSP}${SHELL_STYLE}${accentStyle}</head>`);
+  const accentStyle = isValidAccent(options.accent)
+    ? `<style>:root{--tolkira-accent:${options.accent}}</style>`
+    : '';
+  html = html.replace(
+    '</head>',
+    () => `${CSP(inlineScriptHashes(html))}${SHELL_STYLE}${accentStyle}</head>`,
+  );
   if (html.includes('<div id="content">')) {
     html = html.replace('<div id="content">', () => `${header}<div id="content">`);
   } else {

@@ -45,7 +45,7 @@ The name is pronounced approximately **TOL-kee-rah**.
 - Summary, durations, errors, stack traces, hooks, outlines, tables, doc strings.
 - Search, status filters and tag filters.
 - Metadata header: title, timestamp, environment, CI/commit, counts.
-- Dark mode, title, logo, brand colours and basic custom CSS.
+- Dark mode, title, logo and an accent colour; custom CSS follows later.
 - Self-contained output, no CDN, no network requests, no telemetry.
 - Security baseline: escaped user content, safe attachments, no HTML execution.
 - Tests with real fixtures from cucumber-js, cucumber-jvm, cucumber-ruby and Behave.
@@ -74,13 +74,13 @@ The name is pronounced approximately **TOL-kee-rah**.
 
 ## Documentation
 
-- [`docs/PRODUCT.md`](docs/PRODUCT.md) — vision, audience, scope, market context.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system shape and decisions.
-- [`docs/AGENT-INTERFACE.md`](docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
-- [`docs/agents/review.md`](docs/agents/review.md) — review and audit protocol.
-- [`GLOSSARY.md`](GLOSSARY.md) — shared language.
-- [`AGENTS.md`](AGENTS.md) — how agents work in this repository.
-- [`openspec/`](openspec/) — the change contract and specifications.
+- [`docs/PRODUCT.md`](https://github.com/tolkira/tolkira/blob/main/docs/PRODUCT.md) — vision, audience, scope, market context.
+- [`docs/ARCHITECTURE.md`](https://github.com/tolkira/tolkira/blob/main/docs/ARCHITECTURE.md) — system shape and decisions.
+- [`docs/AGENT-INTERFACE.md`](https://github.com/tolkira/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
+- [`docs/agents/review.md`](https://github.com/tolkira/tolkira/blob/main/docs/agents/review.md) — review and audit protocol.
+- [`GLOSSARY.md`](https://github.com/tolkira/tolkira/blob/main/GLOSSARY.md) — shared language.
+- [`AGENTS.md`](https://github.com/tolkira/tolkira/blob/main/AGENTS.md) — how agents work in this repository.
+- [`openspec/`](https://github.com/tolkira/tolkira/tree/main/openspec) — the change contract and specifications.
 
 ## Development
 
@@ -88,6 +88,7 @@ Requires Node.js 22 or newer.
 
 ```shell
 npm install
+npx playwright install chromium
 npm run check
 npm run test:e2e
 ```
@@ -100,8 +101,10 @@ node dist/cli.js test/fixtures/legacy/happy.json \
   --out report.html \
   --title "My report" \
   --meta Browser=Chrome \
-  --logo logo.png \
   --accent "#1b5e20"
+
+# Optional: embed a logo (path is yours, not part of the repo)
+node dist/cli.js test-results/ --out report.html --logo path/to/logo.png
 ```
 
 The check runs typecheck, lint, unit tests and build. The browser test renders

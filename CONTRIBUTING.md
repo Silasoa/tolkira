@@ -20,6 +20,7 @@ Requires Node.js 22 or newer.
 
 ```shell
 npm ci
+npx playwright install chromium
 npm run check
 npm run test:e2e
 ```

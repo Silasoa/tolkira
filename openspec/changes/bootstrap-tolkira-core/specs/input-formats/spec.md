@@ -55,17 +55,20 @@ Screenshots SHALL remain viewable in the generated report.
 
 ### Requirement: Preserve legacy test detail
 
-Tolkira SHALL preserve statuses, durations, tags, hooks, scenario outlines,
-backgrounds, data tables, doc strings and error messages when normalising
-legacy JSON.
+Tolkira SHALL preserve statuses, durations, tags, hooks, background steps,
+expanded scenario-outline rows, data tables, doc strings and error messages when
+normalising legacy JSON.
 
 #### Scenario: Failed step keeps its error
 - **WHEN** a legacy JSON step has a failed status and an error message
 - **THEN** the generated report shows the failure and the error message
 
-#### Scenario: Scenario outline keeps its examples
-- **WHEN** a legacy JSON report contains a scenario outline with examples
-- **THEN** the generated report shows the outline and its example rows
+#### Scenario: Scenario outline rows are preserved
+- **WHEN** a legacy JSON report contains two example rows of a scenario outline
+- **THEN** both rows appear as separate scenarios with their statuses
+
+Reconstructing the original outline `examples` table is a documented limitation
+of the legacy format and is not required for v0.1.
 
 ### Requirement: Reject malformed input without partial output
 

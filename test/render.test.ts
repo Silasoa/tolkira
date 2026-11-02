@@ -1,7 +1,9 @@
 import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { renderReport } from '../src/index.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
+import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
 
 const fixture = fileURLToPath(
@@ -64,6 +66,7 @@ describe('messages rendering', () => {
             {
               keyword: 'Scenario',
               name: '<script>alert(2)</script>',
+              tags: ['<img src=x onerror=5>'],
               steps: [
                 {
                   keyword: 'Given ',
@@ -83,5 +86,48 @@ describe('messages rendering', () => {
     expect(html).not.toContain('<img src=x');
     expect(html).not.toContain('<script>alert(2)</script>');
     expect(html).not.toContain('<svg onload=alert(3)>');
+    expect(html).not.toContain('<img src=x onerror=5>');
+  });
+
+  it('does not render a malicious attachment file name as HTML', async () => {
+    const lines = (
+      await readFile(fixture, 'utf8')
+    )
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const attachment = lines.find((line) => line.attachment)?.attachment as
+      | Record<string, unknown>
+      | undefined;
+    if (attachment) {
+      attachment.fileName = '<img src=x onerror=alert(4)>.png';
+    }
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'malicious-name.ndjson',
+    );
+    const html = await renderHtml(envelopes, { title: 'Malicious name' });
+
+    expect(html).not.toContain('<img src=x');
+  });
+
+  it('does not render a remote logo URL', async () => {
+    const html = await renderReport(fixture, {
+      title: 'Remote logo',
+      logo: 'https://tolkira-probe.invalid/logo.png',
+    });
+
+    expect(html).not.toContain('tolkira-probe.invalid');
+  });
+
+  it('carries a restrictive content security policy', async () => {
+    const html = await renderReport(fixture, { title: 'CSP' });
+
+    expect(html).toContain('http-equiv="Content-Security-Policy"');
+    expect(html).toContain("default-src 'none'");
+    expect(html).toContain("connect-src 'none'");
+    expect(html).toContain("script-src 'sha256-");
+    expect(html).not.toMatch(/url\((?:https?:)?\/\//i);
   });
 });

@@ -32,5 +32,5 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Not yet implemented
 
-- Logo/brand controls and custom CSS, external attachment mode, full edge-case
-  matrix, JVM/Ruby/Behave fixtures beyond the adapter tests, release 0.1.0.
+- User-supplied custom CSS, external attachment mode, full edge-case matrix,
+  JVM/Ruby fixtures beyond Behave-shaped adapter tests, release 0.1.0.

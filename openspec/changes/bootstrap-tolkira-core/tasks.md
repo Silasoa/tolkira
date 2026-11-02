@@ -56,11 +56,11 @@ test-first and should fit in roughly two hours.
 ## 6. Security
 
 - [x] 6.1 RED/GREEN: XSS payloads in title, metadata, feature/scenario/step
-  names and attachment names are escaped.
-- [x] 6.2 RED/GREEN: HTML/SVG attachments do not execute scripts; show safe
-  content.
+  names, tags and attachment names are escaped.
+- [x] 6.2 RED/GREEN: HTML attachments do not execute scripts; images render
+  from data URIs.
 - [x] 6.3 RED/GREEN: generated HTML has no remote asset URLs, CDN links,
-  telemetry or remote fonts, and carries a restrictive CSP.
+  telemetry or remote fonts, and carries a hash-based CSP.
 - [ ] 6.4 RED/GREEN: invalid output paths and path traversal attempts fail
   without writing outside the target directory.
 
@@ -70,20 +70,20 @@ test-first and should fit in roughly two hours.
   undefined, ambiguous; assert counts and rendering.
 - [ ] 7.2 Boundary/equivalence: empty input, one scenario, 1,000 scenarios,
   unicode names, very long names, missing optional fields.
-- [ ] 7.3 Real fixtures from cucumber-js, cucumber-jvm, cucumber-ruby and
-  Behave; document any unsupported shape.
+- [ ] 7.3 Add cucumber-jvm and cucumber-ruby fixtures; document any unsupported
+  shape. Behave-shaped and cucumber-js fixtures exist.
 - [ ] 7.4 Golden HTML checks for the shell structure; keep them stable and
   readable.
 
 ## 8. Release 0.1.0
 
-- [ ] 8.1 Update README, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
+- [x] 8.1 Update README, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
   `docs/CHANGELOG.md` and `GLOSSARY.md` with shipped behaviour and limitations.
-- [ ] 8.2 Verify `npm pack` contents, package size, license and third-party
-  notices.
+- [x] 8.2 Verify `npm pack` contents, package size, license and third-party
+  notices. 20 files, 78.8 kB packed; AGENT-INTERFACE and GLOSSARY included.
 - [x] 8.3 Run the full gate in the foreground: typecheck, lint, tests, build,
-  browser test; record the results. Green on 2026-11-02: 36 unit tests, 3
-  Playwright tests, 0 audit vulnerabilities.
+  browser test; record the results. Green on 2026-11-02 after fixes: 51 unit
+  tests, 3 Playwright tests, 0 audit vulnerabilities.
 - [ ] 8.4 Run the blind review set (SCR, CR, DAR, SEC) and fix findings.
 - [ ] 8.5 User approval, tag `v0.1.0`, publish with provenance.
 
@@ -101,7 +101,7 @@ test-first and should fit in roughly two hours.
 ## Deferred follow-ups
 
 - External attachments/split assets for oversized reports.
-- Logo, brand colours and user-supplied CSS.
+- User-supplied custom CSS.
 - Legacy outline `examples` reconstruction.
 - History/trends.
 - PDF/email.

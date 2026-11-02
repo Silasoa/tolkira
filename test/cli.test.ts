@@ -188,6 +188,20 @@ describe('CLI', () => {
     await expect(readFile(output, 'utf8')).resolves.toContain('<html');
   });
 
+  it('rejects invalid accent values and logo types as usage errors', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+    const logo = path.join(dir, 'logo.txt');
+    await writeFile(logo, 'not an image', 'utf8');
+
+    expect(
+      await runCli([legacyFixture, '--out', output, '--accent', '#12345'], io),
+    ).toBe(2);
+    expect(
+      await runCli([legacyFixture, '--out', output, '--logo', logo], io),
+    ).toBe(2);
+  });
+
   it('returns usage error without input or output', async () => {
     expect(await runCli([], io)).toBe(2);
   });

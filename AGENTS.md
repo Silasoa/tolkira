@@ -8,6 +8,7 @@ file, screenshots included, no CDN, no server, no telemetry.
 
 - `docs/PRODUCT.md` — vision, audience, scope, non-goals, market context.
 - `docs/ARCHITECTURE.md` — system shape and key decisions.
+- `docs/AGENT-INTERFACE.md` — JSON summary schema, CLI/API contract and limits.
 - `docs/agents/review.md` — review and audit protocol.
 - `docs/agents/issue-tracker.md` — GitHub issue conventions.
 - `docs/agents/triage-labels.md` — label vocabulary.

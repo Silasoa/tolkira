@@ -9,8 +9,8 @@ report and their error and exit-code behaviour.
 
 ### Requirement: Generate a report from the CLI
 
-The CLI SHALL accept one or more input files or directories and an output path,
-and SHALL write one HTML report.
+The CLI SHALL accept one or more input files or directories and either an
+output path or `--json`, and SHALL produce one HTML report and/or one summary.
 
 #### Scenario: Single input
 - **WHEN** the user runs the CLI with one supported input and an output path
@@ -43,8 +43,8 @@ on usage errors. Failing test results SHALL NOT fail report generation.
 
 ### Requirement: Expose a programmatic API
 
-Tolkira SHALL expose a programmatic API that accepts the same inputs and options
-as the CLI and returns the generated HTML.
+Tolkira SHALL expose a programmatic API that accepts the same inputs as the CLI
+and returns the generated HTML or summary. The API SHALL NOT write files.
 
 #### Scenario: API returns HTML
 - **WHEN** a caller invokes the API with a supported input
@@ -83,8 +83,10 @@ same summary without writing HTML.
 
 ### Requirement: Support title, metadata and output options
 
-The CLI and API SHALL support a report title, repeated metadata entries and an
-output path. The CLI SHALL support help and version output.
+The CLI SHALL support a report title, repeated metadata entries, a logo, an
+accent colour, a size warning threshold, help and version output. The API SHALL
+support title, metadata, logo and accent. The CLI SHALL require at least one of
+`--out` or `--json`.
 
 #### Scenario: Title and metadata
 - **WHEN** the user supplies a title and metadata entries

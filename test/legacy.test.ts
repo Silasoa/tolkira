@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
-import { renderReport } from '../src/index.js';
+import { renderReport, summarizeReport } from '../src/index.js';
 
 const happy = fileURLToPath(
   new URL('./fixtures/legacy/happy.json', import.meta.url),
@@ -15,6 +15,9 @@ const unhappy = fileURLToPath(
 );
 const failed = fileURLToPath(
   new URL('./fixtures/legacy/failed.json', import.meta.url),
+);
+const behave = fileURLToPath(
+  new URL('./fixtures/legacy/behave.json', import.meta.url),
 );
 
 async function legacyEnvelopes(path: string) {
@@ -133,7 +136,7 @@ describe('legacy JSON adapter', () => {
               steps: [
                 {
                   keyword: 'Given ',
-                  name: 'a shared step',
+                  name: 'a scenario-specific step',
                   result: { status: 'passed', duration: 1 },
                 },
               ],
@@ -149,6 +152,75 @@ describe('legacy JSON adapter', () => {
     );
     expect(pickles).toHaveLength(1);
     expect(pickles[0]?.name).toBe('Real scenario');
+    expect(pickles[0]?.steps.map((step) => step.text)).toEqual([
+      'a shared step',
+      'a scenario-specific step',
+    ]);
+
+    const background = envelopes.find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument?.feature?.children.find((child) => child.background)
+      ?.background;
+    expect(background?.steps.map((step) => step.text)).toEqual([
+      'a shared step',
+    ]);
+  });
+
+  it('keeps relative URIs distinct', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          uri: 'a/login.feature',
+          name: 'Feature A',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'A scenario',
+              steps: [
+                { keyword: 'Given ', name: 'a', result: { status: 'passed' } },
+              ],
+            },
+          ],
+        },
+        {
+          uri: 'b/login.feature',
+          name: 'Feature B',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'B scenario',
+              steps: [
+                { keyword: 'Given ', name: 'b', result: { status: 'passed' } },
+              ],
+            },
+          ],
+        },
+      ]),
+      'collision.json',
+    );
+
+    const uris = envelopes.flatMap((envelope) =>
+      envelope.gherkinDocument ? [envelope.gherkinDocument.uri] : [],
+    );
+    expect(uris).toEqual(['a/login.feature', 'b/login.feature']);
+  });
+
+  it('accepts Behave-shaped descriptions, tags, hooks and mime_type', async () => {
+    const summary = await summarizeReport(behave);
+
+    expect(summary.status).toBe('passed');
+    expect(summary.counts.scenarios).toMatchObject({ total: 1, passed: 1 });
+    expect(summary.counts.steps.total).toBe(3);
+    expect(summary.scenarios[0]?.tags).toEqual(
+      expect.arrayContaining(['@behave', '@scenario']),
+    );
+    expect(summary.attachments.total).toBe(1);
+    expect(summary.attachments.bytes).toBeGreaterThan(0);
+
+    const html = await renderReport(behave, { title: 'Behave' });
+    expect(html).toContain('a background step');
+    expect(html).toContain('image/png');
+    expect(html).toContain('attachment-1.png');
   });
 
   it('uses deterministic IDs when a prefix is given', async () => {

@@ -28,8 +28,8 @@ stderr. Exit codes are about report generation, not test status:
 | Code | Meaning |
 | ---- | ------- |
 | 0    | Report or summary generated; tests may still have failed |
-| 1    | Input could not be parsed or rendered |
-| 2    | Invalid usage |
+| 1    | Input could not be parsed or rendered, or the output could not be written |
+| 2    | Invalid usage, including an invalid flag value or logo file |
 
 Always read `status` from the JSON summary for the test outcome. A failed test
 suite is exit code 0 by design.
@@ -43,15 +43,30 @@ import {
   summarizeReport,
 } from 'tolkira';
 
-const summary = await summarizeReport(['test-results/']);
+const inputs = ['test-results/'];
+const summary = await summarizeReport(inputs);
 const { html, summary: sameSummary } = await generateReport(inputs, {
   title: 'Nightly',
   metadata: { CI: 'true', Commit: process.env.GITHUB_SHA ?? '' },
+  logo: 'data:image/png;base64,...',
+  accent: '#1b5e20',
 });
 const htmlOnly = await renderReport(inputs, { title: 'Nightly' });
 ```
 
 The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
+
+| Option | CLI | API |
+| ------ | --- | --- |
+| title | `--title` | `title` |
+| metadata | `--meta key=value` (repeatable) | `metadata` object |
+| logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
+| accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
+| size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
+
+The CLI validates logo bytes and rejects unsupported types or a size over
+2 MB. The API only accepts a `data:image/...;base64,...` logo; anything else is
+omitted.
 
 ## Summary schema, version 1
 
@@ -72,8 +87,8 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
       "unknown": 0
     },
     "steps": {
-      "total": 31,
-      "passed": 30,
+      "total": 2,
+      "passed": 1,
       "failed": 1,
       "skipped": 0,
       "pending": 0,
@@ -110,6 +125,9 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 }
 ```
 
+This example is abridged: it shows only the failing scenario, not the passing
+one that carries the screenshot. The totals reflect the whole input.
+
 Field contract:
 
 - `schemaVersion` is `1`. A breaking change increments it.
@@ -126,10 +144,11 @@ Field contract:
 - `attachments.bytes` is the decoded size, not the base64 length.
 - `steps[].message` is present only when the step result has a message. For
   hooks, `keyword` is `"Hook"` and `text` is the hook type.
-- `attachments[].fileName` is not part of the summary. Attachments are linked
-  to scenarios by count; open the HTML report to see the image or file.
+- Attachment file names are not part of the summary. `scenarios[].attachments`
+  is a count; open the HTML report to see the image or file.
 
-The summary contains no absolute input paths: `uri` comes from the test report.
+The summary does not expose absolute input paths: absolute `uri` values are
+reduced to a report-relative form (`features/...`).
 
 ## Recommended agent workflow
 
@@ -146,8 +165,11 @@ The summary contains no absolute input paths: `uri` comes from the test report.
 - Remote attachments (`attachment.url`, `externalAttachment`) are rejected on
   purpose; the report must work offline. Inline the bytes.
 - Markdown images with remote URLs are stripped from descriptions.
-- The HTML report includes a restrictive CSP and never executes attachments.
+- Inputs are capped at 100 MB; attachments at 50 MB each and 100 MB total.
+- The HTML report includes a hash-based CSP and never executes attachments.
 - History, trends, retries beyond the latest attempt and JUnit/Playwright
   adapters are not part of v0.1.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed.
+- cucumber-js, Behave-shaped and Messages inputs are covered by fixtures;
+  cucumber-jvm and cucumber-ruby fixtures are follow-ups.

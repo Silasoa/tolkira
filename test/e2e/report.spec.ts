@@ -35,14 +35,14 @@ test('renders a messages report in the browser', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: /features\/screenshot\.feature/ }),
     ).toBeVisible();
-
-    await expect(
-      page.getByRole('heading', { name: /features\/screenshot\.feature/ }),
-    ).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
     ).toBeVisible();
     await expect(page.getByText('screenshot.png')).toBeVisible();
+    await page.getByText('screenshot.png').click();
+    await expect(
+      page.locator('img[src^="data:image/png"]').first(),
+    ).toBeVisible();
 
     await expect(
       page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
@@ -74,8 +74,15 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
 
     await page.goto(pathToFileURL(output).href);
     await expect(page).toHaveTitle('Legacy E2E');
-    await page.getByRole('button', { name: /happy\.feature/ }).click();
+    const feature = page.getByRole('button', { name: /happy\.feature/ });
+    if ((await feature.getAttribute('aria-expanded')) === 'false') {
+      await feature.click();
+    }
     await expect(page.getByText('attachment-1.png')).toBeVisible();
+    await page.getByText('attachment-1.png').click();
+    await expect(
+      page.locator('img[src^="data:image/png"]').first(),
+    ).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -100,7 +107,8 @@ test('does not execute HTML attachments', async ({ page }) => {
     await page.goto(pathToFileURL(output).href);
     await page.getByRole('button', { name: /happy\.feature/ }).click();
     const attachment = page.getByText('attachment-1.html');
-    if (await attachment.count()) await attachment.click();
+    await expect(attachment).toBeVisible();
+    await attachment.click();
 
     const executed = await page.evaluate(
       () => (window as unknown as { __tolkiraXss?: number }).__tolkiraXss,

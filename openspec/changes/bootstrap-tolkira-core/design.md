@@ -75,7 +75,8 @@ components, not a fork of the old reporter.
 
 Attachments are inline in the HTML for v0.1. This matches CI artefacts, email
 and iframe embedding. External attachments and split assets are a later change
-for large media and strict CSP.
+for large media. A restrictive CSP is injected into every report; split-assets
+mode is not part of v0.1.
 
 ### D6: Security boundary
 
@@ -85,11 +86,12 @@ for large media and strict CSP.
 - Validate media types and size.
 - No remote assets, fonts, analytics or telemetry.
 - Avoid path traversal when writing output.
-- A CSP/split-assets mode is planned, not v0.1.
+- A split-assets/external-attachment mode is planned, not v0.1.
+- Inline attachments are capped (50 MB each, 100 MB total).
 
 ### D7: One package and a small toolchain
 
-ESM, Node >= 22, TypeScript, esbuild, Vitest, ESLint, Playwright. No monorepo,
+ESM, Node >= 22, TypeScript, esbuild, Vitest, oxlint, Playwright. No monorepo,
 no CLI framework, no lodash/fs-extra/uuid. See ADR 0002.
 
 ### D8: Fixtures and tests are first-class
@@ -114,7 +116,8 @@ npm package `tolkira`, trusted publishing with provenance, CI matrix Node
   adapter independent.
 - **Shell injection fragility** — test the title/metadata replacement; fall back
   to a React shell if needed.
-- **Single-file size** — warn above a threshold; external attachments later.
+- **Single-file size** - warn above 10 MB by default (`--max-size`); external
+  attachments later.
 - **Legacy JSON variants** — support the documented implementations first; add
   fixtures for each.
 - **Name/trademark** — formal clearance pending; rename before public release if
@@ -132,5 +135,6 @@ database or report format migration.
   do we need a React shell earlier?
 - Which legacy implementation is the second fixture after cucumber-js:
   cucumber-jvm or Behave?
-- Is external-attachment mode required for v0.1, or can it wait?
-- What is the size threshold for the warning?
+- Is external-attachment mode required for v0.1, or can it wait? Answer: wait.
+- What is the size threshold for the warning? Answer: 10 MB default,
+  configurable with `--max-size`.

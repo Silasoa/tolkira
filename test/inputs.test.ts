@@ -3,13 +3,16 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { renderReport } from '../src/index.js';
+import { renderReport, summarizeReport } from '../src/index.js';
 
 const messages = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
 );
 const legacy = fileURLToPath(
   new URL('./fixtures/legacy/happy.json', import.meta.url),
+);
+const secondMessages = fileURLToPath(
+  new URL('./fixtures/messages/second.ndjson', import.meta.url),
 );
 
 const tempDirs: string[] = [];
@@ -21,6 +24,20 @@ afterEach(async () => {
 });
 
 describe('input merging', () => {
+  it('merges two Messages inputs with stable order', async () => {
+    const summary = await summarizeReport([messages, secondMessages]);
+
+    expect(summary.counts.scenarios.total).toBe(4);
+    expect(summary.scenarios.map((scenario) => scenario.uri)).toEqual(
+      expect.arrayContaining([
+        'features/screenshot.feature',
+        'features/second.feature',
+      ]),
+    );
+    expect(summary.scenarios.filter((scenario) => scenario.uri === 'features/second.feature'))
+      .toHaveLength(2);
+  });
+
   it('merges Messages and legacy JSON into one report', async () => {
     const html = await renderReport([messages, legacy], { title: 'Mixed' });
 
@@ -65,9 +82,38 @@ describe('input merging', () => {
     tempDirs.push(dir);
     await copyFile(messages, path.join(dir, 'messages.ndjson'));
     await writeFile(path.join(dir, 'package.json'), '{"name":"not-a-report"}\n', 'utf8');
+    await writeFile(path.join(dir, 'numbers.json'), '[1,2,3]\n', 'utf8');
 
     const html = await renderReport(dir, { title: 'Skipped' });
     expect(html).toContain('Screenshot attachment');
     expect(html).not.toContain('not-a-report');
+  });
+
+  it('rejects an explicit array that is not a legacy report', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-invalid-'));
+    tempDirs.push(dir);
+    const numbers = path.join(dir, 'numbers.json');
+    await writeFile(numbers, '[1,2,3]\n', 'utf8');
+
+    await expect(renderReport(numbers, { title: 'Nope' })).rejects.toThrow(
+      'Unsupported input',
+    );
+  });
+
+  it('deduplicates the same file passed twice', async () => {
+    const summary = await summarizeReport([messages, messages]);
+
+    expect(summary.counts.scenarios.total).toBe(2);
+    expect(summary.attachments.total).toBe(1);
+  });
+
+  it('deduplicates a file and its containing directory', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-dedupe-'));
+    tempDirs.push(dir);
+    const file = path.join(dir, 'messages.ndjson');
+    await copyFile(messages, file);
+
+    const summary = await summarizeReport([dir, file]);
+    expect(summary.counts.scenarios.total).toBe(2);
   });
 });
