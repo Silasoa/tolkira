@@ -80,7 +80,7 @@ test-first and should fit in roughly two hours.
 - [x] 8.1 Update README, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
   `docs/CHANGELOG.md` and `GLOSSARY.md` with shipped behaviour and limitations.
 - [x] 8.2 Verify `npm pack` contents, package size, license and third-party
-  notices. 20 files, 78.8 kB packed; AGENT-INTERFACE and GLOSSARY included.
+  notices. 20 files, 83.3 kB packed; AGENT-INTERFACE and GLOSSARY included.
 - [x] 8.3 Run the full gate in the foreground: typecheck, lint, tests, build,
   browser test; record the results. Green on 2026-11-02 after fixes: 58 unit
   tests, 5 Playwright tests, 0 audit vulnerabilities.
