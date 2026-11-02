@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest a capability or a report improvement.
+title: "feat: "
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what is missing?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Legacy JSON input
+        - Messages input
+        - Report UI
+        - CLI/API
+        - Release/packaging
+        - Docs

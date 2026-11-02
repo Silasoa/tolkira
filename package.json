@@ -1,0 +1,73 @@
+{
+  "name": "tolkira",
+  "version": "0.0.0",
+  "description": "The interpreter for your test results. Self-contained HTML reports for Cucumber JSON, Messages, and beyond.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Tolkira contributors",
+  "homepage": "https://github.com/tolkira/tolkira",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tolkira/tolkira.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tolkira/tolkira/issues"
+  },
+  "keywords": [
+    "cucumber",
+    "cucumber-json",
+    "cucumber-messages",
+    "gherkin",
+    "bdd",
+    "html-report",
+    "test-report",
+    "report-generator",
+    "testing"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "tolkira": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && node esbuild.mjs && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test --pass-with-no-tests",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "prepublishOnly": "npm run check"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@cucumber/html-formatter": "^24.2.0",
+    "@cucumber/messages": "^34.2.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
+    "oxlint": "^1.90.0",
+    "typescript": "^5.8.0",
+    "vitest": "^5.1.0"
+  }
+}

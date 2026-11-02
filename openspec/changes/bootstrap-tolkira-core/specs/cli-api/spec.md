@@ -1,0 +1,76 @@
+# Spec Delta
+
+## Purpose
+
+Defines the command-line and programmatic entry points for generating a Tolkira
+report and their error and exit-code behaviour.
+
+## ADDED Requirements
+
+### Requirement: Generate a report from the CLI
+
+The CLI SHALL accept one or more input files or directories and an output path,
+and SHALL write one HTML report.
+
+#### Scenario: Single input
+- **WHEN** the user runs the CLI with one supported input and an output path
+- **THEN** the CLI writes the HTML report to that path
+
+#### Scenario: Multiple inputs
+- **WHEN** the user runs the CLI with multiple supported inputs
+- **THEN** the CLI writes one report containing all results
+
+#### Scenario: Directory input
+- **WHEN** the user runs the CLI with a directory
+- **THEN** the CLI includes every supported report file in that directory
+
+### Requirement: Use stable exit codes
+
+The CLI SHALL return exit code 0 on success, 1 on parse or render failure and 2
+on usage errors. Failing test results SHALL NOT fail report generation.
+
+#### Scenario: Failing tests still generate a report
+- **WHEN** the input contains failed test results but is otherwise valid
+- **THEN** the CLI writes the report and exits with code 0
+
+#### Scenario: Malformed input
+- **WHEN** the input cannot be parsed
+- **THEN** the CLI exits with code 1 and writes no partial report
+
+#### Scenario: Missing arguments
+- **WHEN** the user omits a required argument
+- **THEN** the CLI exits with code 2 and prints usage
+
+### Requirement: Expose a programmatic API
+
+Tolkira SHALL expose a programmatic API that accepts the same inputs and options
+as the CLI and returns the generated HTML.
+
+#### Scenario: API returns HTML
+- **WHEN** a caller invokes the API with a supported input
+- **THEN** the API returns the report HTML without requiring a file write
+
+#### Scenario: API reports errors
+- **WHEN** a caller invokes the API with malformed input
+- **THEN** the API rejects with a clear error
+
+### Requirement: Support title, metadata and output options
+
+The CLI and API SHALL support a report title, repeated metadata entries and an
+output path. The CLI SHALL support help and version output.
+
+#### Scenario: Title and metadata
+- **WHEN** the user supplies a title and metadata entries
+- **THEN** the generated report contains the escaped title and metadata
+
+#### Scenario: Help
+- **WHEN** the user requests help
+- **THEN** the CLI prints usage and exits successfully
+
+### Requirement: Do not leave partial output
+
+On failure, the CLI SHALL remove or avoid a partial output file.
+
+#### Scenario: Render failure
+- **WHEN** rendering fails after the output path was opened
+- **THEN** no partial report remains at the output path

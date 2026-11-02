@@ -1,0 +1,93 @@
+schema: spec-driven
+
+context: |
+  # Tolkira
+
+  Tolkira is an open-source, embeddable HTML report generator for test results.
+  It starts with two input formats: legacy Cucumber JSON and modern Cucumber
+  Messages (NDJSON). The product promise is one self-contained HTML file,
+  screenshots and attachments included, no CDN, no server and no telemetry.
+
+  ## Why
+
+  The de-facto Cucumber JSON reporter (cucumber-html-reporter) is effectively
+  unmaintained, carries old CDN/template dependencies and only supports legacy
+  JSON. The official Cucumber HTML formatter is modern and single-file but
+  consumes Messages only and has no dashboard/metadata/history/branding. The
+  multiple-cucumber-html-reporter is active but heavier, folder-based and
+  JSON-only. There is a gap for a lightweight hybrid that keeps existing JSON
+  pipelines working while adding modern Messages.
+
+  ## Product principles
+
+  - Single self-contained HTML by default; no external assets or network calls.
+  - Screenshots and attachments are first-class.
+  - Few runtime dependencies; prefer Node built-ins and official Cucumber
+    packages.
+  - The official Cucumber React components are the renderer; Tolkira owns the
+    adapters, shell, CLI and security policy.
+  - Legacy JSON is normalised to Messages; one renderer for both formats.
+  - Security at the trust boundary: test data, metadata, file names and
+    attachments are untrusted.
+  - MIT; no telemetry; no vendor lock-in; no 1:1 clone of the old themes.
+
+  ## Scope
+
+  v0.1: CLI/API, legacy JSON + Messages input, attachment-preserving
+  normalisation, single-file HTML, summary, metadata, search/filter/tags,
+  dark mode/branding, security baseline, fixtures and browser test.
+
+  Non-goals: history/trends, PDF/email, JUnit/Playwright adapters, localisation,
+  plugins, SaaS, test management, live server, trace viewer, screenshot diffing.
+
+  ## Stack and constraints
+
+  - Node.js 22, 24, 26 in CI; engines >= 22.
+  - TypeScript, ESM, one npm package, no monorepo.
+  - esbuild, Vitest, ESLint, Playwright.
+  - npm trusted publishing with provenance.
+  - Name: Tolkira (coined from Scandinavian "tolk", interpreter). Preliminary
+    name checks are in docs/adr/0003; formal trademark clearance is pending.
+  - User communication: German. Code, docs, commits and issues: English.
+  - No OKF, no giant swarm, no codebase-memory by default; Open Design optional.
+
+  ## Quality
+
+  - Spec first; no production code before user approval of the spec.
+  - TDD; every task includes at least one test.
+  - ISTQB-inspired edge cases: equivalence classes, boundaries, decision tables,
+    state transitions.
+  - Gate: typecheck + lint + unit tests + build + browser test.
+  - Blind review: SCR, CR, DAR; triggered SEC, UXR, ILA, PCA, PSA.
+  - No new runtime dependency without a written justification in the change.
+
+rules:
+  proposal:
+    - "Reference the tracking issue, or state explicitly that no remote exists yet"
+    - "State what is out of scope"
+    - "Do not include implementation details; they belong in design.md"
+  specs:
+    - "Use SHALL or MUST for normative requirements"
+    - "Every requirement needs at least one testable acceptance criterion"
+    - "Legacy JSON requirements must explicitly cover screenshots/attachments"
+    - "Security requirements must cover escaping, attachments and no network"
+  design:
+    - "Reference the relevant ADRs"
+    - "Describe the data flow from input to single HTML output"
+    - "Name the hard parts and the risks"
+    - "Do not propose a fork of the old reporter templates or a custom Gherkin renderer"
+  tasks:
+    - "Break tasks into chunks of max 2 hours"
+    - "Implementation starts with TDD (RED -> GREEN) and vertical slices"
+    - "Every task includes at least one test or fixture"
+    - "Include fixture, security and browser-test work"
+    - "Run npm run check before handover"
+
+operations:
+  apply:
+    guidance:
+      - "Keep the change small; one vertical slice at a time."
+      - "Do not close the issue, archive the change or publish without user approval."
+  archive:
+    guidance:
+      - "Summarise the shipped slice, gate results and deferred follow-ups."

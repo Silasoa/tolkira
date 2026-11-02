@@ -1,0 +1,100 @@
+# Tolkira
+
+> **The interpreter for your test results.**
+> Clear, embeddable HTML reports for Cucumber JSON, Messages, and beyond.
+
+**Status: specification phase.** The repository currently contains the product
+context, governance, OpenSpec change and toolchain skeleton. Production code
+starts only after the first spec is approved.
+
+## What is Tolkira?
+
+Tolkira turns test results into a single, self-contained HTML report that works
+offline and can be embedded anywhere. It starts with the two Cucumber formats
+that matter today:
+
+- **Legacy Cucumber JSON** — the format produced by cucumber-js, cucumber-jvm,
+  cucumber-ruby, Behave and many compatible tools.
+- **Cucumber Messages (NDJSON)** — the modern, implementation-independent
+  format produced by Cucumber's official implementations.
+
+The important part is that **screenshots and attachments survive**. A test
+report without the failing screenshot is not a report; it is a table.
+
+Tolkira is deliberately not tied to Cucumber or Gherkin in its name. The
+adapter layer can grow to other result formats later without renaming the
+product.
+
+## Why the name?
+
+Tolkira is a coined name from the Scandinavian word **“tolk”** — interpreter.
+A test report is an interpreter: it translates raw test events into something
+people can understand, and it bridges old JSON pipelines and modern Messages
+without forcing a migration.
+
+The name is pronounced approximately **TOL-kee-rah**.
+
+## Planned v0.1
+
+- CLI and programmatic API: one input or many, one output HTML file.
+- Legacy JSON + Messages input, including multiple runs and groups.
+- Screenshots and attachments preserved inline.
+- Summary, durations, errors, stack traces, hooks, outlines, tables, doc strings.
+- Search, status filters and tag filters.
+- Metadata header: title, timestamp, environment, CI/commit, counts.
+- Dark mode, title, logo, brand colours and basic custom CSS.
+- Self-contained output, no CDN, no network requests, no telemetry.
+- Security baseline: escaped user content, safe attachments, no HTML execution.
+- Tests with real fixtures from cucumber-js, cucumber-jvm, cucumber-ruby and Behave.
+- npm release with provenance and Node 22/24/26 CI.
+
+## Non-goals for v0.1
+
+- History, trends and flaky-test analytics (Allure/ReportPortal territory).
+- PDF or email reports.
+- JUnit XML or Playwright JSON adapters.
+- Localisation (the shell starts in English; German can follow).
+- A plugin system, SaaS, test management or a live server.
+- A first-class visual clone of the old cucumber-html-reporter themes.
+
+## Principles
+
+- **One file, no network.** A report must be shareable as a CI artefact.
+- **Few dependencies.** Prefer Node built-ins and the official Cucumber
+  components over another framework.
+- **The data pipeline is the product.** The UI is assembled from official,
+  maintained components; the adapters and the shell are ours.
+- **Security at the trust boundary.** Test names, metadata and attachments are
+  untrusted input.
+- **Spec first, tests first, small slices.**
+- **MIT, no telemetry, no vendor lock-in.**
+
+## Documentation
+
+- [`docs/PRODUCT.md`](docs/PRODUCT.md) — vision, audience, scope, market context.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system shape and decisions.
+- [`docs/agents/review.md`](docs/agents/review.md) — review and audit protocol.
+- [`GLOSSARY.md`](GLOSSARY.md) — shared language.
+- [`AGENTS.md`](AGENTS.md) — how agents work in this repository.
+- [`openspec/`](openspec/) — the change contract and specifications.
+
+## Development
+
+Requires Node.js 22 or newer.
+
+```shell
+npm install
+npm run check
+```
+
+The check runs typecheck, lint, unit tests and build. The first implementation
+slice is described in `openspec/changes/` and is not started until the spec is
+approved.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).
+
+Tolkira is not affiliated with Cucumber, SmartBear or any test-framework
+vendor. Cucumber and Gherkin are used descriptively; the project builds on
+MIT-licensed Cucumber components.
