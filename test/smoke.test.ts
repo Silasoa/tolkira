@@ -3,7 +3,7 @@ import { phase, version } from '../src/index.js';
 
 describe('scaffold', () => {
   it('exposes the package phase and version', () => {
-    expect(phase).toBe('specification');
+    expect(phase).toBe('development');
     expect(version).toBe('0.0.0');
   });
 });

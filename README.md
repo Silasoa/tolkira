@@ -3,9 +3,10 @@
 > **The interpreter for your test results.**
 > Clear, embeddable HTML reports for Cucumber JSON, Messages, and beyond.
 
-**Status: specification phase.** The repository currently contains the product
-context, governance, OpenSpec change and toolchain skeleton. Production code
-starts only after the first spec is approved.
+**Status: v0.1 core in development.** Messages and legacy Cucumber JSON now
+render to one self-contained HTML file; the CLI/API, title/metadata, screenshot
+attachments and browser tests are in place. Remaining v0.1 work is tracked in
+`openspec/changes/bootstrap-tolkira-core/tasks.md`.
 
 ## What is Tolkira?
 
@@ -85,11 +86,22 @@ Requires Node.js 22 or newer.
 ```shell
 npm install
 npm run check
+npm run test:e2e
 ```
 
-The check runs typecheck, lint, unit tests and build. The first implementation
-slice is described in `openspec/changes/` and is not started until the spec is
-approved.
+Generate a report from one of the fixtures:
+
+```shell
+npm run build
+node dist/cli.js test/fixtures/legacy/happy.json \
+  --out report.html \
+  --title "My report" \
+  --meta Browser=Chrome
+```
+
+The check runs typecheck, lint, unit tests and build. The browser test renders
+both a Messages report and a legacy JSON report, opens a screenshot and checks
+that an HTML attachment does not execute.
 
 ## License
 

@@ -1,11 +1,21 @@
-/**
- * Tolkira is in the specification phase.
- *
- * The public API and report generator are defined in
- * openspec/changes/bootstrap-tolkira-core. This placeholder exists so the
- * package, build and typecheck are wired before the first implementation
- * slice.
- */
-export const version = '0.0.0';
+import { loadEnvelopes } from './input/load.js';
+import { renderHtml } from './render/html.js';
 
-export const phase = 'specification';
+export const version = '0.0.0';
+export const phase = 'development';
+
+export interface RenderReportOptions {
+  title?: string;
+  metadata?: Record<string, string>;
+}
+
+export async function renderReport(
+  inputs: string | string[],
+  options: RenderReportOptions = {},
+): Promise<string> {
+  const envelopes = await loadEnvelopes(inputs);
+  return renderHtml(envelopes, {
+    title: options.title ?? 'Tolkira report',
+    metadata: options.metadata,
+  });
+}
