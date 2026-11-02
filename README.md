@@ -74,13 +74,13 @@ The name is pronounced approximately **TOL-kee-rah**.
 
 ## Documentation
 
-- [`docs/PRODUCT.md`](https://github.com/tolkira/tolkira/blob/main/docs/PRODUCT.md) — vision, audience, scope, market context.
-- [`docs/ARCHITECTURE.md`](https://github.com/tolkira/tolkira/blob/main/docs/ARCHITECTURE.md) — system shape and decisions.
-- [`docs/AGENT-INTERFACE.md`](https://github.com/tolkira/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
-- [`docs/agents/review.md`](https://github.com/tolkira/tolkira/blob/main/docs/agents/review.md) — review and audit protocol.
-- [`GLOSSARY.md`](https://github.com/tolkira/tolkira/blob/main/GLOSSARY.md) — shared language.
-- [`AGENTS.md`](https://github.com/tolkira/tolkira/blob/main/AGENTS.md) — how agents work in this repository.
-- [`openspec/`](https://github.com/tolkira/tolkira/tree/main/openspec) — the change contract and specifications.
+- [`docs/PRODUCT.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PRODUCT.md) — vision, audience, scope, market context.
+- [`docs/ARCHITECTURE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/ARCHITECTURE.md) — system shape and decisions.
+- [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
+- [`docs/agents/review.md`](https://github.com/Silasoa/tolkira/blob/main/docs/agents/review.md) — review and audit protocol.
+- [`GLOSSARY.md`](https://github.com/Silasoa/tolkira/blob/main/GLOSSARY.md) — shared language.
+- [`AGENTS.md`](https://github.com/Silasoa/tolkira/blob/main/AGENTS.md) — how agents work in this repository.
+- [`openspec/`](https://github.com/Silasoa/tolkira/tree/main/openspec) — the change contract and specifications.
 
 ## Development
 

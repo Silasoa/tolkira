@@ -5,13 +5,13 @@
   "type": "module",
   "license": "MIT",
   "author": "Tolkira contributors",
-  "homepage": "https://github.com/tolkira/tolkira",
+  "homepage": "https://github.com/Silasoa/tolkira",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tolkira/tolkira.git"
+    "url": "git+https://github.com/Silasoa/tolkira.git"
   },
   "bugs": {
-    "url": "https://github.com/tolkira/tolkira/issues"
+    "url": "https://github.com/Silasoa/tolkira/issues"
   },
   "keywords": [
     "cucumber",
