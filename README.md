@@ -77,6 +77,7 @@ The name is pronounced approximately **TOL-kee-rah**.
 - [`docs/PRODUCT.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PRODUCT.md) — vision, audience, scope, market context.
 - [`docs/ARCHITECTURE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/ARCHITECTURE.md) — system shape and decisions.
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
+- [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md) — Seed-Test visual comparison and parity gaps.
 - [`docs/agents/review.md`](https://github.com/Silasoa/tolkira/blob/main/docs/agents/review.md) — review and audit protocol.
 - [`GLOSSARY.md`](https://github.com/Silasoa/tolkira/blob/main/GLOSSARY.md) — shared language.
 - [`AGENTS.md`](https://github.com/Silasoa/tolkira/blob/main/AGENTS.md) — how agents work in this repository.
@@ -91,6 +92,7 @@ npm install
 npx playwright install chromium
 npm run check
 npm run test:e2e
+npm run stress -- 1000
 ```
 
 Generate a report from one of the fixtures:
@@ -109,7 +111,9 @@ node dist/cli.js test-results/ --out report.html --logo path/to/logo.png
 
 The check runs typecheck, lint, unit tests and build. The browser test renders
 both a Messages report and a legacy JSON report, opens a screenshot, exercises
-search, and checks that an HTML attachment does not execute.
+search, status filters, expand/collapse and checks that an HTML attachment does
+not execute. `npm run stress -- 1000` checks a 1,000-scenario report; see
+[`docs/COMPARISON.md`](docs/COMPARISON.md) for the Seed-Test comparison.
 
 For agents and CI, print the stable summary instead of scraping HTML:
 

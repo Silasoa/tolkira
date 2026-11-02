@@ -68,11 +68,13 @@ test-first and should fit in roughly two hours.
 
 - [x] 7.1 Decision table for statuses: passed, failed, skipped, pending,
   undefined, ambiguous; assert counts and rendering.
-- [ ] 7.2 Boundary/equivalence: empty input, one scenario, 1,000 scenarios,
-  unicode names, very long names, missing optional fields.
-- [ ] 7.3 Add cucumber-jvm and cucumber-ruby fixtures; document any unsupported
+- [x] 7.2 Stress test: `npm run stress -- 1000` and 5000 scenarios; assert
+  counts, output size and timing. 1000: ~0.2 s/3.6 MB; 5000: ~0.4 s/14.4 MB.
+- [ ] 7.3 Boundary/equivalence: empty input, one scenario, unicode names, very
+  long names, missing optional fields.
+- [ ] 7.4 Add cucumber-jvm and cucumber-ruby fixtures; document any unsupported
   shape. Behave-shaped and cucumber-js fixtures exist.
-- [ ] 7.4 Golden HTML checks for the shell structure; keep them stable and
+- [ ] 7.5 Golden HTML checks for the shell structure; keep them stable and
   readable.
 
 ## 8. Release 0.1.0
@@ -97,6 +99,16 @@ test-first and should fit in roughly two hours.
   `docs/AGENT-INTERFACE.md` and README.
 - [x] 9.4 Reject remote attachments and strip remote Markdown images before
   summarising or rendering.
+
+## 10. Seed-Test comparison
+
+- [x] 10.1 Scenario, story and group reports compared against
+  `cucumber-html-reporter@7.2.0` with expanded/collapsed screenshots.
+- [x] 10.2 Offline comparison: old CDN report loses styling and charts; Tolkira
+  remains complete.
+- [x] 10.3 Stress runs at 1,000 and 5,000 scenarios recorded.
+- [ ] 10.4 Run the full Seed-Test stack (MongoDB, browser execution, issue
+  tracker) when the environment is available.
 
 ## Deferred follow-ups
 

@@ -22,6 +22,9 @@ Keep a Changelog and the project uses semantic versioning.
   status counts, durations, attachments and per-scenario failures.
 - Visible report shell with title, summary counts, metadata, optional logo and
   accent colour, and system dark mode.
+- Expand-all / collapse-all controls, automatic screenshot disclosure, and
+  accessible status labels, permalinks, main landmark and live filter counts.
+- Seed-Test comparison harness, screenshots and offline comparison.
 - Escaped title/metadata/names, metadata bar, offline/no-CDN check.
 - Restrictive CSP, remote attachment rejection, remote Markdown image
   stripping, atomic output writes and a 10 MB size warning.

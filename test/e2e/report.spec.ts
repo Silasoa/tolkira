@@ -31,7 +31,14 @@ test('renders a messages report in the browser', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Tolkira E2E', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText('2 scenarios')).toBeVisible();
+    await expect(page.getByRole('main')).toBeVisible();
+    await expect(
+      page.getByRole('img', { name: 'Status: failed' }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /^Link to / }).first(),
+    ).toBeVisible();
+    await expect(page.getByText('1 feature')).toBeVisible();
     await expect(
       page.getByRole('heading', { name: /features\/screenshot\.feature/ }),
     ).toBeVisible();
@@ -84,6 +91,15 @@ test('filters by status', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
     ).toBeVisible();
+    await expect(page.getByRole('status')).toContainText(
+      '1 of 2 scenarios visible',
+    );
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

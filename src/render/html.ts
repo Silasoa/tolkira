@@ -75,6 +75,7 @@ function reportHeader(
 <button type="button" class="tolkira-action" data-tolkira-action="expand">Expand all</button>
 <button type="button" class="tolkira-action" data-tolkira-action="collapse">Collapse all</button>
 </div></div>
+<p id="tolkira-live" class="tolkira-sr" role="status" aria-live="polite" data-total="${summary.counts.scenarios.total}"></p>
 ${items ? `<div class="tolkira-meta">${items}</div>` : ''}
 </header>`;
 }
@@ -121,15 +122,76 @@ const SHELL_SCRIPT = `<script>
   }
   function openImages() {
     imageDetails().forEach(function (details) {
+      if (details.dataset.tolkiraAutoOpened) return;
+      details.dataset.tolkiraAutoOpened = 'true';
       if (!details.open) {
         var summary = details.querySelector('summary');
         if (summary) summary.click();
       }
     });
   }
+  function labelStatusIcons() {
+    Array.prototype.slice.call(document.querySelectorAll('svg[data-status]')).forEach(function (icon) {
+      icon.removeAttribute('aria-hidden');
+      icon.setAttribute('role', 'img');
+      icon.setAttribute('aria-label', 'Status: ' + String(icon.getAttribute('data-status') || 'unknown').toLowerCase());
+    });
+  }
+  function labelLinks() {
+    Array.prototype.slice.call(document.querySelectorAll('a[href^="#"]')).forEach(function (link) {
+      if (link.getAttribute('aria-label') || link.textContent.trim()) return;
+      var target = document.getElementById(link.getAttribute('href').slice(1));
+      var name = target && target.textContent ? target.textContent.trim().slice(0, 80) : 'section';
+      link.setAttribute('aria-label', 'Link to ' + (name || 'section'));
+    });
+  }
+  function labelImages() {
+    Array.prototype.slice.call(document.querySelectorAll('details img[src^="data:image/"]')).forEach(function (image) {
+      if (image.alt) return;
+      var details = image.closest('details');
+      var summary = details && details.querySelector('summary');
+      image.alt = 'Attachment: ' + ((summary && summary.textContent.trim()) || 'image');
+    });
+  }
+  var announceTimer;
+  function announce() {
+    labelStatusIcons();
+    labelLinks();
+    labelImages();
+    openImages();
+    var live = document.getElementById('tolkira-live');
+    if (!live) return;
+    var total = Number(live.getAttribute('data-total') || 0);
+    var visible = Array.prototype.slice.call(document.querySelectorAll('#content h2')).filter(function (heading) {
+      return /^Scenario:/.test(heading.textContent.trim()) && heading.offsetParent !== null;
+    }).length;
+    live.textContent = visible + ' of ' + total + ' scenarios visible';
+  }
+  function scheduleAnnounce() {
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(announce, 300);
+  }
+  function observe() {
+    var content = document.getElementById('content');
+    if (!content || content.dataset.tolkiraObserved) return;
+    content.dataset.tolkiraObserved = 'true';
+    if (window.MutationObserver) {
+      new MutationObserver(scheduleAnnounce).observe(content, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['aria-expanded', 'hidden', 'class', 'style']
+      });
+    }
+  }
   function boot() {
     wire();
+    observe();
+    labelStatusIcons();
+    labelLinks();
+    labelImages();
     openImages();
+    scheduleAnnounce();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
@@ -168,7 +230,10 @@ const SHELL_STYLE = `<style>
 .tolkira-summary-passed{color:#1b5e20}
 .tolkira-meta{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:10px;font-size:13px;line-height:1.4}
 .tolkira-meta-item{white-space:nowrap}
-@media (prefers-color-scheme:dark){.tolkira-header{background:#1f1f1f;border-color:#333;color:#e8e8e8}.tolkira-summary{color:#bbb}.tolkira-summary-failed{color:#ff8a80}.tolkira-summary-passed{color:#8fd694}.tolkira-action{background:#2a2a2a;border-color:#555;color:#eee}}
+.tolkira-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (max-width:480px){.tolkira-brand{flex-wrap:wrap}.tolkira-actions{margin-left:0}#content{max-width:100%;box-sizing:border-box}#content *{max-width:100%;box-sizing:border-box}#content form,#content form ul,#content form div{flex-wrap:wrap}#content form input{min-width:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+@media (prefers-color-scheme:dark){.tolkira-header{background:#1f1f1f;border-bottom-color:#333;color:#e8e8e8}.tolkira-summary{color:#bbb}.tolkira-summary-failed{color:#ff8a80}.tolkira-summary-passed{color:#8fd694}.tolkira-action{background:#2a2a2a;border-color:#555;color:#eee}.tolkira-action:focus-visible{outline-color:#8fd694}}
 </style>`;
 
 export async function renderHtml(envelopes: Envelope[], options: RenderOptions): Promise<string> {
@@ -201,7 +266,10 @@ export async function renderHtml(envelopes: Envelope[], options: RenderOptions):
     ? `<style>:root{--tolkira-accent:${options.accent}}</style>`
     : '';
   if (html.includes('<div id="content">')) {
-    html = html.replace('<div id="content">', () => `${header}<div id="content">`);
+    html = html.replace(
+      '<div id="content">',
+      () => `${header}<div id="content" role="main">`,
+    );
   } else {
     html = html.replace('</body>', () => `${header}</body>`);
   }
