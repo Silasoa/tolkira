@@ -60,6 +60,33 @@ All images are in [`docs/comparison/`](comparison/).
 - The 10 MB warning is expected for large groups; external attachments remain a
   follow-up.
 
+## cucumber-html-reporter issue themes
+
+The old reporter's open issues were used as a checklist. Covered by Tolkira
+today:
+
+- offline styles and CDN dependencies (fixed: hashed inline assets);
+- `<`/`>` and HTML escaping in names, tags, doc strings and errors;
+- NDJSON/Messages input and merged groups;
+- screenshots inline, multiple attachments, short generated file names;
+- total duration, summary counts, tags, data tables and search;
+- large inputs (100 MB total cap, attachment caps, 1k/5k stress runs);
+- report size warnings and a single-file artifact;
+- custom title, metadata, logo and accent;
+- passing and failing after-hooks are mapped as test steps;
+- skipped, pending, undefined and ambiguous statuses.
+
+Still open or intentionally deferred:
+
+- themes (`bootstrap`, `hierarchy`, `foundation`, `simple`) and column layouts;
+- per-scenario absolute timestamps (relative time remains);
+- legacy outline `examples` reconstruction;
+- legacy Gherkin `Rule` extraction;
+- hide/show hooks and feature-level embeddings;
+- external screenshot directory and lazy image loading;
+- cucumber-jvm and cucumber-ruby fixtures;
+- full Seed-Test stack with MongoDB and live browser execution.
+
 ## Remaining parity gaps
 
 - Old themes: `bootstrap`, `hierarchy`, `foundation`, `simple`. Tolkira has one

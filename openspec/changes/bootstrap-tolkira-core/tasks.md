@@ -51,7 +51,8 @@ test-first and should fit in roughly two hours.
   and key/value entries; escape all values.
 - [x] 5.2 RED/GREEN: system dark mode, accent theme token, embedded logo.
 - [x] 5.3 Accessibility check: status text not colour-only, keyboard access to
-  status filters, native disclosure controls for attachments.
+  status filters, native disclosure controls for attachments. A11Y review with
+  a second model passed; upstream heading order/search label remain.
 
 ## 6. Security
 
@@ -109,6 +110,14 @@ test-first and should fit in roughly two hours.
 - [x] 10.3 Stress runs at 1,000 and 5,000 scenarios recorded.
 - [ ] 10.4 Run the full Seed-Test stack (MongoDB, browser execution, issue
   tracker) when the environment is available.
+
+## 11. Accessibility review
+
+- [x] 11.1 Independent A11Y review with a second model: status icons, permalink
+  names, main landmark, mobile reflow, dark focus contrast, live filter counts,
+  image alt text and reduced motion fixed.
+- [ ] 11.2 Upstream `@cucumber/html-formatter`: heading order (double H1) and
+  visible search label.
 
 ## Deferred follow-ups
 
