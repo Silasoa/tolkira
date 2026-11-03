@@ -19,6 +19,9 @@ const failed = fileURLToPath(
 const behave = fileURLToPath(
   new URL('./fixtures/legacy/behave.json', import.meta.url),
 );
+const behaveReal = fileURLToPath(
+  new URL('./fixtures/legacy/behave-real.json', import.meta.url),
+);
 const minimal = fileURLToPath(
   new URL('./fixtures/legacy/minimal.json', import.meta.url),
 );
@@ -224,6 +227,18 @@ describe('legacy JSON adapter', () => {
     expect(html).toContain('a background step');
     expect(html).toContain('image/png');
     expect(html).toContain('attachment-1.png');
+  });
+
+  it('normalises real Behave seconds to milliseconds', async () => {
+    const summary = await summarizeReport(behaveReal);
+    const failed = summary.scenarios.find(
+      (scenario) => scenario.status === 'failed',
+    );
+
+    expect(failed?.name).toBe('fails');
+    expect(failed?.durationMs).toBeGreaterThan(0);
+    expect(failed?.steps[0]?.durationMs).toBeGreaterThan(0);
+    expect(failed?.steps[0]?.message).toContain('boom');
   });
 
   it('rejects unknown legacy result statuses', () => {

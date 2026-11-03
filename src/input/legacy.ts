@@ -85,6 +85,8 @@ interface LegacyElement {
   name?: string;
   description?: string | string[];
   line?: number;
+  location?: string;
+  status?: string;
   tags?: LegacyTags;
   steps?: LegacyStep[];
   before?: LegacyStep[];
@@ -316,11 +318,19 @@ function timestamp(seconds: number, nanos = 0): Timestamp {
 }
 
 function duration(nanoseconds?: number): Duration {
-  const value = Math.max(0, nanoseconds ?? 0);
+  const value = Math.max(0, Math.round(nanoseconds ?? 0));
   return {
     seconds: Math.floor(value / 1_000_000_000),
     nanos: value % 1_000_000_000,
   };
+}
+
+function isBehaveFeature(feature: LegacyFeature): boolean {
+  return (feature.elements ?? []).some(
+    (element) =>
+      typeof element.status === 'string' ||
+      (typeof element.location === 'string' && element.line === undefined),
+  );
 }
 
 function addDuration(base: Timestamp, value: Duration): Timestamp {
@@ -505,12 +515,12 @@ function mapPickleArgument(
   return undefined;
 }
 
-function resultOf(legacyStep: LegacyStep): TestStepResult {
+function resultOf(legacyStep: LegacyStep, scale = 1): TestStepResult {
   const raw = legacyStep.result;
   const message = raw?.error_message;
   const result: TestStepResult = {
     status: statusOf(raw?.status),
-    duration: duration(raw?.duration),
+    duration: duration((raw?.duration ?? 0) * scale),
   };
   if (message) {
     result.message = message;
@@ -599,6 +609,7 @@ export function parseLegacyValue(
       legacyFeature.uri ?? legacyFeature.location?.replace(/:\d+$/, ''),
       featureIndex,
     );
+    const durationScale = isBehaveFeature(legacyFeature) ? 1_000_000_000 : 1;
     const featureTags = mapTags(legacyFeature.tags, nextId);
     const featureChildren: FeatureChild[] = [];
     const scenarioEnvelopes: Envelope[] = [];
@@ -785,7 +796,7 @@ export function parseLegacyValue(
           },
         });
 
-        const stepResult = resultOf(plan.legacyStep);
+        const stepResult = resultOf(plan.legacyStep, durationScale);
         statuses.push(stepResult.status);
         const finishedAt = addDuration(clock, stepResult.duration);
         scenarioEnvelopes.push({

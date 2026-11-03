@@ -10,7 +10,7 @@ passes, one fails with `Error: boom`.
 | Producer | Tested | Notes |
 | --- | --- | --- |
 | cucumber-js | 2.3.1, 3.2.1, 4.2.1, 5.1.0, 6.0.7, 7.3.2, 13.3.0 | The shape is stable enough. 2.x has no `type` on elements and uses absolute URIs; duration units vary below 6.0.5. |
-| Behave | fixture-shaped only | A real Behave run is outstanding. Behave writes `duration` in seconds; the adapter currently treats legacy durations as nanoseconds. Do not claim Behave until a real fixture and the unit fix land. |
+| Behave | 1.3.3 real run (`behave-real.json`) | Duration is seconds and is normalised to milliseconds. A real run with attachments and doc strings is still outstanding; the synthetic `behave.json` covers those shapes. |
 | cucumber-jvm | not yet | `JsonFormatter` still ships in 7.x/8.x; a real fixture is outstanding. |
 | cucumber-ruby | not yet | `json` formatter still ships; a real fixture is outstanding. |
 
@@ -35,6 +35,9 @@ passes, one fails with `Error: boom`.
 - **8.0–13.x:** Messages additions are additive for the fields Tolkira reads
   (`workerId`, `Hook.type`, `testRunStartedId`, test-run hooks, external
   attachments).
+- **Behave 1.3.3:** JSON duration is in seconds, and features/elements carry
+  `status` and `location` strings. The adapter detects that dialect and scales
+  durations; Behave has no Messages formatter.
 
 ## What "best effort" means
 
