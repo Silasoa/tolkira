@@ -54,6 +54,13 @@ test('renders a messages report in the browser', async ({ page }) => {
     ).toBeVisible();
     await expect(page.getByText('Expected 1 to equal 2')).toBeVisible();
 
+    const failedFilter = page.locator('button.filter[data-status="failed"]');
+    await page.getByRole('heading', { name: 'Failing scenario' }).click();
+    await expect(failedFilter).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      page.getByRole('heading', { name: 'Failing scenario' }),
+    ).toBeVisible();
+
     await page.getByRole('searchbox', { name: /Search/ }).fill('Failing');
     await expect(
       page.getByRole('heading', { name: 'Attach a screenshot' }),

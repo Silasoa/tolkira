@@ -83,10 +83,10 @@ test-first and should fit in roughly two hours.
 - [x] 8.1 Update README, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
   `docs/CHANGELOG.md` and `GLOSSARY.md` with shipped behaviour and limitations.
 - [x] 8.2 Verify `npm pack` contents, package size, license and third-party
-  notices. 22 files, 131.9 kB packed; AGENT-INTERFACE and GLOSSARY included.
+  notices. 22 files, 130.6 kB packed; AGENT-INTERFACE and GLOSSARY included.
 - [x] 8.3 Run the full gate in the foreground: typecheck, lint, tests, build,
   browser test; record the results. Green on 2026-11-03 with the simple shell:
-  63 unit tests, 5 Playwright tests across Chromium/Firefox/WebKit, 0 audit
+  64 unit tests, 5 Playwright tests across Chromium/Firefox/WebKit, 0 audit
   vulnerabilities.
 - [x] 8.4 Run the blind review set (SCR, CR, DAR, SEC) and fix findings.
 - [ ] 8.5 User approval, tag `v0.1.0`, publish with provenance.

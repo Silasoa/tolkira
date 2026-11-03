@@ -154,7 +154,10 @@ function renderScenario(scenario: ReportScenario): string {
   const description = scenario.description
     ? `<p class="description">${escapeHtml(scenario.description)}</p>`
     : '';
-  return `<details class="scenario" data-scenario data-status="${scenario.status}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} steps${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span></summary><div class="detailInline">${description}<h3>Steps</h3><ol class="steps">${steps}</ol><div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  const extraAttachments = scenario.extraAttachments.length
+    ? `<h3>Attachments</h3>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment)).join('')}`
+    : '';
+  return `<details class="scenario" data-scenario data-status="${scenario.status}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} steps${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span></summary><div class="detailInline">${description}<h3>Steps</h3><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
 function renderFeature(feature: ReportFeature, totalScenarios: number): string {
@@ -230,7 +233,7 @@ function renderAnalysisView(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,
     )
-    .join('')}</div><h2 style="margin-top:20px">Run details</h2><dl class="metaList"><dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps</dt><dd>${model.counts.steps.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>${metadata}</dl></section></div><section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents.</p><pre class="json">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
+    .join('')}</div><h2 style="margin-top:20px">Run details</h2><dl class="metaList"><dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps</dt><dd>${model.counts.steps.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>${metadata}</dl></section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents.</p><pre class="json">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
 }
 
 const SCRIPT = `<script>
@@ -288,7 +291,7 @@ const SCRIPT = `<script>
     state.query = search.value;
     apply();
   });
-  Array.prototype.slice.call(document.querySelectorAll('[data-status]')).forEach(function (button) {
+  Array.prototype.slice.call(document.querySelectorAll('button.filter[data-status]')).forEach(function (button) {
     button.addEventListener('click', function () {
       var status = button.getAttribute('data-status');
       var active = button.getAttribute('aria-pressed') !== 'false';

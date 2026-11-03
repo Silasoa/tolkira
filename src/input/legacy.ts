@@ -532,6 +532,15 @@ const MIME_EXTENSIONS: Record<string, string> = {
   'video/webm': 'webm',
 };
 
+function isLikelyBase64(value: string): boolean {
+  const compact = value.replace(/\s/g, '');
+  return (
+    compact.length > 0 &&
+    compact.length % 4 === 0 &&
+    /^[A-Za-z0-9+/]*={0,2}$/.test(compact)
+  );
+}
+
 function attachmentFileName(mediaType: string, index: number): string {
   const extension =
     MIME_EXTENSIONS[mediaType.toLowerCase()] ??
@@ -796,7 +805,9 @@ export function parseLegacyValue(
             'application/octet-stream';
           const attachment: Attachment = {
             body: embedding.data,
-            contentEncoding: AttachmentContentEncoding.BASE64,
+            contentEncoding: isLikelyBase64(embedding.data)
+              ? AttachmentContentEncoding.BASE64
+              : AttachmentContentEncoding.IDENTITY,
             mediaType,
             fileName: attachmentFileName(mediaType, attachmentCounter++),
             testCaseStartedId,

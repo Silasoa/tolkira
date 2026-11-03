@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
+import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
 
 const happy = fileURLToPath(
@@ -9,6 +10,9 @@ const happy = fileURLToPath(
 );
 const screenshot = fileURLToPath(
   new URL('./fixtures/legacy/screenshot.json', import.meta.url),
+);
+const messages = fileURLToPath(
+  new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
 );
 
 async function modelFor(file: string) {
@@ -64,5 +68,44 @@ describe('report model', () => {
   it('uses the latest finished attempt for a scenario', async () => {
     const model = await modelFor(happy);
     expect(model.scenarios.every((scenario) => scenario.attempt === 0)).toBe(true);
+  });
+
+  it('keeps case-level and run-level attachments', async () => {
+    const lines = (await readFile(messages, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const started = lines.find((line) => line.testCaseStarted)?.testCaseStarted as
+      | { id: string }
+      | undefined;
+    expect(started).toBeDefined();
+
+    lines.push({
+      attachment: {
+        body: Buffer.from('case-level log').toString('base64'),
+        contentEncoding: 'BASE64',
+        mediaType: 'text/plain',
+        testCaseStartedId: started?.id,
+      },
+    });
+    lines.push({
+      attachment: {
+        body: Buffer.from('run-level log').toString('base64'),
+        contentEncoding: 'BASE64',
+        mediaType: 'text/plain',
+      },
+    });
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'attachments.ndjson',
+    );
+    const model = buildReportModel(envelopes);
+
+    expect(model.scenarios[0]?.extraAttachments).toHaveLength(1);
+    expect(model.scenarios[0]?.extraAttachments[0]?.text).toBe('case-level log');
+    expect(model.runAttachments).toHaveLength(1);
+    expect(model.runAttachments[0]?.text).toBe('run-level log');
+    expect(model.counts.attachments).toBe(3);
   });
 });

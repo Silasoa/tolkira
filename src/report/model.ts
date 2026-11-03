@@ -63,6 +63,7 @@ export interface ReportScenario {
   tags: string[];
   steps: ReportStep[];
   attachments: ReportAttachment[];
+  extraAttachments: ReportAttachment[];
 }
 
 export interface ReportFeature {
@@ -94,6 +95,7 @@ export interface ReportModel {
   finishedAt?: string;
   source: string;
   scenarios: ReportScenario[];
+  runAttachments: ReportAttachment[];
 }
 
 const STATUS_ORDER: TestStepResultStatus[] = [
@@ -327,6 +329,15 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
   let finishedAt: string | undefined;
   let source = 'Cucumber';
 
+  const mapAttachments = (list: Attachment[]): ReportAttachment[] =>
+    list.map((attachment) => {
+      const cached = attachmentCache.get(attachment);
+      if (cached) return cached;
+      const mapped = toAttachment(attachment, attachmentIndex++);
+      attachmentCache.set(attachment, mapped);
+      return mapped;
+    });
+
   for (const envelope of envelopes) {
     if (envelope.meta?.implementation) {
       const { name, version } = envelope.meta.implementation;
@@ -414,7 +425,10 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
       if (candidate.attempt < current.attempt) return current;
       const cSeconds = candidate.timestamp?.seconds ?? 0;
       const currentSeconds = current.timestamp?.seconds ?? 0;
-      return cSeconds > currentSeconds ? candidate : current;
+      if (cSeconds !== currentSeconds) return cSeconds > currentSeconds ? candidate : current;
+      const cNanos = candidate.timestamp?.nanos ?? 0;
+      const currentNanos = current.timestamp?.nanos ?? 0;
+      return cNanos > currentNanos ? candidate : current;
     }, undefined);
     if (!latest) continue;
 
@@ -435,15 +449,9 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
         const pickleStep = pickleSteps.get(testStep.pickleStepId);
         const ast = pickleStep?.astNodeIds[0];
         const data = stepData(ast ? stepById.get(ast) : undefined);
-        const stepAttachments = startedAttachments
-          .filter((attachment) => attachment.testStepId === testStep.id)
-          .map((attachment) => {
-            const cached = attachmentCache.get(attachment);
-            if (cached) return cached;
-            const mapped = toAttachment(attachment, attachmentIndex++);
-            attachmentCache.set(attachment, mapped);
-            return mapped;
-          });
+        const stepAttachments = mapAttachments(
+          startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
+        );
         stepRows.push({
           id: testStep.id,
           keyword: data.keyword,
@@ -457,15 +465,9 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
         });
       } else if (testStep.hookId) {
         const hook = hooks.get(testStep.hookId);
-        const stepAttachments = startedAttachments
-          .filter((attachment) => attachment.testStepId === testStep.id)
-          .map((attachment) => {
-            const cached = attachmentCache.get(attachment);
-            if (cached) return cached;
-            const mapped = toAttachment(attachment, attachmentIndex++);
-            attachmentCache.set(attachment, mapped);
-            return mapped;
-          });
+        const stepAttachments = mapAttachments(
+          startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
+        );
         stepRows.push({
           id: testStep.id,
           keyword: 'Hook',
@@ -488,7 +490,11 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
     const feature =
       featureByScenarioId.get(pickle.astNodeIds[0] ?? '') ??
       features.get(pickle.uri);
-    const scenarioAttachments = stepRows.flatMap((step) => step.attachments);
+    const stepAttachments = stepRows.flatMap((step) => step.attachments);
+    const extraAttachments = mapAttachments(
+      startedAttachments.filter((attachment) => !attachment.testStepId),
+    );
+    const scenarioAttachments = [...stepAttachments, ...extraAttachments];
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
@@ -504,6 +510,7 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
       tags: pickle.tags.map((tag) => tag.name),
       steps: stepRows,
       attachments: scenarioAttachments,
+      extraAttachments,
     };
     scenarioRows.push(row);
     count(scenarioCounts, status);
@@ -544,15 +551,18 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
   }
 
   const attachmentRows = scenarioRows.flatMap((scenario) => scenario.attachments);
+  const runAttachments = mapAttachments(attachments.get('') ?? []);
+  const allAttachments = [...attachmentRows, ...runAttachments];
   return {
     features: featureRows,
     scenarios: scenarioRows,
+    runAttachments,
     counts: {
       features: featureRows.length,
       scenarios: scenarioCounts,
       steps: stepCounts,
-      attachments: attachmentRows.length,
-      attachmentBytes: attachmentRows.reduce((sum, attachment) => sum + attachment.bytes, 0),
+      attachments: allAttachments.length,
+      attachmentBytes: allAttachments.reduce((sum, attachment) => sum + attachment.bytes, 0),
     },
     durationMs: Math.round(scenarioRows.reduce((sum, scenario) => sum + scenario.durationMs, 0) * 1000) / 1000,
     ...(startedAt ? { startedAt } : {}),
