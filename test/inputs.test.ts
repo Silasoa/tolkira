@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -55,6 +55,18 @@ describe('input merging', () => {
 
     expect(html).toContain('Screenshot attachment');
     expect(html).toContain('Happy HTML reporting');
+  });
+
+  it('reads supported reports from nested directories', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-nested-'));
+    tempDirs.push(dir);
+    const nested = path.join(dir, 'sub', 'deeper');
+    await mkdir(nested, { recursive: true });
+    await copyFile(messages, path.join(nested, 'messages.ndjson'));
+
+    const html = await renderReport(dir, { title: 'Nested' });
+
+    expect(html).toContain('Screenshot attachment');
   });
 
   it('detects a Messages file with a .json extension', async () => {

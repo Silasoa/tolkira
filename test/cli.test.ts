@@ -47,6 +47,16 @@ describe('CLI', () => {
     expect(html).toContain('Screenshot attachment');
   });
 
+  it('creates the output parent directory', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'nested', 'deep', 'report.html');
+
+    const code = await runCli([fixture, '--out', output], io);
+
+    expect(code).toBe(0);
+    await expect(readFile(output, 'utf8')).resolves.toContain('<title>');
+  });
+
   it('writes a report from a legacy JSON fixture', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'legacy.html');

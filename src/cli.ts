@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -133,6 +133,7 @@ async function readLogo(file: string): Promise<string> {
 
 async function writeAtomic(output: string, content: string): Promise<void> {
   const directory = path.dirname(output);
+  await mkdir(directory, { recursive: true });
   const temp = path.join(
     directory,
     `.${path.basename(output)}.${randomUUID()}.tmp`,
