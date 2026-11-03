@@ -9,9 +9,9 @@
   requested features, fit for Tolkira.
 - `reporter-compatibility.md` — done. Old reporter APIs/options, mapping,
   two reproduced gaps, recommended shim.
-- `framework-reporting.md` — running. Non-Cucumber frameworks, their HTML
-  reporters, input formats (JUnit XML, CTRF, TAP, Allure), and whether a
-  generic adapter is worth it.
+- `framework-reporting.md` — done. Non-Cucumber frameworks, input formats
+  (JUnit XML, CTRF, TAP, Allure, Playwright JSON), and a clear
+  Cucumber-first recommendation.
 
 ## What the research changed
 
@@ -25,6 +25,12 @@ file, no telemetry, no server, embeddable, plus the agent-readable summary.
 growth lever.** The old reporters and Tolkira already read the same legacy
 JSON; the shim is an options mapper plus two gaps that are now fixed in core:
 recursive input directories and output-parent creation.
+
+**Breadth is not the strategy.** `framework-reporting.md` recommends staying
+Cucumber-native. Playwright JSON is the one framework adapter candidate; CTRF
+is a watch item; Karate and Reqnroll already fit via Cucumber JSON/Messages.
+A generic JUnit XML renderer would lose steps and screenshots and turn the
+product into a CI test list.
 
 ## Fixed while waiting
 
@@ -53,16 +59,25 @@ Proposed shape:
 Decision needed: v0.1 or v0.2. Default if no answer: v0.1 only if it stays a
 thin adapter; otherwise v0.2 with split assets.
 
-## Framework expansion (pending research)
+## Framework expansion (research complete)
 
-Question: should Tolkira become an HTML formatter for non-Cucumber frameworks,
-and if so via a generic input format (JUnit XML, CTRF, TAP, Allure results) or
-per-framework adapters?
+`framework-reporting.md` answers the question: **do not become a generic
+multi-framework formatter.** Stay Cucumber-native.
 
-Default until `framework-reporting.md` lands: keep the Cucumber core, do not
-add a second input family. A generic JUnit XML adapter is the likely second
-path, but it loses Gherkin steps and most screenshots, so it is a product
-decision, not a quick adapter.
+- **Playwright JSON** is the one framework adapter candidate: largest e2e
+  audience, steps/retries/projects/errors/attachment references in one file.
+  Costs: no schema version, path-based attachments. Keep it the only adapter.
+- **CTRF** is the best generic model (steps, retries, one base64 screenshot,
+  attachment paths) but pre-1.0 and small. Watch it; spike behind an
+  experimental flag at 1.0.
+- **Free wins:** Karate emits Cucumber JSON (`outputCucumberJson(true)`) and
+  Reqnroll emits Cucumber Messages. Document both with fixtures; no adapter.
+- **Reject:** a generic JUnit XML renderer as the flagship, TAP, Allure-results
+  ingestion, pytest-html HTML/JSON scraping, Cypress Cloud/Test Replay, and a
+  .NET TRX parser. JUnit XML is a lossy fallback only.
+
+Default until the user says otherwise: Cucumber-first, no second input family.
+Playwright JSON is a candidate for v0.2, not v0.1.
 
 ## UI
 
@@ -97,13 +112,17 @@ decision, not a quick adapter.
 
 `docs/PRODUCT.md` still says Allure 3 is not single-file and
 `multiple-cucumber-html-reporter` is legacy-JSON only. Both are outdated.
-Update after the framework research is in; do not change the wedge statement.
+Update after the user confirms the positioning correction; do not change the
+wedge statement.
 
 ## For the user (non-blocking)
 
 1. Compatibility shim: v0.1 or v0.2? Default: v0.1 thin adapter.
-2. Framework expansion: Cucumber-first or generic input? Waiting for research;
-   default Cucumber-first.
+2. Playwright JSON adapter: v0.2 or later? Research says it is the only
+   framework adapter worth building; default: after the Cucumber core, not
+   v0.1.
 3. Analysis tab: rename to Details for v0.1? Default: yes.
 4. Production UI: implement A after reviewing the updated prototype? Default:
    wait for the user's go-ahead because it is a visible character change.
+5. PRODUCT.md competitive facts: update to Allure 3 single-file and MCHR
+   Messages support? Default: yes, factual correction only.
