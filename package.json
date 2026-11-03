@@ -49,6 +49,7 @@
     "SECURITY.md",
     "docs/AGENT-INTERFACE.md",
     "docs/COMPATIBILITY.md",
+    "docs/CUCUMBER-COMPATIBILITY.md",
     "GLOSSARY.md"
   ],
   "scripts": {

@@ -1,0 +1,57 @@
+[
+  {
+    "keyword": "Feature",
+    "line": 1,
+    "name": "Old cucumber compatibility",
+    "tags": [],
+    "uri": "features\\old.feature",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "line": 3,
+        "name": "passes",
+        "tags": [],
+        "id": "old-cucumber-compatibility;passes",
+        "steps": [
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "name": "a passing step",
+            "result": {
+              "status": "passed",
+              "duration": 0
+            },
+            "line": 4,
+            "match": {
+              "location": "features\\steps.js:4"
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "line": 6,
+        "name": "fails",
+        "tags": [],
+        "id": "old-cucumber-compatibility;fails",
+        "steps": [
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "name": "a failing step",
+            "result": {
+              "status": "failed",
+              "duration": 0,
+              "error_message": "Error: boom\n    at World.<anonymous> (features\\steps.js:5:47)"
+            },
+            "line": 7,
+            "match": {
+              "location": "features\\steps.js:5"
+            }
+          }
+        ]
+      }
+    ],
+    "id": "old-cucumber-compatibility"
+  }
+]

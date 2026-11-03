@@ -48,8 +48,8 @@ The name is pronounced approximately **TOL-kee-rah**.
 - Dark mode, title, logo and an accent colour; custom CSS follows later.
 - Self-contained output, no CDN, no network requests, no telemetry.
 - Security baseline: escaped user content, safe attachments, no HTML execution.
-- Tests with cucumber-js, Behave-shaped and Messages fixtures;
-  cucumber-jvm/ruby follow before release.
+- Tests with cucumber-js 2.3.1–13.3.0 legacy JSON, a Messages fixture, and
+  Behave-shaped JSON; cucumber-jvm/ruby follow before release.
 - npm release with provenance and Node 22/24/26 CI.
 
 ## Non-goals for v0.1
@@ -102,6 +102,7 @@ the same input JSON, never the old HTML. See
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
 - [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md) — Seed-Test visual comparison and parity gaps.
 - [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) — cucumber-html-reporter migration shim.
+- [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested Cucumber producers and versions.
 - [`docs/agents/review.md`](https://github.com/Silasoa/tolkira/blob/main/docs/agents/review.md) — review and audit protocol.
 - [`GLOSSARY.md`](https://github.com/Silasoa/tolkira/blob/main/GLOSSARY.md) — shared language.
 - [`AGENTS.md`](https://github.com/Silasoa/tolkira/blob/main/AGENTS.md) — how agents work in this repository.
