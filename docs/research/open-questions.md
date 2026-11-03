@@ -43,21 +43,23 @@ Commit `97ea2ea`:
 Both were reproduced against `cucumber-html-reporter@7.2.0` behaviour and are
 covered by tests.
 
-## Compatibility shim (recommended, not started)
+## Compatibility shim (first slice shipped)
 
-Proposed shape:
+Shipped: `tolkira/compat/cucumber-html-reporter` with the old
+`generate(options, callback?)` signature, option mapping, warnings,
+`ignoreBadJsonFile`, docs and tests. `theme`, charts, external screenshots,
+browser launch and unknown options warn and are ignored; the old HTML is never
+transformed.
 
-- `tolkira/compat/cucumber-html-reporter` with the old
-  `generate(options, callback?)` signature.
+Still pending:
+
 - `tolkira/compat/multiple-cucumber-html-reporter` with async
-  `generate(options)`.
+  `generate(options)` and `reportPath` mapping.
 - `tolkira compat <reporter> --options <file> --dry-run`.
-- Mapping: inputs, `output`/`reportPath`, title, metadata, logo; themes,
-  charts, external screenshots, custom CSS/JS, i18n, email and browser launch
-  warn and are ignored. No transformation of old HTML.
 
-Decision needed: v0.1 or v0.2. Default if no answer: v0.1 only if it stays a
-thin adapter; otherwise v0.2 with split assets.
+Decision needed: finish both in v0.1 or defer to v0.2. Default: finish the
+multiple-cucumber-html-reporter helper and CLI only if the first slice gets
+real use; otherwise v0.2.
 
 ## Framework expansion (research complete)
 

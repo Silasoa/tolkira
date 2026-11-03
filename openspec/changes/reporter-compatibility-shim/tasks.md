@@ -2,25 +2,25 @@
 
 ## 1. Shared plumbing
 
-- [ ] 1.1 RED: test that `tolkira/compat/cucumber-html-reporter` maps
+- [x] 1.1 RED: test that `tolkira/compat/cucumber-html-reporter` maps
   `jsonFile`, `output`, `brandTitle` and `metadata` to a report.
-- [ ] 1.2 Extract `writeAtomic` from `src/cli.ts` into `src/output.ts`; keep the
+- [x] 1.2 Extract `writeAtomic` from `src/cli.ts` into `src/output.ts`; keep the
   CLI behaviour and tests.
-- [ ] 1.3 Export the recursive input collector from `src/input/load.ts` for the
-  compat pre-filter.
-- [ ] 1.4 GREEN: add the shared options mapper and warning collector.
+- [x] 1.3 Extract the recursive input collector into `src/input/files.ts` for
+  the compat pre-filter.
+- [x] 1.4 GREEN: add the shared options mapper and warning collector.
 
 ## 2. cucumber-html-reporter helper
 
-- [ ] 2.1 GREEN: `generate(options, callback?)` writes the report and returns
+- [x] 2.1 GREEN: `generate(options, callback?)` writes the report and returns
   `{ output, warnings, summary }`.
-- [ ] 2.2 RED/GREEN: map `jsonFile` and `jsonDir`; `jsonFile` wins with a
+- [x] 2.2 RED/GREEN: map `jsonFile` and `jsonDir`; `jsonFile` wins with a
   warning when both are set.
-- [ ] 2.3 RED/GREEN: warn once for `theme`, layout switches, external
+- [x] 2.3 RED/GREEN: warn once for `theme`, layout switches, external
   screenshots, browser launch and unknown keys.
-- [ ] 2.4 RED/GREEN: `ignoreBadJsonFile` skips malformed JSON files and
+- [x] 2.4 RED/GREEN: `ignoreBadJsonFile` skips malformed JSON files and
   reports them.
-- [ ] 2.5 RED/GREEN: callback success and error paths.
+- [x] 2.5 RED/GREEN: callback success and error paths.
 
 ## 3. multiple-cucumber-html-reporter helper
 
@@ -41,10 +41,10 @@
 
 ## 5. Packaging and docs
 
-- [ ] 5.1 Add the two `./compat/*` entries to `package.json` exports and verify
+- [x] 5.1 Add the two `./compat/*` entries to `package.json` exports and verify
   `npm pack`.
-- [ ] 5.2 Add `docs/COMPATIBILITY.md` with the mapping table, examples and the
+- [x] 5.2 Add `docs/COMPATIBILITY.md` with the mapping table, examples and the
   visual-parity caveat; link it from the README.
-- [ ] 5.3 Mark the subpaths experimental; document the deprecation policy.
-- [ ] 5.4 Run `npm run check`, `npm run test:e2e`, `npm pack --dry-run` and
+- [x] 5.3 Mark the subpaths experimental; document the deprecation policy.
+- [x] 5.4 Run `npm run check`, `npm run test:e2e`, `npm pack --dry-run` and
   `openspec validate reporter-compatibility-shim --strict`.

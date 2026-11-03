@@ -75,12 +75,33 @@ The name is pronounced approximately **TOL-kee-rah**.
 - **Spec first, tests first, small slices.**
 - **MIT, no telemetry, no vendor lock-in.**
 
+## Migration from cucumber-html-reporter
+
+The legacy options object is accepted as-is; only the import changes.
+
+```js
+import { generate } from 'tolkira/compat/cucumber-html-reporter';
+
+await generate({
+  jsonFile: 'reports/cucumber.json',
+  output: 'reports/report.html',
+  brandTitle: 'Checkout acceptance',
+  metadata: { Browser: 'Chrome', Environment: 'Staging' },
+});
+```
+
+The shim is experimental. Themes, charts, external screenshots and browser
+launch are not reproduced; they warn and use Tolkira's defaults. It consumes
+the same input JSON, never the old HTML. See
+[`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+
 ## Documentation
 
 - [`docs/PRODUCT.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PRODUCT.md) — vision, audience, scope, market context.
 - [`docs/ARCHITECTURE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/ARCHITECTURE.md) — system shape and decisions.
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
 - [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md) — Seed-Test visual comparison and parity gaps.
+- [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) — cucumber-html-reporter migration shim.
 - [`docs/agents/review.md`](https://github.com/Silasoa/tolkira/blob/main/docs/agents/review.md) — review and audit protocol.
 - [`GLOSSARY.md`](https://github.com/Silasoa/tolkira/blob/main/GLOSSARY.md) — shared language.
 - [`AGENTS.md`](https://github.com/Silasoa/tolkira/blob/main/AGENTS.md) — how agents work in this repository.

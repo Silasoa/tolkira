@@ -35,6 +35,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./compat/cucumber-html-reporter": {
+      "types": "./dist/compat/cucumber-html-reporter.d.ts",
+      "import": "./dist/compat/cucumber-html-reporter.js"
+    },
     "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",
@@ -44,6 +48,7 @@
     "LICENSE",
     "SECURITY.md",
     "docs/AGENT-INTERFACE.md",
+    "docs/COMPATIBILITY.md",
     "GLOSSARY.md"
   ],
   "scripts": {

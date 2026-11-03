@@ -1,9 +1,9 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { generateReport, summarizeReport, version } from './index.js';
+import { writeAtomic } from './output.js';
 import { ACCENT_PATTERN } from './validation.js';
 
 const DEFAULT_MAX_SIZE_MB = 10;
@@ -129,23 +129,6 @@ async function readLogo(file: string): Promise<string> {
     throw new Error(`Logo content does not match the "${extension}" extension.`);
   }
   return `data:${mime};base64,${data.toString('base64')}`;
-}
-
-async function writeAtomic(output: string, content: string): Promise<void> {
-  const directory = path.dirname(output);
-  await mkdir(directory, { recursive: true });
-  const temp = path.join(
-    directory,
-    `.${path.basename(output)}.${randomUUID()}.tmp`,
-  );
-
-  try {
-    await writeFile(temp, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
-    await rename(temp, output);
-  } catch (error) {
-    await rm(temp, { force: true }).catch(() => undefined);
-    throw error;
-  }
 }
 
 export async function runCli(
