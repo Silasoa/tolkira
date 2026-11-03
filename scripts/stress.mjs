@@ -54,12 +54,20 @@ try {
   const elapsedMs = Math.round(performance.now() - started);
   const summary = JSON.parse(stdout);
   const htmlBytes = (await stat(output)).size;
+  const maxMs = count <= 1000 ? 1000 : 3000;
+  const maxBytes = count <= 1000 ? 5 * 1024 * 1024 : 20 * 1024 * 1024;
 
   if (summary.counts.scenarios.total !== count) {
     throw new Error(`Expected ${count} scenarios, got ${summary.counts.scenarios.total}`);
   }
   if (summary.counts.steps.total !== count * 3) {
     throw new Error(`Expected ${count * 3} steps, got ${summary.counts.steps.total}`);
+  }
+  if (elapsedMs > maxMs) {
+    throw new Error(`Stress run took ${elapsedMs} ms, above the ${maxMs} ms budget.`);
+  }
+  if (htmlBytes > maxBytes) {
+    throw new Error(`Stress report is ${htmlBytes} bytes, above the ${maxBytes} byte budget.`);
   }
 
   console.log(

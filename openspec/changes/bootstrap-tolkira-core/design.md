@@ -1,5 +1,8 @@
 # Design
 
+> Superseded for report rendering by `openspec/changes/simple-report-shell/`.
+> The input normalisation and security decisions below still apply.
+
 ## Context
 
 See `proposal.md` for why. The relevant constraints:

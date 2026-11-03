@@ -11,8 +11,10 @@ CLI / API
    └── Legacy JSON adapter ───────► Cucumber Messages
        (Cucumber JSON, embeddings)      │
                                         ▼
-                              Report shell + official
-                              Cucumber React components
+                              Report view model
+                                        │
+                                        ▼
+                              Server-rendered shell
                                         │
                                         ▼
                               One self-contained HTML file
@@ -45,12 +47,24 @@ does not preserve embeddings. We will vendor/adapt the MIT-licensed logic or
 write a focused adapter, with attribution. This adapter is the main technical
 risk and the main differentiator.
 
+### `src/report`
+
+- Builds a `ReportModel` from Messages: features, scenarios, steps, statuses,
+  durations, tags, descriptions, doc strings, data tables, errors and
+  attachments.
+- Selects the latest attempt per scenario and normalises attachment payloads
+  into data URIs or decoded text.
+- Keeps the report view model separate from the machine-readable summary.
+
 ### `src/render`
 
-- Uses `@cucumber/html-formatter` (MIT) as the rendering engine.
-- Produces one HTML file with inline CSS/JS and inline attachments by default.
-- Adds a small shell: visible title, summary counts, metadata, optional logo
-  and accent colour, system dark mode.
+- Server-renders the report model into one HTML file; no React runtime.
+- Default Report tab: title, run metadata, pass-rate health panel, search,
+  status filters, feature disclosures and failed-first scenario details.
+- Analysis tab: feature table, status distribution, run details and the agent
+  summary.
+- Adds a small shell: visible title, optional logo and accent colour, system
+  dark mode.
 - No CDN, no external fonts, no network requests.
 - Injects a restrictive Content-Security-Policy meta tag.
 - Optional external-attachments mode is a later change.
@@ -107,10 +121,12 @@ Test names, metadata, file names and attachments are untrusted input.
 
 ## Performance
 
-- Messages are accumulated and validated before rendering; the formatter then
-  produces the single HTML string.
+- Messages are accumulated and validated before rendering; the renderer builds
+  the view model and writes one HTML string.
 - Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
+- Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15 s to
+  1.1 MB; 5,000 / 15,000 in about 0.43 s to 5.4 MB.
 - Warn when the generated file exceeds 10 MB.
 - External attachments are the escape hatch for large screenshots/videos.
 
@@ -140,13 +156,15 @@ Test names, metadata, file names and attachments are untrusted input.
 ## Key decisions
 
 - [ADR 0001](adr/0001-hybrid-report-engine.md) — use official Cucumber
-  components, build adapters and shell; do not fork the old reporter.
+  components, build adapters and shell; superseded for rendering by ADR 0005.
 - [ADR 0002](adr/0002-single-package-esm-node22.md) — one package, ESM,
   Node 22+.
 - [ADR 0003](adr/0003-name-tolkira.md) — name origin and preliminary
   clearance.
 - [ADR 0004](adr/0004-normalize-to-messages.md) — normalise legacy JSON to
   Messages instead of maintaining two renderers.
+- [ADR 0005](adr/0005-server-rendered-shell.md) — own the report shell; render
+  server-side from a view model.
 
 ## Open questions
 

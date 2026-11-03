@@ -69,8 +69,8 @@ accepts both JSON and Messages and preserves screenshots**.
 - Multiple inputs/directories merged into one report.
 - Legacy JSON → Messages normalisation with attachments preserved.
 - Single self-contained HTML, no CDN, no network requests.
-- Official Cucumber rendering components for Gherkin, steps, errors and
-  attachments.
+- Official Cucumber Messages as the data model; Tolkira owns the report shell
+  and the simple Gherkin/step presentation.
 - Shell: title, metadata, summary, dark mode, logo, brand colours, basic CSS.
 - Machine-readable JSON summary with a versioned schema for agents and CI.
 - Search, status filters, tag filters.
@@ -92,7 +92,8 @@ accepts both JSON and Messages and preserves screenshots**.
 - Test management, live server, trace viewer, screenshot diffing, AI analysis.
 - A plugin marketplace or a SaaS.
 - A 1:1 visual clone of the old Bootstrap themes.
-- Owning a Gherkin renderer. The official React components are the renderer.
+- Owning a Gherkin parser. Messages remain the model; the report shell and
+  presentation are ours.
 
 ## Principles
 

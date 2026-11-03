@@ -165,7 +165,7 @@ describe('CLI', () => {
     expect(code).toBe(0);
     const html = await readFile(output, 'utf8');
     expect(html).toContain('data:image/png;base64,');
-    expect(html).toContain('--tolkira-accent:#123456');
+    expect(html).toContain('--accent:#123456');
   });
 
   it('warns about oversized reports but still writes them', async () => {

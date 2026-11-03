@@ -4,9 +4,9 @@
 > Clear, embeddable HTML reports for Cucumber JSON, Messages, and beyond.
 
 **Status: v0.1 core in development.** Messages and legacy Cucumber JSON render
-to one self-contained HTML file; the CLI/API, title/metadata, screenshot
-attachments, browser tests and a stable JSON summary for agents are in place.
-Remaining v0.1 work is tracked in
+to one self-contained HTML file with a simple report, an optional Analysis tab,
+the CLI/API, title/metadata, screenshots, browser tests and a stable JSON
+summary for agents. Remaining v0.1 work is tracked in
 `openspec/changes/bootstrap-tolkira-core/tasks.md`.
 
 ## What is Tolkira?
@@ -48,7 +48,8 @@ The name is pronounced approximately **TOL-kee-rah**.
 - Dark mode, title, logo and an accent colour; custom CSS follows later.
 - Self-contained output, no CDN, no network requests, no telemetry.
 - Security baseline: escaped user content, safe attachments, no HTML execution.
-- Tests with real fixtures from cucumber-js, cucumber-jvm, cucumber-ruby and Behave.
+- Tests with cucumber-js, Behave-shaped and Messages fixtures;
+  cucumber-jvm/ruby follow before release.
 - npm release with provenance and Node 22/24/26 CI.
 
 ## Non-goals for v0.1
@@ -64,9 +65,11 @@ The name is pronounced approximately **TOL-kee-rah**.
 
 - **One file, no network.** A report must be shareable as a CI artefact.
 - **Few dependencies.** Prefer Node built-ins and the official Cucumber
-  components over another framework.
-- **The data pipeline is the product.** The UI is assembled from official,
-  maintained components; the adapters and the shell are ours.
+  Messages package over another framework.
+- **The data pipeline is the product.** The report shell is ours; the input
+  model is the official Cucumber Messages format.
+- **The report is a designed artifact.** Simple by default, deeper analysis on
+  demand.
 - **Security at the trust boundary.** Test names, metadata and attachments are
   untrusted input.
 - **Spec first, tests first, small slices.**
@@ -89,7 +92,7 @@ Requires Node.js 22 or newer.
 
 ```shell
 npm install
-npx playwright install chromium
+npx playwright install chromium firefox webkit
 npm run check
 npm run test:e2e
 npm run stress -- 1000
@@ -130,5 +133,5 @@ codes.
 MIT. See [`LICENSE`](LICENSE).
 
 Tolkira is not affiliated with Cucumber, SmartBear or any test-framework
-vendor. Cucumber and Gherkin are used descriptively; the project builds on
-MIT-licensed Cucumber components.
+vendor. Cucumber and Gherkin are used descriptively; the project uses the
+MIT-licensed Cucumber Messages format and package.

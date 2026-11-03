@@ -22,8 +22,9 @@ hook. Screenshots are attachments.
 **Normalisation** — converting legacy JSON into Messages so one renderer can
 handle both.
 
-**Renderer** — the official Cucumber React components / HTML formatter that draw
-Gherkin, steps, errors and attachments.
+**Renderer** — Tolkira's server-side report renderer: it turns the report model
+into HTML, CSS and a small script. It is part of Tolkira, not an upstream React
+component tree.
 
 **Shell** — Tolkira's own wrapper around the renderer: title, metadata, summary,
 theme, logo.

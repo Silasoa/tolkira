@@ -70,7 +70,7 @@ test-first and should fit in roughly two hours.
 - [x] 7.1 Decision table for statuses: passed, failed, skipped, pending,
   undefined, ambiguous; assert counts and rendering.
 - [x] 7.2 Stress test: `npm run stress -- 1000` and 5000 scenarios; assert
-  counts, output size and timing. 1000: ~0.2 s/3.6 MB; 5000: ~0.4 s/14.4 MB.
+  counts, output size and timing. 1000: ~0.15 s/1.1 MB; 5000: ~0.43 s/5.4 MB.
 - [ ] 7.3 Boundary/equivalence: empty input, one scenario, unicode names, very
   long names, missing optional fields.
 - [ ] 7.4 Add cucumber-jvm and cucumber-ruby fixtures; document any unsupported
@@ -83,10 +83,11 @@ test-first and should fit in roughly two hours.
 - [x] 8.1 Update README, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
   `docs/CHANGELOG.md` and `GLOSSARY.md` with shipped behaviour and limitations.
 - [x] 8.2 Verify `npm pack` contents, package size, license and third-party
-  notices. 20 files, 83.3 kB packed; AGENT-INTERFACE and GLOSSARY included.
+  notices. 22 files, 131.9 kB packed; AGENT-INTERFACE and GLOSSARY included.
 - [x] 8.3 Run the full gate in the foreground: typecheck, lint, tests, build,
-  browser test; record the results. Green on 2026-11-02 after fixes: 58 unit
-  tests, 5 Playwright tests, 0 audit vulnerabilities.
+  browser test; record the results. Green on 2026-11-03 with the simple shell:
+  63 unit tests, 5 Playwright tests across Chromium/Firefox/WebKit, 0 audit
+  vulnerabilities.
 - [x] 8.4 Run the blind review set (SCR, CR, DAR, SEC) and fix findings.
 - [ ] 8.5 User approval, tag `v0.1.0`, publish with provenance.
 
@@ -116,8 +117,8 @@ test-first and should fit in roughly two hours.
 - [x] 11.1 Independent A11Y review with a second model: status icons, permalink
   names, main landmark, mobile reflow, dark focus contrast, live filter counts,
   image alt text and reduced motion fixed.
-- [ ] 11.2 Upstream `@cucumber/html-formatter`: heading order (double H1) and
-  visible search label.
+- [ ] 11.2 Superseded: the simple shell replaces the upstream formatter, so its
+  heading-order and search-label gaps no longer apply.
 
 ## Deferred follow-ups
 

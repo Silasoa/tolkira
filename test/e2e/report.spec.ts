@@ -32,18 +32,17 @@ test('renders a messages report in the browser', async ({ page }) => {
       page.getByRole('heading', { name: 'Tolkira E2E', level: 1 }),
     ).toBeVisible();
     await expect(page.getByRole('main')).toBeVisible();
-    await expect(
-      page.getByRole('img', { name: 'Status: failed' }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: /^Link to / }).first(),
-    ).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Report' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(page.getByRole('tab', { name: 'Analysis' })).toBeVisible();
     await expect(page.getByText('1 feature')).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: /features\/screenshot\.feature/ }),
+      page.getByRole('heading', { name: 'Screenshot attachment' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
+      page.getByRole('heading', { name: 'Attach a screenshot' }),
     ).toBeVisible();
     await expect(page.getByText('screenshot.png')).toBeVisible();
     await expect(
@@ -51,16 +50,30 @@ test('renders a messages report in the browser', async ({ page }) => {
     ).toBeVisible();
 
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+      page.getByRole('heading', { name: 'Failing scenario' }),
     ).toBeVisible();
     await expect(page.getByText('Expected 1 to equal 2')).toBeVisible();
 
-    await page.getByRole('textbox', { name: 'Search' }).fill('Failing');
+    await page.getByRole('searchbox', { name: /Search/ }).fill('Failing');
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
+      page.getByRole('heading', { name: 'Attach a screenshot' }),
     ).toBeHidden();
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+      page.getByRole('heading', { name: 'Failing scenario' }),
+    ).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Analysis' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Run analysis' }),
+    ).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Analysis' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(page.getByText('Status distribution')).toBeVisible();
+    await page.getByRole('tab', { name: 'Report' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Tolkira E2E', level: 1 }),
     ).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -79,17 +92,17 @@ test('filters by status', async ({ page }) => {
     expect(code).toBe(0);
 
     await page.goto(pathToFileURL(output).href);
-    const failedFilter = page.getByRole('checkbox', { name: /failed/ });
+    const failedFilter = page.locator('button.filter[data-status="failed"]');
     await expect(failedFilter).toBeVisible();
-    await expect(failedFilter).toBeChecked();
+    await expect(failedFilter).toHaveAttribute('aria-pressed', 'true');
     await failedFilter.focus();
     await page.keyboard.press('Space');
-    await expect(failedFilter).not.toBeChecked();
+    await expect(failedFilter).toHaveAttribute('aria-pressed', 'false');
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+      page.getByRole('heading', { name: 'Failing scenario' }),
     ).toBeHidden();
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
+      page.getByRole('heading', { name: 'Attach a screenshot' }),
     ).toBeVisible();
     await expect(page.getByRole('status')).toContainText(
       '1 of 2 scenarios visible',
@@ -117,12 +130,12 @@ test('searches by tag', async ({ page }) => {
     expect(code).toBe(0);
 
     await page.goto(pathToFileURL(output).href);
-    await page.getByRole('textbox', { name: 'Search' }).fill('@failing');
+    await page.getByRole('searchbox', { name: /Search/ }).fill('@failing');
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Failing scenario' }),
+      page.getByRole('heading', { name: 'Failing scenario' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Scenario: Attach a screenshot' }),
+      page.getByRole('heading', { name: 'Attach a screenshot' }),
     ).toBeHidden();
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -142,11 +155,11 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
 
     await page.goto(pathToFileURL(output).href);
     await expect(page).toHaveTitle('Legacy E2E');
-    const feature = page.getByRole('button', { name: /happy\.feature/ });
-    await expect(feature).toHaveAttribute('aria-expanded', 'false');
-    await page.getByRole('button', { name: 'Expand all' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Happy HTML reporting' }),
+    ).toBeVisible();
     await expect(page.getByText('attachment-1.png')).toBeVisible();
-    await expect(page.getByText('1 hooks').first()).toBeVisible();
+    await expect(page.getByText('Before hook').first()).toBeVisible();
     await expect(
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
@@ -177,8 +190,8 @@ test('does not execute HTML attachments', async ({ page }) => {
     expect(code).toBe(0);
 
     await page.goto(pathToFileURL(output).href);
-    await page.getByRole('button', { name: /happy\.feature/ }).click();
-    const attachment = page.getByText('attachment-1.html');
+    await page.getByRole('button', { name: 'Expand all' }).click();
+    const attachment = page.getByText(/attachment-1\.html/).first();
     await expect(attachment).toBeVisible();
     await attachment.click();
 

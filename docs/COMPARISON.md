@@ -15,7 +15,7 @@ report options and equivalent scenario, story and group inputs.
   equivalent Cucumber inputs: one scenario (`minimal`), one story (`happy`) and
   a group (`happy` + `unhappy` + `minimal`).
 - Old reporter: `cucumber-html-reporter@7.2.0`, `theme: bootstrap`.
-- Tolkira: current `main`, legacy JSON adapter, no external assets.
+- Tolkira: current `main`, simple report shell, no external assets.
 
 ## Screenshots
 
@@ -24,15 +24,12 @@ All images are in [`docs/comparison/`](comparison/).
 
 | Mode | Old reporter | Tolkira |
 | --- | --- | --- |
-| Scenario, collapsed | [`old-scenario-collapsed.png`](comparison/old-scenario-collapsed.png) | [`new-scenario-collapsed.png`](comparison/new-scenario-collapsed.png) |
-| Scenario, expanded | [`old-scenario-expanded.png`](comparison/old-scenario-expanded.png) | [`new-scenario-expanded.png`](comparison/new-scenario-expanded.png) |
-| Story, collapsed | [`old-story-collapsed.png`](comparison/old-story-collapsed.png) | [`new-story-collapsed.png`](comparison/new-story-collapsed.png) |
-| Story, expanded | [`old-story-expanded.png`](comparison/old-story-expanded.png) | [`new-story-expanded.png`](comparison/new-story-expanded.png) |
-| Group, collapsed | [`old-group-collapsed.png`](comparison/old-group-collapsed.png) | [`new-group-collapsed.png`](comparison/new-group-collapsed.png) |
-| Group, expanded | [`old-group-expanded.png`](comparison/old-group-expanded.png) | [`new-group-expanded.png`](comparison/new-group-expanded.png) |
-| Failed story, expanded | [`old-failed-expanded.png`](comparison/old-failed-expanded.png) | [`new-failed-expanded.png`](comparison/new-failed-expanded.png) |
-| Screenshot attachment | [`old-screenshot-expanded.png`](comparison/old-screenshot-expanded.png) | [`new-screenshot-expanded.png`](comparison/new-screenshot-expanded.png) |
-| Offline, story | [`old-story-offline.png`](comparison/old-story-offline.png) | [`new-story-offline.png`](comparison/new-story-offline.png) |
+| Scenario, expanded | [`old-scenario-expanded.png`](comparison/old-scenario-expanded.png) | [`new-shell-scenario-expanded.png`](comparison/new-shell-scenario-expanded.png) |
+| Story, expanded | [`old-story-expanded.png`](comparison/old-story-expanded.png) | [`new-shell-story-expanded.png`](comparison/new-shell-story-expanded.png) |
+| Group, expanded | [`old-group-expanded.png`](comparison/old-group-expanded.png) | [`new-shell-group-expanded.png`](comparison/new-shell-group-expanded.png) |
+| Failed story, expanded | [`old-failed-expanded.png`](comparison/old-failed-expanded.png) | [`new-shell-failed.png`](comparison/new-shell-failed.png) |
+| Screenshot attachment | [`old-screenshot-expanded.png`](comparison/old-screenshot-expanded.png) | [`new-shell-screenshot.png`](comparison/new-shell-screenshot.png) |
+| Offline, story | [`old-story-offline.png`](comparison/old-story-offline.png) | [`new-shell-story-offline.png`](comparison/new-shell-story-offline.png) |
 
 ## What works
 
@@ -49,17 +46,19 @@ All images are in [`docs/comparison/`](comparison/).
 - The report is fully offline. The old bootstrap report loads Bootstrap,
   jQuery, Moment and Google Charts from CDNs and loses its layout and charts
   offline.
+- Tolkira's shell is server-rendered; it does not embed React or the upstream
+  formatter.
 
 ## Sizes and performance
 
 - Old story report: about 100 kB, but with four remote dependencies.
-- Tolkira story report: about 1 MB because the React formatter and its runtime
-  are embedded; no network is required.
+- Tolkira story report: about 38 kB, with CSS and script inline and no network
+  dependency.
 - Tolkira stress run (`npm run stress -- <count>`):
-  - 1,000 scenarios / 3,000 steps: about 0.2 s, 3.6 MB HTML.
-  - 5,000 scenarios / 15,000 steps: about 0.4 s, 14.4 MB HTML.
-- The 10 MB warning is expected for large groups; external attachments remain a
-  follow-up.
+  - 1,000 scenarios / 3,000 steps: about 0.15 s, 1.1 MB HTML.
+  - 5,000 scenarios / 15,000 steps: about 0.43 s, 5.4 MB HTML.
+- The 10 MB warning is expected for very large groups; external attachments
+  remain a follow-up.
 
 ## cucumber-html-reporter issue themes
 

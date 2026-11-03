@@ -11,8 +11,8 @@ Keep a Changelog and the project uses semantic versioning.
   governance, review protocol, ADRs and OpenSpec bootstrap change.
 - Toolchain: TypeScript 7 strict, oxlint, Vitest 5, esbuild, Playwright, CI
   matrix for Node 22/24/26 and npm release workflow.
-- Cucumber Messages input and single-file HTML rendering via the official
-  Cucumber formatter.
+- Cucumber Messages input and single-file HTML rendering with the Tolkira
+  shell.
 - Legacy Cucumber JSON adapter with features, scenarios, steps, tags, hooks,
   outlines, doc strings, data tables, statuses, durations and embeddings.
 - Screenshot/text attachment preservation and a safe HTML attachment check.
@@ -22,6 +22,9 @@ Keep a Changelog and the project uses semantic versioning.
   status counts, durations, attachments and per-scenario failures.
 - Visible report shell with title, summary counts, metadata, optional logo and
   accent colour, and system dark mode.
+- Simple default report plus optional Analysis tab; no React runtime.
+- Removed `@cucumber/html-formatter`; only `@cucumber/messages` remains as a
+  runtime dependency.
 - Expand-all / collapse-all controls, automatic screenshot disclosure, and
   accessible status labels, permalinks, main landmark and live filter counts.
 - Seed-Test comparison harness, screenshots and offline comparison.

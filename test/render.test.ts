@@ -11,23 +11,36 @@ const fixture = fileURLToPath(
 );
 
 describe('messages rendering', () => {
-  it('renders a single self-contained report', async () => {
+  it('renders the simple report and analysis view', async () => {
     const html = await renderReport(fixture, { title: 'Tolkira test' });
 
     expect(html).toContain('<title>Tolkira test</title>');
-    expect(html).toContain('<h1 class="tolkira-title">Tolkira test</h1>');
-    expect(html).toContain('data-tolkira-action="expand"');
-    expect(html).toContain('data-tolkira-action="collapse"');
-    expect(html).toContain('tolkira-action');
+    expect(html).toContain('<h1>Tolkira test</h1>');
+    expect(html).toContain('id="report-view"');
+    expect(html).toContain('id="analysis-view"');
+    expect(html).toContain('id="view-analysis"');
+    expect(html).toContain('data-view="report"');
+    expect(html).toContain('data-view="analysis"');
     expect(html).toContain('1 feature');
     expect(html).toContain('2 scenarios');
-    expect(html).toContain('1 passed');
-    expect(html).toContain('1 failed');
+    expect(html).toContain('>1</b> passed');
+    expect(html).toContain('>1</b> failed');
     expect(html).toContain('1 attachment');
     expect(html).toContain('Screenshot attachment');
     expect(html).toContain('screenshot.png');
     expect(html).toContain('image/png');
-    expect(html.length).toBeGreaterThan(500_000);
+    expect(html).toContain('data-expand="all"');
+    expect(html).toContain('data-expand="none"');
+    expect(html.length).toBeGreaterThan(20_000);
+  });
+
+  it('opens failed and image-bearing scenarios by default', async () => {
+    const html = await renderReport(fixture, { title: 'Open state' });
+
+    expect(html).toContain('data-status="failed"');
+    expect(html).toContain('data-scenario');
+    expect(html).toContain('class="shot"');
+    expect(html).toContain('alt="Attachment screenshot.png (image/png)"');
   });
 
   it('escapes the report title', async () => {
@@ -48,10 +61,10 @@ describe('messages rendering', () => {
       },
     });
 
-    expect(html).toContain('tolkira-meta');
     expect(html).toContain('Browser');
+    expect(html).toContain('Chrome');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
-    expect(html).not.toContain('<strong>Evil</strong>: <script>');
+    expect(html).not.toContain('<script>alert(1)</script>');
   });
 
   it('does not load external scripts or stylesheets', async () => {
@@ -94,9 +107,7 @@ describe('messages rendering', () => {
   });
 
   it('does not render a malicious attachment file name as HTML', async () => {
-    const lines = (
-      await readFile(fixture, 'utf8')
-    )
+    const lines = (await readFile(fixture, 'utf8'))
       .trim()
       .split(/\r?\n/)
       .map((line) => JSON.parse(line) as Record<string, unknown>);
