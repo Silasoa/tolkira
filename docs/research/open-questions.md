@@ -1,130 +1,47 @@
-# Open questions and autonomous status
+# Decisions and remaining work
 
-2026-11-03. Working notes while the user is away. Research is in
-`docs/research/`; production changes are committed separately.
+2026-11-04. The earlier open questions are resolved. This is a decision log,
+not a backlog of questions.
 
-## Research status
+## Resolved
 
-- `report-tools.md` — done. 11 report tools, table stakes, complaints,
-  requested features, fit for Tolkira.
-- `reporter-compatibility.md` — done. Old reporter APIs/options, mapping,
-  two reproduced gaps, recommended shim.
-- `framework-reporting.md` — done. Non-Cucumber frameworks, input formats
-  (JUnit XML, CTRF, TAP, Allure, Playwright JSON), and a clear
-  Cucumber-first recommendation.
+1. **Compatibility shim.** The `cucumber-html-reporter` helper shipped
+   (`22b85f7`) and stays experimental. No `multiple-cucumber-html-reporter`
+   helper or CLI `compat` unless real demand appears. In an AI-assisted
+   workflow, rewriting an integration script is cheap; the shim is a
+   migration aid, not the moat.
+2. **Framework breadth.** Build the cheap breadth: a **basic JUnit XML mode**
+   for non-Cucumber frameworks. No Playwright JSON, CTRF, Allure-results or
+   TRX adapters now. Cucumber-native depth remains the product.
+3. **Analysis tab.** Rename to **Details** in v0.1; add an environment block
+   (producer, runtime, OS, CPU, protocol, user metadata). Charts, trends,
+   history and flaky analytics stay Advanced.
+4. **UI direction.** A is the base. The lead record is removed; thumbnails are
+   in the rows (also mobile); search opens matching features; the mobile
+   feature header is fixed. The production shell still needs the A refinement.
+5. **Product facts.** Allure 3 supports single-file through the Awesome plugin;
+   `multiple-cucumber-html-reporter` 4.x reads Messages. `PRODUCT.md` is
+   corrected. The wedge is the combination, not single-file alone.
+6. **Styling.** No Tailwind. The report is one HTML string with inline CSS,
+   ~20 components and a 15 KB stylesheet; Tailwind would add a build step,
+   content scanning of TypeScript template strings and safelists for dynamic
+   status classes. Plain CSS tokens plus `DESIGN.md` are easier for agents.
+7. **Cucumber versions.** Legacy JSON from cucumber-js 2.3.1, 3.2.1, 4.2.1,
+   5.1.0, 6.0.7, 7.3.2 and 13.3.0 is tested with real producer output. Behave
+   1.3.3 is tested with a real run; seconds are normalised. cucumber-jvm/ruby
+   still need real fixtures. 1.x/0.x are best effort.
+8. **Behave.** A real Behave 1.3.3 fixture and the seconds-to-milliseconds fix
+   are in. A real run with attachments and doc strings is still outstanding.
 
-## What the research changed
+## Remaining work
 
-**Single-file is no longer a differentiator.** Allure 3 supports
-`--single-file` through its Awesome plugin, and
-`multiple-cucumber-html-reporter` 4.x ingests Cucumber Messages. Tolkira's
-wedge is the combination: Cucumber-native legacy **and** Messages, one small
-file, no telemetry, no server, embeddable, plus the agent-readable summary.
-
-**The compatibility shim is cheap, but it is a migration aid, not the main
-growth lever.** The old reporters and Tolkira already read the same legacy
-JSON; the shim is an options mapper plus two gaps that are now fixed in core:
-recursive input directories and output-parent creation.
-
-**Breadth is not the strategy.** `framework-reporting.md` recommends staying
-Cucumber-native. Playwright JSON is the one framework adapter candidate; CTRF
-is a watch item; Karate and Reqnroll already fit via Cucumber JSON/Messages.
-A generic JUnit XML renderer would lose steps and screenshots and turn the
-product into a CI test list.
-
-## Fixed while waiting
-
-Commit `97ea2ea`:
-
-- input directories are scanned recursively (depth 20, symlinks skipped,
-  `node_modules`/`.git`/`.hg`/`.svn` ignored);
-- the output parent directory is created before the atomic write.
-
-Both were reproduced against `cucumber-html-reporter@7.2.0` behaviour and are
-covered by tests.
-
-## Compatibility shim (first slice shipped)
-
-Shipped: `tolkira/compat/cucumber-html-reporter` with the old
-`generate(options, callback?)` signature, option mapping, warnings,
-`ignoreBadJsonFile`, docs and tests. `theme`, charts, external screenshots,
-browser launch and unknown options warn and are ignored; the old HTML is never
-transformed.
-
-Still pending:
-
-- `tolkira/compat/multiple-cucumber-html-reporter` with async
-  `generate(options)` and `reportPath` mapping.
-- `tolkira compat <reporter> --options <file> --dry-run`.
-
-Decision needed: finish both in v0.1 or defer to v0.2. Default: finish the
-multiple-cucumber-html-reporter helper and CLI only if the first slice gets
-real use; otherwise v0.2.
-
-## Framework expansion (research complete)
-
-`framework-reporting.md` answers the question: **do not become a generic
-multi-framework formatter.** Stay Cucumber-native.
-
-- **Playwright JSON** is the one framework adapter candidate: largest e2e
-  audience, steps/retries/projects/errors/attachment references in one file.
-  Costs: no schema version, path-based attachments. Keep it the only adapter.
-- **CTRF** is the best generic model (steps, retries, one base64 screenshot,
-  attachment paths) but pre-1.0 and small. Watch it; spike behind an
-  experimental flag at 1.0.
-- **Free wins:** Karate emits Cucumber JSON (`outputCucumberJson(true)`) and
-  Reqnroll emits Cucumber Messages. Document both with fixtures; no adapter.
-- **Reject:** a generic JUnit XML renderer as the flagship, TAP, Allure-results
-  ingestion, pytest-html HTML/JSON scraping, Cypress Cloud/Test Replay, and a
-  .NET TRX parser. JUnit XML is a lossy fallback only.
-
-Default until the user says otherwise: Cucumber-first, no second input family.
-Playwright JSON is a candidate for v0.2, not v0.1.
-
-## UI
-
-- The user prefers A. The lead record was removed; every scenario row now
-  reserves a thumbnail column (also on mobile); the mobile feature header and
-  the grid-area leak are fixed; search opens collapsed features; empty state
-  added.
-- Production UI change is **not started**. The updated prototype should be
-  reviewed first.
-- The Analysis tab is currently detail duplication. Default for v0.1: rename
-  it to **Details** and add an environment block (producer, runtime, OS, CPU,
-  protocol version, user metadata). Trends/charts/history stay Advanced.
-
-## Metadata
-
-- Producer, runtime, OS, CPU and protocol version come from the Messages
-  `meta` envelope and can be shown automatically.
-- Browser and run mode are not in Messages; the old reporter also only showed
-  them when passed as `metadata`. Keep `--meta "Browser=..."` and
-  `--meta "Mode=..."`, and make the environment block visible.
-
-## Advanced backlog
-
-- Multi-select with checkboxes/Shift, select all, copy/download selected
-  scenarios as JSON.
-- A visible action menu (not a right-click-only menu) for keyboard and touch.
-- Screenshot lightbox with zoom/download.
-- Retry-aware rows, slowest scenarios panel, optional local history file.
-- Status donut (inline SVG) in Details if the old pie-chart feel is wanted.
-
-## Product docs
-
-`docs/PRODUCT.md` still says Allure 3 is not single-file and
-`multiple-cucumber-html-reporter` is legacy-JSON only. Both are outdated.
-Update after the user confirms the positioning correction; do not change the
-wedge statement.
-
-## For the user (non-blocking)
-
-1. Compatibility shim: v0.1 or v0.2? Default: v0.1 thin adapter.
-2. Playwright JSON adapter: v0.2 or later? Research says it is the only
-   framework adapter worth building; default: after the Cucumber core, not
-   v0.1.
-3. Analysis tab: rename to Details for v0.1? Default: yes.
-4. Production UI: implement A after reviewing the updated prototype? Default:
-   wait for the user's go-ahead because it is a visible character change.
-5. PRODUCT.md competitive facts: update to Allure 3 single-file and MCHR
-   Messages support? Default: yes, factual correction only.
+- JUnit XML basic mode: proposal, adapter, parser dependency, fixture and
+  tests.
+- Real cucumber-jvm and cucumber-ruby fixtures; update the compatibility
+  matrix.
+- Real Behave run with attachments/doc strings.
+- Production UI: implement the A refinement in `src/render` with unit and
+  browser tests.
+- AI-first exports: per-scenario JSON, “copy failure for agent”, multi-select,
+  visible action menu.
+- Release checklist and changelog before any npm publication.

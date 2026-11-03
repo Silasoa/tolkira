@@ -29,16 +29,19 @@ The de-facto open-source report for Cucumber JSON,
 
 The alternatives each solve one part:
 
-- **Official Cucumber HTML formatter** — modern, Messages-only, single-file,
-  good attachments/search/filter, but no dashboard, metadata, history,
-  branding or legacy JSON.
-- **multiple-cucumber-html-reporter** — active, dashboard, metadata, trends,
-  i18n, multi-run, but legacy JSON only, heavier and folder-based.
-- **Allure 3** — powerful history/trends/retries/quality gates, but a heavier
-  static-site workflow, not a single embeddable HTML file.
+- **Official Cucumber HTML formatter** - modern, Messages-only, single-file,
+  good attachments/search/filter, but no legacy JSON, dashboard, metadata,
+  history or branding.
+- **multiple-cucumber-html-reporter** - active, dashboard, metadata, trends,
+  i18n, multi-run; reads Messages in 4.x, but still folder-based, with
+  single-file support only planned.
+- **Allure 3** - powerful history/trends/retries/quality gates; can produce a
+  single file through the Awesome plugin, but the default workflow is a heavier
+  static site.
 
-There is a gap for a **lightweight, Cucumber-native, single-file report that
-accepts both JSON and Messages and preserves screenshots**.
+There is a gap for a **lightweight, Cucumber-native, one-small-file report that
+accepts both legacy JSON and Messages, preserves screenshots, and adds an
+agent-readable summary without a server or telemetry**.
 
 ## Audience
 
@@ -100,7 +103,8 @@ accepts both JSON and Messages and preserves screenshots**.
 - **Single file, offline, no CDN.**
 - **Screenshots are first-class.**
 - **Few dependencies; prefer Node built-ins and official Cucumber packages.**
-- **Adapters and shell are ours; rendering is upstream.**
+- **Adapters, view model and shell are ours; the input model is official
+  Cucumber Messages.**
 - **Security and privacy at the boundary.**
 - **Spec first, tests first, small vertical slices.**
 - **MIT; no telemetry; no lock-in.**

@@ -36,27 +36,39 @@ without forcing a migration.
 
 The name is pronounced approximately **TOL-kee-rah**.
 
-## Planned v0.1
+## What works today
 
-- CLI and programmatic API: one input or many, one output HTML file.
-- Stable JSON summary for agents and CI (`--json`, `summarizeReport`).
-- Legacy JSON + Messages input, including multiple runs and groups.
-- Screenshots and attachments preserved inline.
-- Summary, durations, errors, stack traces, hooks, outlines, tables, doc strings.
-- Search, status filters and tag filters.
-- Metadata header: title, timestamp, environment, CI/commit, counts.
-- Dark mode, title, logo and an accent colour; custom CSS follows later.
-- Self-contained output, no CDN, no network requests, no telemetry.
-- Security baseline: escaped user content, safe attachments, no HTML execution.
-- Tests with cucumber-js 2.3.1–13.3.0 legacy JSON, a Messages fixture, and
-  Behave-shaped JSON; cucumber-jvm/ruby follow before release.
-- npm release with provenance and Node 22/24/26 CI.
+- **Inputs:** legacy Cucumber JSON (cucumber-js 2.3.1–13.3.0 tested, Behave
+  1.3.3 tested; cucumber-jvm/ruby fixtures pending) and Cucumber Messages
+  (cucumber-js 11.2 fixture; 7+ structurally). Multiple files and directories
+  merge into one run.
+- **Output:** one self-contained HTML file; CSS, script and attachments are
+  inline. No CDN, no network requests, no telemetry.
+- **Report:** failed-first simple report, feature/scenario disclosures, inline
+  screenshots and text attachments, doc strings, data tables, hooks, tags,
+  durations and errors; search and status filters; dark mode.
+- **Analysis:** pass/fail counts, feature table, run metadata and the agent
+  summary. It becomes **Details** in the next UI pass.
+- **Branding:** title, metadata, logo and accent colour.
+- **CLI/API:** `tolkira <input...> --out <file>`, `--json`,
+  `summarizeReport()`, atomic output, size limits, CSP and escaping.
+- **Compatibility:** experimental
+  `tolkira/compat/cucumber-html-reporter` options shim.
+- **Browsers:** Chromium, Firefox and WebKit tests.
+
+## Release status
+
+The v0.1 gate is green: typecheck, lint, unit tests, build and browser tests.
+The remaining release work is tracked in
+`openspec/changes/bootstrap-tolkira-core/tasks.md`; npm publication waits for
+explicit approval.
 
 ## Non-goals for v0.1
 
+- Rich per-framework adapters (Playwright JSON, Allure results, .NET TRX).
+  A basic JUnit XML mode is planned for cheap breadth.
 - History, trends and flaky-test analytics (Allure/ReportPortal territory).
 - PDF or email reports.
-- JUnit XML or Playwright JSON adapters.
 - Localisation (the shell starts in English; German can follow).
 - A plugin system, SaaS, test management or a live server.
 - A first-class visual clone of the old cucumber-html-reporter themes.
