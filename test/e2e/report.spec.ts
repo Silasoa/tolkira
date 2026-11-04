@@ -68,14 +68,21 @@ test('renders a messages report in the browser', async ({ page }) => {
     );
     await page.keyboard.press('Escape');
     await expect(lightbox).toBeHidden();
-    expect(
-      await page.evaluate(() => document.documentElement.style.overflow),
-    ).toBe('');
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.style.overflow),
+      )
+      .toBe('');
     await expect(page.locator('.shotButton').first()).toBeFocused();
 
     await page.locator('.shotButton').first().click();
     await page.getByRole('button', { name: 'Close' }).click();
     await expect(lightbox).toBeHidden();
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.style.overflow),
+      )
+      .toBe('');
     await expect(page.locator('.shotButton').first()).toBeFocused();
 
     await expect(
@@ -350,6 +357,32 @@ test('reflows at 200% page zoom', async ({ page }) => {
     expect(phone.h1).toBeLessThanOrEqual(320);
     expect(phone.health).toBeLessThanOrEqual(320);
     expect(phone.titleWidth).toBeGreaterThan(100);
+
+    await page.locator('.shotButton').first().click();
+    await expect(page.locator('#tolkira-lightbox img')).toBeVisible();
+    const imageBounds = await page.evaluate(() => {
+      const image = document.querySelector('#tolkira-lightbox img');
+      const dialog = document.getElementById('tolkira-lightbox');
+      if (!image || !dialog) return null;
+      const imageRect = image.getBoundingClientRect();
+      const dialogRect = dialog.getBoundingClientRect();
+      return {
+        left: imageRect.left,
+        right: imageRect.right,
+        dialogLeft: dialogRect.left,
+        dialogRight: dialogRect.right,
+      };
+    });
+    expect(imageBounds).not.toBeNull();
+    expect(imageBounds!.left).toBeGreaterThanOrEqual(
+      imageBounds!.dialogLeft - 0.5,
+    );
+    expect(imageBounds!.right).toBeLessThanOrEqual(
+      imageBounds!.dialogRight + 0.5,
+    );
+    expect(imageBounds!.right).toBeLessThanOrEqual(320);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tolkira-lightbox')).toBeHidden();
 
     await page.getByRole('tab', { name: 'Details' }).click();
     expect(

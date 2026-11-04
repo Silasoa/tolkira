@@ -139,7 +139,7 @@ details[open] > summary.scenarioButton { background: var(--accent-soft); }
 .shotButton:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lightbox { position: relative; max-width: min(94vw, 1400px); max-height: 92vh; padding: 3rem 0.75rem 0.75rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--paper); color: var(--ink); }
 .lightbox::backdrop { background: #000000b3; }
-.lightbox img { display: block; max-width: 90vw; max-height: calc(92vh - 3.75rem); object-fit: contain; margin: 0 auto; }
+.lightbox img { display: block; max-width: 100%; max-height: calc(92vh - 3.75rem); object-fit: contain; margin: 0 auto; }
 .lightboxClose { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 1; min-height: 2rem; padding: 0 0.625rem; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font-size: 0.75rem; }
 .attachment figcaption { margin-top: 0.3125rem; color: var(--muted); font-size: 0.6875rem; }
 .attachmentText { margin: 0.5rem 0; border: 1px solid var(--line); border-radius: 6px; padding: 0.4375rem 0.5625rem; background: var(--surface-2); }
