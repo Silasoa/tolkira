@@ -240,6 +240,34 @@ describe('JUnit XML input', () => {
     }
   });
 
+  it('accepts DTD entities and processing instructions', async () => {
+    const dir = await tempDir();
+    const dtd = path.join(dir, 'dtd.xml');
+    const pi = path.join(dir, 'pi.xml');
+    await writeFile(
+      dtd,
+      '<?xml version="1.0"?><!DOCTYPE testsuites [<!ENTITY custom "value">]><testsuites><testsuite name="dtd"><testcase name="custom"><failure>&custom;</failure></testcase></testsuite></testsuites>',
+      'utf8',
+    );
+    await writeFile(
+      pi,
+      '<?xml-stylesheet href="x?a=1&b=2;c=3"?><testsuites><testsuite name="pi"><testcase name="passes"/></testsuite></testsuites>',
+      'utf8',
+    );
+
+    const dtdSummary = await summarizeReport(dtd);
+    expect(dtdSummary.counts.scenarios).toMatchObject({
+      total: 1,
+      failed: 1,
+    });
+
+    const piSummary = await summarizeReport(pi);
+    expect(piSummary.counts.scenarios).toMatchObject({
+      total: 1,
+      passed: 1,
+    });
+  });
+
   it('rejects empty and multi-root XML clearly', async () => {
     const dir = await tempDir();
     const empty = path.join(dir, 'empty-file.xml');

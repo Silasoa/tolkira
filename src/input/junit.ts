@@ -59,16 +59,26 @@ function isXmlChar(code: number): boolean {
   );
 }
 
-function assertValidEntities(content: string, source: string): void {
-  const withoutProtected = content
-    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '')
-    .replace(/<!--[\s\S]*?-->/g, '');
+function checkEntityReferences(
+  fragment: string,
+  source: string,
+  allowedNames: ReadonlySet<string>,
+): void {
   const entityPattern = /&([^;]{1,32});/g;
   let match: RegExpExecArray | null;
 
-  while ((match = entityPattern.exec(withoutProtected)) !== null) {
+  while ((match = entityPattern.exec(fragment)) !== null) {
     const entity = match[1];
-    if (/^(amp|lt|gt|quot|apos)$/.test(entity)) continue;
+    if (
+      entity === 'amp' ||
+      entity === 'lt' ||
+      entity === 'gt' ||
+      entity === 'quot' ||
+      entity === 'apos' ||
+      allowedNames.has(entity)
+    ) {
+      continue;
+    }
 
     let code: number | undefined;
     if (/^#\d+$/.test(entity)) {
@@ -81,6 +91,103 @@ function assertValidEntities(content: string, source: string): void {
       throw new Error(
         `Invalid JUnit XML in ${source}: invalid entity reference &${entity};`,
       );
+    }
+  }
+}
+
+function assertValidEntities(content: string, source: string): void {
+  const allowedNames = new Set<string>();
+
+  const scanTag = (start: number): number => {
+    let index = start + 1;
+    let quote = '';
+    let valueStart = 0;
+
+    while (index < content.length) {
+      const char = content[index];
+      if (quote) {
+        if (char === quote) {
+          checkEntityReferences(
+            content.slice(valueStart, index),
+            source,
+            allowedNames,
+          );
+          quote = '';
+        }
+      } else if (char === '"' || char === "'") {
+        quote = char;
+        valueStart = index + 1;
+      } else if (char === '>') {
+        return index + 1;
+      }
+      index += 1;
+    }
+
+    return index;
+  };
+
+  const scanDoctype = (start: number): number => {
+    let index = start + '<!DOCTYPE'.length;
+    let quote = '';
+    let depth = 0;
+
+    while (index < content.length) {
+      const char = content[index];
+      if (quote) {
+        if (char === quote) quote = '';
+      } else if (char === '"' || char === "'") {
+        quote = char;
+      } else if (char === '[') {
+        depth += 1;
+      } else if (char === ']') {
+        depth -= 1;
+      } else if (char === '>' && depth <= 0) {
+        const doctype = content.slice(start, index + 1);
+        for (const entity of doctype.matchAll(
+          /<!ENTITY\s+([A-Za-z_:][\w.:-]*)/g,
+        )) {
+          const name = entity[1];
+          if (name) allowedNames.add(name);
+        }
+        return index + 1;
+      }
+      index += 1;
+    }
+
+    return index;
+  };
+
+  let index = 0;
+  while (index < content.length) {
+    const start = content.indexOf('<', index);
+    if (start === -1) {
+      checkEntityReferences(content.slice(index), source, allowedNames);
+      return;
+    }
+    if (start > index) {
+      checkEntityReferences(
+        content.slice(index, start),
+        source,
+        allowedNames,
+      );
+    }
+
+    if (content.startsWith('<!--', start)) {
+      const end = content.indexOf('-->', start + 4);
+      index = end === -1 ? content.length : end + 3;
+    } else if (content.startsWith('<![CDATA[', start)) {
+      const end = content.indexOf(']]>', start + 9);
+      index = end === -1 ? content.length : end + 3;
+    } else if (content.startsWith('<?', start)) {
+      const end = content.indexOf('?>', start + 2);
+      index = end === -1 ? content.length : end + 2;
+    } else if (content.startsWith('<!DOCTYPE', start)) {
+      index = scanDoctype(start);
+    } else if (content.startsWith('<!', start)) {
+      const end = content.indexOf('>', start + 2);
+      index = end === -1 ? content.length : end + 1;
+    } else {
+      index = scanTag(start);
     }
   }
 }
