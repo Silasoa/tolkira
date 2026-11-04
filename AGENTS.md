@@ -75,8 +75,16 @@ reviewed. A failing review spawns a fixer; the coordinator re-runs the gate.
 
 ## Release
 
-- The user approves a release explicitly.
-- `npm publish` runs from a tag with provenance/trusted publishing.
+- The user approves a release explicitly, **per version**. An approval for an
+  earlier version is not authorization for a new tag, stage or publish.
+- Prepare the release locally (version, changelog, gate, review) and present
+  the result. Do not create a tag, stage a package or publish until the user
+  says yes to that exact version.
+- Batch patch releases. Do not cut a version for a single internal fix or a
+  one-line change; fold it into the next meaningful patch or minor release.
+- `npm publish`/`npm stage publish` runs from a tag with provenance. The
+  maintainer approves staged packages with 2FA; never ask for an npm token in
+  chat, use the private secret card.
 - No release without a green gate, updated changelog and a final review.
 - Never publish a name or package without the name/trademark check recorded in
   the ADR.

@@ -38,8 +38,9 @@ not a backlog of questions.
    staged publish requires a maintainer 2FA approval; the workflow stages, the
    maintainer approves. The npm README is refreshed by 0.1.1.
 10. **0.1.1 hardening.** Tag filter, search highlighting, “copy failure”, CI
-    screenshot artifacts and JUnit XML edge cases are in. Visual pixel
-    baselines remain a follow-up.
+    screenshot artifacts and JUnit XML edge cases are in. v0.1.1 was published
+    on npm with provenance. Visual pixel baselines remain a follow-up; the
+    numeric XML-entity decoding fix is on `main` for the next patch.
 
 ## Remaining work
 
