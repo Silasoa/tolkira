@@ -5,7 +5,13 @@ playwright-report/
 test-results/
 .env
 .env.*
+.npmrc
 *.log
+*.tgz
+report.html
+*.tsbuildinfo
+.cache/
+.tmp/
 .DS_Store
 Thumbs.db
 .idea/
