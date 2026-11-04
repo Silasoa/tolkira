@@ -1,9 +1,10 @@
 # Cucumber input compatibility
 
 2026-11-04. "Tested" means a real producer output is checked in under
-`test/fixtures/legacy/` and parsed and rendered by
-`test/legacy-version.test.ts`. Each fixture is a two-scenario feature: one
-passes, one fails with `Error: boom`.
+`test/fixtures/legacy/` and parsed and rendered by the legacy fixture tests
+(`test/legacy-version.test.ts` for cucumber-js, `test/legacy-jvm.test.ts` for
+cucumber-jvm). Each fixture is a two-scenario feature: one passes, one fails
+with `Error: boom`.
 
 ## Legacy JSON
 
@@ -11,7 +12,7 @@ passes, one fails with `Error: boom`.
 | --- | --- | --- |
 | cucumber-js | 2.3.1, 3.2.1, 4.2.1, 5.1.0, 6.0.7, 7.3.2, 13.3.0 | The shape is stable enough. 2.x has no `type` on elements and uses absolute URIs; duration units vary below 6.0.5. |
 | Behave | 1.3.3 real run (`behave-real.json`) | Duration is seconds and is normalised to milliseconds. A real run with attachments and doc strings is still outstanding; the synthetic `behave.json` covers those shapes. |
-| cucumber-jvm | not yet | `JsonFormatter` still ships in 7.x/8.x; a real fixture is outstanding. |
+| cucumber-jvm | 7.22.1 real run | The legacy `json` formatter still ships in 7.x/8.x. The fixture covers `classpath:` URIs, nanosecond durations and a Java assertion. |
 | cucumber-ruby | not yet | `json` formatter still ships; a real fixture is outstanding. |
 
 ## Messages
@@ -38,6 +39,9 @@ passes, one fails with `Error: boom`.
 - **Behave 1.3.3:** JSON duration is in seconds, and features/elements carry
   `status` and `location` strings. The adapter detects that dialect and scales
   durations; Behave has no Messages formatter.
+- **cucumber-jvm 7.22.1:** legacy JSON uses `classpath:` URIs, nanosecond
+  durations and Java stack traces. The shape matches the Cucumber legacy
+  dialect and needs no adapter change.
 
 ## What "best effort" means
 
