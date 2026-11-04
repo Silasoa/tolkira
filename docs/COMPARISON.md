@@ -55,8 +55,8 @@ All images are in [`docs/comparison/`](comparison/).
 - Tolkira story report: about 39 kB, with CSS and script inline and no network
   dependency.
 - Tolkira stress run (`npm run stress -- <count>`):
-  - 1,000 scenarios / 3,000 steps: about 0.17 s, 1.2 MB HTML.
-  - 5,000 scenarios / 15,000 steps: about 0.37 s, 6.0 MB HTML.
+  - 1,000 scenarios / 3,000 steps: about 0.22 s, 1.4 MB HTML.
+  - 5,000 scenarios / 15,000 steps: about 0.42 s, 6.9 MB HTML.
 - The 10 MB warning is expected for very large groups; external attachments
   remain a follow-up.
 
@@ -81,10 +81,11 @@ Still open or intentionally deferred:
 - themes (`bootstrap`, `hierarchy`, `foundation`, `simple`) and column layouts;
 - per-scenario absolute timestamps (relative time remains);
 - legacy outline `examples` reconstruction;
-- legacy Gherkin `Rule` extraction;
+- Rule structure from legacy JSON (the format does not carry it; Messages
+  reports show Rule names);
 - hide/show hooks and feature-level embeddings;
 - external screenshot directory and lazy image loading;
-- cucumber-jvm and cucumber-ruby fixtures;
+- real Behave attachments/doc strings;
 - full Seed-Test stack with MongoDB and live browser execution.
 
 ## Remaining parity gaps
@@ -96,7 +97,7 @@ Still open or intentionally deferred:
 - Column layout and feature-vs-scenario header counts are not configurable.
 - Relative time is shown; per-scenario absolute timestamps are not configurable.
 - Legacy outline `examples` are expanded rows, not reconstructed.
-- cucumber-jvm and cucumber-ruby report fixtures are still missing.
-- Rule extraction from legacy JSON is not implemented.
+- Rule structure from legacy JSON is not available in that format; Messages
+  reports show the Rule name.
 - The full Seed-Test stack (MongoDB, browser execution and issue-tracker
   comments) was not run for this comparison.

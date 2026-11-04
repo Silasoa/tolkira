@@ -85,6 +85,14 @@ generation fails with a usage error.
 
 ## `multiple-cucumber-html-reporter`
 
-A second helper for the `multiple-cucumber-html-reporter` options shape is
-planned but not shipped yet. Until then, use the core CLI with its `jsonDir`
-and `reportPath` mapped to inputs and `--out`.
+A dedicated MCHR helper and a `tolkira compat` CLI were deliberately left out
+until there is real demand. If you use MCHR today, the core CLI covers the
+common shape:
+
+```shell
+tolkira path/to/jsonDir --out reports/index.html --title "My report"
+```
+
+Map `jsonDir` to the input directory, `reportPath`/`reportName` to `--out`,
+`metadata` to `--meta key=value` and `brandLogo` to `--logo`. Dashboard,
+history, trends, i18n and the old folder report are not reproduced.

@@ -1,110 +1,132 @@
 # Tolkira
 
-> **The interpreter for your test results.**
-> Clear, embeddable HTML reports for Cucumber JSON, Messages, and beyond.
+**One self-contained HTML report for Cucumber JSON, Messages and JUnit XML.**
 
-**Status: v0.1.0.** Messages and legacy Cucumber JSON render to one
-self-contained HTML file with a simple report, an optional Details tab, the
-CLI/API, title/metadata, screenshots, browser tests and a stable JSON summary
-for agents.
+Tolkira turns test results into a single HTML file you can open offline, attach
+to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
+stay inside the file. There is no server, no CDN and no telemetry.
+
+Current release: **v0.1.1** · [Changelog](docs/CHANGELOG.md)
+
+> **How this is built:** Tolkira is human-directed and largely AI-generated.
+> The maintainer sets the product direction, reviews changes, runs the release
+> gate and makes release decisions. Most code, tests and documentation are
+> drafted with large language models, then reviewed and tested by humans.
+> AI output can be wrong; please check the report against your own results and
+> open an issue if something looks off. [Read more](#how-this-project-is-built).
 
 ## Install
 
 ```shell
 npm install --global tolkira
-tolkira test-results/ --out report.html --title "Daily run"
+tolkira --help
 ```
 
 Or run it without a global install:
 
 ```shell
-npx tolkira test-results/ --out report.html --title "Daily run"
+npx tolkira --help
 ```
 
-## What is Tolkira?
+On Windows, `npx` can fail when the current folder contains parentheses in its
+path. Use the global install or a folder without parentheses if that happens.
 
-Tolkira turns test results into a single, self-contained HTML report that works
-offline and can be embedded anywhere. It starts with the two Cucumber formats
-that matter today:
+## Quick start
 
-- **Legacy Cucumber JSON** — the format produced by cucumber-js, cucumber-jvm,
-  cucumber-ruby, Behave and many compatible tools.
-- **Cucumber Messages (NDJSON)** — the modern, implementation-independent
-  format produced by Cucumber's official implementations.
+```shell
+# One file, one report
+tolkira test-results/ --out report.html --title "Checkout acceptance"
 
-The important part is that **screenshots and attachments survive**. A test
-report without the failing screenshot is not a report; it is a table.
+# Add your own metadata and brand colour
+tolkira test-results/ --out report.html \
+  --title "Checkout acceptance" \
+  --meta "App version=0.3.2" \
+  --meta "Environment=Staging" \
+  --accent "#1b5e20"
 
-Tolkira is deliberately not tied to Cucumber or Gherkin in its name. The
-adapter layer can grow to other result formats later without renaming the
-product.
+# Embed a logo (PNG, JPEG, GIF, WebP or SVG)
+tolkira test-results/ --out report.html --logo path/to/logo.png
+```
 
-## Why the name?
+Tolkira accepts one or more files and directories. A directory is scanned
+recursively for supported result files. Everything is merged into one report.
 
-Tolkira is a coined name from the Scandinavian word **“tolk”** — interpreter.
-A test report is an interpreter: it translates raw test events into something
-people can understand, and it bridges old JSON pipelines and modern Messages
-without forcing a migration.
+For CI tools and AI agents, ask for the stable JSON summary instead of scraping
+the HTML:
 
-The name is pronounced approximately **TOL-kee-rah**.
+```shell
+tolkira test-results/ --out report.html --json
+tolkira test-results/ --json
+```
 
-## What works today
+## What you get
 
-- **Inputs:** legacy Cucumber JSON (cucumber-js 2.3.1-13.3.0, Behave 1.3.3,
-  cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 tested), Cucumber
-  Messages (cucumber-js 11.2, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1
-  fixtures), and JUnit XML (basic mode: suites, test cases, failures, durations
-  and system output; no steps or screenshots). Multiple files and directories
-  merge into one run.
-- **Output:** one self-contained HTML file; CSS, script and attachments are
-  inline. No CDN, no network requests, no telemetry.
-- **Report:** failed-first simple report, feature/scenario disclosures, inline
-  screenshots and text attachments, doc strings, data tables, hooks, tags,
-  durations and errors; search and status filters; dark mode.
-- **Details:** pass/fail counts, feature table, an environment block with
-  producer/runtime/OS/CPU/protocol, run metadata and the agent summary.
-- **Branding:** title, metadata, logo and accent colour.
-- **CLI/API:** `tolkira <input...> --out <file>`, `--json`,
-  `summarizeReport()`, atomic output, size limits, CSP and escaping.
-- **Compatibility:** experimental
-  `tolkira/compat/cucumber-html-reporter` options shim.
-- **Browsers:** Chromium, Firefox and WebKit tests.
+- **One file that works offline.** CSS, JavaScript and attachments are inline.
+  No network requests, no remote fonts, no analytics.
+- **The failure first.** Failed scenarios are open by default, with the error
+  and screenshot where you need them.
+- **Screenshots and attachments that survive.** Images, text, video, audio and
+  files are preserved through the legacy JSON adapter.
+- **Search and filters.** Search scenarios, features, steps and tags; filter by
+  status and tag; open matching features automatically and highlight matches.
+- **Copy failure.** Copy a failed scenario's feature, failed step and error as
+  plain text for a ticket or an agent.
+- **A Details view when you need it.** Status distribution, a feature table,
+  run metadata and the Cucumber environment (producer, runtime, OS, CPU,
+  protocol).
+- **A stable summary for agents.** `--json` and `summarizeReport()` return a
+  versioned schema with counts, durations, scenarios, steps and failure
+  messages.
+- **Accessible by default.** Keyboard navigation, visible focus, text status
+  labels as well as colour, dark mode and 200% zoom reflow. Accessibility is an
+  ongoing effort; feedback is welcome.
+- **Your branding.** Title, metadata, logo and accent colour without forking the
+  shell.
 
-## Release status
+## Supported inputs
 
-v0.1.0 is published on npm with provenance. The gate is green: typecheck,
-lint, unit tests, build and browser tests. Known gaps are listed in the
-changelog and `docs/research/open-questions.md`.
+| Input | What works |
+| --- | --- |
+| **Legacy Cucumber JSON** | cucumber-js 2.3.1–13.3.0, Behave 1.3.3, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 are tested with real output. Other producers often work; the adapter follows the Cucumber legacy dialect. |
+| **Cucumber Messages (NDJSON)** | cucumber-js 11.2, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 fixtures. This is the modern, implementation-independent format. |
+| **JUnit XML** | Basic mode: suites, test cases, statuses, durations, failures, skipped cases and system output. JUnit has no Gherkin steps or screenshots, so those sections stay empty. |
 
-## Non-goals for v0.1
+Multiple files and mixed formats can be merged into one run. See
+[`docs/CUCUMBER-COMPATIBILITY.md`](docs/CUCUMBER-COMPATIBILITY.md) for the
+tested producer matrix and
+[`docs/JUNIT-XML.md`](docs/JUNIT-XML.md) for the JUnit limits.
 
-- Rich per-framework adapters (Playwright JSON, Allure results, .NET TRX).
-  A basic JUnit XML mode is planned for cheap breadth.
-- History, trends and flaky-test analytics (Allure/ReportPortal territory).
-- PDF or email reports.
-- Localisation (the shell starts in English; German can follow).
-- A plugin system, SaaS, test management or a live server.
-- A first-class visual clone of the old cucumber-html-reporter themes.
+## Why Tolkira exists
 
-## Principles
+[`cucumber-html-reporter`](https://github.com/protractor-cucumber-framework/cucumber-html-reporter)
+has been effectively unmaintained since October 2024. It still has a large
+user base, but it loads Bootstrap, jQuery and Google Charts from CDNs, only
+reads legacy JSON, and carries old runtime dependencies. Reports that should
+work offline lose their layout and charts.
 
-- **One file, no network.** A report must be shareable as a CI artefact.
-- **Few dependencies.** Prefer Node built-ins and the official Cucumber
-  Messages package over another framework.
-- **The data pipeline is the product.** The report shell is ours; the input
-  model is the official Cucumber Messages format.
-- **The report is a designed artifact.** Simple by default, deeper analysis on
-  demand.
-- **Security at the trust boundary.** Test names, metadata and attachments are
-  untrusted input.
-- **Spec first, tests first, small slices.**
-- **MIT, no telemetry, no vendor lock-in.**
+Tolkira keeps the old input working and fixes the parts that hurt:
 
-## Migration from cucumber-html-reporter
+- one offline file instead of CDN dependencies;
+- legacy JSON **and** modern Messages;
+- JUnit XML as cheap breadth for non-Cucumber teams;
+- screenshots and attachments that stay in the report;
+- a stable JSON summary for agents and CI;
+- a small, reviewed dependency surface.
 
-The legacy options object is accepted as-is; only the import changes.
+The visual comparison uses the report setup from
+[Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
+Seed-Test, you are welcome to take a look; the comparison notes and screenshots
+are in [`docs/COMPARISON.md`](docs/COMPARISON.md).
+
+## Migrating from cucumber-html-reporter
+
+The old options object is accepted as-is; only the import changes.
 
 ```js
+// before
+const reporter = require('cucumber-html-reporter');
+
+// after
 import { generate } from 'tolkira/compat/cucumber-html-reporter';
 
 await generate({
@@ -117,26 +139,38 @@ await generate({
 
 The shim is experimental. Themes, charts, external screenshots and browser
 launch are not reproduced; they warn and use Tolkira's defaults. It consumes
-the same input JSON, never the old HTML. See
-[`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+the same input JSON, never the old rendered HTML. See
+[`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for the full mapping and
+caveats.
+
+## Privacy and limits
+
+- No network requests, no telemetry, no remote fonts and no CDN.
+- A restrictive Content Security Policy is embedded in every report.
+- Test names, metadata and attachments are treated as untrusted input.
+- Default limits: 100 MB total input, 50 MB per attachment and 100 MB total
+  attachments. A warning appears when a report grows beyond 10 MB.
+- JUnit XML is intentionally basic; it is not a replacement for a native
+  Playwright, Jest or Allure report.
+- One report is one file. External attachments for very large media are a
+  future option.
 
 ## Documentation
 
-- [`docs/PRODUCT.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PRODUCT.md) — vision, audience, scope, market context.
-- [`docs/ARCHITECTURE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/ARCHITECTURE.md) — system shape and decisions.
-- [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema and agent workflow.
-- [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md) — Seed-Test visual comparison and parity gaps.
-- [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) — cucumber-html-reporter migration shim.
-- [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested Cucumber producers and versions.
-- [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit XML basic mode.
-- [`docs/agents/review.md`](https://github.com/Silasoa/tolkira/blob/main/docs/agents/review.md) — review and audit protocol.
-- [`GLOSSARY.md`](https://github.com/Silasoa/tolkira/blob/main/GLOSSARY.md) — shared language.
-- [`AGENTS.md`](https://github.com/Silasoa/tolkira/blob/main/AGENTS.md) — how agents work in this repository.
-- [`openspec/`](https://github.com/Silasoa/tolkira/tree/main/openspec) — the change contract and specifications.
+- [`docs/AGENT-INTERFACE.md`](docs/AGENT-INTERFACE.md) — JSON schema, CLI
+  contract and exit codes.
+- [`docs/CUCUMBER-COMPATIBILITY.md`](docs/CUCUMBER-COMPATIBILITY.md) — tested
+  Cucumber producers and versions.
+- [`docs/JUNIT-XML.md`](docs/JUNIT-XML.md) — JUnit basic-mode mapping and
+  limits.
+- [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) — migration from
+  cucumber-html-reporter.
+- [`docs/COMPARISON.md`](docs/COMPARISON.md) — Seed-Test comparison and
+  remaining parity gaps.
 
 ## Development
 
-Requires Node.js 22 or newer.
+Tolkira requires Node.js 22 or newer.
 
 ```shell
 npm install
@@ -146,40 +180,55 @@ npm run test:e2e
 npm run stress -- 1000
 ```
 
-Generate a report from one of the fixtures:
+`npm run check` runs typecheck, lint, unit tests, build and the CSS generation
+step. `npm run test:e2e` runs the browser tests in Chromium, Firefox and
+WebKit. `npm run stress -- 1000` builds a 1,000-scenario report and reports size
+and timing.
+
+Build once and run the CLI from `dist`:
 
 ```shell
 npm run build
 node dist/cli.js test/fixtures/legacy/happy.json \
   --out report.html \
   --title "My report" \
-  --meta Browser=Chrome \
-  --accent "#1b5e20"
-
-# Optional: embed a logo (path is yours, not part of the repo)
-node dist/cli.js test-results/ --out report.html --logo path/to/logo.png
+  --meta Browser=Chrome
 ```
 
-The check runs typecheck, lint, unit tests and build. The browser test renders
-both a Messages report and a legacy JSON report, opens a screenshot, exercises
-search, status filters, expand/collapse and checks that an HTML attachment does
-not execute. `npm run stress -- 1000` checks a 1,000-scenario report; see
-[`docs/COMPARISON.md`](docs/COMPARISON.md) for the Seed-Test comparison.
+## Contributing and feedback
 
-For agents and CI, print the stable summary instead of scraping HTML:
+Bug reports, accessibility feedback and compatibility fixtures are welcome.
+If a producer or report shape does not work, a small sanitized fixture is the
+most useful thing you can attach. Please do not include secrets or private test
+data.
 
-```shell
-node dist/cli.js test-results/ --out report.html --json
-node dist/cli.js test-results/ --json
-```
+If you want to work on the code, start with [`AGENTS.md`](AGENTS.md), the
+[`openspec/`](openspec/) change contracts and
+[`docs/agents/review.md`](docs/agents/review.md). Product and architecture
+notes live in [`docs/PRODUCT.md`](docs/PRODUCT.md) and
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-See [`docs/AGENT-INTERFACE.md`](docs/AGENT-INTERFACE.md) for the schema and exit
-codes.
+## How this project is built
+
+Tolkira is an experiment in AI-assisted open source. The maintainer defines the
+problem, the scope and the design direction; large language models draft most of
+the code, tests and documentation; the maintainer reviews, runs the test and
+release gates, and makes the final release decision.
+
+The project does not name specific models in its files on purpose. The
+maintainer configures the models and tooling. This keeps the project
+model-agnostic and avoids turning a temporary tool choice into a permanent
+dependency.
+
+AI-generated code can contain mistakes. The test suite and the review process
+reduce that risk, but they do not remove it. If you rely on Tolkira in a
+production pipeline, validate the report against your own results and pin the
+version you use.
 
 ## License
 
 MIT. See [`LICENSE`](LICENSE).
 
-Tolkira is not affiliated with Cucumber, SmartBear or any test-framework
-vendor. Cucumber and Gherkin are used descriptively; the project uses the
-MIT-licensed Cucumber Messages format and package.
+Tolkira is not affiliated with Cucumber, SmartBear, Seed-Test or any
+test-framework vendor. Cucumber and Gherkin are used descriptively; the project
+uses the MIT-licensed Cucumber Messages format and package.

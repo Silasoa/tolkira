@@ -86,7 +86,7 @@ agent-readable summary without a server or telemetry**.
 - History/trends via an optional history file.
 - PDF/email summary.
 - German UI/localisation.
-- JUnit XML and Playwright JSON adapters.
+- Playwright JSON adapter.
 - CI annotations/PR summary.
 - Deeper dashboard and custom themes.
 
@@ -141,5 +141,6 @@ and the people who need to understand them.
 
 Preliminary checks (not legal advice): npm name free, GitHub user/repo not
 found, domains not resolving, no trademark search results. Formal EUIPO/DPMA/
-USPTO/WIPO clearance and an attorney review are required before a public
-release. Tolkira is not affiliated with Cucumber or SmartBear.
+USPTO/WIPO clearance and an attorney review have not been completed. Do not
+treat the name as trademark-cleared. Tolkira is not affiliated with Cucumber or
+SmartBear.

@@ -17,8 +17,10 @@ not a backlog of questions.
    (producer, runtime, OS, CPU, protocol, user metadata). Charts, trends,
    history and flaky analytics stay Advanced.
 4. **UI direction.** A is the base. The lead record is removed; thumbnails are
-   in the rows (also mobile); search opens matching features; the mobile
-   feature header is fixed. The A refinement is implemented in production, including the screenshot lightbox; the 200 % text-zoom pass remains.
+   in the rows (also mobile); search opens matching features and scenarios; the
+   mobile feature header is fixed. The A refinement is implemented in
+   production, including the screenshot lightbox and a verified 200 % text-zoom
+   pass.
 5. **Product facts.** Allure 3 supports single-file through the Awesome plugin;
    `multiple-cucumber-html-reporter` 4.x reads Messages. `PRODUCT.md` is
    corrected. The wedge is the combination, not single-file alone.
@@ -32,11 +34,19 @@ not a backlog of questions.
    are tested with real runs. 1.x/0.x are best effort.
 8. **Behave.** A real Behave 1.3.3 fixture and the seconds-to-milliseconds fix
    are in. A real run with attachments and doc strings is still outstanding.
+9. **Release.** v0.1.0 was published on npm with provenance on 2026-11-04. A
+   staged publish requires a maintainer 2FA approval; the workflow stages, the
+   maintainer approves. The npm README is refreshed by 0.1.1.
+10. **0.1.1 hardening.** Tag filter, search highlighting, “copy failure”, CI
+    screenshot artifacts and JUnit XML edge cases are in. Visual pixel
+    baselines remain a follow-up.
 
 ## Remaining work
 
 - Real Behave run with attachments/doc strings.
-- 200 % text-zoom pass with real content.
-- AI-first exports: per-scenario JSON, “copy failure for agent”, multi-select,
-  visible action menu.
-- Release checklist and changelog before any npm publication.
+- Real-world large report (10k scenarios or a sanitized team report) and a
+  browser search/filter timing check.
+- Visual regression baselines after the shell is stable; CI screenshot
+  artifacts are in place.
+- Pixel baselines for the new tag filter, search highlight and copy action.
+- AI-first exports: per-scenario JSON, multi-select and a visible action menu.
