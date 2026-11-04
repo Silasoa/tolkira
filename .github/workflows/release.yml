@@ -26,7 +26,8 @@ jobs:
       - run: npm pack --pack-destination /tmp
       - run: npm install -g --prefix /tmp/global /tmp/tolkira-*.tgz
       - run: test -x /tmp/global/bin/tolkira
-      - run: /tmp/global/bin/tolkira --help | grep -q "Usage: tolkira"
+      - run: |
+          /tmp/global/bin/tolkira --help | grep -q "Usage: tolkira"
       - run: echo "TOLKIRA_ROOT=$(npm root -g --prefix /tmp/global)" >> "$GITHUB_ENV"
       - run: node "$TOLKIRA_ROOT/tolkira/dist/cli.js" --help
       - run: node "$TOLKIRA_ROOT/tolkira/dist/cli.js" test/fixtures/legacy/minimal.json --out /tmp/report.html --title "Package smoke test"
