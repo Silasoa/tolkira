@@ -52,10 +52,10 @@ not a backlog of questions.
 - Visual regression baselines after the shell is stable; CI screenshot
   artifacts are in place.
 - Pixel baselines for the new tag filter, search highlight and copy action.
-- 0.2 candidate: a restrained aggregate-status cue at feature level (soft tint
-  or left status rail) in addition to the existing text chip. Keep it
-  colour-plus-text, not a Bootstrap-style traffic-light panel.
-- Hierarchical overview: one view of Run → Feature → Scenario → Step status
-  and counts. See `docs/research/hierarchy-overview.md`; prototypes are under
-  `docs/ui-loop/`.
+- 0.1.3 candidate: CLI edge fixes (logo without `--out`, non-finite/negative
+  Messages durations, empty Messages diagnostics) once they are batched with
+  another user-facing fix.
+- Hierarchical overview: inline run/source/feature/scenario summary with
+  failed/pending first, optional map/compact lenses, matrix in Details. See
+  `docs/research/hierarchy-overview.md` and `docs/research/report-ui-patterns.md`.
 - AI-first exports: per-scenario JSON, multi-select and a visible action menu.
