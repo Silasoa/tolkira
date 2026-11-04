@@ -8,6 +8,8 @@
   feature detection and fallback.
 - [x] 1.3 Copy failure: failed-scenario button, plain-text failure summary,
   clipboard fallback and polite confirmation.
+- [x] 1.4 Review fixes: original-offset highlight matching, clipboard focus and
+  failure feedback, no empty error line or duplicated hook label.
 
 ## 2. CI and test trust
 
@@ -17,6 +19,8 @@
   `actions/upload-artifact@v7`.
 - [x] 2.3 JUnit edge-case fixtures: nested suites, skipped/error, system
   output, entities, empty and malformed XML, mixed input.
+- [x] 2.4 Review fixes: text-only/CDATA/self-closing failures, invalid entity
+  references and usable validation positions.
 
 ## 3. Documentation
 

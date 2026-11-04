@@ -48,6 +48,43 @@ function secondsToNanoseconds(value: unknown): number {
     : 0;
 }
 
+function isXmlChar(code: number): boolean {
+  return (
+    code === 0x9 ||
+    code === 0xa ||
+    code === 0xd ||
+    (code >= 0x20 && code <= 0xd7ff) ||
+    (code >= 0xe000 && code <= 0xfffd) ||
+    (code >= 0x10000 && code <= 0x10ffff)
+  );
+}
+
+function assertValidEntities(content: string, source: string): void {
+  const withoutProtected = content
+    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, '')
+    .replace(/<!--[\s\S]*?-->/g, '');
+  const entityPattern = /&([^;]{1,32});/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = entityPattern.exec(withoutProtected)) !== null) {
+    const entity = match[1];
+    if (/^(amp|lt|gt|quot|apos)$/.test(entity)) continue;
+
+    let code: number | undefined;
+    if (/^#\d+$/.test(entity)) {
+      code = Number.parseInt(entity.slice(1), 10);
+    } else if (/^#x[0-9a-fA-F]+$/.test(entity)) {
+      code = Number.parseInt(entity.slice(2), 16);
+    }
+
+    if (code === undefined || !Number.isFinite(code) || !isXmlChar(code)) {
+      throw new Error(
+        `Invalid JUnit XML in ${source}: invalid entity reference &${entity};`,
+      );
+    }
+  }
+}
+
 function collectSuites(parsed: unknown): XmlNode[] {
   if (!isObject(parsed)) return [];
   const suites: XmlNode[] = [];
@@ -88,11 +125,14 @@ function failureMessage(failure: XmlNode): string {
 }
 
 function elementFromTestcase(testcase: XmlNode, index: number): XmlNode {
-  const failure = [...asArray(testcase.failure), ...asArray(testcase.error)].find(
-    isObject,
-  );
+  const failures = [
+    ...asArray(testcase.failure),
+    ...asArray(testcase.error),
+  ];
+  const failure = failures[0];
+  const hasFailure = failure !== undefined;
   const skipped = asArray(testcase.skipped).length > 0;
-  const status = failure ? 'failed' : skipped ? 'skipped' : 'passed';
+  const status = hasFailure ? 'failed' : skipped ? 'skipped' : 'passed';
   const name =
     stringOf(testcase.name) || stringOf(testcase.classname) || `Test ${index + 1}`;
 
@@ -100,8 +140,10 @@ function elementFromTestcase(testcase: XmlNode, index: number): XmlNode {
     status,
     duration: secondsToNanoseconds(testcase.time),
   };
-  if (failure) {
-    const message = failureMessage(failure);
+  if (hasFailure) {
+    const message = isObject(failure)
+      ? failureMessage(failure)
+      : textOf(failure).trim();
     if (message) result.error_message = message;
   }
 
@@ -160,13 +202,20 @@ export async function parseJUnitXml(
 ): Promise<Envelope[]> {
   const { XMLParser, XMLValidator } = await import('fast-xml-parser');
 
+  assertValidEntities(content, source);
+
   // fast-xml-parser's parser is lenient about mismatched closing tags and would
   // silently reshape broken XML; validate first so bad input fails clearly.
   const validation = XMLValidator.validate(content);
   if (validation !== true) {
-    const { line, col, msg } = validation.err;
+    const line = Number.isFinite(validation.err.line)
+      ? validation.err.line
+      : 1;
+    const column = Number.isFinite(validation.err.col)
+      ? validation.err.col
+      : 1;
     throw new Error(
-      `Invalid JUnit XML in ${source} at line ${line}, column ${col}: ${msg}`,
+      `Invalid JUnit XML in ${source} at line ${line}, column ${column}: ${validation.err.msg}`,
     );
   }
 

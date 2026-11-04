@@ -85,7 +85,7 @@ Still open or intentionally deferred:
 - Rule structure from legacy JSON (the format does not carry it; Messages
   reports show Rule names);
 - hide/show hooks and feature-level embeddings;
-- external screenshot directory and lazy image loading;
+- external screenshot directories and lazy loading of external image files;
 - real Behave attachments/doc strings;
 - full Seed-Test stack with MongoDB and live browser execution.
 
@@ -93,8 +93,9 @@ Still open or intentionally deferred:
 
 - Old themes: `bootstrap`, `hierarchy`, `foundation`, `simple`. Tolkira has one
   accessible modern theme with an accent colour and logo.
-- External screenshot directories (`storeScreenshots`) and lazy image loading
-  are not implemented; v0.1 stays single-file.
+- External screenshot directories (`storeScreenshots`) and lazy loading of
+  external image files are not implemented; v0.1 stays single-file. Scenario
+  thumbnails already use `loading="lazy"`.
 - Column layout and feature-vs-scenario header counts are not configurable.
 - Relative time is shown; per-scenario absolute timestamps are not configurable.
 - Legacy outline `examples` are expanded rows, not reconstructed.

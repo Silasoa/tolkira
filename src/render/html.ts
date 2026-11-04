@@ -348,11 +348,22 @@ const SCRIPT = `<script>
     if (typeof CSS === 'undefined' || !CSS.highlights) return;
     CSS.highlights.delete('tolkira-search');
   }
+  function escapeRegex(value) {
+    var out = '';
+    for (var i = 0; i < value.length; i++) {
+      var code = value.charCodeAt(i);
+      var ch = value.charAt(i);
+      var special = code === 92 || code === 94 || code === 36 || code === 46 || code === 42 || code === 43 || code === 63 || code === 40 || code === 41 || code === 91 || code === 93 || code === 123 || code === 125 || code === 124;
+      out += special ? String.fromCharCode(92) + ch : ch;
+    }
+    return out;
+  }
   function highlightSearch() {
     if (typeof CSS === 'undefined' || !CSS.highlights || typeof Highlight === 'undefined') return;
-    var needle = state.query.trim().toLowerCase();
+    var needle = state.query.trim();
     if (needle.length < 2) { clearHighlights(); return; }
     try {
+      var pattern = new RegExp(escapeRegex(needle), 'gi');
       var ranges = [];
       scenarios.forEach(function (scenario) {
         if (scenario.hidden || !scenario.open || ranges.length >= 200) return;
@@ -363,14 +374,14 @@ const SCRIPT = `<script>
           if (!value) continue;
           var parent = node.parentElement;
           if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) continue;
-          var text = value.toLowerCase();
-          var index = text.indexOf(needle);
-          while (index !== -1 && ranges.length < 200) {
+          pattern.lastIndex = 0;
+          var match;
+          while (ranges.length < 200 && (match = pattern.exec(value)) !== null) {
             var range = document.createRange();
-            range.setStart(node, index);
-            range.setEnd(node, index + needle.length);
+            range.setStart(node, match.index);
+            range.setEnd(node, match.index + match[0].length);
             ranges.push(range);
-            index = text.indexOf(needle, index + needle.length);
+            if (match[0].length === 0) pattern.lastIndex += 1;
           }
         }
       });
@@ -408,16 +419,23 @@ const SCRIPT = `<script>
   });
   var copyLive = document.getElementById('tolkira-copy-live');
   function legacyCopy(text) {
+    var active = document.activeElement;
     var field = document.createElement('textarea');
     field.value = text;
     field.setAttribute('readonly', '');
     field.style.position = 'fixed';
     field.style.top = '-1000px';
     document.body.appendChild(field);
-    field.select();
     var ok = false;
-    try { ok = document.execCommand('copy'); } catch (error) { ok = false; }
-    field.remove();
+    try {
+      field.select();
+      ok = document.execCommand('copy');
+    } catch (error) {
+      ok = false;
+    } finally {
+      field.remove();
+      if (active && typeof active.focus === 'function') active.focus();
+    }
     return ok;
   }
   function writeClipboard(text, done) {
@@ -425,11 +443,10 @@ const SCRIPT = `<script>
     function finish(ok) {
       if (settled) return;
       settled = true;
-      if (ok) done();
+      done(ok);
     }
     function fallback() {
-      if (legacyCopy(text)) finish(true);
-      else finish(false);
+      finish(legacyCopy(text));
     }
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       try {
@@ -457,21 +474,30 @@ const SCRIPT = `<script>
       });
     }
     var error = step ? step.querySelector('.error') : null;
-    return [
+    var stepLabel = keyword === 'Hook' ? text.trim() : (keyword + ' ' + text.trim()).trim();
+    var lines = [
       'Feature: ' + (featureTitle ? featureTitle.textContent : ''),
       'Scenario: ' + (scenarioTitle ? scenarioTitle.textContent : ''),
       'URI: ' + (scenario.getAttribute('data-uri') || ''),
-      'Step: ' + (keyword + ' ' + text.trim()).trim(),
-      'Error: ' + (error ? error.textContent : '')
-    ].join('\\n');
+      'Step: ' + stepLabel
+    ];
+    if (error && error.textContent.trim()) {
+      lines.push('Error:\\n' + error.textContent.trim());
+    }
+    return lines.join('\\n');
   }
   Array.prototype.slice.call(document.querySelectorAll('[data-copy-failure]')).forEach(function (button) {
     var labelTimer = null;
     button.addEventListener('click', function () {
-      writeClipboard(failureText(button), function () {
-        button.textContent = 'Copied';
-        if (copyLive) copyLive.textContent = 'Failure details copied to clipboard.';
+      button.focus();
+      writeClipboard(failureText(button), function (ok) {
         if (labelTimer) clearTimeout(labelTimer);
+        button.textContent = ok ? 'Copied' : 'Copy failed';
+        if (copyLive) {
+          copyLive.textContent = ok
+            ? 'Failure details copied to clipboard.'
+            : 'Could not copy failure details.';
+        }
         labelTimer = setTimeout(function () {
           button.textContent = 'Copy failure';
           if (copyLive) copyLive.textContent = '';

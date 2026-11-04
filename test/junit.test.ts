@@ -17,6 +17,9 @@ const edgeCasesFixture = fileURLToPath(
 const malformedFixture = fileURLToPath(
   new URL('./fixtures/junit/malformed.xml', import.meta.url),
 );
+const failureShapesFixture = fileURLToPath(
+  new URL('./fixtures/junit/failures-without-attributes.xml', import.meta.url),
+);
 const legacy = fileURLToPath(
   new URL('./fixtures/legacy/happy.json', import.meta.url),
 );
@@ -188,6 +191,68 @@ describe('JUnit XML input', () => {
 
     const summary = await summarizeReport([fixture, messages]);
     expect(summary.counts.scenarios.total).toBe(6);
+  });
+
+  it('maps failures and errors without attributes', async () => {
+    const summary = await summarizeReport(failureShapesFixture);
+
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 4,
+      passed: 0,
+      failed: 4,
+      skipped: 0,
+    });
+    const messages = new Map(
+      summary.scenarios.map((scenario) => [
+        scenario.name,
+        scenario.steps[0]?.message,
+      ]),
+    );
+    expect(messages.get('text failure')).toBe('AssertionError: text only');
+    expect(messages.get('cdata failure')).toBe('CDATA boom');
+    expect(messages.get('self closing failure')).toBeUndefined();
+    expect(messages.get('text error')).toBe('RuntimeError: text only');
+
+    const html = await renderReport(failureShapesFixture, {
+      title: 'Failure shapes',
+    });
+    expect(html.match(/class="copyFailure"/g)).toHaveLength(4);
+  });
+
+  it('rejects invalid entity references', async () => {
+    const dir = await tempDir();
+    const cases: Array<[string, string, RegExp]> = [
+      ['unknown.xml', '&nbsp;', /invalid entity reference &nbsp;/],
+      ['hex.xml', '&#xZZ;', /invalid entity reference &#xZZ;/],
+      ['zero.xml', '&#0;', /invalid entity reference &#0;/],
+    ];
+
+    for (const [name, entity, expected] of cases) {
+      const file = path.join(dir, name);
+      await writeFile(
+        file,
+        `<testsuites><testsuite><testcase name="bad ${entity}"><failure/></testcase></testsuite></testsuites>`,
+        'utf8',
+      );
+      await expect(renderReport(file, { title: 'Entity' })).rejects.toThrow(
+        expected,
+      );
+    }
+  });
+
+  it('rejects empty and multi-root XML clearly', async () => {
+    const dir = await tempDir();
+    const empty = path.join(dir, 'empty-file.xml');
+    const multi = path.join(dir, 'multi-root.xml');
+    await writeFile(empty, '', 'utf8');
+    await writeFile(multi, '<testsuite name="a"/><testsuite name="b"/>', 'utf8');
+
+    await expect(renderReport(empty, { title: 'Empty' })).rejects.toThrow(
+      /line \d+, column \d+/,
+    );
+    await expect(renderReport(multi, { title: 'Multi root' })).rejects.toThrow(
+      /Unsupported JUnit XML .*multi-root\.xml/,
+    );
   });
 
   it('rejects malformed JUnit XML with the file and line', async () => {

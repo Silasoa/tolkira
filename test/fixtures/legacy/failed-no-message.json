@@ -1,0 +1,23 @@
+[
+  {
+    "uri": "features/no-message.feature",
+    "name": "No message feature",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "Failed without message",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a failing step",
+            "result": {
+              "status": "failed",
+              "duration": 1000
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

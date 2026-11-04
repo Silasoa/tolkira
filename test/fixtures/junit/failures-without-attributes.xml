@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="failure shapes">
+  <testsuite name="no attributes">
+    <testcase name="text failure">
+      <failure>AssertionError: text only</failure>
+    </testcase>
+    <testcase name="cdata failure">
+      <failure><![CDATA[CDATA boom]]></failure>
+    </testcase>
+    <testcase name="self closing failure">
+      <failure/>
+    </testcase>
+    <testcase name="text error">
+      <error>RuntimeError: text only</error>
+    </testcase>
+  </testsuite>
+</testsuites>

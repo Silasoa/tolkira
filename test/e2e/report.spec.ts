@@ -20,6 +20,9 @@ const tableFixture = fileURLToPath(
 const xssFixture = fileURLToPath(
   new URL('../fixtures/legacy/xss.json', import.meta.url),
 );
+const noMessageFixture = fileURLToPath(
+  new URL('../fixtures/legacy/failed-no-message.json', import.meta.url),
+);
 
 test('renders a messages report in the browser', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-e2e-'));
@@ -241,6 +244,17 @@ test('highlights search matches when the browser supports the Highlight API', as
     });
     expect(rangeCount).toBeGreaterThan(0);
 
+    const rangeText = await page.evaluate(() => {
+      const css = (
+        globalThis as unknown as {
+          CSS?: { highlights?: Map<string, Set<Range>> };
+        }
+      ).CSS;
+      const highlight = css?.highlights?.get('tolkira-search');
+      return highlight ? Array.from(highlight).map((range) => range.toString()) : [];
+    });
+    expect(rangeText).toContain('Failing');
+
     await search.fill('F');
     const hasHighlight = await page.evaluate(() => {
       const css = (
@@ -302,7 +316,87 @@ test('copies failure details', async ({ page }) => {
     expect(copied).toContain('Scenario: Failing scenario');
     expect(copied).toContain('URI: features/screenshot.feature');
     expect(copied).toContain('Step: Then the assertion fails');
-    expect(copied).toContain('Error: Expected 1 to equal 2');
+    expect(copied).toContain('Error:\nExpected 1 to equal 2');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('reports a failed clipboard copy', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-copy-fail-e2e-'));
+  const output = path.join(dir, 'copy-fail.html');
+
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: () => Promise.reject(new Error('blocked')),
+      },
+    });
+    document.execCommand = () => false;
+  });
+
+  try {
+    const code = await runCli(
+      [fixture, '--out', output, '--title', 'Tolkira copy failure'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const copy = page.locator(
+      'details[data-scenario][data-status="failed"] [data-copy-failure]',
+    );
+    await expect(copy).toBeVisible();
+    await copy.click();
+    await expect(copy).toHaveText('Copy failed');
+    await expect(page.locator('#tolkira-copy-live')).toHaveText(
+      'Could not copy failure details.',
+    );
+    await expect(copy).toBeFocused();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('copies a failure without an error message', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-copy-empty-e2e-'));
+  const output = path.join(dir, 'copy-empty.html');
+
+  await page.addInitScript(() => {
+    (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied =
+            text;
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+
+  try {
+    const code = await runCli(
+      [noMessageFixture, '--out', output, '--title', 'Tolkira empty copy'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const copy = page.locator('[data-copy-failure]');
+    await expect(copy).toBeVisible();
+    await copy.click();
+    await expect(copy).toHaveText('Copied');
+
+    const copied = await page.evaluate(
+      () =>
+        (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ??
+        '',
+    );
+    expect(copied).toContain('Step: Given a failing step');
+    expect(copied).not.toContain('Error:');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

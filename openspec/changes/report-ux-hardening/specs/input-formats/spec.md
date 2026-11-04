@@ -19,6 +19,13 @@ with a clear file-specific error for malformed XML.
   CDATA
 - **THEN** the readable text is preserved without breaking the report
 
+#### Scenario: Failure without attributes
+
+- **WHEN** a test case contains a text-only, CDATA-only or self-closing
+  `<failure>` or `<error>` element
+- **THEN** the test case is marked failed
+- **AND** the text message is preserved when present
+
 #### Scenario: Malformed XML
 
 - **WHEN** a JUnit file is not well-formed XML

@@ -33,6 +33,18 @@ Keep a Changelog and the project uses semantic versioning.
 - Documentation truth pass for JUnit, the compatibility shim, the comparison
   notes and the remaining-work list.
 
+### Fixed
+
+- JUnit `<failure>` and `<error>` elements without attributes are now marked
+  failed; text-only, CDATA-only and self-closing failures no longer report a
+  false green.
+- JUnit XML rejects unknown or invalid entity references and reports a usable
+  line/column for malformed documents.
+- Search highlighting preserves offsets for case mappings that change string
+  length.
+- Clipboard failure now announces “Copy failed”, keeps keyboard focus and does
+  not duplicate hook labels or leave an empty `Error:` line.
+
 ## [0.1.0] - 2026-11-04
 
 ### Added

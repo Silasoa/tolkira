@@ -52,3 +52,9 @@ feature, scenario, URI, failed step and error message as plain text.
 
 - **WHEN** a scenario passed
 - **THEN** no copy-failure control is rendered for it
+
+#### Scenario: Clipboard is unavailable
+
+- **WHEN** the clipboard API and the fallback both fail
+- **THEN** the control reports failure politely and does not throw
+- **AND** keyboard focus stays on the control
