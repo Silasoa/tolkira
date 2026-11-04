@@ -59,11 +59,29 @@ A prototype is viable when it:
 - Does the hierarchy need matrix/treemap visuals, or is a dense outline with
   bars enough?
 
-## Prototype families
+## Prototype observations
 
-- Tree/outline: Run → Feature → Scenario, collapsible, aggregate counts.
-- Dashboard: scorecards, feature map/treemap, split feature list/detail.
-- Inline: compact hierarchy summary above the existing failed-first report.
+2026-11-04, from the first three prototype families:
 
-The throwaway prototypes live under `docs/ui-loop/` (gitignored). The selected
-direction is folded into an OpenSpec change before production work.
+- **Inline summary** scales predictably: one aggregate row per feature, with a
+  proportion bar and counts, above the existing failed-first list.
+- **Inline map** is the only variant that shows every scenario at a glance, but
+  it becomes a wall of squares on a 500-scenario run. It works best for the
+  failed/pending subset, not all scenarios.
+- **Compact/tree** exposes the failed step inline and the full hierarchy, but
+  costs vertical space and needs sticky feature headers to survive long runs.
+- **Dashboard groups** only have an honest group level when the report models
+  one. Multiple input files/URIs are the only current source of a group; status
+  sections and tags are presentation choices, not hierarchy.
+- The current feature order follows input order, not failed-first. The report
+  opens failed features but does not move them above passed ones. Decide
+  whether the overview sorts/groups independently while the list keeps input
+  order, or whether the whole report becomes failed-first.
+- The current model has no explicit group or suite entity; JUnit suite maps to
+  feature. A group level therefore needs a product decision before a renderer
+  change.
+
+Draft direction: run summary + source-group rows + feature rows (counts, bar,
+failed-scenario links) as the default; matrix in Details; a compact tree or
+scenario strip as an optional mode for large runs. Confirm with the user
+before production work.
