@@ -12,6 +12,7 @@ report.html
 *.tsbuildinfo
 .cache/
 .tmp/
+.openchamber/
 .DS_Store
 Thumbs.db
 .idea/
