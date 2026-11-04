@@ -18,6 +18,7 @@ import type {
 } from '@cucumber/messages';
 import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
+import { stepResultMessage } from './result-message.js';
 
 export const SUMMARY_SCHEMA_VERSION = 1;
 
@@ -347,6 +348,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     for (const testStep of testSteps) {
       const result = resultByStep.get(testStep.id);
       if (!result) continue;
+      const message = stepResultMessage(result);
 
       if (testStep.pickleStepId) {
         const pickleStep = pickleSteps.get(testStep.pickleStepId);
@@ -358,7 +360,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           text: pickleStep?.text ?? '',
           status: toStatus(result.status),
           durationMs: durationMs(result.duration),
-          ...(result.message ? { message: result.message } : {}),
+          ...(message ? { message } : {}),
         });
       } else if (testStep.hookId) {
         const hook = hooks.get(testStep.hookId);
@@ -367,7 +369,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           text: hook?.type ?? 'hook',
           status: toStatus(result.status),
           durationMs: durationMs(result.duration),
-          ...(result.message ? { message: result.message } : {}),
+          ...(message ? { message } : {}),
         });
       }
     }

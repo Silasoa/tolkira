@@ -17,6 +17,8 @@ import type {
   TestStepFinished,
 } from '@cucumber/messages';
 
+import { stepResultMessage } from '../result-message.js';
+
 export type ReportStatus =
   | 'passed'
   | 'failed'
@@ -480,13 +482,14 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
         const stepAttachments = mapAttachments(
           startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
         );
+        const message = stepResultMessage(result);
         stepRows.push({
           id: testStep.id,
           keyword: data.keyword,
           text: pickleStep?.text ?? '',
           status: statusOf(result.status),
           durationMs: durationMs(result.duration),
-          ...(result.message ? { message: stripAnsi(result.message) } : {}),
+          ...(message ? { message: stripAnsi(message) } : {}),
           ...(data.docString ? { docString: data.docString } : {}),
           ...(data.dataTable ? { dataTable: data.dataTable } : {}),
           attachments: stepAttachments,
@@ -496,13 +499,14 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
         const stepAttachments = mapAttachments(
           startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
         );
+        const message = stepResultMessage(result);
         stepRows.push({
           id: testStep.id,
           keyword: 'Hook',
           text: hookLabel(hook?.type),
           status: statusOf(result.status),
           durationMs: durationMs(result.duration),
-          ...(result.message ? { message: stripAnsi(result.message) } : {}),
+          ...(message ? { message: stripAnsi(message) } : {}),
           attachments: stepAttachments,
           hook: hook?.type,
         });

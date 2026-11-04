@@ -1,0 +1,57 @@
+[
+  {
+    "id": "old-cucumber-ruby-compatibility",
+    "uri": "features/old.feature",
+    "keyword": "Feature",
+    "name": "Old cucumber-ruby compatibility",
+    "description": "",
+    "line": 1,
+    "elements": [
+      {
+        "id": "old-cucumber-ruby-compatibility;passes",
+        "keyword": "Scenario",
+        "name": "passes",
+        "description": "",
+        "line": 3,
+        "type": "scenario",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a passing step",
+            "line": 4,
+            "match": {
+              "location": "features/step_definitions/steps.rb:1"
+            },
+            "result": {
+              "status": "passed",
+              "duration": 32000
+            }
+          }
+        ]
+      },
+      {
+        "id": "old-cucumber-ruby-compatibility;fails",
+        "keyword": "Scenario",
+        "name": "fails",
+        "description": "",
+        "line": 6,
+        "type": "scenario",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a failing step",
+            "line": 7,
+            "match": {
+              "location": "features/step_definitions/steps.rb:4"
+            },
+            "result": {
+              "status": "failed",
+              "error_message": "boom (RuntimeError)\n./features/step_definitions/steps.rb:5:in `\"a failing step\"'\nfeatures/old.feature:7:in `a failing step'",
+              "duration": 122400
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,10 +1,10 @@
 # Cucumber input compatibility
 
 2026-11-04. "Tested" means a real producer output is checked in under
-`test/fixtures/legacy/` and parsed and rendered by the legacy fixture tests
-(`test/legacy-version.test.ts` for cucumber-js, `test/legacy-jvm.test.ts` for
-cucumber-jvm). Each fixture is a two-scenario feature: one passes, one fails
-with `Error: boom`.
+`test/fixtures/legacy/` and parsed and rendered by the fixture tests (`test/legacy-version.test.ts`,
+`test/legacy-jvm.test.ts`, `test/legacy-ruby.test.ts` and
+`test/messages-producers.test.ts`). Each fixture is a two-scenario feature: one
+passes, one fails with `Error: boom`.
 
 ## Legacy JSON
 
@@ -13,15 +13,15 @@ with `Error: boom`.
 | cucumber-js | 2.3.1, 3.2.1, 4.2.1, 5.1.0, 6.0.7, 7.3.2, 13.3.0 | The shape is stable enough. 2.x has no `type` on elements and uses absolute URIs; duration units vary below 6.0.5. |
 | Behave | 1.3.3 real run (`behave-real.json`) | Duration is seconds and is normalised to milliseconds. A real run with attachments and doc strings is still outstanding; the synthetic `behave.json` covers those shapes. |
 | cucumber-jvm | 7.22.1 real run | The legacy `json` formatter still ships in 7.x/8.x. The fixture covers `classpath:` URIs, nanosecond durations and a Java assertion. |
-| cucumber-ruby | not yet | `json` formatter still ships; a real fixture is outstanding. |
+| cucumber-ruby | 12.0.1 real run | The legacy `json` formatter still ships; the fixture covers relative paths, nanosecond durations and a Ruby `RuntimeError`. |
 
 ## Messages
 
 | Producer | Tested | Notes |
 | --- | --- | --- |
 | cucumber-js | 11.2.0 fixture | 7.0 introduced Messages; the fields Tolkira reads exist since Messages 15/16. |
-| cucumber-jvm | not yet | `message` formatter since 7.x; a real fixture is outstanding. |
-| cucumber-ruby | not yet | `message` formatter; a real fixture is outstanding. |
+| cucumber-jvm | 7.22.1 real run | `message` formatter; protocol 27.2.0, `classpath:` URIs and Java exceptions. |
+| cucumber-ruby | 12.0.1 real run | `message` formatter; `exception.message` carries the readable error while `message` is the stack, so the report merges them. |
 | Behave | not applicable | No Messages formatter. |
 
 ## Breaking changes that matter
@@ -42,6 +42,12 @@ with `Error: boom`.
 - **cucumber-jvm 7.22.1:** legacy JSON uses `classpath:` URIs, nanosecond
   durations and Java stack traces. The shape matches the Cucumber legacy
   dialect and needs no adapter change.
+- **cucumber-ruby 12.0.1:** legacy JSON keeps relative paths and nanosecond
+  durations; a Ruby exception is carried as `error_message`. In Messages, the
+  readable error is in `exception.message` while `message` is the stack; the
+  report merges both.
+- **cucumber-jvm 7.22.1 Messages:** protocol 27.2.0, `classpath:` URIs and Java
+  stack traces. No adapter change was needed.
 
 ## What "best effort" means
 

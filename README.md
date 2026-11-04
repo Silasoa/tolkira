@@ -38,11 +38,12 @@ The name is pronounced approximately **TOL-kee-rah**.
 
 ## What works today
 
-- **Inputs:** legacy Cucumber JSON (cucumber-js 2.3.1-13.3.0, Behave 1.3.3
-  and cucumber-jvm 7.22.1 tested; cucumber-ruby fixture pending), Cucumber
-  Messages (cucumber-js 11.2 fixture; 7+ structurally), and JUnit XML (basic
-  mode: suites, test cases, failures, durations and system output; no steps or
-  screenshots). Multiple files and directories merge into one run.
+- **Inputs:** legacy Cucumber JSON (cucumber-js 2.3.1-13.3.0, Behave 1.3.3,
+  cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 tested), Cucumber
+  Messages (cucumber-js 11.2, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1
+  fixtures), and JUnit XML (basic mode: suites, test cases, failures, durations
+  and system output; no steps or screenshots). Multiple files and directories
+  merge into one run.
 - **Output:** one self-contained HTML file; CSS, script and attachments are
   inline. No CDN, no network requests, no telemetry.
 - **Report:** failed-first simple report, feature/scenario disclosures, inline

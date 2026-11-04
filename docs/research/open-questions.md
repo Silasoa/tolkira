@@ -28,15 +28,13 @@ not a backlog of questions.
    status classes. Plain CSS tokens plus `DESIGN.md` are easier for agents.
 7. **Cucumber versions.** Legacy JSON from cucumber-js 2.3.1, 3.2.1, 4.2.1,
    5.1.0, 6.0.7, 7.3.2 and 13.3.0 is tested with real producer output. Behave
-   1.3.3 is tested with a real run; seconds are normalised. cucumber-jvm 7.22.1
-   is tested with a real run. cucumber-ruby still needs a real fixture. 1.x/0.x
-   are best effort.
+   1.3.3 is tested with a real run; seconds are normalised. cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1
+   are tested with real runs. 1.x/0.x are best effort.
 8. **Behave.** A real Behave 1.3.3 fixture and the seconds-to-milliseconds fix
    are in. A real run with attachments and doc strings is still outstanding.
 
 ## Remaining work
 
-- Real cucumber-ruby fixture; update the compatibility matrix.
 - Real Behave run with attachments/doc strings.
 - 200 % text-zoom pass with real content.
 - AI-first exports: per-scenario JSON, “copy failure for agent”, multi-select,

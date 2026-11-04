@@ -35,7 +35,9 @@ Keep a Changelog and the project uses semantic versioning.
   `system-out`/`system-err`; suites map to features, no Gherkin steps or
   screenshots.
 - Cucumber compatibility fixtures: cucumber-js 2.3.1-13.3.0, Behave 1.3.3
-  (seconds normalised), cucumber-jvm 7.22.1.
+  (seconds normalised), cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1, including
+  Messages fixtures for jvm and ruby. Ruby Messages exceptions now merge
+  `exception.message` with the stack trace.
 - Removed `@cucumber/html-formatter`; runtime dependencies are
   `@cucumber/messages` and, loaded only for XML input, `fast-xml-parser`.
 - Expand-all / collapse-all controls, automatic screenshot disclosure, and
