@@ -9,6 +9,11 @@ const fixtures = ['failed.json', 'minimal.json', 'behave.json', 'screenshot.json
   (name) =>
     fileURLToPath(new URL(`../fixtures/legacy/${name}`, import.meta.url)),
 );
+fixtures.push(
+  fileURLToPath(
+    new URL('../fixtures/messages/screenshot.ndjson', import.meta.url),
+  ),
+);
 
 async function waitForImages(page: Page): Promise<void> {
   await page.waitForFunction(() =>
@@ -44,6 +49,14 @@ test('captures report screenshots for visual review', async ({
       page.getByRole('heading', { name: 'Tolkira visual review', level: 1 }),
     ).toBeVisible();
     await capture(page, testInfo, 'desktop-light');
+
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    await search.fill('Failing');
+    await expect(
+      page.getByRole('heading', { name: 'Failing scenario' }),
+    ).toBeVisible();
+    await capture(page, testInfo, 'desktop-search-copy');
+    await search.fill('');
 
     await page.emulateMedia({ colorScheme: 'dark' });
     await capture(page, testInfo, 'desktop-dark');

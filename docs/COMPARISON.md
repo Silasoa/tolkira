@@ -6,7 +6,8 @@ report options and equivalent scenario, story and group inputs.
 
 ## Method
 
-- Seed-Test source: `adessoSE/Seed-Test` v1.8.1.
+- Seed-Test source: [`adessoSE/Seed-Test`](https://github.com/adessoSE/Seed-Test)
+  v1.8.1.
 - Report options copied from `backend/src/helpers/reporting.ts`: metadata
   `App Version`, `Test Environment`, `Parallel`, `Executed`; the same report
   titles are used.
@@ -52,7 +53,7 @@ All images are in [`docs/comparison/`](comparison/).
 ## Sizes and performance
 
 - Old story report: about 100 kB, but with four remote dependencies.
-- Tolkira story report: about 39 kB, with CSS and script inline and no network
+- Tolkira story report: about 57 kB, with CSS and script inline and no network
   dependency.
 - Tolkira stress run (`npm run stress -- <count>`):
   - 1,000 scenarios / 3,000 steps: about 0.22 s, 1.4 MB HTML.

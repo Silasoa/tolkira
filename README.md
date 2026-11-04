@@ -6,7 +6,7 @@ Tolkira turns test results into a single HTML file you can open offline, attach
 to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
 stay inside the file. There is no server, no CDN and no telemetry.
 
-Current release: **v0.1.1** · [Changelog](docs/CHANGELOG.md)
+Current release: **v0.1.1** · [npm](https://www.npmjs.com/package/tolkira) · [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.
 > The maintainer sets the product direction, reviews changes, runs the release
@@ -92,9 +92,9 @@ tolkira test-results/ --json
 | **JUnit XML** | Basic mode: suites, test cases, statuses, durations, failures, skipped cases and system output. JUnit has no Gherkin steps or screenshots, so those sections stay empty. |
 
 Multiple files and mixed formats can be merged into one run. See
-[`docs/CUCUMBER-COMPATIBILITY.md`](docs/CUCUMBER-COMPATIBILITY.md) for the
+[`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) for the
 tested producer matrix and
-[`docs/JUNIT-XML.md`](docs/JUNIT-XML.md) for the JUnit limits.
+[`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) for the JUnit limits.
 
 ## Why Tolkira exists
 
@@ -116,7 +116,7 @@ Tolkira keeps the old input working and fixes the parts that hurt:
 The visual comparison uses the report setup from
 [Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
 Seed-Test, you are welcome to take a look; the comparison notes and screenshots
-are in [`docs/COMPARISON.md`](docs/COMPARISON.md).
+are in [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md).
 
 ## Migrating from cucumber-html-reporter
 
@@ -140,7 +140,7 @@ await generate({
 The shim is experimental. Themes, charts, external screenshots and browser
 launch are not reproduced; they warn and use Tolkira's defaults. It consumes
 the same input JSON, never the old rendered HTML. See
-[`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) for the full mapping and
+[`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) for the full mapping and
 caveats.
 
 ## Privacy and limits
@@ -157,15 +157,15 @@ caveats.
 
 ## Documentation
 
-- [`docs/AGENT-INTERFACE.md`](docs/AGENT-INTERFACE.md) — JSON schema, CLI
+- [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema, CLI
   contract and exit codes.
-- [`docs/CUCUMBER-COMPATIBILITY.md`](docs/CUCUMBER-COMPATIBILITY.md) — tested
+- [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested
   Cucumber producers and versions.
-- [`docs/JUNIT-XML.md`](docs/JUNIT-XML.md) — JUnit basic-mode mapping and
+- [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and
   limits.
-- [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) — migration from
+- [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) — migration from
   cucumber-html-reporter.
-- [`docs/COMPARISON.md`](docs/COMPARISON.md) — Seed-Test comparison and
+- [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md) — Seed-Test comparison and
   remaining parity gaps.
 
 ## Development
@@ -202,11 +202,11 @@ If a producer or report shape does not work, a small sanitized fixture is the
 most useful thing you can attach. Please do not include secrets or private test
 data.
 
-If you want to work on the code, start with [`AGENTS.md`](AGENTS.md), the
-[`openspec/`](openspec/) change contracts and
-[`docs/agents/review.md`](docs/agents/review.md). Product and architecture
-notes live in [`docs/PRODUCT.md`](docs/PRODUCT.md) and
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+If you want to work on the code, start with [`AGENTS.md`](https://github.com/Silasoa/tolkira/blob/main/AGENTS.md), the
+[`openspec/`](https://github.com/Silasoa/tolkira/tree/main/openspec) change contracts and
+[`docs/agents/review.md`](https://github.com/Silasoa/tolkira/blob/main/docs/agents/review.md). Product and architecture
+notes live in [`docs/PRODUCT.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PRODUCT.md) and
+[`docs/ARCHITECTURE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/ARCHITECTURE.md).
 
 ## How this project is built
 
@@ -227,7 +227,7 @@ version you use.
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](https://github.com/Silasoa/tolkira/blob/main/LICENSE).
 
 Tolkira is not affiliated with Cucumber, SmartBear, Seed-Test or any
 test-framework vendor. Cucumber and Gherkin are used descriptively; the project
