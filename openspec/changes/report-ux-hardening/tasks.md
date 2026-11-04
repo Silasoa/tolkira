@@ -27,7 +27,7 @@
 
 ## 4. Release
 
-- [ ] 4.1 Run `npm run check` and `npm run test:e2e`.
-- [ ] 4.2 Bump to 0.1.1, update changelog, README status and smoke test.
+- [x] 4.1 Run `npm run check` and `npm run test:e2e`.
+- [x] 4.2 Bump to 0.1.1, update changelog, README status and smoke test.
 - [ ] 4.3 Tag `v0.1.1`, stage the npm release and request maintainer approval.
 - [ ] 4.4 Create the GitHub release after npm approval.
