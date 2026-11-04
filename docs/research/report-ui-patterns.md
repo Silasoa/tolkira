@@ -25,6 +25,10 @@ current default first screen rather than relying on old screenshots:
 - jest-html-reporter 4.4.3
 - jest-html-reporters 3.1.7
 
+MCHR 4.5.0 is covered through its current README screenshots; Allure 3 through
+its docs and live demo. Cypress is covered through its reporter docs and the
+`cypress-mochawesome-reporter` example report.
+
 Caveats:
 
 - The Allure live demo footer reports **3.16.0** while npm lists 3.22.1. Claims
@@ -36,6 +40,34 @@ Caveats:
 - No performance benchmark was run. Scale notes are based on documented
   behaviour, source structure, and published issue reports.
 
+## Key conclusions
+
+- **The default view should be an exception-first list, not a dashboard.**
+  Every tool that puts charts first (MCHR, jest-html-reporters) pushes the
+  failed path below the fold. The strongest first screens (Playwright,
+  Mochawesome, pytest-html's results table) keep counts and failures in the
+  first screenful.
+- **Status filters with counts are the highest-value control.** They set
+  expectations, make the failure set one click away, and work without a
+  client-side data store.
+- **A single honest hierarchy beats a mode picker.** Run → Feature → Scenario
+  → Step is enough for Cucumber input. A tree is useful as an optional view,
+  not as the landing screen; a group level should exist only when the input
+  provides one.
+- **Aggregate status at group level.** A feature row needs counts, a proportion
+  bar and a text status; otherwise the reader has to open scenarios to learn
+  where the run is unhealthy.
+- **Progressive disclosure is mandatory at scale.** Failed rows open; passed
+  rows collapse; steps, stack traces and attachments live in one detail
+  surface.
+- **One-file/offline rules out several good ideas.** Per-file lazy JSON,
+  `show-report`/`allure open`, separate feature pages, CDN assets and external
+  attachment URLs all improve their own products but conflict with Tolkira's
+  artifact.
+- **Accessibility is where most reports are weakest.** Per-row status is often
+  icon-only, and icon-only controls frequently lack names. Text status labels,
+  labeled controls, 320 px support and 200 % zoom are non-negotiable.
+
 ## At a glance
 
 | Tool | Default first screen | Hierarchy | Status encoding | Navigation | Scale note |
@@ -46,7 +78,7 @@ Caveats:
 | jest-html-reporters | Dashboard cards, timing chart, Details table | Suite/file → test; collapsible groups | Counts/percentages, per-suite status numbers, text | Expand/collapse, merge data, Info; no global search/filter in default report | Single page; known slow at 25k tests / heavy DOM |
 | jest-html-reporter | Summary boxes, suite headers, status-colored rows, inline failure | Suite/file → describe → test; no steps | Full-row background color + status text | Config-level sort/status filter/collapse; no in-page search | One page; collapse is the only scale control |
 | pytest-html | Environment table, summary, status checkboxes, results table | Flat test table; module/class in test ID; no steps | Status text + color; counts; filters | Status checkboxes, sortable columns, collapse/expand, query params | One table; no search/pagination; 800 px minimum width |
-| Cypress / Mochawesome | Header counts + proportion bar, suite cards, test rows, hook failures inline | Spec → suite → test → hooks/commands; no Gherkin feature | Counts + red/green bar; row icons; hook error text | Suite collapse, filters; Cypress Cloud run filters | One page; per-spec reports must be merged; single-file options exist |
+| Cypress / Mochawesome | Header counts + proportion bar, suite cards, test rows, hook failures inline | Spec → suite → test → hooks/commands; no Gherkin feature | Counts + red/green bar; row icons; hook error text | Suite collapse, filters; Cypress Cloud run view | One page; per-spec reports must be merged; single-file options exist |
 | CTRF / GitHub summary | Badge counts, summary table, grouped checks | Flat tests with file/suite metadata → test; steps optional | Text counts, check/cross badges | Annotations; no in-page filtering | Markdown only; 65,535-byte check-run cap; 1 MiB per job-summary step |
 | Grafana (health dashboard) | Question-led summary, rows per service, drill-down | Dashboard → row/panel → detail | Threshold color + numeric value | Variables, links, drill-down | Built for aggregation, not per-test rows |
 
@@ -97,8 +129,8 @@ previous/next test navigation; the 200-test collapse threshold; the detail
 tabs for attempts; a separate speedboard.
 
 **Worth avoiding.** Folder + local server delivery; per-file lazy JSON; icon-
-only status in rows; an `All` view that silently hides skipped tests without
-saying so.
+only status in rows; an `All` view that excludes skipped rows without stating
+the rule.
 
 Sources: [reporters docs](https://playwright.dev/docs/test-reporters#html-reporter),
 [headerView.tsx](https://github.com/microsoft/playwright/blob/main/packages/html-reporter/src/headerView.tsx),
@@ -199,7 +231,7 @@ quality concerns.
 **Scale.** The docs explicitly target projects with hundreds or thousands of
 tests and present trees as the answer. Filters and sorting are the main tools.
 I found no virtualization claim; the demo is small (54 tests). Deep
-configurable trees can also become an navigation problem: the demo nests
+configurable trees can also become a navigation problem: the demo nests
 environment → package → test file → suite → parent suite → suite → sub-suite
 before the first test.
 
@@ -373,8 +405,9 @@ compact encoding, though it is still color-only at the bar level and needs
 the adjacent numbers.
 
 **Navigation and filtering.** Suites collapse and expand; Mochawesome documents
-filters "to display only the tests you want". Cypress Cloud adds run/spec
-filtering. There is no feature-level navigation because there are no features.
+filters "to display only the tests you want". Cypress Cloud is the hosted run
+view; its run/spec filtering is outside the portable HTML artifact. There is no
+feature-level navigation because there are no features.
 
 **Scale.** Cypress runs each spec separately, so reports must be merged;
 Mochawesome renders one page with every suite. `inlineAssets` plus
@@ -669,8 +702,8 @@ Use to show the distribution of failures, not to replace the list.
 - Only failed/pending/undefined/ambiguous scenarios; grouping by feature.
 - Each cell is a link to the scenario; legend labels and counts; a parallel
   text list for screen readers and no-JS.
-- Not all scenarios: a grid of 1,000 cells is a wall of squares, as the earlier
-  prototype work already showed. Restrict it to the exception set.
+- Not all scenarios: a grid of 1,000 cells is a wall of squares, and the
+  parallel text list stops being scannable. Restrict it to the exception set.
 - No canvas-only rendering; static SVG or CSS grid with real links.
 
 ### Explicit separation
@@ -690,15 +723,15 @@ tree and map are lenses on the same data.
 | --- | --- | --- |
 | Folder output plus `show-report`/`allure open` | Playwright, Allure, MCHR | Breaks one-file, offline, email/chat sharing |
 | Per-file lazy JSON (`report.entry(...)`) | Playwright | Requires fetch and separate files |
-| CDN scripts, Chart.js, web fonts | MCHR/Mochawesome-style reports | Breaks no-network/offline and adds third-party code |
-| Analytics/telemetry | Allure's GA history | Trust and offline conflict |
-| External attachment URLs (`attachmentsBaseURL`) | Playwright, Allure | Attachments must travel inside the file |
+| CDN-hosted scripts, Chart.js or web fonts | Common in older HTML reporters | Breaks no-network/offline and adds third-party code |
+| Analytics/telemetry | Allure 3's [Google Analytics history](https://github.com/allure-framework/allure3/issues/476) | Trust and offline conflict |
+| External attachment URLs (`attachmentsBaseURL`) | Playwright | Attachments must travel inside the file |
 | Multi-run history/trends as a default view | Allure, MCHR | Needs history storage and a different product scope |
 | Canvas-only charts/donuts | Common in dashboard reports | No text alternative, JS-dependent, weak comparison |
 | Full-row status color | jest-html-reporter | Contrast, color dominance, color-only reading |
 | `min-width: 800px` / horizontal-scroll tables | pytest-html | Fails 320 px and 200 % zoom |
 | Absolute local paths | jest-html-reporter, jest-html-reporters | Leaks user names and directory structure |
-| Auto-expanding every row | jest reporters, pytest-html | DOM cost and a wall of logs at scale |
+| Auto-expanding every row | jest-html-reporters, jest-html-reporter | DOM cost and a wall of logs at scale |
 | A group-by/mode picker as the landing screen | Allure | Delays the failure path; asks for a mental model first |
 | Icon-only status/controls | Playwright rows, Allure tree, jest-html-reporters theme switch | Screen readers and low-vision users lose the state |
 
