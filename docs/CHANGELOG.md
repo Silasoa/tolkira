@@ -5,11 +5,33 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-04
+
+### Added
+
+- Tag filter in the Report toolbar, combined with text search and status
+  filters.
+- Search highlighting via the CSS Custom Highlight API, with a safe fallback.
+- “Copy failure” action on failed scenarios, including a clipboard fallback
+  and polite confirmation.
+- Visual report screenshots in CI, uploaded as the `playwright-visual`
+  artifact for desktop light/dark, Details, lightbox, 390 px and 320 px text
+  zoom.
+- JUnit XML edge-case coverage: nested suites, skipped/error cases, system
+  output, entities, CDATA, empty suites, missing attributes and malformed XML.
+- Strict JUnit XML validation before parsing; malformed documents now fail with
+  the file and line instead of being silently reshaped.
+
 ### Changed
 
+- README rewritten for users: plain language, AI-generation disclosure,
+  accessibility notes, Seed-Test link and a shorter internal documentation
+  section.
 - CI runs on pushes to `main` and uses `actions/checkout@v7` and
   `actions/setup-node@v7`.
 - Fixture toolchains are documented as container/CI jobs; no host installs.
+- Documentation truth pass for JUnit, the compatibility shim, the comparison
+  notes and the remaining-work list.
 
 ## [0.1.0] - 2026-11-04
 
