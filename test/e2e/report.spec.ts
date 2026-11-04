@@ -247,3 +247,30 @@ test('opens a collapsed feature when searching', async ({ page }) => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('reflows at 200% page zoom', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-zoom-e2e-'));
+  const output = path.join(dir, 'zoom.html');
+
+  try {
+    const code = await runCli(
+      [fixture, '--out', output, '--title', 'Zoom E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 720, height: 450 });
+    await page.goto(pathToFileURL(output).href);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+
+    expect(overflow).toBeLessThanOrEqual(1);
+    await expect(
+      page.getByRole('heading', { name: 'Zoom E2E', level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
