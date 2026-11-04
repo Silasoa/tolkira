@@ -39,13 +39,13 @@
 
 ## 5. Source groups (slice 3)
 
-- [ ] 5.1 Add a loader-to-model provenance group and `sourceFile` on features;
+- [x] 5.1 Add a loader-to-model provenance group and `sourceFile` on features;
   keep the flat envelopes entry point working without provenance.
-- [ ] 5.2 RED: two input files render two groups, sorted by worst status; a
+- [x] 5.2 RED: two input files render two groups, sorted by worst status; a
   single file renders none.
-- [ ] 5.3 RED: a URI shared by two inputs or a merged stream renders no group
+- [x] 5.3 RED: a URI shared by two inputs or a merged stream renders no group
   level; assert no URI-path inference.
-- [ ] 5.4 Browser test: group headings do not break anchors, filters or the
+- [x] 5.4 Browser test: group headings do not break anchors, filters or the
   matrix.
 
 ## 6. Layout and checks

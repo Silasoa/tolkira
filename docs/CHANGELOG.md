@@ -12,6 +12,8 @@ Keep a Changelog and the project uses semantic versioning.
   undefined or ambiguous scenario and opens the collapsed detail on the way.
 - Feature rows show passed/total counts and a proportion bar; the Details
   feature table is now a feature-by-status matrix with totals and durations.
+- Multi-file runs show a source strip with per-input status, counts and a
+  proportion bar; it is omitted when a URI or file name is ambiguous.
 
 ### Fixed
 

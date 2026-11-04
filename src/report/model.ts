@@ -79,6 +79,7 @@ export interface ReportFeature {
   durationMs: number;
   scenarios: ReportScenario[];
   attachments: number;
+  sourceFile?: string;
 }
 
 export interface ReportCounts {
@@ -334,7 +335,10 @@ function featureTree(document: Feature | undefined): Map<string, {
   return map;
 }
 
-export function buildReportModel(envelopes: Envelope[]): ReportModel {
+export function buildReportModel(
+  envelopes: Envelope[],
+  provenance?: Map<string, string>,
+): ReportModel {
   const features = new Map<string, Feature>();
   const featureOrder: Feature[] = [];
   const scenarioTree = new Map<string, { scenario: Scenario; ruleName?: string }>();
@@ -573,6 +577,7 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
         ? scenario.status
         : worst;
     }, 'unknown');
+    const sourceFile = provenance?.get(scenarios[0]?.uri ?? '');
     featureRows.push({
       id: `feature-${featureRows.length + 1}`,
       name: feature.name,
@@ -584,6 +589,7 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
       durationMs: Math.round(scenarios.reduce((sum, scenario) => sum + scenario.durationMs, 0) * 1000) / 1000,
       scenarios,
       attachments: scenarios.reduce((sum, scenario) => sum + scenario.attachments.length, 0),
+      ...(sourceFile ? { sourceFile } : {}),
     });
   }
 

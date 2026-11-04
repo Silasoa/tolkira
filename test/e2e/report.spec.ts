@@ -702,6 +702,30 @@ test('opens a scenario from the needs-attention index', async ({ page }) => {
   }
 });
 
+test('shows a source strip for multiple input files', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-e2e-'));
+  const output = path.join(dir, 'sources-report.html');
+
+  try {
+    const code = await runCli(
+      [unhappyFixture, tableFixture, '--out', output, '--title', 'Sources E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const sources = page.getByRole('region', { name: 'Sources' });
+    await expect(sources).toBeVisible();
+    await expect(sources.getByText('unhappy.json', { exact: true })).toBeVisible();
+    await expect(sources.getByText('happy.json', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: /^Passed/ }).click();
+    await expect(sources).toBeHidden();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test.describe('without scripting', () => {
   test.use({ javaScriptEnabled: false });
 

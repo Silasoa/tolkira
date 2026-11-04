@@ -1,4 +1,4 @@
-import { loadEnvelopes } from './input/load.js';
+import { loadInputs, provenanceFor } from './input/load.js';
 import { renderHtml } from './render/html.js';
 import { summarizeEnvelopes } from './summary.js';
 import type { ReportSummary } from './summary.js';
@@ -31,7 +31,8 @@ export async function generateReport(
   inputs: string | string[],
   options: RenderReportOptions = {},
 ): Promise<GeneratedReport> {
-  const envelopes = await loadEnvelopes(inputs);
+  const groups = await loadInputs(inputs);
+  const envelopes = groups.flatMap((group) => group.envelopes);
   const summary = summarizeEnvelopes(envelopes);
   return {
     html: await renderHtml(envelopes, {
@@ -40,6 +41,7 @@ export async function generateReport(
       logo: options.logo,
       accent: options.accent,
       summary,
+      provenance: groups.length > 1 ? provenanceFor(groups) : undefined,
     }),
     summary,
   };

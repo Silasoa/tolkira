@@ -65,15 +65,17 @@ The table keeps its `tableWrap` scroll region.
 
 Only with real provenance. The loader keeps each input's envelope group and the
 model receives `{ file, envelopes }` groups; features built from a group carry
-`sourceFile`. The report renders a group heading only when:
+`sourceFile` (the input's base name, never an absolute path). The report renders
+a compact source strip above the feature list, one card per input with its
+worst status, feature/scenario counts and a proportion bar, only when:
 
 - the run has more than one input file, and
 - every feature URI belongs to exactly one input file.
 
-A URI that appears in two inputs, or a merged Messages stream with no file
-boundary, renders no groups. Groups are never inferred from a URI path, tag or
-feature name. This keeps the level honest and lets a single-file report look
-exactly like today.
+A URI that appears in two inputs, a file-name collision, or a merged Messages
+stream with no file boundary renders no strip. Groups are never inferred from a
+URI path, tag or feature name. This keeps the level honest and lets a
+single-file report look exactly like today.
 
 ## Anchors and reveal
 

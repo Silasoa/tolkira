@@ -476,3 +476,66 @@ describe('feature overview and matrix', () => {
     expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Duration']);
   });
 });
+
+describe('source strip', () => {
+  const provenance = new Map([
+    ['features/behave.feature', 'behave.json'],
+    ['features/unhappy.feature', 'unhappy.json'],
+    ['features/happy.feature', 'failed.json'],
+  ]);
+
+  async function mixedEnvelopes() {
+    return [
+      ...(await legacyEnvelopes('behave.json', 'behave')),
+      ...(await legacyEnvelopes('unhappy.json', 'unhappy')),
+      ...(await legacyEnvelopes('failed.json', 'failed')),
+    ];
+  }
+
+  it('renders one card per input, worst first', async () => {
+    const envelopes = await mixedEnvelopes();
+    const html = await renderHtml(envelopes, {
+      title: 'Sources',
+      provenance,
+    });
+    const strip = html.slice(
+      html.indexOf('class="sources"'),
+      html.indexOf('id="feature-list"'),
+    );
+
+    expect(
+      [...strip.matchAll(/class="sourceName">(.*?)<\/span>/g)].map(
+        (match) => match[1],
+      ),
+    ).toEqual(['failed.json', 'unhappy.json', 'behave.json']);
+    expect(strip).toContain('1 feature · 6 scenarios · 1 failed');
+    expect(strip).toContain('1 feature · 1 scenario');
+
+    const model = buildReportModel(envelopes, provenance);
+    expect(
+      model.features.find((feature) => feature.name === 'Happy HTML reporting')
+        ?.sourceFile,
+    ).toBe('failed.json');
+  });
+
+  it('omits the strip when provenance is incomplete', async () => {
+    const html = await renderHtml(await mixedEnvelopes(), {
+      title: 'Partial sources',
+      provenance: new Map([['features/happy.feature', 'failed.json']]),
+    });
+
+    expect(html).not.toContain('class="sources"');
+  });
+
+  it('omits the strip for a single input file', async () => {
+    const html = await renderHtml(
+      await legacyEnvelopes('behave.json', 'behave'),
+      {
+        title: 'Single source',
+        provenance: new Map([['features/behave.feature', 'behave.json']]),
+      },
+    );
+
+    expect(html).not.toContain('class="sources"');
+  });
+});

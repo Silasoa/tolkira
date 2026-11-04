@@ -64,16 +64,20 @@ tolkira test-results/ --json
 
 - **One file that works offline.** CSS, JavaScript and attachments are inline.
   No network requests, no remote fonts, no analytics.
-- **The failure first.** Failed scenarios are open by default, with the error
-  and screenshot where you need them.
+- **The failure first.** Failed scenarios are open by default, and a compact
+  triage index lists non-passing features and scenarios before passed ones,
+  with links that open the failing detail.
+- **Multi-file context.** A source strip shows per-input status, counts and a
+  proportion bar when the run has more than one input file and provenance is
+  unambiguous.
 - **Screenshots and attachments that survive.** Images, text, video, audio and
   files are preserved through the legacy JSON adapter.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by
   status and tag; open matching features automatically and highlight matches.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
-- **A Details view when you need it.** Status distribution, a feature table,
-  run metadata and the Cucumber environment (producer, runtime, OS, CPU,
+- **A Details view when you need it.** Status distribution, a feature-by-status
+  matrix, run metadata and the Cucumber environment (producer, runtime, OS, CPU,
   protocol).
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure

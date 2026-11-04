@@ -80,7 +80,14 @@ async function canonicalPath(file: string): Promise<string> {
   }
 }
 
-export async function loadEnvelopes(inputs: string | string[]): Promise<Envelope[]> {
+export interface LoadedInput {
+  file: string;
+  envelopes: Envelope[];
+}
+
+export async function loadInputs(
+  inputs: string | string[],
+): Promise<LoadedInput[]> {
   const requested = Array.isArray(inputs) ? inputs : [inputs];
   if (requested.length === 0) {
     throw new Error('No input files provided.');
@@ -119,7 +126,7 @@ export async function loadEnvelopes(inputs: string | string[]): Promise<Envelope
     a.file.localeCompare(b.file),
   );
 
-  const envelopes: Envelope[] = [];
+  const groups: LoadedInput[] = [];
   const seenContent = new Set<string>();
   let totalBytes = 0;
 
@@ -139,54 +146,87 @@ export async function loadEnvelopes(inputs: string | string[]): Promise<Envelope
 
     const extension = path.extname(input.file).toLowerCase();
     const legacy = sniffLegacy(content);
+    let parsed: Envelope[] = [];
 
     if (legacy?.kind === 'legacy') {
-      envelopes.push(
-        ...parseLegacyValue(legacy.parsed, input.file, {
-          idPrefix: `legacy-${index}`,
-        }),
-      );
-      continue;
-    }
-
-    if (legacy?.kind === 'malformed') {
+      parsed = parseLegacyValue(legacy.parsed, input.file, {
+        idPrefix: `legacy-${index}`,
+      });
+    } else if (legacy?.kind === 'malformed') {
       parseLegacyJson(content, input.file, { idPrefix: `legacy-${index}` });
-      continue;
-    }
-
-    if (looksLikeJUnit(content)) {
-      envelopes.push(...(await parseJUnitXml(content, input.file)));
-      continue;
-    }
-
-    if (looksLikeMessages(content)) {
-      envelopes.push(...parseMessages(content, input.file));
-      continue;
-    }
-
-    if (input.explicit && extension === '.xml') {
+    } else if (looksLikeJUnit(content)) {
+      parsed = await parseJUnitXml(content, input.file);
+    } else if (looksLikeMessages(content)) {
+      parsed = parseMessages(content, input.file);
+    } else if (input.explicit && extension === '.xml') {
       await parseJUnitXml(content, input.file);
-      continue;
-    }
-
-    if (input.explicit && MESSAGES_EXTENSIONS.has(extension)) {
-      if (content.trim().length === 0) {
+    } else {
+      if (
+        input.explicit &&
+        MESSAGES_EXTENSIONS.has(extension) &&
+        content.trim().length === 0
+      ) {
         throw new Error(`Input is empty: ${input.file}`);
+      }
+      if (input.explicit) {
+        invalidJson(content, input.file);
+      }
+      if (MESSAGES_EXTENSIONS.has(extension)) {
+        parseMessages(content, input.file);
       }
     }
 
-    if (input.explicit) {
-      invalidJson(content, input.file);
-    }
-
-    if (MESSAGES_EXTENSIONS.has(extension)) {
-      parseMessages(content, input.file);
-    }
+    groups.push({ file: input.file, envelopes: parsed });
   }
 
-  if (envelopes.length === 0) {
+  if (groups.every((group) => group.envelopes.length === 0)) {
     throw new Error('No supported report files found.');
   }
 
-  return envelopes;
+  return groups;
+}
+
+export async function loadEnvelopes(
+  inputs: string | string[],
+): Promise<Envelope[]> {
+  return (await loadInputs(inputs)).flatMap((group) => group.envelopes);
+}
+
+/**
+ * Maps a feature URI to its input file name, but only when the URI belongs to
+ * exactly one file. Shared or missing provenance is omitted so the report can
+ * render a flat list instead of an invented group.
+ */
+export function provenanceFor(groups: LoadedInput[]): Map<string, string> {
+  const names = new Map<string, Set<string>>();
+  for (const group of groups) {
+    const name = path.basename(group.file);
+    const set = names.get(name) ?? new Set<string>();
+    set.add(group.file);
+    names.set(name, set);
+  }
+  const ambiguous = new Set(
+    [...names.entries()]
+      .filter(([, files]) => files.size > 1)
+      .map(([name]) => name),
+  );
+
+  const uriFiles = new Map<string, Set<string>>();
+  for (const group of groups) {
+    const name = path.basename(group.file);
+    if (ambiguous.has(name)) continue;
+    for (const envelope of group.envelopes) {
+      const uri = envelope.gherkinDocument?.uri;
+      if (!uri) continue;
+      const set = uriFiles.get(uri) ?? new Set<string>();
+      set.add(name);
+      uriFiles.set(uri, set);
+    }
+  }
+
+  const provenance = new Map<string, string>();
+  for (const [uri, files] of uriFiles) {
+    if (files.size === 1) provenance.set(uri, [...files][0] as string);
+  }
+  return provenance;
 }

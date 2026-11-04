@@ -4,6 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderReport, summarizeReport } from '../src/index.js';
+import { loadInputs, provenanceFor } from '../src/input/load.js';
+import { parseLegacyJson } from '../src/input/legacy.js';
 
 const messages = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
@@ -169,4 +171,75 @@ describe('input merging', () => {
     const summary = await summarizeReport([dir, file]);
     expect(summary.counts.scenarios.total).toBe(2);
   });
+
+  it('groups inputs and maps unique feature URIs to file names', async () => {
+    const groups = await loadInputs([messages, legacy]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups.map((group) => path.basename(group.file))).toEqual(
+      expect.arrayContaining(['screenshot.ndjson', 'happy.json']),
+    );
+
+    const provenance = provenanceFor(groups);
+    expect(provenance.get('features/screenshot.feature')).toBe(
+      'screenshot.ndjson',
+    );
+    expect(provenance.get('features/happy.feature')).toBe('happy.json');
+  });
+
+  it('omits provenance for a URI shared by two inputs', () => {
+    const groups = [
+      {
+        file: path.resolve('one.json'),
+        envelopes: legacyFeature('features/shared.feature', 'one'),
+      },
+      {
+        file: path.resolve('two.json'),
+        envelopes: legacyFeature('features/shared.feature', 'two'),
+      },
+    ];
+
+    expect(provenanceFor(groups).has('features/shared.feature')).toBe(false);
+  });
+
+  it('omits provenance when two inputs share a file name', () => {
+    const groups = [
+      {
+        file: path.resolve('a/report.json'),
+        envelopes: legacyFeature('features/a.feature', 'a'),
+      },
+      {
+        file: path.resolve('b/report.json'),
+        envelopes: legacyFeature('features/b.feature', 'b'),
+      },
+    ];
+
+    expect(provenanceFor(groups).size).toBe(0);
+  });
 });
+
+function legacyFeature(uri: string, scenario: string) {
+  return parseLegacyJson(
+    JSON.stringify([
+      {
+        uri,
+        name: uri,
+        elements: [
+          {
+            keyword: 'Scenario',
+            type: 'scenario',
+            name: scenario,
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a step',
+                result: { status: 'passed', duration: 1 },
+              },
+            ],
+          },
+        ],
+      },
+    ]),
+    `${scenario}.json`,
+  );
+}
