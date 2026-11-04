@@ -70,6 +70,14 @@ Spec first, tests first, small vertical slices.
 - build
 - browser test (`npm run test:e2e`) for report-level changes
 
+Browser gate:
+
+- Linux and macOS run Chromium, Firefox and WebKit on every PR and push.
+- Viewports: 320, 390, 768, 1024 and 1440 px, plus 320 px at 200 % text zoom.
+- WebKit covers Safari and Apple WebView; Chromium covers Chrome, Edge and
+  WebView2; Firefox is the third engine. There is no separate Playwright
+  WebView engine.
+
 Plus the reviewer set: docs-only changes skip review; every other change is
 reviewed. A failing review spawns a fixer; the coordinator re-runs the gate.
 
