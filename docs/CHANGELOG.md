@@ -5,6 +5,8 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-04
+
 ### Added
 
 - Initial repository scaffold: product context, architecture, glossary,
@@ -57,8 +59,7 @@ Keep a Changelog and the project uses semantic versioning.
 - Unit and Playwright browser tests, including search and an HTML attachment
   execution check.
 
-### Not yet implemented
+### Known gaps
 
-- User-supplied custom CSS, external attachment mode, the full edge-case
-  matrix, a cucumber-ruby fixture, real Behave attachments/doc strings, and
-  release 0.1.0.
+- User-supplied custom CSS, external attachment mode, real Behave
+  attachments/doc strings, and a broader edge-case matrix.

@@ -3,11 +3,23 @@
 > **The interpreter for your test results.**
 > Clear, embeddable HTML reports for Cucumber JSON, Messages, and beyond.
 
-**Status: v0.1 core in development.** Messages and legacy Cucumber JSON render
-to one self-contained HTML file with a simple report, an optional Details tab,
-the CLI/API, title/metadata, screenshots, browser tests and a stable JSON
-summary for agents. Remaining v0.1 work is tracked in
-`openspec/changes/bootstrap-tolkira-core/tasks.md`.
+**Status: v0.1.0.** Messages and legacy Cucumber JSON render to one
+self-contained HTML file with a simple report, an optional Details tab, the
+CLI/API, title/metadata, screenshots, browser tests and a stable JSON summary
+for agents.
+
+## Install
+
+```shell
+npm install --global tolkira
+tolkira test-results/ --out report.html --title "Daily run"
+```
+
+Or run it without a global install:
+
+```shell
+npx tolkira test-results/ --out report.html --title "Daily run"
+```
 
 ## What is Tolkira?
 
@@ -60,10 +72,9 @@ The name is pronounced approximately **TOL-kee-rah**.
 
 ## Release status
 
-The v0.1 gate is green: typecheck, lint, unit tests, build and browser tests.
-The remaining release work is tracked in
-`openspec/changes/bootstrap-tolkira-core/tasks.md`; npm publication waits for
-explicit approval.
+v0.1.0 is cut from the `v0.1.0` tag; npm publication carries provenance. The
+gate is green: typecheck, lint, unit tests, build and browser tests. Known gaps
+are listed in the changelog and `docs/research/open-questions.md`.
 
 ## Non-goals for v0.1
 

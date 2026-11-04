@@ -92,7 +92,8 @@ test-first and should fit in roughly two hours.
   64 unit tests, 5 Playwright tests across Chromium/Firefox/WebKit, 0 audit
   vulnerabilities.
 - [x] 8.4 Run the blind review set (SCR, CR, DAR, SEC) and fix findings.
-- [ ] 8.5 User approval, tag `v0.1.0`, publish with provenance.
+- [x] 8.5 User approved release 0.1.0 on 2026-11-04; tag `v0.1.0` and
+  provenance publish run from the tag.
 
 ## 9. Agent interface
 

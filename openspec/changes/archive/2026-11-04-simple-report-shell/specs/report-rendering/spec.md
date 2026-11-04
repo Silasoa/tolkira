@@ -19,6 +19,10 @@ view.
 - **THEN** its feature and scenario are open by default and the failure and
   screenshot are visible inline
 
+#### Scenario: Hooks are visible
+- **WHEN** the input contains before/after hooks
+- **THEN** the report shows their results with the scenario
+
 #### Scenario: Details are optional
 - **WHEN** the user opens the Details tab
 - **THEN** the report shows feature counts, status distribution, environment,
@@ -36,16 +40,6 @@ NOT execute HTML or SVG attachments as active content.
 #### Scenario: HTML attachment is not executed
 - **WHEN** a step has an HTML attachment containing a script
 - **THEN** the script does not execute and the content is shown as escaped text
-
-### Requirement: Stay self-contained
-
-The report SHALL contain all CSS, scripts and attachments and SHALL NOT load
-external assets.
-
-#### Scenario: No external assets
-- **WHEN** the generated HTML is inspected
-- **THEN** it contains no CDN, remote font or remote asset URL and no React
-  formatter runtime
 
 ## ADDED Requirements
 
