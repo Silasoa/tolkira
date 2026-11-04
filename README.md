@@ -9,11 +9,12 @@ stay inside the file. There is no server, no CDN and no telemetry.
 Current release: **v0.1.1** · [npm](https://www.npmjs.com/package/tolkira) · [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.
-> The maintainer sets the product direction, reviews changes, runs the release
-> gate and makes release decisions. Most code, tests and documentation are
-> drafted with large language models, then reviewed and tested by humans.
-> AI output can be wrong; please check the report against your own results and
-> open an issue if something looks off. [Read more](#how-this-project-is-built).
+> The maintainer sets the product direction and approves releases. Most code,
+> tests and documentation are drafted with large language models, then checked
+> by automated tests and AI-assisted review passes. The maintainer reviews the
+> release gate and tests the report from time to time. AI output can be wrong;
+> please check the report against your own results and open an issue if
+> something looks off. [Read more](#how-this-project-is-built).
 
 ## Install
 
@@ -212,8 +213,9 @@ notes live in [`docs/PRODUCT.md`](https://github.com/Silasoa/tolkira/blob/main/d
 
 Tolkira is an experiment in AI-assisted open source. The maintainer defines the
 problem, the scope and the design direction; large language models draft most of
-the code, tests and documentation; the maintainer reviews, runs the test and
-release gates, and makes the final release decision.
+the code, tests and documentation; automated tests and AI-assisted review passes
+check changes; the maintainer reviews the release gate, approves versions and
+tests the report from time to time.
 
 The project does not name specific models in its files on purpose. The
 maintainer configures the models and tooling. This keeps the project
@@ -229,6 +231,8 @@ version you use.
 
 MIT. See [`LICENSE`](https://github.com/Silasoa/tolkira/blob/main/LICENSE).
 
-Tolkira is not affiliated with Cucumber, SmartBear, Seed-Test or any
-test-framework vendor. Cucumber and Gherkin are used descriptively; the project
-uses the MIT-licensed Cucumber Messages format and package.
+Tolkira is an independent project, not an official Cucumber, SmartBear or
+Seed-Test product. The maintainer also contributes to Seed-Test; the visual
+comparison uses Seed-Test's report setup. Cucumber and Gherkin are used
+descriptively; the project uses the MIT-licensed Cucumber Messages format and
+package.

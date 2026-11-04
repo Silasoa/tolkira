@@ -6,9 +6,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -20,10 +28,35 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
+      - if: matrix.node == 22
+        run: npm audit --audit-level=moderate
       - run: npm run check
+      - if: matrix.node == 22
+        run: npm pack --dry-run
+      - if: matrix.node == 22
+        run: npm run stress -- 1000
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: check
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm pack --pack-destination /tmp
+      - run: npm install -g --prefix /tmp/global /tmp/tolkira-*.tgz
+      - run: /tmp/global/bin/tolkira --help
+      - run: /tmp/global/bin/tolkira test/fixtures/legacy/minimal.json --out /tmp/report.html --title "Package smoke test"
+      - run: test -s /tmp/report.html && grep -q "Minimal feature" /tmp/report.html
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: check
     steps:
       - uses: actions/checkout@v7

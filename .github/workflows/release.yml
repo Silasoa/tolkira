@@ -12,6 +12,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -20,7 +21,13 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
+      - run: npm audit --audit-level=moderate
       - run: npm run check
+      - run: npm pack --pack-destination /tmp
+      - run: npm install -g --prefix /tmp/global /tmp/tolkira-*.tgz
+      - run: /tmp/global/bin/tolkira --help
+      - run: /tmp/global/bin/tolkira test/fixtures/legacy/minimal.json --out /tmp/report.html --title "Package smoke test"
+      - run: test -s /tmp/report.html && grep -q "Minimal feature" /tmp/report.html
       - run: npm install -g npm@latest
       - run: npm stage publish . --provenance --access public
         env:
