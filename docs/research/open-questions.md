@@ -10,9 +10,9 @@ not a backlog of questions.
    helper or CLI `compat` unless real demand appears. In an AI-assisted
    workflow, rewriting an integration script is cheap; the shim is a
    migration aid, not the moat.
-2. **Framework breadth.** Build the cheap breadth: a **basic JUnit XML mode**
-   for non-Cucumber frameworks. No Playwright JSON, CTRF, Allure-results or
-   TRX adapters now. Cucumber-native depth remains the product.
+2. **Framework breadth.** The cheap breadth shipped: a **basic JUnit XML
+   mode** for non-Cucumber frameworks. No Playwright JSON, CTRF, Allure-results
+   or TRX adapters now. Cucumber-native depth remains the product.
 3. **Analysis tab.** Rename to **Details** in v0.1; add an environment block
    (producer, runtime, OS, CPU, protocol, user metadata). Charts, trends,
    history and flaky analytics stay Advanced.
@@ -35,8 +35,6 @@ not a backlog of questions.
 
 ## Remaining work
 
-- JUnit XML basic mode: proposal, adapter, parser dependency, fixture and
-  tests.
 - Real cucumber-jvm and cucumber-ruby fixtures; update the compatibility
   matrix.
 - Real Behave run with attachments/doc strings.

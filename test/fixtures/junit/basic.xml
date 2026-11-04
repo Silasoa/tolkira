@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="ci">
+  <testsuite name="checkout" tests="3" failures="1" skipped="1" time="0.012">
+    <testcase name="guest checkout" classname="checkout.Guest" time="0.004"/>
+    <testcase name="expired coupon" classname="checkout.Coupon" time="0.005">
+      <failure message="Expected 200, got 500">AssertionError: Expected 200, got 500
+    at checkout.test.ts:42</failure>
+      <system-out>request id: abc</system-out>
+    </testcase>
+    <testcase name="slow payment" classname="checkout.Payment" time="0.003">
+      <skipped/>
+    </testcase>
+  </testsuite>
+  <testsuite name="profile" tests="1" failures="0" time="0.001">
+    <testcase name="profile loads" classname="profile.Profile" time="0.001"/>
+  </testsuite>
+</testsuites>

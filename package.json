@@ -50,6 +50,7 @@
     "docs/AGENT-INTERFACE.md",
     "docs/COMPATIBILITY.md",
     "docs/CUCUMBER-COMPATIBILITY.md",
+    "docs/JUNIT-XML.md",
     "GLOSSARY.md"
   ],
   "scripts": {
@@ -68,7 +69,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@cucumber/messages": "^34.2.1"
+    "@cucumber/messages": "^34.2.1",
+    "fast-xml-parser": "^5.12.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

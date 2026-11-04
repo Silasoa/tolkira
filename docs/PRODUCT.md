@@ -68,7 +68,7 @@ agent-readable summary without a server or telemetry**.
 ### v0.1 — hybrid report core
 
 - CLI and API.
-- Legacy JSON and Messages input, auto-detected.
+- Legacy JSON, Messages and JUnit XML (basic) input, auto-detected.
 - Multiple inputs/directories merged into one report.
 - Legacy JSON → Messages normalisation with attachments preserved.
 - Single self-contained HTML, no CDN, no network requests.

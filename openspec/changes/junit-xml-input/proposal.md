@@ -20,7 +20,7 @@ failure text and `system-out`/`system-err`, and will say so.
   - `<failure>` / `<error>` -> failed, `<skipped>` -> skipped, otherwise passed;
   - `time` seconds -> milliseconds;
   - `system-out` / `system-err` -> text attachments.
-- Add `fast-xml-parser@^4.5.3` (MIT, one transitive dependency) as the XML
+- Add `fast-xml-parser@^5.12.0` (MIT, six transitive dependencies) as the XML
   parser. This is the written reason for a new runtime dependency: a correct
   XML parser is not worth hand-rolling, and JUnit XML is the cheapest broad
   input.

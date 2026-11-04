@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { Envelope } from '@cucumber/messages';
 import { parseLegacyJson, parseLegacyValue } from './legacy.js';
 import { collectReportFiles } from './files.js';
+import { looksLikeJUnit, parseJUnitXml } from './junit.js';
 import { isEnvelopeLike, parseMessages } from './messages.js';
 
 const MESSAGES_EXTENSIONS = new Set(['.jsonl', '.ndjson']);
@@ -153,8 +154,18 @@ export async function loadEnvelopes(inputs: string | string[]): Promise<Envelope
       continue;
     }
 
+    if (looksLikeJUnit(content)) {
+      envelopes.push(...(await parseJUnitXml(content, input.file)));
+      continue;
+    }
+
     if (looksLikeMessages(content)) {
       envelopes.push(...parseMessages(content, input.file));
+      continue;
+    }
+
+    if (input.explicit && extension === '.xml') {
+      await parseJUnitXml(content, input.file);
       continue;
     }
 

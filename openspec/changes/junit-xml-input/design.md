@@ -10,10 +10,9 @@ failed and how long it took".
 
 ## Parser
 
-Use `fast-xml-parser@^4.5.3` (MIT, one dependency, `strnum`). A hand-written
+Use `fast-xml-parser@^5.12.0` (MIT, six transitive dependencies). A hand-written
 XML parser would be a security and correctness liability. The parser is a
-runtime dependency; it is external in the CLI/index bundle and installed with
-the package.
+runtime dependency; it is loaded on demand via a dynamic import, so Cucumber-only runs do not pay the parse cost.
 
 Configuration:
 
