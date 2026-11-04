@@ -81,3 +81,22 @@ Feature: Old cucumber compatibility
 The step definitions are one empty function and one that throws `Error: boom`.
 The versions were installed in isolated temp projects; the checked-in JSON is
 the producer output, not a hand-written approximation.
+
+### Fixture toolchains
+
+Do not install Ruby, Maven, Behave or a JDK on the host to regenerate a
+fixture. Use a container or a GitHub Actions job; the image disappears with the
+run.
+
+| Producer | Image | Setup |
+| --- | --- | --- |
+| cucumber-js | `node:22` | `npm install cucumber@<version>` |
+| Behave 1.3.3 | `python:3.11` | `pip install behave==1.3.3` |
+| cucumber-jvm 7.x | `maven:3.9-eclipse-temurin-21` | run the project's `mvn test` |
+| cucumber-ruby 12.x | `ruby:3.4` | `gem install cucumber -v 12.0.1` |
+
+Mount the project into the container, run the producer's JSON or Messages
+formatter, and copy only the generated fixture back. A GitHub Actions
+`workflow_dispatch` job with the same image is the preferred path for a
+reproducible producer matrix; it keeps the host clean and records the toolchain
+in the workflow file.
