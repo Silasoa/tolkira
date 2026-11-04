@@ -16,8 +16,12 @@ fixtures.push(
 );
 
 async function waitForImages(page: Page): Promise<void> {
-  await page.waitForFunction(() =>
-    Array.from(document.images).every((image) => image.complete),
+  await page.evaluate(() =>
+    Promise.all(
+      Array.from(document.images).map((image) =>
+        image.decode().catch(() => undefined),
+      ),
+    ),
   );
 }
 
