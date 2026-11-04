@@ -31,6 +31,12 @@ with a clear file-specific error for malformed XML.
 - **WHEN** a JUnit file is not well-formed XML
 - **THEN** generation fails with an error that names the file
 
+#### Scenario: DTD entities and processing instructions
+
+- **WHEN** the document declares an internal DTD entity or contains a
+  processing instruction with ampersands
+- **THEN** the document is accepted and the entity is not treated as invalid
+
 #### Scenario: Mixed input
 
 - **WHEN** a JUnit file is merged with legacy JSON or Messages

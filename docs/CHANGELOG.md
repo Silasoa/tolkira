@@ -20,7 +20,7 @@ Keep a Changelog and the project uses semantic versioning.
 - JUnit XML edge-case coverage: nested suites, skipped/error cases, system
   output, entities, CDATA, empty suites, missing attributes and malformed XML.
 - Strict JUnit XML validation before parsing; malformed documents now fail with
-  the file and line instead of being silently reshaped.
+  a file-specific error and a line/column when available.
 
 ### Changed
 
