@@ -39,9 +39,10 @@ not a backlog of questions.
    maintainer approves. The npm README is refreshed by 0.1.1.
 10. **0.1.1 hardening.** Tag filter, search highlighting, “copy failure”, CI
     screenshot artifacts and JUnit XML edge cases are in. v0.1.1 was published
-    on npm with provenance. v0.1.2 is prepared: it fixes the Linux/macOS npm
-    bin symlink and decodes numeric XML entities; it waits for explicit
-    approval. Visual pixel baselines remain a follow-up.
+    on npm with provenance. v0.1.2 is published with the Linux/macOS npm bin
+    symlink fix, numeric XML-entity decoding and the 320 px tag-filter fix.
+    Deprecating 0.1.1 needs a 2FA-gated npm action. Visual pixel baselines
+    remain a follow-up.
 
 ## Remaining work
 
