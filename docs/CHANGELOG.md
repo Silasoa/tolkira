@@ -5,12 +5,14 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-04
+
 ### Fixed
 
-- JUnit numeric character references are decoded in names and messages.
 - The `tolkira` bin now runs when npm installs it as a symlink on Linux and
   macOS; previously the main-module check compared the symlink path and the
   resolved module path and silently did nothing.
+- JUnit numeric character references are decoded in names and messages.
 
 ## [0.1.1] - 2026-11-04
 
