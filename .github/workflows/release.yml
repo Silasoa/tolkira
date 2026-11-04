@@ -25,8 +25,10 @@ jobs:
       - run: npm run check
       - run: npm pack --pack-destination /tmp
       - run: npm install -g --prefix /tmp/global /tmp/tolkira-*.tgz
-      - run: /tmp/global/bin/tolkira --help
-      - run: /tmp/global/bin/tolkira test/fixtures/legacy/minimal.json --out /tmp/report.html --title "Package smoke test"
+      - run: test -x /tmp/global/bin/tolkira
+      - run: echo "TOLKIRA_ROOT=$(npm root -g --prefix /tmp/global)" >> "$GITHUB_ENV"
+      - run: node "$TOLKIRA_ROOT/tolkira/dist/cli.js" --help
+      - run: node "$TOLKIRA_ROOT/tolkira/dist/cli.js" test/fixtures/legacy/minimal.json --out /tmp/report.html --title "Package smoke test"
       - run: test -s /tmp/report.html && grep -q "Minimal feature" /tmp/report.html
       - run: npm install -g npm@latest
       - run: npm stage publish . --provenance --access public
