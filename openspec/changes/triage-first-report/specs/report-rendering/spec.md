@@ -84,6 +84,74 @@ ancestors so the scenario and its steps are visible.
 - **WHEN** the index is reached by keyboard
 - **THEN** every entry is focusable and follows the link order of the rows
 
+### Requirement: Show the shape of each feature
+
+The Report view SHALL show on every feature row the passed/total scenario count
+and a segmented proportion bar using the run's status colours. The non-passing
+counts SHALL also be named as text.
+
+#### Scenario: Mixed feature
+
+- **WHEN** a feature has passed, failed and pending scenarios
+- **THEN** its row states the passed/total count and the failed and pending
+  counts as text
+- **AND** the bar has one segment per present status in severity order
+
+#### Scenario: Feature without scenarios
+
+- **WHEN** a feature contains no scenarios
+- **THEN** the row states "0 scenarios" and renders no proportion bar
+
+### Requirement: Compare features in the Details matrix
+
+The Details view SHALL present one row per feature with the total scenario
+count, one count column per status present in the run, and the duration. Status
+columns SHALL be ordered worst first. Zero counts SHALL be rendered as a muted
+zero, not an empty cell.
+
+#### Scenario: Mixed run
+
+- **WHEN** the run contains failed, pending and passed scenarios
+- **THEN** the matrix has failed, pending and passed columns
+- **AND** every row's cells match the summary counts for that feature
+
+#### Scenario: Clean run
+
+- **WHEN** every scenario passed
+- **THEN** the matrix has only the passed status column
+
+#### Scenario: Narrow viewport
+
+- **WHEN** the matrix is wider than its container
+- **THEN** it scrolls inside its labelled region
+- **AND** the page itself does not scroll horizontally
+
+### Requirement: Group by input source only with real provenance
+
+When the run has more than one input file and every feature URI belongs to
+exactly one input, the Report view SHALL render a source group level above the
+feature rows, carrying the input file name and that group's aggregates.
+Otherwise it SHALL render a flat list. The report SHALL NOT infer a group from
+a feature URI, tag, directory or name.
+
+#### Scenario: Two input files
+
+- **WHEN** two files are merged into one report
+- **THEN** the overview shows one group per file
+- **AND** groups are ordered by worst status, then input order
+
+#### Scenario: One input file
+
+- **WHEN** a single file contains several features
+- **THEN** no source group level is rendered
+
+#### Scenario: Shared or missing provenance
+
+- **WHEN** a feature URI appears in two inputs, or a Messages stream has no
+  file boundary
+- **THEN** the report renders a flat feature list
+- **AND** no group name is derived from the URI
+
 ### Requirement: Keep the triage index offline and safe
 
 The index SHALL be rendered server-side from `ReportModel` with escaped names,

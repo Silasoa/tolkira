@@ -11,34 +11,41 @@ pytest-html and Mochawesome: exception-first first screens work, dashboards put
 the failure path below charts.
 
 The synthesis (Default/Map/Compact) confirms Default as the only variant that
-stays bounded at hundreds of scenarios. Its cheapest part is ordering plus a
-compact jump list; the map and matrix are separate lenses, not this slice.
+stays bounded at hundreds of scenarios. 0.2 finishes that Default view and the
+Details comparison; the map and compact lenses stay optional and come later.
 
 ## What Changes
 
-- Order features and scenarios in the Report view exception-first:
+0.2 is one hierarchical overview, delivered in three slices.
+
+- **Slice 1 — triage.** Order features and scenarios exception-first:
   non-passing before passed, worst status first, input order inside a status.
-- Add a "Needs attention" index above the feature list: one compact row per
-  non-passing feature with status, scenario counts and up to three scenario
-  links. Capped at 20 features, absent when everything passed.
-- Add stable anchors so an index link expands and reveals the target scenario.
-- Leave the Details view, the JSON summary and the stored model in input order.
+  Add a "Needs attention" index above the feature list with status, counts and
+  up to three scenario links per feature; capped at 20 features.
+- **Slice 2 — feature rows and matrix.** Feature rows show scenario counts and
+  a proportion bar, passed features sit below the attention set, and the
+  Details feature table becomes a feature × status matrix.
+- **Slice 3 — source groups.** Add a group level only when the run has more
+  than one input file and the loader carries that provenance; never inferred
+  from a feature URI. A single input renders no group level.
+- Batch the three unreleased CLI edge fixes into the 0.2 release.
 
 ## Impact
 
 - `report-rendering` spec delta; `src/render/html.ts`,
-  `src/render/report.css`, the inline report script.
-- Unit render tests, one browser test, responsive/visual checks.
-- No CLI, summary-schema, input-format or dependency change. No network.
-- No new data store: the index is rendered server-side from `ReportModel`.
+  `src/render/report.css`, the inline report script, and for slice 3 the
+  loader/model provenance field.
+- Unit render tests, browser tests, responsive/visual checks.
+- No CLI contract, summary-schema, or dependency change. No network.
+- No new data store: every view is rendered server-side from `ReportModel`.
 
 ## Out of Scope
 
-- Source groups: `ReportModel` has no input provenance, so no group level is
-  invented from a feature URI.
-- The feature × status matrix, map and compact modes, treemap, split index.
+- Map and compact lenses, treemap, split index: post-0.2 optional views.
 - Virtualisation or paging for thousands of scenarios.
-- Changing the order of the JSON summary or the Details view.
+- Input-format breadth (Playwright JSON, CTRF, TRX), history/trends, PDF/email,
+  localisation.
+- Changing the order of the JSON summary.
 
 ## Tracking
 
