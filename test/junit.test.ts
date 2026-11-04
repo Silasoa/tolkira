@@ -240,6 +240,20 @@ describe('JUnit XML input', () => {
     }
   });
 
+  it('decodes numeric character references', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'numeric.xml');
+    await writeFile(
+      file,
+      '<testsuites><testsuite name="numeric"><testcase name="&#65;"><failure>&#66;</failure></testcase></testsuite></testsuites>',
+      'utf8',
+    );
+
+    const summary = await summarizeReport(file);
+    expect(summary.scenarios[0]?.name).toBe('A');
+    expect(summary.scenarios[0]?.steps[0]?.message).toBe('B');
+  });
+
   it('accepts DTD entities and processing instructions', async () => {
     const dir = await tempDir();
     const dtd = path.join(dir, 'dtd.xml');

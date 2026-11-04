@@ -331,6 +331,7 @@ export async function parseJUnitXml(
     attributeNamePrefix: '',
     parseTagValue: false,
     parseAttributeValue: false,
+    htmlEntities: true,
     isArray: (name: string) => ARRAY_TAGS.has(name),
   });
 

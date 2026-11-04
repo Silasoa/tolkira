@@ -5,6 +5,10 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+### Fixed
+
+- JUnit numeric character references are decoded in names and messages.
+
 ## [0.1.1] - 2026-11-04
 
 ### Added
