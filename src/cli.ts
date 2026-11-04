@@ -1,6 +1,7 @@
+import { realpathSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { generateReport, summarizeReport, version } from './index.js';
 import { writeAtomic } from './output.js';
@@ -221,11 +222,19 @@ export async function runCli(
   }
 }
 
-const isMain =
-  process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+function isMainModule(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return (
+      realpathSync(fileURLToPath(import.meta.url)) === realpathSync(entry)
+    );
+  } catch {
+    return false;
+  }
+}
 
-if (isMain) {
+if (isMainModule()) {
   runCli(process.argv.slice(2)).then((code) => {
     process.exitCode = code;
   });
