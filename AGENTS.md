@@ -89,6 +89,24 @@ reviewed. A failing review spawns a fixer; the coordinator re-runs the gate.
 - Never publish a name or package without the name/trademark check recorded in
   the ADR.
 
+### Pre-release audit
+
+Run this before every tag or stage:
+
+- `git log --all --format='%an <%ae>' | sort -u`; only expected project
+  identities and no private address.
+- Scan the current tree and full history for tokens, private keys, `.env`/key
+  files and personal email addresses. Print only categories, files and commit
+  counts; never echo the matched value.
+- `gh api repos/Silasoa/tolkira/secret-scanning/alerts` returns no open alerts.
+- `gh secret list` contains only the expected names (currently `NPM_TOKEN`),
+  never values.
+- `npm view tolkira maintainers` uses the project address, not a private one.
+- Check committed screenshots, comparison images and release notes for browser
+  chrome, names, local paths or email addresses.
+
+If a secret is found, rotate it first; rewriting history is secondary.
+
 ## Tooling policy
 
 - **OKF:** deliberately not used. It adds ceremony without proven value here.
