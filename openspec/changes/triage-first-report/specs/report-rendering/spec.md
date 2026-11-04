@@ -106,7 +106,7 @@ counts SHALL also be named as text.
 #### Scenario: Feature without scenarios
 
 - **WHEN** a feature contains no scenarios
-- **THEN** the row states "0 scenarios" and renders no proportion bar
+- **THEN** the report omits it from the feature list and the matrix
 
 ### Requirement: Compare features in the Details matrix
 

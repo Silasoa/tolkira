@@ -381,6 +381,16 @@ describe('triage overview', () => {
     expect(manyHtml.match(/class="triageItem"/g) ?? []).toHaveLength(20);
     expect(manyHtml).toContain('1 more feature below');
 
+    const twenty = syntheticRun(
+      Array.from({ length: 20 }, (_, index) => ({
+        name: `Feature ${index + 1}`,
+        scenarios: [{ name: `Scenario ${index + 1}`, status: 'failed' }],
+      })),
+    );
+    const twentyHtml = await renderHtml(twenty, { title: 'Twenty features' });
+    expect(twentyHtml.match(/class="triageItem"/g) ?? []).toHaveLength(20);
+    expect(twentyHtml).not.toContain('more feature below');
+
     const noisy = syntheticRun([
       {
         name: 'Noisy feature',
@@ -393,6 +403,19 @@ describe('triage overview', () => {
     const noisyHtml = await renderHtml(noisy, { title: 'Many failures' });
     expect(noisyHtml.match(/class="triageScenario"/g) ?? []).toHaveLength(3);
     expect(noisyHtml).toContain('+1 more in the report');
+
+    const three = syntheticRun([
+      {
+        name: 'Three failures',
+        scenarios: Array.from({ length: 3 }, (_, index) => ({
+          name: `Scenario ${index + 1}`,
+          status: 'failed',
+        })),
+      },
+    ]);
+    const threeHtml = await renderHtml(three, { title: 'Three failures' });
+    expect(threeHtml.match(/class="triageScenario"/g) ?? []).toHaveLength(3);
+    expect(threeHtml).not.toContain('more in the report');
   });
 
   it('escapes untrusted names in the index', async () => {
@@ -454,6 +477,15 @@ describe('feature overview and matrix', () => {
       'Pending',
       'Passed',
       'Duration',
+    ]);
+
+    const names = [...matrix.matchAll(/<tr><td>(.*?)<\/td>/g)].map(
+      (match) => match[1],
+    );
+    expect(names).toEqual([
+      'Behave feature',
+      'Unhappy HTML reporting',
+      'Happy HTML reporting',
     ]);
 
     const row = matrix.match(/<tr><td>Happy HTML reporting<\/td>.*?<\/tr>/)?.[0];
