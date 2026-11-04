@@ -30,12 +30,12 @@
 
 ## 4. Feature rows and matrix (slice 2)
 
-- [ ] 4.1 RED: feature row shows passed/total, non-passing counts and a
+- [x] 4.1 RED: feature row shows passed/total, non-passing counts and a
   proportion bar; passed features render after the attention set.
-- [ ] 4.2 RED: Details matrix has one column per present status, totals and
+- [x] 4.2 RED: Details matrix has one column per present status, totals and
   duration; zero counts are muted but present.
-- [ ] 4.3 GREEN: render both from the ordered view and `ReportModel` counts.
-- [ ] 4.4 Test a clean run, a single-status run and a 320 px table scroll.
+- [x] 4.3 GREEN: render both from the ordered view and `ReportModel` counts.
+- [x] 4.4 Test a clean run, a single-status run and a 320 px table scroll.
 
 ## 5. Source groups (slice 3)
 
@@ -52,7 +52,7 @@
 
 - [x] 6.1 Style index, bars and matrix with existing tokens; no fixed width,
   no horizontal page scroll at 320 px or 320 px at 200 % text zoom.
-- [ ] 6.2 Extend the responsive or visual spec at 390, 768 and 1440 px; confirm
+- [x] 6.2 Extend the responsive or visual spec at 390, 768 and 1440 px; confirm
   status is text, not colour-only.
 
 ## 7. Documentation and release

@@ -97,7 +97,7 @@ describe('messages rendering', () => {
     const html = await renderReport(legacyTableFixture, { title: 'Tables' });
 
     expect(html).toContain('role="region" aria-label="Data table for:');
-    expect(html).toContain('role="region" aria-label="Feature summary table"');
+    expect(html).toContain('role="region" aria-label="Feature status matrix"');
   });
 
   it('renders filters only for statuses with scenarios', async () => {
@@ -287,6 +287,11 @@ function featureList(html: string): string {
   );
 }
 
+function matrixTable(html: string): string {
+  const start = html.indexOf('<table class="featureTable">');
+  return html.slice(start, html.indexOf('</table>', start));
+}
+
 describe('triage overview', () => {
   it('lists non-passing features and scenarios first', async () => {
     const html = await renderHtml(
@@ -404,5 +409,70 @@ describe('triage overview', () => {
     expect(html).not.toContain('<img src=x');
     expect(html).not.toContain('<script>alert(2)</script>');
     expect(html).toContain('&lt;img src=x');
+  });
+});
+
+describe('feature overview and matrix', () => {
+  async function mixedReport(): Promise<string> {
+    return renderHtml(
+      [
+        ...(await legacyEnvelopes('behave.json', 'behave')),
+        ...(await legacyEnvelopes('unhappy.json', 'unhappy')),
+        ...(await legacyEnvelopes('failed.json', 'failed')),
+      ],
+      { title: 'Feature overview' },
+    );
+  }
+
+  it('shows counts and a proportion bar on each feature row', async () => {
+    const list = featureList(await mixedReport());
+
+    const happy = list.slice(
+      list.indexOf('Happy HTML reporting'),
+      list.indexOf('Unhappy HTML reporting'),
+    );
+    expect(happy).toContain('5 of 6 passed · 1 failed');
+    expect(happy.match(/<i class="(pass|fail)"/g) ?? []).toHaveLength(2);
+    expect(happy).toContain('class="featureUri"');
+
+    const behave = list.slice(list.indexOf('Behave feature'));
+    expect(behave).toContain('1 of 1 passed');
+    expect(behave.match(/<i class="pass"/g) ?? []).toHaveLength(1);
+    expect(behave).not.toContain('passed ·');
+  });
+
+  it('renders a feature by status matrix in Details', async () => {
+    const matrix = matrixTable(await mixedReport());
+    const headers = [...matrix.matchAll(/<th>(.*?)<\/th>/g)].map(
+      (match) => match[1],
+    );
+    expect(headers).toEqual([
+      'Feature',
+      'Total',
+      'Failed',
+      'Undefined',
+      'Pending',
+      'Passed',
+      'Duration',
+    ]);
+
+    const row = matrix.match(/<tr><td>Happy HTML reporting<\/td>.*?<\/tr>/)?.[0];
+    expect(row).toBeDefined();
+    const cells = [...row!.matchAll(/<td[^>]*>(.*?)<\/td>/g)].map(
+      (match) => match[1],
+    );
+    expect(cells.slice(0, 6)).toEqual(['Happy HTML reporting', '6', '1', '0', '0', '5']);
+    expect(matrix).toContain('class="num zero"');
+  });
+
+  it('shows only present status columns in the matrix', async () => {
+    const html = await renderHtml(
+      await legacyEnvelopes('behave.json', 'behave'),
+      { title: 'Clean matrix' },
+    );
+    const headers = [...matrixTable(html).matchAll(/<th>(.*?)<\/th>/g)].map(
+      (match) => match[1],
+    );
+    expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Duration']);
   });
 });

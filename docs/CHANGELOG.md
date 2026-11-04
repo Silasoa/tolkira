@@ -10,6 +10,8 @@ Keep a Changelog and the project uses semantic versioning.
 - Report overview: features and scenarios with a non-passing status are listed
   first, and a compact "Needs attention" index links to each failing, pending,
   undefined or ambiguous scenario and opens the collapsed detail on the way.
+- Feature rows show passed/total counts and a proportion bar; the Details
+  feature table is now a feature-by-status matrix with totals and durations.
 
 ### Fixed
 

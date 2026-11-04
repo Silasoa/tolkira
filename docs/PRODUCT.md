@@ -41,7 +41,9 @@ The alternatives each solve one part:
 
 There is a gap for a **lightweight, Cucumber-native, one-small-file report that
 accepts both legacy JSON and Messages, preserves screenshots, and adds an
-agent-readable summary without a server or telemetry**.
+agent-readable summary without a server or telemetry**. Single-file output alone
+is no longer a differentiator - the official formatter and Allure both offer
+it. The gap is the combination.
 
 ## Audience
 

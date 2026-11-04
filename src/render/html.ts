@@ -102,6 +102,16 @@ function orderFeatures(features: ReportFeature[]): OrderedFeature[] {
   }));
 }
 
+function countStatuses(
+  scenarios: Array<{ status: ReportStatus }>,
+): Partial<Record<ReportStatus, number>> {
+  const counts: Partial<Record<ReportStatus, number>> = {};
+  for (const scenario of scenarios) {
+    counts[scenario.status] = (counts[scenario.status] ?? 0) + 1;
+  }
+  return counts;
+}
+
 function attentionCounts(scenarios: ReportScenario[]): string {
   const counts = new Map<ReportStatus, number>();
   for (const scenario of scenarios) {
@@ -112,6 +122,31 @@ function attentionCounts(scenarios: ReportScenario[]): string {
     .sort((a, b) => statusSeverity(b[0]) - statusSeverity(a[0]))
     .map(([status, count]) => `${count} ${status}`)
     .join(', ');
+}
+
+function featureBar(scenarios: ReportScenario[]): string {
+  const total = scenarios.length;
+  if (total === 0) return '';
+  const counts = countStatuses(scenarios);
+  const segments = ALL_STATUSES.filter((status) => counts[status])
+    .map(
+      (status) =>
+        `<i class="${statusClass(status)}" style="width:${((counts[status] ?? 0) / total) * 100}%"></i>`,
+    )
+    .join('');
+  return `<span class="bar" aria-hidden="true">${segments}</span>`;
+}
+
+function featureShape(
+  feature: ReportFeature,
+  scenarios: ReportScenario[],
+): string {
+  const passed = scenarios.filter(
+    (scenario) => scenario.status === 'passed',
+  ).length;
+  const attention = attentionCounts(scenarios);
+  const counts = `${passed} of ${scenarios.length} passed${attention ? ` · ${attention}` : ''}`;
+  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}<span class="featureUri">${escapeHtml(feature.uri)}</span></span>`;
 }
 
 function renderTriage(features: OrderedFeature[], model: ReportModel): string {
@@ -273,7 +308,6 @@ function renderFeature(
   { feature, scenarios }: OrderedFeature,
   featureIndex: number,
 ): string {
-  const passed = scenarios.filter((scenario) => scenario.status === 'passed').length;
   const open =
     feature.status === 'failed' ||
     scenarios.some((scenario) =>
@@ -282,11 +316,40 @@ function renderFeature(
   const description = feature.description
     ? `<p class="description">${escapeHtml(feature.description)}</p>`
     : '';
-  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="fmeta">${passed} of ${scenarios.length} passed, ${escapeHtml(feature.uri)}</span><span class="chev" aria-hidden="true"></span></summary>${description}<div class="rows">${scenarios
+  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>${description}<div class="rows">${scenarios
     .map((scenario, scenarioIndex) =>
       renderScenario(scenario, featureIndex, scenarioIndex),
     )
     .join('')}</div></details>`;
+}
+
+function matrixStatuses(model: ReportModel): ReportStatus[] {
+  return ALL_STATUSES.filter((status) => model.counts.scenarios[status] > 0).sort(
+    (a, b) => {
+      const passed = Number(a === 'passed') - Number(b === 'passed');
+      return passed !== 0 ? passed : statusSeverity(b) - statusSeverity(a);
+    },
+  );
+}
+
+function renderFeatureMatrix(model: ReportModel): string {
+  const statuses = matrixStatuses(model);
+  const head = `<tr><th>Feature</th><th>Total</th>${statuses
+    .map((status) => `<th>${statusLabel(status)}</th>`)
+    .join('')}<th>Duration</th></tr>`;
+  const rows = model.features
+    .map((feature) => {
+      const counts = countStatuses(feature.scenarios);
+      const cells = statuses
+        .map((status) => {
+          const count = counts[status] ?? 0;
+          return `<td class="num${count === 0 ? ' zero' : ''}">${count}</td>`;
+        })
+        .join('');
+      return `<tr><td>${escapeHtml(feature.name)}</td><td class="num">${feature.scenarios.length}</td>${cells}<td class="num">${durationLabel(feature.durationMs)}</td></tr>`;
+    })
+    .join('');
+  return `<table class="featureTable"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
 
 function metadataLine(metadata: Record<string, string> | undefined): string {
@@ -362,12 +425,7 @@ function renderAnalysisView(
       : '',
   ].join('');
   const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps</dt><dd>${model.counts.steps.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
-  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature summary table"><table class="featureTable"><thead><tr><th>Feature</th><th>Scenarios</th><th>Passed</th><th>Failed</th><th>Duration</th></tr></thead><tbody>${model.features
-    .map(
-      (feature) =>
-        `<tr><td>${escapeHtml(feature.name)}</td><td class="num">${feature.scenarios.length}</td><td class="num">${feature.scenarios.filter((scenario) => scenario.status === 'passed').length}</td><td class="num">${feature.scenarios.filter((scenario) => scenario.status === 'failed').length}</td><td class="num">${durationLabel(feature.durationMs)}</td></tr>`,
-    )
-    .join('')}</tbody></table></div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
+  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,

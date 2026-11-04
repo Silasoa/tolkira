@@ -1,6 +1,6 @@
 # Tolkira
 
-**One self-contained HTML report for Cucumber JSON, Messages and JUnit XML.**
+**Cucumber reports that stay readable: legacy JSON, Messages and JUnit XML in one self-contained HTML file.**
 
 Tolkira turns test results into a single HTML file you can open offline, attach
 to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
@@ -113,6 +113,11 @@ Tolkira keeps the old input working and fixes the parts that hurt:
 - screenshots and attachments that stay in the report;
 - a stable JSON summary for agents and CI;
 - a small, reviewed dependency surface.
+
+Single-file output alone is no longer unique: the official formatter and Allure
+can produce one file. Tolkira's difference is the combination - both Cucumber
+generations, JUnit as cheap breadth, an agent-readable summary, and no server,
+CDN or telemetry.
 
 The visual comparison uses the report setup from
 [Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
