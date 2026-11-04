@@ -49,4 +49,7 @@ not a backlog of questions.
 - Visual regression baselines after the shell is stable; CI screenshot
   artifacts are in place.
 - Pixel baselines for the new tag filter, search highlight and copy action.
+- 0.2 candidate: a restrained aggregate-status cue at feature level (soft tint
+  or left status rail) in addition to the existing text chip. Keep it
+  colour-plus-text, not a Bootstrap-style traffic-light panel.
 - AI-first exports: per-scenario JSON, multi-select and a visible action menu.
