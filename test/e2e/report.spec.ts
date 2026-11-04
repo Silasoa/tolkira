@@ -270,6 +270,20 @@ test('reflows at 200% page zoom', async ({ page }) => {
       page.getByRole('heading', { name: 'Zoom E2E', level: 1 }),
     ).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible();
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    const textOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+
+    expect(textOverflow).toBeLessThanOrEqual(1);
+    await expect(
+      page.getByRole('heading', { name: 'Zoom E2E', level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

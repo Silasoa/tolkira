@@ -40,6 +40,8 @@ Keep a Changelog and the project uses semantic versioning.
   `exception.message` with the stack trace.
 - Removed `@cucumber/html-formatter`; runtime dependencies are
   `@cucumber/messages` and, loaded only for XML input, `fast-xml-parser`.
+- Type and text-relative spacing use `rem`; the report reflows at 200 % page
+  zoom and doubles cleanly with the browser's text-size setting.
 - Expand-all / collapse-all controls, automatic screenshot disclosure, and
   accessible status labels, permalinks, main landmark and live filter counts.
 - Seed-Test comparison harness, screenshots and offline comparison.

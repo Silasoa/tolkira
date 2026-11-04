@@ -27,10 +27,11 @@ optional Details view, never in the way of the failure.
   decoration.
 - **Native disclosure.** Use `<details>`/`<summary>` with a visible chevron;
   search and filters open the features that contain matches.
-- **Density with air.** Compact rows, but never cramped; 16 px body, 12–14 px
-  metadata, 11 px minimum for functional text.
+- **Density with air.** Compact rows, but never cramped; 0.9375 rem body,
+  0.75–0.875 rem metadata, 0.6875 rem minimum for functional text.
 - **Accessible by default.** WCAG 2.2 AA, keyboard focus, reduced motion,
-  200 % text zoom, no colour-only status, no horizontal page scroll.
+  200 % page zoom and 200 % text zoom, no colour-only status, no horizontal
+  page scroll.
 
 ## Tokens
 
@@ -60,10 +61,35 @@ changes layout.
 
 - System sans for body and display; system mono only for measurements,
   durations, file paths and error text.
-- Body 15–16 px, line-height 1.5–1.55.
-- Row title 13–14 px/600; metadata 11–12 px; step text 12–13 px.
+- Body 0.9375 rem, line-height 1.5–1.55.
+- Row title 0.8125–0.875 rem/600; metadata 0.6875–0.75 rem; step text
+  0.75–0.8125 rem.
 - Sentence case everywhere. No tracked capitals, no emoji icons.
 - No fluid display headings in the report shell; fixed rem steps.
+
+### Why rem, not fluid type
+
+`rem` ties every text size to the root font size, so the browser's
+font-size setting and text-only zoom actually work. Fluid `clamp()`/`vw`
+typography is for marketing pages: in a dense report it makes text small on
+phones and unpredictable at 200 % zoom.
+
+Fixed `px` stays only where it is not text: 1 px hairlines, focus-ring
+thickness, radii and the 1320 px page frame. Spacing, control heights, icon
+size, thumbnails and the fixed thumbnail gutter use `rem` so they grow with
+the text they sit next to. Media-query breakpoints stay in `px` because they
+describe the viewport, not the font.
+
+## Responsive
+
+- Layout responds through content-driven primitives: `minmax()`, `flex-wrap`,
+  `max-width` and two breakpoints (900 px, 560 px). No fixed page width.
+- The 720 × 450 browser test is **200 % page zoom** at a 1440 × 900 window, not
+  a hardcoded layout size. 320 px and 390 px are separate phone checks.
+- Text zoom is tested by doubling the root font size; the layout must reflow
+  without horizontal page scroll.
+- The shell is a document, not an app canvas: it has no viewport-height frame
+  and no horizontal scroll region except tables and code blocks.
 
 ## Components
 
