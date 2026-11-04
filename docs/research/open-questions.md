@@ -15,7 +15,9 @@ not a backlog of questions.
    or TRX adapters now. Cucumber-native depth remains the product.
 3. **Analysis tab.** Rename to **Details** in v0.1; add an environment block
    (producer, runtime, OS, CPU, protocol, user metadata). Charts, trends,
-   history and flaky analytics stay Advanced.
+   history and flaky analytics stay Advanced. Within-run retry flakiness is
+   cheap because Messages keep the attempts; cross-run flakiness needs the
+   history file and stays out of 0.2.
 4. **UI direction.** A is the base. The lead record is removed; thumbnails are
    in the rows (also mobile); search opens matching features and scenarios; the
    mobile feature header is fixed. The A refinement is implemented in
