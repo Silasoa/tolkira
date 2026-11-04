@@ -5,6 +5,12 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- CI runs on pushes to `main` and uses `actions/checkout@v7` and
+  `actions/setup-node@v7`.
+- Fixture toolchains are documented as container/CI jobs; no host installs.
+
 ## [0.1.0] - 2026-11-04
 
 ### Added

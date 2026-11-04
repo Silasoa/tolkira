@@ -72,9 +72,11 @@ The name is pronounced approximately **TOL-kee-rah**.
 
 ## Release status
 
-v0.1.0 is cut from the `v0.1.0` tag; npm publication carries provenance. The
-gate is green: typecheck, lint, unit tests, build and browser tests. Known gaps
-are listed in the changelog and `docs/research/open-questions.md`.
+v0.1.0 is prepared and the gate is green: typecheck, lint, unit tests, build
+and browser tests. Tag and npm publication wait for the npm account and
+trusted publishing. Until the first publish, build from source (see
+Development). Known gaps are listed in the changelog and
+`docs/research/open-questions.md`.
 
 ## Non-goals for v0.1
 
