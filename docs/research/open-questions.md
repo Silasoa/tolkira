@@ -54,4 +54,7 @@ not a backlog of questions.
 - 0.2 candidate: a restrained aggregate-status cue at feature level (soft tint
   or left status rail) in addition to the existing text chip. Keep it
   colour-plus-text, not a Bootstrap-style traffic-light panel.
+- Hierarchical overview: one view of Run → Feature → Scenario → Step status
+  and counts. See `docs/research/hierarchy-overview.md`; prototypes are under
+  `docs/ui-loop/`.
 - AI-first exports: per-scenario JSON, multi-select and a visible action menu.
