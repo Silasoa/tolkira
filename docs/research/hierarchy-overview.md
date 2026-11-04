@@ -68,6 +68,13 @@ A prototype is viable when it:
 - **Inline map** is the only variant that shows every scenario at a glance, but
   it becomes a wall of squares on a 500-scenario run. It works best for the
   failed/pending subset, not all scenarios.
+- **Dashboard scorecard** is the strongest failed-path variant: group strip,
+  failed-first feature cards, open failed scenario and inline error. Its passed
+  features fall below the fold and it reads as a separate dashboard.
+- **Split index** scales best to many features/groups, but adds a selection
+  step before any scenario is visible; it is a browsing mode, not the default.
+- **Treemap** shows where the test mass is, not what failed; area encoding is
+  weak for small features and needs the parallel table.
 - **Compact/tree** exposes the failed step inline and the full hierarchy, but
   costs vertical space and needs sticky feature headers to survive long runs.
 - **Dashboard groups** only have an honest group level when the report models
@@ -81,7 +88,10 @@ A prototype is viable when it:
   feature. A group level therefore needs a product decision before a renderer
   change.
 
-Draft direction: run summary + source-group rows + feature rows (counts, bar,
-failed-scenario links) as the default; matrix in Details; a compact tree or
-scenario strip as an optional mode for large runs. Confirm with the user
-before production work.
+Draft direction: an inline **run overview** with source groups, failed-first
+feature rows (counts + proportion bars), and only failed/pending scenario chips
+linking into the existing details. Keep the existing failed-first list for
+scenario/step depth. Upgrade the Details feature table to the matrix. Treat the
+split index and compact tree as optional modes for large runs, and the treemap
+as a secondary distribution view. Confirm with the user before production
+work.
