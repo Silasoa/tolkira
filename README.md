@@ -49,8 +49,8 @@ The name is pronounced approximately **TOL-kee-rah**.
 - **Report:** failed-first simple report, feature/scenario disclosures, inline
   screenshots and text attachments, doc strings, data tables, hooks, tags,
   durations and errors; search and status filters; dark mode.
-- **Details:** pass/fail counts, feature table, run metadata and the agent
-  summary. It becomes **Details** in the next UI pass.
+- **Details:** pass/fail counts, feature table, an environment block with
+  producer/runtime/OS/CPU/protocol, run metadata and the agent summary.
 - **Branding:** title, metadata, logo and accent colour.
 - **CLI/API:** `tolkira <input...> --out <file>`, `--json`,
   `summarizeReport()`, atomic output, size limits, CSP and escaping.

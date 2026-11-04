@@ -22,29 +22,24 @@
   reports them.
 - [x] 2.5 RED/GREEN: callback success and error paths.
 
-## 3. multiple-cucumber-html-reporter helper
+## 3. Descoped: multiple-cucumber-html-reporter helper
 
-- [ ] 3.1 RED/GREEN: async `generate(options)` maps `jsonDir`, `reportPath`,
-  `reportName`/`pageTitle`, `metadata`, `customData` and `brandLogo`.
-- [ ] 3.2 RED/GREEN: write `<reportPath>/index.html`; warn that `assets/`,
-  deep links and the folder report are not produced.
-- [ ] 3.3 RED/GREEN: custom CSS/JS, i18n, email, CDN and browser-open options
-  warn and are ignored.
+- [x] 3.1 Descoped by user decision: no MCHR helper until demand appears.
+- [x] 3.2 Descoped with 3.1: no folder report or `assets/` output.
+- [x] 3.3 Descoped with 3.1: the shared mapper still warns on ignored options.
 
-## 4. CLI
+## 4. Descoped: CLI
 
-- [ ] 4.1 RED/GREEN: `tolkira compat cucumber-html-reporter --options <file>`
-  and `--dry-run`.
-- [ ] 4.2 RED/GREEN: `tolkira compat multiple-cucumber-html-reporter
-  --options <file>` and `--dry-run`.
-- [ ] 4.3 Ensure warnings go to stderr and never change the exit code.
+- [x] 4.1 Descoped by user decision: no `tolkira compat` subcommand.
+- [x] 4.2 Descoped with 4.1.
+- [x] 4.3 Not applicable: the helper returns warnings instead of printing them.
 
 ## 5. Packaging and docs
 
-- [x] 5.1 Add the two `./compat/*` entries to `package.json` exports and verify
-  `npm pack`.
+- [x] 5.1 Add the `./compat/cucumber-html-reporter` entry to `package.json`
+  exports and verify `npm pack`.
 - [x] 5.2 Add `docs/COMPATIBILITY.md` with the mapping table, examples and the
   visual-parity caveat; link it from the README.
-- [x] 5.3 Mark the subpaths experimental; document the deprecation policy.
+- [x] 5.3 Mark the subpath experimental; document the deprecation policy.
 - [x] 5.4 Run `npm run check`, `npm run test:e2e`, `npm pack --dry-run` and
   `openspec validate reporter-compatibility-shim --strict`.

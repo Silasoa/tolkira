@@ -3,8 +3,8 @@
 ## Shape
 
 A shared mapper turns the old options object into Tolkira options and a list
-of warnings. Two thin entry points keep the old call signatures; neither
-contains rendering logic.
+of warnings. One thin entry point keeps the old call signature; it contains no
+rendering logic.
 
 ```
 old options ──► compat/options.ts ──► generateReport() ──► writeAtomic()
@@ -25,27 +25,11 @@ generate(options, callback?): Promise<CompatResult>
 - Also returns a promise with `{ output, warnings, summary }` for new code.
 - `output` is required; `jsonFile` or `jsonDir` is required.
 
-### `tolkira/compat/multiple-cucumber-html-reporter`
+### Descoped: multiple-cucumber-html-reporter and the CLI
 
-```ts
-generate(options): Promise<CompatResult>
-```
-
-- Async only; maps `jsonDir`, `reportPath`, `reportName`, `pageTitle`,
-  `metadata`, `customData`, `brandLogo`.
-- Writes `<reportPath>/index.html`; warns that the old folder, `assets/` and
-  deep links are not produced.
-- Unknown and presentation-only options warn and are ignored.
-
-### CLI
-
-```
-tolkira compat cucumber-html-reporter --options ./report-options.json [--dry-run]
-tolkira compat multiple-cucumber-html-reporter --options ./.multiple-cucumber-html-reporter.json [--dry-run]
-```
-
-JSON configs only in v0.1. `--dry-run` prints resolved inputs, output, title,
-metadata and warnings; writes nothing.
+The MCHR helper and a `tolkira compat` subcommand are out of scope until real
+demand appears. The mapper and `writeAtomic` are shared, so adding them later
+does not require a rewrite.
 
 ## Mapping
 
@@ -53,7 +37,6 @@ metadata and warnings; writes nothing.
 | --- | --- |
 | `jsonFile`, `jsonDir` | input file / recursive directory |
 | `output` | exact HTML path |
-| `reportPath` (mchr) | `<reportPath>/index.html` |
 | `brandTitle`, `name`, `reportName`, `pageTitle` | title |
 | `metadata`, `customData` | flat scalar `--meta` entries |
 | `brandLogo` | logo |

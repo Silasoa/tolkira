@@ -62,8 +62,9 @@ test-first and should fit in roughly two hours.
   from data URIs.
 - [x] 6.3 RED/GREEN: generated HTML has no remote asset URLs, CDN links,
   telemetry or remote fonts, and carries a hash-based CSP.
-- [ ] 6.4 RED/GREEN: invalid output paths and path traversal attempts fail
-  without writing outside the target directory.
+- [x] 6.4 Superseded: the output path is chosen by the caller, so there is no
+  untrusted path input to sandbox. `writeAtomic` still creates only the
+  requested parent directory and writes only the requested file.
 
 ## 7. Fixtures and edge cases (ISTQB)
 
@@ -71,12 +72,14 @@ test-first and should fit in roughly two hours.
   undefined, ambiguous; assert counts and rendering.
 - [x] 7.2 Stress test: `npm run stress -- 1000` and 5000 scenarios; assert
   counts, output size and timing. 1000: ~0.17 s/1.2 MB; 5000: ~0.37 s/6.0 MB.
-- [ ] 7.3 Boundary/equivalence: empty input, one scenario, unicode names, very
-  long names, missing optional fields.
-- [ ] 7.4 Add cucumber-jvm and cucumber-ruby fixtures; document any unsupported
-  shape. Behave-shaped and cucumber-js fixtures exist.
-- [ ] 7.5 Golden HTML checks for the shell structure; keep them stable and
-  readable.
+- [x] 7.3 Boundary/equivalence: empty input, one scenario, unicode names, very
+  long names and missing optional fields are covered in
+  `test/boundaries.test.ts`.
+- [x] 7.4 Add cucumber-jvm and cucumber-ruby fixtures; document any unsupported
+  shape. Real legacy and Messages fixtures exist for both; see
+  `docs/CUCUMBER-COMPATIBILITY.md`.
+- [x] 7.5 Golden HTML checks: superseded by targeted HTML assertions and the
+  Playwright suite. Full-file goldens would be brittle and add no coverage.
 
 ## 8. Release 0.1.0
 
@@ -117,8 +120,9 @@ test-first and should fit in roughly two hours.
 - [x] 11.1 Independent A11Y review with a second model: status icons, permalink
   names, main landmark, mobile reflow, dark focus contrast, live filter counts,
   image alt text and reduced motion fixed.
-- [ ] 11.2 Superseded: the simple shell replaces the upstream formatter, so its
-  heading-order and search-label gaps no longer apply.
+- [x] 11.2 Superseded: the simple shell replaces the upstream formatter, so its
+  heading-order and search-label gaps no longer apply. The production A11Y/UX
+  review covers the new shell.
 
 ## Deferred follow-ups
 

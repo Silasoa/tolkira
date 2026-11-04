@@ -16,9 +16,6 @@ options it cannot honour.
 
 - Add `tolkira/compat/cucumber-html-reporter` exporting
   `generate(options, callback?)` with the old option shape.
-- Add `tolkira/compat/multiple-cucumber-html-reporter` exporting async
-  `generate(options)`.
-- Add `tolkira compat <reporter> --options <file> [--dry-run]`.
 - Map inputs, output, title, metadata and logo; warn once per ignored option
   (themes, charts, external screenshots, custom CSS/JS, i18n, email, browser
   launch).
@@ -26,6 +23,11 @@ options it cannot honour.
   input scan and output-parent creation already in core.
 - Do **not** transform the old generated HTML. The shim consumes the same
   input JSON and options and renders with Tolkira.
+
+Out of scope for now (user decision): the
+`multiple-cucumber-html-reporter` helper and a `tolkira compat` CLI
+subcommand. Add them only when real demand appears; the shared options mapper
+keeps that door open.
 
 ## Capabilities
 
@@ -35,7 +37,7 @@ options it cannot honour.
 
 ## Impact
 
-- Adds optional package subpaths and a CLI subcommand; no change to existing
-  inputs, output or summary schema.
+- Adds an optional package subpath; no change to existing inputs, output or
+  summary schema.
 - Adds tests and a docs page; no new runtime dependency.
 - Old themes and charts are not reproduced; this is documented and warned.
