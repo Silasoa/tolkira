@@ -59,6 +59,12 @@ It SHALL NOT render when every scenario passed.
 - **THEN** no needs-attention index is rendered
 - **AND** the feature list is unchanged apart from ordering
 
+#### Scenario: Filters are active
+
+- **WHEN** the user searches, selects a tag or turns off a status filter
+- **THEN** the index is hidden while the list shows the filtered results
+- **AND** clearing the filters shows the index again
+
 ### Requirement: Jump from the index to a result
 
 Index entries SHALL be ordinary links to stable anchors on the feature and

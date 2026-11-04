@@ -5,6 +5,12 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+### Added
+
+- Report overview: features and scenarios with a non-passing status are listed
+  first, and a compact "Needs attention" index links to each failing, pending,
+  undefined or ambiguous scenario and opens the collapsed detail on the way.
+
 ### Fixed
 
 - `--logo` without `--out` now fails with a usage error instead of silently

@@ -87,6 +87,11 @@ test('stays usable across viewports', async ({ page }) => {
       );
       await expectWithinViewport(
         page,
+        page.locator('[data-triage]'),
+        `${label} triage index`,
+      );
+      await expectWithinViewport(
+        page,
         page.getByRole('searchbox', { name: 'Search scenarios' }),
         `${label} search`,
       );
@@ -115,6 +120,11 @@ test('stays usable across viewports', async ({ page }) => {
 
     expect(await pageOverflow(page), '320x700 at 200% text').toBeLessThanOrEqual(
       1,
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('[data-triage]'),
+      '320x700 at 200% triage index',
     );
     const scenarioTitle = page.locator('.scenarioName').first();
     await expect(scenarioTitle, 'zoomed scenario title').toBeVisible();

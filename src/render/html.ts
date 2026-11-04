@@ -3,6 +3,7 @@ import type { Envelope } from '@cucumber/messages';
 import { sanitizeEnvelopes } from '../input/sanitize.js';
 import {
   buildReportModel,
+  statusSeverity,
   type ReportAttachment,
   type ReportFeature,
   type ReportModel,
@@ -70,6 +71,84 @@ function displayStatuses(model: ReportModel): DisplayStatus[] {
   return ALL_STATUSES.filter(
     (status) => model.counts.scenarios[status] > 0,
   );
+}
+
+interface OrderedFeature {
+  feature: ReportFeature;
+  scenarios: ReportScenario[];
+}
+
+const TRIAGE_FEATURE_LIMIT = 20;
+const TRIAGE_SCENARIO_LIMIT = 3;
+
+function bySeverity<T extends { status: ReportStatus }>(items: T[]): T[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const passed =
+        Number(a.item.status === 'passed') - Number(b.item.status === 'passed');
+      if (passed !== 0) return passed;
+      const severity =
+        statusSeverity(b.item.status) - statusSeverity(a.item.status);
+      return severity !== 0 ? severity : a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
+function orderFeatures(features: ReportFeature[]): OrderedFeature[] {
+  return bySeverity(features).map((feature) => ({
+    feature,
+    scenarios: bySeverity(feature.scenarios),
+  }));
+}
+
+function attentionCounts(scenarios: ReportScenario[]): string {
+  const counts = new Map<ReportStatus, number>();
+  for (const scenario of scenarios) {
+    if (scenario.status === 'passed') continue;
+    counts.set(scenario.status, (counts.get(scenario.status) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => statusSeverity(b[0]) - statusSeverity(a[0]))
+    .map(([status, count]) => `${count} ${status}`)
+    .join(', ');
+}
+
+function renderTriage(features: OrderedFeature[], model: ReportModel): string {
+  const attention = features
+    .map((entry, index) => ({ ...entry, index }))
+    .filter(({ scenarios }) =>
+      scenarios.some((scenario) => scenario.status !== 'passed'),
+    );
+  if (attention.length === 0) return '';
+
+  const shown = attention.slice(0, TRIAGE_FEATURE_LIMIT);
+  const total = model.counts.scenarios.total;
+  const need = total - model.counts.scenarios.passed;
+  const rows = shown
+    .map(({ feature, scenarios, index }) => {
+      const failing = scenarios.filter(
+        (scenario) => scenario.status !== 'passed',
+      );
+      const links = failing
+        .slice(0, TRIAGE_SCENARIO_LIMIT)
+        .map((scenario) => {
+          const scenarioIndex = scenarios.indexOf(scenario) + 1;
+          return `<li><a class="triageScenario" href="#scenario-${index + 1}-${scenarioIndex}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status).toLowerCase()}</span><span>${escapeHtml(scenario.name)}</span></a></li>`;
+        })
+        .join('');
+      const more =
+        failing.length > TRIAGE_SCENARIO_LIMIT
+          ? `<li class="triageMore">+${failing.length - TRIAGE_SCENARIO_LIMIT} more in the report</li>`
+          : '';
+      return `<li class="triageItem"><a class="triageFeature" href="#feature-${index + 1}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status).toLowerCase()}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul></li>`;
+    })
+    .join('');
+  const remainder =
+    attention.length > shown.length
+      ? `<p class="triageMore">${attention.length - shown.length} more feature${attention.length - shown.length === 1 ? '' : 's'} below.</p>`
+      : '';
+  return `<nav class="triage" aria-labelledby="triage-heading" data-triage><h2 id="triage-heading">Needs attention</h2><p class="triageLead">${need} of ${total} scenario${total === 1 ? '' : 's'} ${need === 1 ? 'needs' : 'need'} attention.</p><ol class="triageList">${rows}</ol>${remainder}</nav>`;
 }
 
 function statusBar(model: ReportModel): string {
@@ -165,7 +244,11 @@ function scenarioText(scenario: ReportScenario): string {
   ].join(' ');
 }
 
-function renderScenario(scenario: ReportScenario): string {
+function renderScenario(
+  scenario: ReportScenario,
+  featureIndex: number,
+  scenarioIndex: number,
+): string {
   const image = scenario.attachments.find(
     (attachment) => attachment.kind === 'image' && attachment.dataUri,
   );
@@ -183,20 +266,27 @@ function renderScenario(scenario: ReportScenario): string {
     scenario.status === 'failed'
       ? '<button class="copyFailure" type="button" data-copy-failure>Copy failure</button>'
       : '';
-  return `<details class="scenario" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(scenario.uri)}" data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><h4>Steps</h4>${copyFailure}</div><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(scenario.uri)}" data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><h4>Steps</h4>${copyFailure}</div><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
-function renderFeature(feature: ReportFeature): string {
-  const passed = feature.scenarios.filter((scenario) => scenario.status === 'passed').length;
+function renderFeature(
+  { feature, scenarios }: OrderedFeature,
+  featureIndex: number,
+): string {
+  const passed = scenarios.filter((scenario) => scenario.status === 'passed').length;
   const open =
     feature.status === 'failed' ||
-    feature.scenarios.some((scenario) =>
+    scenarios.some((scenario) =>
       scenario.attachments.some((attachment) => attachment.kind === 'image'),
     );
   const description = feature.description
     ? `<p class="description">${escapeHtml(feature.description)}</p>`
     : '';
-  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="fmeta">${passed} of ${feature.scenarios.length} passed, ${escapeHtml(feature.uri)}</span><span class="chev" aria-hidden="true"></span></summary>${description}<div class="rows">${feature.scenarios.map(renderScenario).join('')}</div></details>`;
+  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="fmeta">${passed} of ${scenarios.length} passed, ${escapeHtml(feature.uri)}</span><span class="chev" aria-hidden="true"></span></summary>${description}<div class="rows">${scenarios
+    .map((scenario, scenarioIndex) =>
+      renderScenario(scenario, featureIndex, scenarioIndex),
+    )
+    .join('')}</div></details>`;
 }
 
 function metadataLine(metadata: Record<string, string> | undefined): string {
@@ -218,9 +308,11 @@ function renderReportView(
   const percent = total === 0 ? 0 : Math.round((passed / total) * 1000) / 10;
   const meta = metadataLine(options.metadata);
   const date = dateLabel(model.startedAt);
-  const features = model.features
-    .map((feature) => renderFeature(feature))
+  const ordered = orderFeatures(model.features);
+  const features = ordered
+    .map((feature, index) => renderFeature(feature, index))
     .join('');
+  const triage = renderTriage(ordered, model);
   const tags = scenarioTags(model);
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
@@ -230,7 +322,7 @@ function renderReportView(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
     )
-    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="sr" id="tolkira-copy-live" aria-live="polite"></p><div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div><div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
+    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="sr" id="tolkira-copy-live" aria-live="polite"></p>${triage}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div><div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
 }
 
 function renderAnalysisView(
@@ -315,6 +407,7 @@ const SCRIPT = `<script>
   var scenarios = Array.prototype.slice.call(document.querySelectorAll('[data-scenario]'));
   var features = Array.prototype.slice.call(document.querySelectorAll('[data-feature]'));
   var live = document.getElementById('tolkira-live');
+  var triage = document.querySelector('[data-triage]');
   function apply() {
     var query = state.query.toLowerCase();
     var tag = state.tag;
@@ -342,6 +435,7 @@ const SCRIPT = `<script>
     if (live) live.textContent = visible + ' of ' + scenarios.length + ' scenarios visible';
     var empty = document.getElementById('empty-results');
     if (empty) empty.hidden = visible !== 0;
+    if (triage) triage.hidden = Boolean(query || tag || state.hidden.size);
     highlightSearch();
   }
   function clearHighlights() {
@@ -536,7 +630,22 @@ const SCRIPT = `<script>
     lightbox.addEventListener('click', function (event) { if (event.target === lightbox) closeDialog(); });
     lightbox.addEventListener('close', restoreLightbox);
   }
+  function revealHash() {
+    if (!location.hash) return;
+    var id = '';
+    try { id = decodeURIComponent(location.hash.slice(1)); } catch (error) { return; }
+    var target = document.getElementById(id);
+    if (!target) return;
+    var node = target;
+    while (node) {
+      if (node.tagName === 'DETAILS') node.open = true;
+      node = node.parentElement;
+    }
+    target.scrollIntoView();
+  }
+  window.addEventListener('hashchange', revealHash);
   showView('report');
+  revealHash();
 })();
 </script>`;
 

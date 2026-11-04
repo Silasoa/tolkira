@@ -23,6 +23,9 @@ const xssFixture = fileURLToPath(
 const noMessageFixture = fileURLToPath(
   new URL('../fixtures/legacy/failed-no-message.json', import.meta.url),
 );
+const unhappyFixture = fileURLToPath(
+  new URL('../fixtures/legacy/unhappy.json', import.meta.url),
+);
 
 test('renders a messages report in the browser', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-e2e-'));
@@ -645,4 +648,77 @@ test('reflows at 200% page zoom', async ({ page }) => {
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+async function writeUnhappyReport(): Promise<{ dir: string; output: string }> {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-e2e-'));
+  const output = path.join(dir, 'triage-report.html');
+  const code = await runCli(
+    [unhappyFixture, '--out', output, '--title', 'Triage E2E'],
+    { stdout: () => undefined, stderr: () => undefined },
+  );
+  expect(code).toBe(0);
+  return { dir, output };
+}
+
+test('opens a scenario from the needs-attention index', async ({ page }) => {
+  const { dir, output } = await writeUnhappyReport();
+
+  try {
+    await page.goto(pathToFileURL(output).href);
+    const triage = page.getByRole('navigation', { name: 'Needs attention' });
+    await expect(triage).toBeVisible();
+    const openBefore = await page.locator('[data-scenario][open]').count();
+
+    const link = triage.getByRole('link', { name: /steps are skipped/ });
+    await link.focus();
+    await expect(link).toBeFocused();
+    await link.press('Enter');
+
+    const hash = new URL(page.url()).hash;
+    expect(hash).toMatch(/^#scenario-\d+-\d+$/);
+    const target = page.locator(hash);
+    await expect(target).toBeVisible();
+    await expect(target).toHaveJSProperty('open', true);
+    expect(
+      await target.evaluate(
+        (element) =>
+          element.closest<HTMLDetailsElement>('details[data-feature]')?.open,
+      ),
+    ).toBe(true);
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(
+      openBefore + 1,
+    );
+
+    await page.reload();
+    await expect(page.locator(hash)).toHaveJSProperty('open', true);
+
+    await page.getByRole('button', { name: /^Passed/ }).click();
+    await expect(triage).toBeHidden();
+    await page.getByRole('button', { name: /^Passed/ }).click();
+    await expect(triage).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test.describe('without scripting', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('keeps the triage links readable', async ({ page }) => {
+    const { dir, output } = await writeUnhappyReport();
+
+    try {
+      await page.goto(pathToFileURL(output).href);
+      const triage = page.getByRole('navigation', { name: 'Needs attention' });
+      await expect(triage).toBeVisible();
+      await expect(
+        triage.getByRole('link', { name: /steps are skipped/ }),
+      ).toHaveAttribute('href', /^#scenario-\d+-\d+$/);
+      await expect(page.locator('#feature-1')).toBeVisible();
+      await expect(page.locator('#report-view')).toBeVisible();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });

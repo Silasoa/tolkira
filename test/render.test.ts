@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { renderReport } from '../src/index.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
+import { buildReportModel } from '../src/report/model.js';
 import { renderHtml } from '../src/render/html.js';
 
 const fixture = fileURLToPath(
@@ -240,5 +241,168 @@ describe('messages rendering', () => {
     expect(html).toContain("connect-src 'none'");
     expect(html).toContain("script-src 'sha256-");
     expect(html).not.toMatch(/url\((?:https?:)?\/\//i);
+  });
+});
+
+async function legacyEnvelopes(name: string, idPrefix: string) {
+  const content = await readFile(
+    fileURLToPath(new URL(`./fixtures/legacy/${name}`, import.meta.url)),
+    'utf8',
+  );
+  return parseLegacyJson(content, name, { idPrefix });
+}
+
+function syntheticRun(
+  features: Array<{
+    name: string;
+    scenarios: Array<{ name: string; status: string }>;
+  }>,
+) {
+  return parseLegacyJson(
+    JSON.stringify(
+      features.map((feature) => ({
+        name: feature.name,
+        elements: feature.scenarios.map((scenario) => ({
+          keyword: 'Scenario',
+          type: 'scenario',
+          name: scenario.name,
+          steps: [
+            {
+              keyword: 'Given ',
+              name: 'a step',
+              result: { status: scenario.status, duration: 1 },
+            },
+          ],
+        })),
+      })),
+    ),
+    'synthetic.json',
+  );
+}
+
+function featureList(html: string): string {
+  return html.slice(
+    html.indexOf('id="feature-list"'),
+    html.indexOf('id="empty-results"'),
+  );
+}
+
+describe('triage overview', () => {
+  it('lists non-passing features and scenarios first', async () => {
+    const html = await renderHtml(
+      [
+        ...(await legacyEnvelopes('behave.json', 'behave')),
+        ...(await legacyEnvelopes('unhappy.json', 'unhappy')),
+        ...(await legacyEnvelopes('failed.json', 'failed')),
+      ],
+      { title: 'Triage order' },
+    );
+
+    const list = featureList(html);
+    const features = [...list.matchAll(/<h2>(.*?)<\/h2>/g)].map(
+      (match) => match[1],
+    );
+    expect(features).toEqual([
+      'Happy HTML reporting',
+      'Unhappy HTML reporting',
+      'Behave feature',
+    ]);
+
+    const unhappy = list.slice(
+      list.indexOf('Unhappy HTML reporting'),
+      list.indexOf('Behave feature'),
+    );
+    const scenarios = [...unhappy.matchAll(/<h3 class="scenarioName">(.*?)<\/h3>/g)].map(
+      (match) => match[1],
+    );
+    expect(scenarios).toEqual([
+      'Fred wants to see if steps are pending in the HTML report',
+      'Fred wants to see if steps are undefined on the HTML report',
+      'Fred wants to see if steps are skipped on the HTML report',
+      'Fred wants to see a Screenshot attached to the HTML report',
+    ]);
+  });
+
+  it('keeps the model in input order', async () => {
+    const model = buildReportModel([
+      ...(await legacyEnvelopes('behave.json', 'behave')),
+      ...(await legacyEnvelopes('unhappy.json', 'unhappy')),
+      ...(await legacyEnvelopes('failed.json', 'failed')),
+    ]);
+
+    expect(model.features.map((feature) => feature.name)).toEqual([
+      'Behave feature',
+      'Unhappy HTML reporting',
+      'Happy HTML reporting',
+    ]);
+  });
+
+  it('renders a needs-attention index with counts and anchors', async () => {
+    const html = await renderHtml(
+      [
+        ...(await legacyEnvelopes('behave.json', 'behave')),
+        ...(await legacyEnvelopes('unhappy.json', 'unhappy')),
+        ...(await legacyEnvelopes('failed.json', 'failed')),
+      ],
+      { title: 'Triage index' },
+    );
+
+    expect(html).toContain('Needs attention');
+    expect(html).toContain('4 of 11 scenarios need attention.');
+    expect(html).toContain('href="#feature-1"');
+    expect(html).toContain('href="#scenario-1-1"');
+    expect(html).toContain('href="#scenario-2-1"');
+    expect(html).toContain('1 failed');
+    expect(html).toContain('2 undefined, 1 pending');
+    expect(html).not.toContain('Behave feature</a>');
+  });
+
+  it('omits the index when every scenario passed', async () => {
+    const html = await renderHtml(await legacyEnvelopes('behave.json', 'behave'), {
+      title: 'Clean run',
+    });
+
+    expect(html).not.toContain('Needs attention');
+  });
+
+  it('caps feature rows and scenario links', async () => {
+    const many = syntheticRun(
+      Array.from({ length: 21 }, (_, index) => ({
+        name: `Feature ${index + 1}`,
+        scenarios: [{ name: `Scenario ${index + 1}`, status: 'failed' }],
+      })),
+    );
+    const manyHtml = await renderHtml(many, { title: 'Many features' });
+    expect(manyHtml.match(/class="triageItem"/g) ?? []).toHaveLength(20);
+    expect(manyHtml).toContain('1 more feature below');
+
+    const noisy = syntheticRun([
+      {
+        name: 'Noisy feature',
+        scenarios: Array.from({ length: 4 }, (_, index) => ({
+          name: `Scenario ${index + 1}`,
+          status: 'failed',
+        })),
+      },
+    ]);
+    const noisyHtml = await renderHtml(noisy, { title: 'Many failures' });
+    expect(noisyHtml.match(/class="triageScenario"/g) ?? []).toHaveLength(3);
+    expect(noisyHtml).toContain('+1 more in the report');
+  });
+
+  it('escapes untrusted names in the index', async () => {
+    const html = await renderHtml(
+      syntheticRun([
+        {
+          name: '<img src=x onerror=alert(1)>',
+          scenarios: [{ name: '<script>alert(2)</script>', status: 'failed' }],
+        },
+      ]),
+      { title: 'Hostile triage' },
+    );
+
+    expect(html).not.toContain('<img src=x');
+    expect(html).not.toContain('<script>alert(2)</script>');
+    expect(html).toContain('&lt;img src=x');
   });
 });

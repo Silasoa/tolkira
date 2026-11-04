@@ -119,6 +119,11 @@ const STATUS_ORDER: TestStepResultStatus[] = [
   TestStepResultStatus.FAILED,
 ];
 
+/** Cucumber severity: higher is worse. Shared by the model and the report view. */
+export function statusSeverity(status: ReportStatus): number {
+  return STATUS_ORDER.indexOf(status.toUpperCase() as TestStepResultStatus);
+}
+
 const VALID_STATUS = new Set<ReportStatus>([
   'passed',
   'failed',
