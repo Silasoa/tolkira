@@ -53,6 +53,16 @@ test('renders a messages report in the browser', async ({ page }) => {
     ).toBeVisible();
     await expect(page.locator('.scenarioButton .thumb').first()).toBeVisible();
 
+    await page.locator('.shotButton').first().click();
+    const lightbox = page.locator('#tolkira-lightbox');
+    await expect(lightbox).toBeVisible();
+    await expect(lightbox.locator('img')).toHaveAttribute(
+      'src',
+      /^data:image\/png/,
+    );
+    await page.keyboard.press('Escape');
+    await expect(lightbox).toBeHidden();
+
     await expect(
       page.getByRole('heading', { name: 'Failing scenario' }),
     ).toBeVisible();

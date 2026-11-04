@@ -131,6 +131,12 @@ details[open] > summary.scenarioButton { background: var(--accent-soft); }
 .dataTable th { color: var(--muted); font-weight: 500; background: var(--surface-3); }
 .attachment { margin: 10px 0 4px; }
 .shot { display: block; width: auto; max-width: min(100%, 560px); max-height: 70vh; object-fit: contain; border: 1px solid var(--line-strong); border-radius: 6px; margin: 10px 0 4px; background: var(--surface-2); }
+.shotButton { display: block; max-width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.shotButton:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lightbox { position: relative; max-width: min(94vw, 1400px); max-height: 92vh; padding: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--paper); color: var(--ink); }
+.lightbox::backdrop { background: #000000b3; }
+.lightbox img { display: block; max-width: 90vw; max-height: 82vh; object-fit: contain; margin: 0 auto; }
+.lightboxClose { position: absolute; top: 8px; right: 8px; z-index: 1; min-height: 32px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--paper); color: var(--ink); font-size: 12px; }
 .attachment figcaption { margin-top: 5px; color: var(--muted); font-size: 11px; }
 .attachmentText { margin: 8px 0; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; background: var(--surface-2); }
 .attachmentText summary { cursor: pointer; color: var(--accent-text); font-size: 12px; }

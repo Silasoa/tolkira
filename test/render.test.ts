@@ -33,6 +33,8 @@ describe('messages rendering', () => {
     expect(html).toContain('data-expand="none"');
     expect(html).toContain('class="thumb"');
     expect(html).toContain('class="chev"');
+    expect(html).toContain('class="shotButton"');
+    expect(html).toContain('id="tolkira-lightbox"');
     expect(html).toContain('Runtime');
     expect(html).toContain('Protocol');
     expect(html.length).toBeGreaterThan(20_000);

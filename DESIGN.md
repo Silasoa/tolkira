@@ -122,13 +122,14 @@ Direction A is implemented in production:
 - chevrons, failed-first disclosures and search that opens matching features;
 - `undefined` is a distinct status, not a neutral one;
 - Details tab with producer, runtime, OS, CPU, protocol and user metadata;
-- empty state for search/filter results.
+- empty state for search/filter results;
+- screenshot lightbox with a close button and Escape support.
 
 CSS lives in `src/render/report.css`; `scripts/build-styles.mjs` generates
 `src/render/styles.ts` for the inline report.
 
-Still open: screenshot lightbox/full-size link, a 200 % text-zoom pass with
-real content, and charts/trends in Advanced.
+Still open: a 200 % text-zoom pass with real content, and charts/trends in
+Advanced.
 
 ## Non-goals
 

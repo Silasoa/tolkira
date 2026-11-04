@@ -92,7 +92,7 @@ function renderAttachment(
   const name = escapeHtml(attachment.fileName);
   const media = escapeHtml(attachment.mediaType);
   if (attachment.kind === 'image' && attachment.dataUri) {
-    return `<figure class="attachment"><img class="shot" src="${escapeHtml(attachment.dataUri)}" alt="Attachment ${name} (${media})"><figcaption>${name} (${media})</figcaption></figure>`;
+    return `<figure class="attachment"><button class="shotButton" type="button" aria-label="View full size: ${name}"><img class="shot" src="${escapeHtml(attachment.dataUri)}" alt="Attachment ${name} (${media})"></button><figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'video' && attachment.dataUri) {
     return `<figure class="attachment"><video class="shot" controls src="${escapeHtml(attachment.dataUri)}"></video><figcaption>${name} (${media})</figcaption></figure>`;
@@ -323,6 +323,23 @@ const SCRIPT = `<script>
       scenarios.forEach(function (scenario) { scenario.open = open; });
     });
   });
+  var lightbox = document.getElementById('tolkira-lightbox');
+  if (lightbox) {
+    var lightboxImage = lightbox.querySelector('img');
+    var closeLightbox = lightbox.querySelector('[data-lightbox-close]');
+    Array.prototype.slice.call(document.querySelectorAll('.shotButton')).forEach(function (button) {
+      button.addEventListener('click', function () {
+        var image = button.querySelector('img');
+        if (!image || !lightboxImage) return;
+        lightboxImage.src = image.src;
+        lightboxImage.alt = image.alt;
+        if (typeof lightbox.showModal === 'function') lightbox.showModal();
+        else lightbox.setAttribute('open', '');
+      });
+    });
+    if (closeLightbox) closeLightbox.addEventListener('click', function () { lightbox.close(); });
+    lightbox.addEventListener('click', function (event) { if (event.target === lightbox) lightbox.close(); });
+  }
   showView('report');
 })();
 </script>`;
@@ -355,7 +372,7 @@ export async function renderHtml(
   const accent = isValidAccent(options.accent)
     ? `<style>:root{--accent:${options.accent}}</style>`
     : '';
-  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}${SCRIPT}`;
+  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}<dialog class="lightbox" id="tolkira-lightbox" aria-label="Full-size attachment"><button class="lightboxClose" type="button" data-lightbox-close>Close</button><img alt=""></dialog>${SCRIPT}`;
   const hashes = inlineScriptHashes(body);
   return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(hashes)}\n<style>${REPORT_CSS}${accent}</style>\n</head>\n<body>${body}</body>\n</html>`;
 }

@@ -25,7 +25,8 @@ Keep a Changelog and the project uses semantic versioning.
 - Simple default report plus optional Details tab; no React runtime.
 - Report shell refresh: warm paper surface, hairline sections, monospace
   measurements, fixed thumbnail gutter in scenario rows, chevrons, search that
-  opens matching features, empty state, and an environment block in Details.
+  opens matching features, empty state, an environment block in Details, and a
+  screenshot lightbox with Escape/close support.
 - Report CSS now lives in `src/render/report.css` and is generated into
   `src/render/styles.ts`; agents edit real CSS, not a JSON string.
 - `tolkira/compat/cucumber-html-reporter` (experimental): old options object,

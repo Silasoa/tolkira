@@ -18,7 +18,7 @@ not a backlog of questions.
    history and flaky analytics stay Advanced.
 4. **UI direction.** A is the base. The lead record is removed; thumbnails are
    in the rows (also mobile); search opens matching features; the mobile
-   feature header is fixed. The A refinement is implemented in production; the screenshot lightbox and 200 % text-zoom pass remain.
+   feature header is fixed. The A refinement is implemented in production, including the screenshot lightbox; the 200 % text-zoom pass remains.
 5. **Product facts.** Allure 3 supports single-file through the Awesome plugin;
    `multiple-cucumber-html-reporter` 4.x reads Messages. `PRODUCT.md` is
    corrected. The wedge is the combination, not single-file alone.
@@ -38,7 +38,7 @@ not a backlog of questions.
 
 - Real cucumber-ruby fixture; update the compatibility matrix.
 - Real Behave run with attachments/doc strings.
-- Screenshot lightbox / full-size link and a 200 % text-zoom pass.
+- 200 % text-zoom pass with real content.
 - AI-first exports: per-scenario JSON, “copy failure for agent”, multi-select,
   visible action menu.
 - Release checklist and changelog before any npm publication.
