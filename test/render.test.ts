@@ -9,6 +9,12 @@ import { renderHtml } from '../src/render/html.js';
 const fixture = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
 );
+const legacyTableFixture = fileURLToPath(
+  new URL('./fixtures/legacy/happy.json', import.meta.url),
+);
+const passedOnlyFixture = fileURLToPath(
+  new URL('./fixtures/legacy/behave.json', import.meta.url),
+);
 
 describe('messages rendering', () => {
   it('renders the simple report and analysis view', async () => {
@@ -18,6 +24,13 @@ describe('messages rendering', () => {
     expect(html).toContain('<h1>Tolkira test</h1>');
     expect(html).toContain('id="report-view"');
     expect(html).toContain('id="analysis-view"');
+    expect(html).toContain('id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"');
+    expect(html).toContain('id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden');
+    expect(html).toContain('aria-label="Agent summary JSON"');
+    expect(html).toContain('<h4>Steps</h4>');
+    expect(html).toContain('class="stepMarker');
+    expect(html).toContain('Cucumber environment');
+    expect(html).toContain('Producer');
     expect(html).toContain('id="view-analysis"');
     expect(html).toContain('data-view="report"');
     expect(html).toContain('data-view="analysis"');
@@ -46,7 +59,9 @@ describe('messages rendering', () => {
     expect(html).toContain('data-status="failed"');
     expect(html).toContain('data-scenario');
     expect(html).toContain('class="shot"');
-    expect(html).toContain('alt="Attachment screenshot.png (image/png)"');
+    expect(html).toContain(
+      'alt="Screenshot for Attach a screenshot: Given I attach a screenshot: screenshot.png (image/png)"',
+    );
   });
 
   it('escapes the report title', async () => {
@@ -69,8 +84,28 @@ describe('messages rendering', () => {
 
     expect(html).toContain('Browser');
     expect(html).toContain('Chrome');
+    expect(html).toContain('Custom metadata');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
+  it('wraps data and feature tables in focusable scroll regions', async () => {
+    const html = await renderReport(legacyTableFixture, { title: 'Tables' });
+
+    expect(html).toContain('role="region" aria-label="Data table for:');
+    expect(html).toContain('role="region" aria-label="Feature summary table"');
+  });
+
+  it('renders filters only for statuses with scenarios', async () => {
+    const html = await renderReport(passedOnlyFixture, { title: 'Passed only' });
+
+    expect(html).toContain('data-status="passed"');
+    expect(html).not.toMatch(
+      /<button class="filter"[^>]+data-status="failed"/,
+    );
+    expect(html).not.toMatch(
+      /<details class="scenario"[^>]+data-status="failed"/,
+    );
   });
 
   it('does not load external scripts or stylesheets', async () => {

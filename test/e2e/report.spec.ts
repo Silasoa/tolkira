@@ -14,6 +14,9 @@ const legacyFixture = fileURLToPath(
 const minimalFixture = fileURLToPath(
   new URL('../fixtures/legacy/minimal.json', import.meta.url),
 );
+const tableFixture = fileURLToPath(
+  new URL('../fixtures/legacy/happy.json', import.meta.url),
+);
 const xssFixture = fileURLToPath(
   new URL('../fixtures/legacy/xss.json', import.meta.url),
 );
@@ -56,12 +59,24 @@ test('renders a messages report in the browser', async ({ page }) => {
     await page.locator('.shotButton').first().click();
     const lightbox = page.locator('#tolkira-lightbox');
     await expect(lightbox).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.style.overflow),
+    ).toBe('hidden');
     await expect(lightbox.locator('img')).toHaveAttribute(
       'src',
       /^data:image\/png/,
     );
     await page.keyboard.press('Escape');
     await expect(lightbox).toBeHidden();
+    expect(
+      await page.evaluate(() => document.documentElement.style.overflow),
+    ).toBe('');
+    await expect(page.locator('.shotButton').first()).toBeFocused();
+
+    await page.locator('.shotButton').first().click();
+    await page.getByRole('button', { name: 'Close' }).click();
+    await expect(lightbox).toBeHidden();
+    await expect(page.locator('.shotButton').first()).toBeFocused();
 
     await expect(
       page.getByRole('heading', { name: 'Failing scenario' }),
@@ -243,6 +258,37 @@ test('opens a collapsed feature when searching', async ({ page }) => {
 
     await page.getByRole('searchbox', { name: /Search/ }).fill('Minimal scenario');
     await expect(minimal).toBeVisible();
+    await expect(
+      page.locator('details.scenario').filter({ hasText: 'Minimal scenario' }),
+    ).toHaveAttribute('open', '');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps Details content reachable by keyboard', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-keys-e2e-'));
+  const output = path.join(dir, 'keys.html');
+
+  try {
+    const code = await runCli(
+      [tableFixture, '--out', output, '--title', 'Keyboard E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await page.getByRole('tab', { name: 'Details' }).click();
+    await page.getByRole('tab', { name: 'Details' }).focus();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#analysis-view')).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    const tableWrap = page.locator('#analysis-view .tableWrap');
+    await expect(tableWrap).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#analysis-view pre.json')).toBeFocused();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -284,6 +330,44 @@ test('reflows at 200% page zoom', async ({ page }) => {
       page.getByRole('heading', { name: 'Zoom E2E', level: 1 }),
     ).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible();
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    const phone = await page.evaluate(() => {
+      const right = (selector: string) => {
+        const element = document.querySelector(selector);
+        return element ? element.getBoundingClientRect().right : 0;
+      };
+      const title = document.querySelector('.scenarioMain');
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        h1: right('.runHead h1'),
+        health: right('.health'),
+        titleWidth: title ? title.getBoundingClientRect().width : 0,
+      };
+    });
+
+    expect(phone.overflow).toBeLessThanOrEqual(1);
+    expect(phone.h1).toBeLessThanOrEqual(320);
+    expect(phone.health).toBeLessThanOrEqual(320);
+    expect(phone.titleWidth).toBeGreaterThan(100);
+
+    await page.getByRole('tab', { name: 'Details' }).click();
+    expect(
+      await page
+        .locator('#analysis-view')
+        .evaluate((element) => element.getBoundingClientRect().right),
+    ).toBeLessThanOrEqual(320);
+    const tableWrap = page.locator('#analysis-view .tableWrap');
+    await expect(tableWrap).toHaveAttribute('tabindex', '0');
+    expect(
+      await tableWrap.evaluate((element) => element.scrollWidth > element.clientWidth),
+    ).toBe(true);
+    await tableWrap.focus();
+    await expect(tableWrap).toBeFocused();
+    await expect(page.locator('#analysis-view pre.json')).toHaveAttribute(
+      'tabindex',
+      '0',
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -83,13 +83,18 @@ describe the viewport, not the font.
 ## Responsive
 
 - Layout responds through content-driven primitives: `minmax()`, `flex-wrap`,
-  `max-width` and two breakpoints (900 px, 560 px). No fixed page width.
+  `max-width`, two breakpoints (900 px, 560 px) and container queries at
+  `16rem`. No fixed page width.
 - The 720 × 450 browser test is **200 % page zoom** at a 1440 × 900 window, not
   a hardcoded layout size. 320 px and 390 px are separate phone checks.
 - Text zoom is tested by doubling the root font size; the layout must reflow
-  without horizontal page scroll.
+  without horizontal page scroll. At `16rem` container width the feature and
+  scenario rows stack and the run title steps down, so text zoom keeps a
+  readable title column instead of squeezing it to zero.
 - The shell is a document, not an app canvas: it has no viewport-height frame
-  and no horizontal scroll region except tables and code blocks.
+  and no horizontal scroll region except tables and code blocks. Every
+  horizontal scroll region is focusable (`tabindex="0"`, `role="region"`,
+  accessible name) so keyboard users can reach clipped columns.
 
 ## Components
 
@@ -97,20 +102,28 @@ describe the viewport, not the font.
 | --- | --- | --- |
 | Top bar / tabs | `.topbar`, `.view` | Report and Details; active tab is a text state, not a card |
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
-| Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features |
+| Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features and scenarios; filters only for present statuses |
 | Feature | `details.feature` | Native disclosure; status, name, path, counts, duration |
 | Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |
-| Step | `.step` | Marker, keyword, text, error, doc string, table, attachments |
-| Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download |
-| Details | `.analysis` | Feature table, status distribution, environment, agent summary |
+| Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
+| Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
+| Details | `.analysis` | Feature table, status distribution, Run / Cucumber environment / Custom metadata blocks, agent summary |
 
 ## Interaction rules
 
 - Feature and scenario summaries are the only click targets that toggle; a
   click inside the detail does not close it.
 - Chevron rotates on open; `prefers-reduced-motion` removes the transition.
-- Search and filters: hide non-matches, open features with matches, update a
-  polite live region, show an empty state when nothing matches.
+- Search and filters: hide non-matches, open features and matched scenarios,
+  update a polite live region, show an empty state when nothing matches.
+- Switching tabs scrolls to the top; the previous panel's scroll position is
+  not restored.
+- The lightbox locks background scrolling, restores focus to its trigger on
+  Escape, Close, backdrop click and padding click, and reserves header space so
+  Close never covers the screenshot.
+- Status is never colour-only: scenario badges carry text, step markers carry a
+  shape glyph plus a screen-reader label, and forced-colours mode keeps the
+  glyph, marker border and disclosure chevron visible.
 - The failure is open by default; everything else is scannable when collapsed.
 - No right-click-only actions; use visible buttons or a `…` menu. Keyboard and
   touch must reach the same actions.

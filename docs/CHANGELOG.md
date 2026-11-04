@@ -42,6 +42,10 @@ Keep a Changelog and the project uses semantic versioning.
   `@cucumber/messages` and, loaded only for XML input, `fast-xml-parser`.
 - Type and text-relative spacing use `rem`; the report reflows at 200 % page
   zoom and doubles cleanly with the browser's text-size setting.
+- Independent production A11Y/UX pass: WebKit focus restoration and tabpanel
+  entry, focusable table scroll regions, step status glyphs, search that opens
+  matched scenarios, grouped Details environment/metadata, lightbox scroll lock,
+  and 320 px text-zoom reflow without clipped content.
 - Expand-all / collapse-all controls, automatic screenshot disclosure, and
   accessible status labels, permalinks, main landmark and live filter counts.
 - Seed-Test comparison harness, screenshots and offline comparison.
