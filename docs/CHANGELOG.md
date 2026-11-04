@@ -5,6 +5,15 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+### Fixed
+
+- `--logo` without `--out` now fails with a usage error instead of silently
+  ignoring the logo file.
+- Non-finite or negative Messages durations are clamped to zero; the JSON
+  summary keeps `durationMs` a finite number.
+- Explicit empty Messages files report the same “Input is empty” diagnostic as
+  empty files found by directory scanning.
+
 ## [0.1.2] - 2026-11-04
 
 ### Fixed

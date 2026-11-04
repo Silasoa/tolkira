@@ -168,6 +168,11 @@ export async function runCli(
     return 2;
   }
 
+  if (!output && parsed.values.logo) {
+    io.stderr(`tolkira: --logo requires --out\n\n${USAGE}`);
+    return 2;
+  }
+
   let metadata: Record<string, string>;
   let maxSizeMb: number;
   let accent: string | undefined;
@@ -176,8 +181,7 @@ export async function runCli(
     metadata = parseMetadata(parsed.values.meta);
     maxSizeMb = parseMaxSize(parsed.values['max-size']);
     accent = parseAccent(parsed.values.accent);
-    logo =
-      output && parsed.values.logo ? await readLogo(parsed.values.logo) : undefined;
+    logo = parsed.values.logo ? await readLogo(parsed.values.logo) : undefined;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     io.stderr(`tolkira: ${detail}\n\n${USAGE}`);

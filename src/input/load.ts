@@ -169,6 +169,12 @@ export async function loadEnvelopes(inputs: string | string[]): Promise<Envelope
       continue;
     }
 
+    if (input.explicit && MESSAGES_EXTENSIONS.has(extension)) {
+      if (content.trim().length === 0) {
+        throw new Error(`Input is empty: ${input.file}`);
+      }
+    }
+
     if (input.explicit) {
       invalidJson(content, input.file);
     }

@@ -149,7 +149,10 @@ function durationMs(duration: Duration | undefined): number {
   if (!duration) return 0;
   const seconds = Number.isFinite(duration.seconds) ? duration.seconds : 0;
   const nanos = Number.isFinite(duration.nanos) ? duration.nanos : 0;
-  return Math.round((seconds * 1000 + nanos / 1_000_000) * 1000) / 1000;
+  const milliseconds = seconds * 1000 + nanos / 1_000_000;
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return 0;
+  const rounded = Math.round(milliseconds * 1000) / 1000;
+  return Number.isFinite(rounded) ? rounded : 0;
 }
 
 function scenarioStatus(results: TestStepResult[]): SummaryStatus {
