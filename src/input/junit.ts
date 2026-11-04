@@ -158,7 +158,18 @@ export async function parseJUnitXml(
   content: string,
   source: string,
 ): Promise<Envelope[]> {
-  const { XMLParser } = await import('fast-xml-parser');
+  const { XMLParser, XMLValidator } = await import('fast-xml-parser');
+
+  // fast-xml-parser's parser is lenient about mismatched closing tags and would
+  // silently reshape broken XML; validate first so bad input fails clearly.
+  const validation = XMLValidator.validate(content);
+  if (validation !== true) {
+    const { line, col, msg } = validation.err;
+    throw new Error(
+      `Invalid JUnit XML in ${source} at line ${line}, column ${col}: ${msg}`,
+    );
+  }
+
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '',

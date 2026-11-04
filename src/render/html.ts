@@ -120,6 +120,12 @@ function renderAttachment(
   return `<span class="fileLink">${name} (${media}, ${attachment.bytes} bytes)</span>`;
 }
 
+function scenarioTags(model: ReportModel): string[] {
+  return [...new Set(model.scenarios.flatMap((scenario) => scenario.tags))].sort(
+    (a, b) => a.localeCompare(b),
+  );
+}
+
 function renderStep(step: ReportStep, scenarioName: string): string {
   const docString = step.docString
     ? `<pre class="docString">${escapeHtml(step.docString)}</pre>`
@@ -144,7 +150,7 @@ function renderStep(step: ReportStep, scenarioName: string): string {
   const attachments = step.attachments
     .map((attachment) => renderAttachment(attachment, context))
     .join('');
-  return `<li class="step"><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
+  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
 }
 
 function scenarioText(scenario: ReportScenario): string {
@@ -173,7 +179,11 @@ function renderScenario(scenario: ReportScenario): string {
   const extraAttachments = scenario.extraAttachments.length
     ? `<h4>Attachments</h4>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name)).join('')}`
     : '';
-  return `<details class="scenario" data-scenario data-status="${scenario.status}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<h4>Steps</h4><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  const copyFailure =
+    scenario.status === 'failed'
+      ? '<button class="copyFailure" type="button" data-copy-failure>Copy failure</button>'
+      : '';
+  return `<details class="scenario" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(scenario.uri)}" data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><h4>Steps</h4>${copyFailure}</div><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
 function renderFeature(feature: ReportFeature): string {
@@ -211,12 +221,16 @@ function renderReportView(
   const features = model.features
     .map((feature) => renderFeature(feature))
     .join('');
-  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} of ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label><div class="filters">${displayStatuses(model)
+  const tags = scenarioTags(model);
+  const tagFilter = tags.length
+    ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
+    : '';
+  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} of ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
     .map(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
     )
-    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div><div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
+    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="sr" id="tolkira-copy-live" aria-live="polite"></p><div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div><div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
 }
 
 function renderAnalysisView(
@@ -297,17 +311,20 @@ const SCRIPT = `<script>
     views[next].focus();
     showView(views[next].getAttribute('data-view'));
   });
-  var state = { query: '', hidden: new Set() };
+  var state = { query: '', hidden: new Set(), tag: '' };
   var scenarios = Array.prototype.slice.call(document.querySelectorAll('[data-scenario]'));
   var features = Array.prototype.slice.call(document.querySelectorAll('[data-feature]'));
   var live = document.getElementById('tolkira-live');
   function apply() {
     var query = state.query.toLowerCase();
+    var tag = state.tag;
     var visible = 0;
     scenarios.forEach(function (scenario) {
       var status = scenario.getAttribute('data-status');
       var text = (scenario.getAttribute('data-search') || '').toLowerCase();
-      var match = !state.hidden.has(status) && (!query || text.indexOf(query) !== -1);
+      var tags = ' ' + (scenario.getAttribute('data-tags') || '') + ' ';
+      var tagMatch = !tag || tags.indexOf(' ' + tag + ' ') !== -1;
+      var match = !state.hidden.has(status) && tagMatch && (!query || text.indexOf(query) !== -1);
       scenario.hidden = !match;
       if (match) visible += 1;
     });
@@ -315,7 +332,7 @@ const SCRIPT = `<script>
       var children = feature.querySelectorAll('[data-scenario]');
       var any = Array.prototype.some.call(children, function (child) { return !child.hidden; });
       feature.hidden = !any;
-      if (any && (query || state.hidden.size)) feature.open = true;
+      if (any && (query || state.hidden.size || tag)) feature.open = true;
     });
     if (query) {
       scenarios.forEach(function (scenario) {
@@ -325,10 +342,52 @@ const SCRIPT = `<script>
     if (live) live.textContent = visible + ' of ' + scenarios.length + ' scenarios visible';
     var empty = document.getElementById('empty-results');
     if (empty) empty.hidden = visible !== 0;
+    highlightSearch();
+  }
+  function clearHighlights() {
+    if (typeof CSS === 'undefined' || !CSS.highlights) return;
+    CSS.highlights.delete('tolkira-search');
+  }
+  function highlightSearch() {
+    if (typeof CSS === 'undefined' || !CSS.highlights || typeof Highlight === 'undefined') return;
+    var needle = state.query.trim().toLowerCase();
+    if (needle.length < 2) { clearHighlights(); return; }
+    try {
+      var ranges = [];
+      scenarios.forEach(function (scenario) {
+        if (scenario.hidden || !scenario.open || ranges.length >= 200) return;
+        var walker = document.createTreeWalker(scenario, NodeFilter.SHOW_TEXT, null);
+        var node;
+        while (ranges.length < 200 && (node = walker.nextNode())) {
+          var value = node.nodeValue;
+          if (!value) continue;
+          var parent = node.parentElement;
+          if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) continue;
+          var text = value.toLowerCase();
+          var index = text.indexOf(needle);
+          while (index !== -1 && ranges.length < 200) {
+            var range = document.createRange();
+            range.setStart(node, index);
+            range.setEnd(node, index + needle.length);
+            ranges.push(range);
+            index = text.indexOf(needle, index + needle.length);
+          }
+        }
+      });
+      clearHighlights();
+      if (ranges.length) CSS.highlights.set('tolkira-search', new Highlight(...ranges));
+    } catch (error) {
+      clearHighlights();
+    }
   }
   var search = document.querySelector('[data-search]');
   if (search) search.addEventListener('input', function () {
     state.query = search.value;
+    apply();
+  });
+  var tagFilter = document.querySelector('[data-tag-filter]');
+  if (tagFilter) tagFilter.addEventListener('change', function () {
+    state.tag = tagFilter.value;
     apply();
   });
   Array.prototype.slice.call(document.querySelectorAll('button.filter[data-status]')).forEach(function (button) {
@@ -345,6 +404,79 @@ const SCRIPT = `<script>
       var open = button.getAttribute('data-expand') === 'all';
       features.forEach(function (feature) { feature.open = open; });
       scenarios.forEach(function (scenario) { scenario.open = open; });
+    });
+  });
+  var copyLive = document.getElementById('tolkira-copy-live');
+  function legacyCopy(text) {
+    var field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.top = '-1000px';
+    document.body.appendChild(field);
+    field.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (error) { ok = false; }
+    field.remove();
+    return ok;
+  }
+  function writeClipboard(text, done) {
+    var settled = false;
+    function finish(ok) {
+      if (settled) return;
+      settled = true;
+      if (ok) done();
+    }
+    function fallback() {
+      if (legacyCopy(text)) finish(true);
+      else finish(false);
+    }
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        navigator.clipboard.writeText(text).then(function () { finish(true); }, fallback);
+      } catch (error) {
+        fallback();
+      }
+    } else {
+      fallback();
+    }
+  }
+  function failureText(button) {
+    var scenario = button.closest('[data-scenario]');
+    if (!scenario) return '';
+    var feature = scenario.closest('[data-feature]');
+    var featureTitle = feature ? feature.querySelector('h2') : null;
+    var scenarioTitle = scenario.querySelector('.scenarioName');
+    var step = scenario.querySelector('.step[data-status="failed"]');
+    var keyword = step && step.querySelector('.kw') ? step.querySelector('.kw').textContent.trim() : '';
+    var body = step ? step.querySelector('div') : null;
+    var text = '';
+    if (body) {
+      Array.prototype.forEach.call(body.childNodes, function (node) {
+        if (node.nodeType === 3) text += node.nodeValue;
+      });
+    }
+    var error = step ? step.querySelector('.error') : null;
+    return [
+      'Feature: ' + (featureTitle ? featureTitle.textContent : ''),
+      'Scenario: ' + (scenarioTitle ? scenarioTitle.textContent : ''),
+      'URI: ' + (scenario.getAttribute('data-uri') || ''),
+      'Step: ' + (keyword + ' ' + text.trim()).trim(),
+      'Error: ' + (error ? error.textContent : '')
+    ].join('\\n');
+  }
+  Array.prototype.slice.call(document.querySelectorAll('[data-copy-failure]')).forEach(function (button) {
+    var labelTimer = null;
+    button.addEventListener('click', function () {
+      writeClipboard(failureText(button), function () {
+        button.textContent = 'Copied';
+        if (copyLive) copyLive.textContent = 'Failure details copied to clipboard.';
+        if (labelTimer) clearTimeout(labelTimer);
+        labelTimer = setTimeout(function () {
+          button.textContent = 'Copy failure';
+          if (copyLive) copyLive.textContent = '';
+        }, 2000);
+      });
     });
   });
   var lightbox = document.getElementById('tolkira-lightbox');

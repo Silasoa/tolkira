@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="edge cases">
+  <testsuite name="statuses &amp; entities">
+    <testcase name="passes &amp; prints" file="spec/pass.spec.ts">
+      <system-out>stdout &lt;ok&gt;</system-out>
+      <system-err>stderr &amp; detail</system-err>
+    </testcase>
+    <testcase name="errors" classname="edge.Errors">
+      <error message="Boom &quot;now&quot;" type="RuntimeError"><![CDATA[Traceback: boom <line 1> & more]]></error>
+    </testcase>
+    <testcase name="fails with body">
+      <failure message="Expected &lt;200&gt;">AssertionError: plain &amp; simple</failure>
+    </testcase>
+    <testcase name="ignored" classname="edge.Ignored">
+      <skipped message="not supported here"/>
+    </testcase>
+    <testcase classname="edge.NoName"/>
+    <testcase file="spec/anonymous.spec.ts"/>
+  </testsuite>
+</testsuites>

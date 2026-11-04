@@ -15,6 +15,9 @@ const legacyTableFixture = fileURLToPath(
 const passedOnlyFixture = fileURLToPath(
   new URL('./fixtures/legacy/behave.json', import.meta.url),
 );
+const minimalFixture = fileURLToPath(
+  new URL('./fixtures/legacy/minimal.json', import.meta.url),
+);
 
 describe('messages rendering', () => {
   it('renders the simple report and analysis view', async () => {
@@ -106,6 +109,58 @@ describe('messages rendering', () => {
     expect(html).not.toMatch(
       /<details class="scenario"[^>]+data-status="failed"/,
     );
+  });
+
+  it('renders a tag filter with sorted unique scenario tags', async () => {
+    const html = await renderReport(fixture, { title: 'Tag filter' });
+    const tableHtml = await renderReport(legacyTableFixture, {
+      title: 'Tag filter table',
+    });
+    const options = [...tableHtml.matchAll(/<option value="(@[^"]*)">/g)].map(
+      (match) => match[1],
+    );
+
+    expect(html).toContain('data-tag-filter');
+    expect(html).toContain('<option value="">All tags</option>');
+    expect(html).toContain('<option value="@failing">@failing</option>');
+    expect(html).toContain('data-tags="@failing"');
+    expect(options).toEqual([
+      '@testAttachDebugData',
+      '@testDataTable',
+      '@testDocString',
+      '@testPassing',
+      '@testScenarioOutline',
+    ]);
+  });
+
+  it('omits the tag filter when no scenario has tags', async () => {
+    const html = await renderReport(minimalFixture, { title: 'No tags' });
+
+    expect(html).not.toContain('<select data-tag-filter');
+    expect(html).not.toContain('All tags');
+  });
+
+  it('ships the search highlight hook and styling', async () => {
+    const html = await renderReport(fixture, { title: 'Highlight' });
+
+    expect(html).toContain('CSS.highlights');
+    expect(html).toContain("CSS.highlights.set('tolkira-search'");
+    expect(html).toContain('new Highlight');
+    expect(html).toContain('::highlight(tolkira-search)');
+  });
+
+  it('renders a copy failure button for failed scenarios only', async () => {
+    const html = await renderReport(fixture, { title: 'Copy failure' });
+    const passedHtml = await renderReport(passedOnlyFixture, {
+      title: 'Copy failure passed',
+    });
+
+    expect(html).toContain('data-copy-failure');
+    expect(html).toContain('>Copy failure</button>');
+    expect(html).toMatch(/<li class="step" data-status="failed">/);
+    expect(html.match(/class="copyFailure"/g)).toHaveLength(1);
+    expect(passedHtml).not.toContain('class="copyFailure"');
+    expect(passedHtml).not.toContain('>Copy failure</button>');
   });
 
   it('does not load external scripts or stylesheets', async () => {

@@ -8,6 +8,7 @@ export default defineConfig({
   reporter: 'list',
   use: {
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
   projects: [
     {

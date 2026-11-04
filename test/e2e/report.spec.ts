@@ -161,6 +161,153 @@ test('filters by status', async ({ page }) => {
   }
 });
 
+test('filters by tag', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-tag-filter-e2e-'));
+  const output = path.join(dir, 'tag-filter.html');
+
+  try {
+    const code = await runCli(
+      [tableFixture, '--out', output, '--title', 'Tolkira tag filter'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const tagFilter = page.locator('select[data-tag-filter]');
+    await expect(tagFilter).toBeVisible();
+    await expect(tagFilter.locator('option')).toHaveCount(6);
+
+    await tagFilter.selectOption('@testScenarioOutline');
+    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.getByRole('status')).toContainText(
+      '2 of 6 scenarios visible',
+    );
+    const feature = page
+      .locator('details.feature')
+      .filter({ hasText: 'Happy HTML reporting' });
+    await expect(feature).toHaveAttribute('open', '');
+    await expect(
+      page.locator('details.scenario:visible[open]'),
+    ).toHaveCount(0);
+
+    await tagFilter.selectOption('');
+    await expect(page.locator('details.scenario:visible')).toHaveCount(6);
+    await expect(page.getByRole('status')).toContainText(
+      '6 of 6 scenarios visible',
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('highlights search matches when the browser supports the Highlight API', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-highlight-e2e-'));
+  const output = path.join(dir, 'highlight.html');
+
+  try {
+    const code = await runCli(
+      [fixture, '--out', output, '--title', 'Tolkira highlight'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    const supportsHighlight = await page.evaluate(() => {
+      const css = (
+        globalThis as unknown as { CSS?: { highlights?: unknown } }
+      ).CSS;
+      const HighlightCtor = (
+        globalThis as unknown as { Highlight?: unknown }
+      ).Highlight;
+      return Boolean(css?.highlights) && typeof HighlightCtor === 'function';
+    });
+
+    await search.fill('Failing');
+    await expect(
+      page.getByRole('heading', { name: 'Failing scenario' }),
+    ).toBeVisible();
+    if (!supportsHighlight) return;
+
+    const rangeCount = await page.evaluate(() => {
+      const css = (
+        globalThis as unknown as {
+          CSS?: { highlights?: Map<string, Set<Range>> };
+        }
+      ).CSS;
+      return css?.highlights?.get('tolkira-search')?.size ?? 0;
+    });
+    expect(rangeCount).toBeGreaterThan(0);
+
+    await search.fill('F');
+    const hasHighlight = await page.evaluate(() => {
+      const css = (
+        globalThis as unknown as {
+          CSS?: { highlights?: Map<string, Set<Range>> };
+        }
+      ).CSS;
+      return Boolean(css?.highlights?.has('tolkira-search'));
+    });
+    expect(hasHighlight).toBe(false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('copies failure details', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-copy-e2e-'));
+  const output = path.join(dir, 'copy.html');
+
+  await page.addInitScript(() => {
+    (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied =
+            text;
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+
+  try {
+    const code = await runCli(
+      [fixture, '--out', output, '--title', 'Tolkira copy'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const failed = page.locator(
+      'details[data-scenario][data-status="failed"]',
+    );
+    const copy = failed.locator('[data-copy-failure]');
+    await expect(copy).toBeVisible();
+    await copy.click();
+    await expect(copy).toHaveText('Copied');
+    await expect(page.locator('#tolkira-copy-live')).toHaveText(
+      'Failure details copied to clipboard.',
+    );
+
+    const copied = await page.evaluate(
+      () =>
+        (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ??
+        '',
+    );
+    expect(copied).toContain('Feature: Screenshot attachment');
+    expect(copied).toContain('Scenario: Failing scenario');
+    expect(copied).toContain('URI: features/screenshot.feature');
+    expect(copied).toContain('Step: Then the assertion fails');
+    expect(copied).toContain('Error: Expected 1 to equal 2');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('searches by tag', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-tag-e2e-'));
   const output = path.join(dir, 'tag.html');
