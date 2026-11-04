@@ -11,6 +11,9 @@ const fixture = fileURLToPath(
 const legacyFixture = fileURLToPath(
   new URL('../fixtures/legacy/screenshot.json', import.meta.url),
 );
+const minimalFixture = fileURLToPath(
+  new URL('../fixtures/legacy/minimal.json', import.meta.url),
+);
 const xssFixture = fileURLToPath(
   new URL('../fixtures/legacy/xss.json', import.meta.url),
 );
@@ -36,7 +39,7 @@ test('renders a messages report in the browser', async ({ page }) => {
       'aria-selected',
       'true',
     );
-    await expect(page.getByRole('tab', { name: 'Analysis' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible();
     await expect(page.getByText('1 feature')).toBeVisible();
     await expect(
       page.getByRole('heading', { name: 'Screenshot attachment' }),
@@ -48,6 +51,7 @@ test('renders a messages report in the browser', async ({ page }) => {
     await expect(
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
+    await expect(page.locator('.scenarioButton .thumb').first()).toBeVisible();
 
     await expect(
       page.getByRole('heading', { name: 'Failing scenario' }),
@@ -69,11 +73,11 @@ test('renders a messages report in the browser', async ({ page }) => {
       page.getByRole('heading', { name: 'Failing scenario' }),
     ).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Analysis' }).click();
+    await page.getByRole('tab', { name: 'Details' }).click();
     await expect(
-      page.getByRole('heading', { name: 'Run analysis' }),
+      page.getByRole('heading', { name: 'Run details', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Analysis' })).toHaveAttribute(
+    await expect(page.getByRole('tab', { name: 'Details' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
@@ -207,6 +211,28 @@ test('does not execute HTML attachments', async ({ page }) => {
     );
     expect(executed).toBeUndefined();
     expect(dialogOpened).toBe(false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('opens a collapsed feature when searching', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-search-e2e-'));
+  const output = path.join(dir, 'search.html');
+
+  try {
+    const code = await runCli(
+      [fixture, minimalFixture, '--out', output, '--title', 'Search E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const minimal = page.getByRole('heading', { name: 'Minimal scenario' });
+    await expect(minimal).toBeHidden();
+
+    await page.getByRole('searchbox', { name: /Search/ }).fill('Minimal scenario');
+    await expect(minimal).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

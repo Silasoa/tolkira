@@ -43,9 +43,18 @@ cucumber-ruby and Behave into Messages:
 - **embeddings → attachments**, including base64 screenshots and MIME types.
 
 The canonical `@cucumber/json-to-messages` converter is a useful reference but
-does not preserve embeddings. We will vendor/adapt the MIT-licensed logic or
-write a focused adapter, with attribution. This adapter is the main technical
-risk and the main differentiator.
+does not preserve embeddings. The focused adapter preserves them, accepts the
+2.x-13.x cucumber-js shape, Behave (seconds normalised) and cucumber-jvm 7.x,
+and is covered by real producer fixtures.
+
+### `src/input/junit`
+
+- Basic JUnit XML mode for non-Cucumber frameworks.
+- `<testsuite>` -> feature, `<testcase>` -> scenario with one synthetic step,
+  `failure`/`error`/`skipped` -> status, `time` -> duration,
+  `system-out`/`system-err` -> text attachments.
+- Uses `fast-xml-parser`, loaded on demand only for XML input.
+- No Gherkin steps or screenshots; this is breadth, not Cucumber depth.
 
 ### `src/report`
 
@@ -60,9 +69,12 @@ risk and the main differentiator.
 
 - Server-renders the report model into one HTML file; no React runtime.
 - Default Report tab: title, run metadata, pass-rate health panel, search,
-  status filters, feature disclosures and failed-first scenario details.
-- Analysis tab: feature table, status distribution, run details and the agent
+  status filters, feature disclosures, fixed thumbnail gutter and failed-first
+  scenario details.
+- Details tab: feature table, status distribution, environment and the agent
   summary.
+- `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
+  generates `src/render/styles.ts` for the inline report.
 - Adds a small shell: visible title, optional logo and accent colour, system
   dark mode.
 - No CDN, no external fonts, no network requests.
@@ -112,6 +124,8 @@ Test names, metadata, file names and attachments are untrusted input.
   viewer.
 - Reject remote attachment URLs and external attachments; strip remote Markdown
   images. Reports must stay offline.
+- Parse JUnit XML without DTD/external entity resolution; parser errors fail
+  closed and `system-out`/`system-err` remain text attachments.
 - Validate attachment media type and size fields, and enforce input/attachment
   limits (100 MB input, 50 MB per attachment, 100 MB total attachments).
 - No network requests, telemetry or remote fonts.
@@ -125,8 +139,8 @@ Test names, metadata, file names and attachments are untrusted input.
   the view model and writes one HTML string.
 - Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
-- Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15 s to
-  1.1 MB; 5,000 / 15,000 in about 0.43 s to 5.4 MB.
+- Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.17 s to
+  1.2 MB; 5,000 / 15,000 in about 0.37 s to 6.0 MB.
 - Warn when the generated file exceeds 10 MB.
 - External attachments are the escape hatch for large screenshots/videos.
 

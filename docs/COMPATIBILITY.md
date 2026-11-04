@@ -63,7 +63,7 @@ generation fails with a usage error.
 ## What is not reproduced
 
 - **Themes and charts.** The old Bootstrap, hierarchy and Foundation themes are
-  not cloned. The report keeps Tolkira's simple shell and Analysis view.
+  not cloned. The report keeps Tolkira's simple shell and Details view.
 - **External screenshots.** `storeScreenshots`, `screenshotsDirectory` and
   `noInlineScreenshots` are ignored because Tolkira always inlines attachments.
   Very large runs can hit the 10 MB size warning; split assets are a v0.2 item.

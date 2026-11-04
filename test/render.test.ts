@@ -31,6 +31,10 @@ describe('messages rendering', () => {
     expect(html).toContain('image/png');
     expect(html).toContain('data-expand="all"');
     expect(html).toContain('data-expand="none"');
+    expect(html).toContain('class="thumb"');
+    expect(html).toContain('class="chev"');
+    expect(html).toContain('Runtime');
+    expect(html).toContain('Protocol');
     expect(html.length).toBeGreaterThan(20_000);
   });
 

@@ -148,8 +148,10 @@ function scenarioText(scenario: ReportScenario): string {
 }
 
 function renderScenario(scenario: ReportScenario): string {
-  const image = scenario.attachments.some((attachment) => attachment.kind === 'image');
-  const open = scenario.status === 'failed' || image;
+  const image = scenario.attachments.find(
+    (attachment) => attachment.kind === 'image' && attachment.dataUri,
+  );
+  const open = scenario.status === 'failed' || Boolean(image);
   const steps = scenario.steps.map((step) => renderStep(step)).join('');
   const description = scenario.description
     ? `<p class="description">${escapeHtml(scenario.description)}</p>`
@@ -157,13 +159,12 @@ function renderScenario(scenario: ReportScenario): string {
   const extraAttachments = scenario.extraAttachments.length
     ? `<h3>Attachments</h3>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment)).join('')}`
     : '';
-  return `<details class="scenario" data-scenario data-status="${scenario.status}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span></summary><div class="detailInline">${description}<h3>Steps</h3><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  return `<details class="scenario" data-scenario data-status="${scenario.status}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<h3>Steps</h3><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
-function renderFeature(feature: ReportFeature, totalScenarios: number): string {
+function renderFeature(feature: ReportFeature): string {
   const passed = feature.scenarios.filter((scenario) => scenario.status === 'passed').length;
   const open =
-    totalScenarios <= 50 ||
     feature.status === 'failed' ||
     feature.scenarios.some((scenario) =>
       scenario.attachments.some((attachment) => attachment.kind === 'image'),
@@ -171,7 +172,7 @@ function renderFeature(feature: ReportFeature, totalScenarios: number): string {
   const description = feature.description
     ? `<p class="description">${escapeHtml(feature.description)}</p>`
     : '';
-  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" data-feature ${open ? 'open' : ''}><summary><span class="marker ${statusClass(feature.status)}"></span><h2>${escapeHtml(feature.name)}</h2><span class="fmeta">${passed} of ${feature.scenarios.length} passed, ${escapeHtml(feature.uri)}</span></summary>${description}<div class="rows">${feature.scenarios.map(renderScenario).join('')}</div></details>`;
+  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="fmeta">${passed} of ${feature.scenarios.length} passed, ${escapeHtml(feature.uri)}</span><span class="chev" aria-hidden="true"></span></summary>${description}<div class="rows">${feature.scenarios.map(renderScenario).join('')}</div></details>`;
 }
 
 function metadataLine(metadata: Record<string, string> | undefined): string {
@@ -194,7 +195,7 @@ function renderReportView(
   const meta = metadataLine(options.metadata);
   const date = dateLabel(model.startedAt);
   const features = model.features
-    .map((feature) => renderFeature(feature, model.counts.scenarios.total))
+    .map((feature) => renderFeature(feature))
     .join('');
   return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} of ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label><div class="filters">${displayStatuses(model)
     .map(
@@ -223,7 +224,21 @@ function renderAnalysisView(
         `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`,
     )
     .join('');
-  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / analysis</p><h1>Run analysis</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><table class="featureTable"><thead><tr><th>Feature</th><th>Scenarios</th><th>Passed</th><th>Failed</th><th>Duration</th></tr></thead><tbody>${model.features
+  const environmentRows = [
+    model.environment?.runtime
+      ? `<dt>Runtime</dt><dd>${escapeHtml(model.environment.runtime)}</dd>`
+      : '',
+    model.environment?.os
+      ? `<dt>OS</dt><dd>${escapeHtml(model.environment.os)}</dd>`
+      : '',
+    model.environment?.cpu
+      ? `<dt>CPU</dt><dd>${escapeHtml(model.environment.cpu)}</dd>`
+      : '',
+    model.environment?.protocol
+      ? `<dt>Protocol</dt><dd>${escapeHtml(model.environment.protocol)}</dd>`
+      : '',
+  ].join('');
+  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><table class="featureTable"><thead><tr><th>Feature</th><th>Scenarios</th><th>Passed</th><th>Failed</th><th>Duration</th></tr></thead><tbody>${model.features
     .map(
       (feature) =>
         `<tr><td>${escapeHtml(feature.name)}</td><td class="num">${feature.scenarios.length}</td><td class="num">${feature.scenarios.filter((scenario) => scenario.status === 'passed').length}</td><td class="num">${feature.scenarios.filter((scenario) => scenario.status === 'failed').length}</td><td class="num">${durationLabel(feature.durationMs)}</td></tr>`,
@@ -233,7 +248,7 @@ function renderAnalysisView(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,
     )
-    .join('')}</div><h2 style="margin-top:20px">Run details</h2><dl class="metaList"><dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps</dt><dd>${model.counts.steps.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>${metadata}</dl></section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents.</p><pre class="json">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
+    .join('')}</div><h2 style="margin-top:20px">Summary</h2><dl class="metaList"><dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps</dt><dd>${model.counts.steps.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>${environmentRows}${metadata}</dl></section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents.</p><pre class="json">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
 }
 
 const SCRIPT = `<script>
@@ -281,6 +296,7 @@ const SCRIPT = `<script>
       var children = feature.querySelectorAll('[data-scenario]');
       var any = Array.prototype.some.call(children, function (child) { return !child.hidden; });
       feature.hidden = !any;
+      if (any && (query || state.hidden.size)) feature.open = true;
     });
     if (live) live.textContent = visible + ' of ' + scenarios.length + ' scenarios visible';
     var empty = document.getElementById('empty-results');
@@ -339,7 +355,7 @@ export async function renderHtml(
   const accent = isValidAccent(options.accent)
     ? `<style>:root{--accent:${options.accent}}</style>`
     : '';
-  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Analysis</button></div></div></header>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}${SCRIPT}`;
+  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}${SCRIPT}`;
   const hashes = inlineScriptHashes(body);
   return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(hashes)}\n<style>${REPORT_CSS}${accent}</style>\n</head>\n<body>${body}</body>\n</html>`;
 }

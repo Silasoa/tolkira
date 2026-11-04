@@ -4,7 +4,7 @@
 > Clear, embeddable HTML reports for Cucumber JSON, Messages, and beyond.
 
 **Status: v0.1 core in development.** Messages and legacy Cucumber JSON render
-to one self-contained HTML file with a simple report, an optional Analysis tab,
+to one self-contained HTML file with a simple report, an optional Details tab,
 the CLI/API, title/metadata, screenshots, browser tests and a stable JSON
 summary for agents. Remaining v0.1 work is tracked in
 `openspec/changes/bootstrap-tolkira-core/tasks.md`.
@@ -48,7 +48,7 @@ The name is pronounced approximately **TOL-kee-rah**.
 - **Report:** failed-first simple report, feature/scenario disclosures, inline
   screenshots and text attachments, doc strings, data tables, hooks, tags,
   durations and errors; search and status filters; dark mode.
-- **Analysis:** pass/fail counts, feature table, run metadata and the agent
+- **Details:** pass/fail counts, feature table, run metadata and the agent
   summary. It becomes **Details** in the next UI pass.
 - **Branding:** title, metadata, logo and accent colour.
 - **CLI/API:** `tolkira <input...> --out <file>`, `--json`,

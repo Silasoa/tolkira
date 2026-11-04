@@ -45,6 +45,7 @@
   "files": [
     "dist",
     "README.md",
+    "DESIGN.md",
     "LICENSE",
     "SECURITY.md",
     "docs/AGENT-INTERFACE.md",
@@ -55,13 +56,14 @@
   ],
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && node esbuild.mjs && tsc -p tsconfig.build.json",
+    "build": "npm run clean && npm run styles && node esbuild.mjs && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
-    "test": "vitest run",
+    "test": "npm run styles && vitest run",
     "test:e2e": "playwright test",
+    "styles": "node scripts/build-styles.mjs",
     "stress": "node scripts/stress.mjs",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "check": "npm run styles && npm run typecheck && npm run lint && npm run test && npm run build",
     "prepublishOnly": "npm run check"
   },
   "publishConfig": {

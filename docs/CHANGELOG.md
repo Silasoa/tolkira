@@ -22,9 +22,21 @@ Keep a Changelog and the project uses semantic versioning.
   status counts, durations, attachments and per-scenario failures.
 - Visible report shell with title, summary counts, metadata, optional logo and
   accent colour, and system dark mode.
-- Simple default report plus optional Analysis tab; no React runtime.
-- Removed `@cucumber/html-formatter`; only `@cucumber/messages` remains as a
-  runtime dependency.
+- Simple default report plus optional Details tab; no React runtime.
+- Report shell refresh: warm paper surface, hairline sections, monospace
+  measurements, fixed thumbnail gutter in scenario rows, chevrons, search that
+  opens matching features, empty state, and an environment block in Details.
+- Report CSS now lives in `src/render/report.css` and is generated into
+  `src/render/styles.ts`; agents edit real CSS, not a JSON string.
+- `tolkira/compat/cucumber-html-reporter` (experimental): old options object,
+  warnings for unsupported options, recursive `jsonDir`, `ignoreBadJsonFile`.
+- JUnit XML basic mode: suites, test cases, statuses, durations, failures and
+  `system-out`/`system-err`; suites map to features, no Gherkin steps or
+  screenshots.
+- Cucumber compatibility fixtures: cucumber-js 2.3.1-13.3.0, Behave 1.3.3
+  (seconds normalised), cucumber-jvm 7.22.1.
+- Removed `@cucumber/html-formatter`; runtime dependencies are
+  `@cucumber/messages` and, loaded only for XML input, `fast-xml-parser`.
 - Expand-all / collapse-all controls, automatic screenshot disclosure, and
   accessible status labels, permalinks, main landmark and live filter counts.
 - Seed-Test comparison harness, screenshots and offline comparison.
@@ -38,5 +50,6 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Not yet implemented
 
-- User-supplied custom CSS, external attachment mode, full edge-case matrix,
-  JVM/Ruby fixtures beyond Behave-shaped adapter tests, release 0.1.0.
+- User-supplied custom CSS, external attachment mode, the full edge-case
+  matrix, a cucumber-ruby fixture, real Behave attachments/doc strings, and
+  release 0.1.0.

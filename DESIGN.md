@@ -15,7 +15,7 @@ Answer five questions in under thirty seconds:
 5. Can I share one file with someone else?
 
 The default report is simple and failed-first. Deeper analysis belongs in the
-optional Details/Analysis view, never in the way of the failure.
+optional Details view, never in the way of the failure.
 
 ## Principles
 
@@ -76,7 +76,7 @@ changes layout.
 | Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |
 | Step | `.step` | Marker, keyword, text, error, doc string, table, attachments |
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download |
-| Details/Analysis | `.analysis` | Feature table, status distribution, environment, agent summary |
+| Details | `.analysis` | Feature table, status distribution, environment, agent summary |
 
 ## Interaction rules
 
@@ -115,17 +115,20 @@ template strings. A local utility layer is fine when it removes repetition.
 
 ## Current status
 
-The user prefers direction A from `docs/ui-loop/variant-a.html`. The
-production report shell has not been replaced yet. When it is:
+Direction A is implemented in production:
 
-- remove the duplicated failure lead; the failed scenario row is the evidence;
-- keep a fixed thumbnail gutter on every row, including mobile;
-- make `undefined` a first-class status, not a neutral one;
-- put the error before the image on mobile;
-- add an environment block (producer, runtime, OS, CPU, protocol, user
-  metadata) to Details;
-- add a screenshot lightbox/full-size link;
-- keep the Analysis tab as **Details** for v0.1.
+- warm paper tokens, hairline sections and monospace measurements;
+- fixed thumbnail gutter on every scenario row, also on mobile;
+- chevrons, failed-first disclosures and search that opens matching features;
+- `undefined` is a distinct status, not a neutral one;
+- Details tab with producer, runtime, OS, CPU, protocol and user metadata;
+- empty state for search/filter results.
+
+CSS lives in `src/render/report.css`; `scripts/build-styles.mjs` generates
+`src/render/styles.ts` for the inline report.
+
+Still open: screenshot lightbox/full-size link, a 200 % text-zoom pass with
+real content, and charts/trends in Advanced.
 
 ## Non-goals
 

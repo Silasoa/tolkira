@@ -70,7 +70,7 @@ test-first and should fit in roughly two hours.
 - [x] 7.1 Decision table for statuses: passed, failed, skipped, pending,
   undefined, ambiguous; assert counts and rendering.
 - [x] 7.2 Stress test: `npm run stress -- 1000` and 5000 scenarios; assert
-  counts, output size and timing. 1000: ~0.15 s/1.1 MB; 5000: ~0.43 s/5.4 MB.
+  counts, output size and timing. 1000: ~0.17 s/1.2 MB; 5000: ~0.37 s/6.0 MB.
 - [ ] 7.3 Boundary/equivalence: empty input, one scenario, unicode names, very
   long names, missing optional fields.
 - [ ] 7.4 Add cucumber-jvm and cucumber-ruby fixtures; document any unsupported

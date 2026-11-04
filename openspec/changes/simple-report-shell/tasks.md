@@ -34,3 +34,15 @@
 - [x] 4.3 Run `npm run check`, `npm run test:e2e` (Chromium/Firefox/WebKit),
   `npm run stress -- 1000` and `openspec validate simple-report-shell --strict`.
 - [x] 4.4 Refresh Seed-Test comparison screenshots with the new shell.
+
+## 5. Final visual direction (A)
+
+- [x] 5.1 Warm paper tokens, hairline feature sections, monospace measurements
+  and a 1320px shell.
+- [x] 5.2 Fixed thumbnail gutter and chevrons; thumbnails remain visible on
+  mobile.
+- [x] 5.3 Search and filters open matching features; empty state and live count.
+- [x] 5.4 Rename Analysis to Details; add producer, runtime, OS, CPU and
+  protocol to the environment block.
+- [x] 5.5 Source CSS in `src/render/report.css`; generate `styles.ts`; update
+  unit and browser tests.

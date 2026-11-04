@@ -52,11 +52,11 @@ All images are in [`docs/comparison/`](comparison/).
 ## Sizes and performance
 
 - Old story report: about 100 kB, but with four remote dependencies.
-- Tolkira story report: about 38 kB, with CSS and script inline and no network
+- Tolkira story report: about 39 kB, with CSS and script inline and no network
   dependency.
 - Tolkira stress run (`npm run stress -- <count>`):
-  - 1,000 scenarios / 3,000 steps: about 0.15 s, 1.1 MB HTML.
-  - 5,000 scenarios / 15,000 steps: about 0.43 s, 5.4 MB HTML.
+  - 1,000 scenarios / 3,000 steps: about 0.17 s, 1.2 MB HTML.
+  - 5,000 scenarios / 15,000 steps: about 0.37 s, 6.0 MB HTML.
 - The 10 MB warning is expected for very large groups; external attachments
   remain a follow-up.
 

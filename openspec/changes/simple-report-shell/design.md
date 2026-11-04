@@ -44,3 +44,11 @@ download link. Remote attachments remain rejected in `sanitizeEnvelopes`.
 The CLI, API, input adapters, summary schema, single-file promise and
 `--title`/`--meta`/`--logo`/`--accent` options stay unchanged. Old reporter
 themes and external screenshot mode are intentionally excluded.
+
+## Visual direction (A)
+
+The final shell uses the A direction: warm paper tokens, hairline feature
+sections, monospace measurements, a 1320px container, fixed thumbnail gutters,
+chevrons, search that opens matching features, and a Details tab with the run
+environment. `src/render/report.css` is the stylesheet source;
+`scripts/build-styles.mjs` generates the inline `styles.ts`.

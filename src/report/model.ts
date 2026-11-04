@@ -87,6 +87,14 @@ export interface ReportCounts {
   attachmentBytes: number;
 }
 
+export interface ReportEnvironment {
+  producer?: string;
+  runtime?: string;
+  os?: string;
+  cpu?: string;
+  protocol?: string;
+}
+
 export interface ReportModel {
   features: ReportFeature[];
   counts: ReportCounts;
@@ -94,6 +102,7 @@ export interface ReportModel {
   startedAt?: string;
   finishedAt?: string;
   source: string;
+  environment?: ReportEnvironment;
   scenarios: ReportScenario[];
   runAttachments: ReportAttachment[];
 }
@@ -144,6 +153,14 @@ function timestampIso(
 
 function normalizeText(value: string | undefined): string {
   return (value ?? '').replace(/\r\n/g, '\n');
+}
+
+function productLabel(
+  product: { name?: string; version?: string } | undefined,
+): string | undefined {
+  if (!product) return undefined;
+  const label = [product.name, product.version].filter(Boolean).join(' ');
+  return label || undefined;
 }
 
 const ANSI_PATTERN = new RegExp(
@@ -328,6 +345,7 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
   let startedAt: string | undefined;
   let finishedAt: string | undefined;
   let source = 'Cucumber';
+  let environment: ReportEnvironment | undefined;
 
   const mapAttachments = (list: Attachment[]): ReportAttachment[] =>
     list.map((attachment) => {
@@ -339,9 +357,19 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
     });
 
   for (const envelope of envelopes) {
-    if (envelope.meta?.implementation) {
-      const { name, version } = envelope.meta.implementation;
-      source = [name, version].filter(Boolean).join(' ');
+    if (envelope.meta) {
+      const { implementation, runtime, os, cpu, protocolVersion } = envelope.meta;
+      source = productLabel(implementation) ?? 'Cucumber';
+      const next: ReportEnvironment = {
+        ...(implementation && productLabel(implementation)
+          ? { producer: productLabel(implementation) }
+          : {}),
+        ...(runtime && productLabel(runtime) ? { runtime: productLabel(runtime) } : {}),
+        ...(os && productLabel(os) ? { os: productLabel(os) } : {}),
+        ...(cpu && productLabel(cpu) ? { cpu: productLabel(cpu) } : {}),
+        ...(protocolVersion ? { protocol: protocolVersion } : {}),
+      };
+      if (Object.keys(next).length > 0) environment = next;
     }
     if (envelope.testRunStarted?.timestamp) {
       const iso = timestampIso(envelope.testRunStarted.timestamp);
@@ -568,5 +596,6 @@ export function buildReportModel(envelopes: Envelope[]): ReportModel {
     ...(startedAt ? { startedAt } : {}),
     ...(finishedAt ? { finishedAt } : {}),
     source,
+    ...(environment ? { environment } : {}),
   };
 }
