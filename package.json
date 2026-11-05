@@ -1,6 +1,6 @@
 {
   "name": "tolkira",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "The interpreter for your test results. Self-contained HTML reports for Cucumber JSON, Messages, and beyond.",
   "type": "module",
   "license": "MIT",

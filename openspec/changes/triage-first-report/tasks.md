@@ -60,8 +60,8 @@
 
 - [x] 7.1 Update `docs/CHANGELOG.md`, `docs/research/open-questions.md` and the
   README report description.
-- [ ] 7.2 Run `npm run check`, `npm run test:e2e`, and the 1000-scenario stress
+- [x] 7.2 Run `npm run check`, `npm run test:e2e`, and the 1000-scenario stress
   run; record timing and size.
-- [ ] 7.3 Request SCR, CR, DAR and UXR review before handover.
+- [x] 7.3 Request SCR, CR, DAR, SEC, UXR and PCA review before handover.
 - [ ] 7.4 Batch the unreleased CLI edge fixes into the 0.2 changelog; tag and
   publish only after explicit per-version approval.
