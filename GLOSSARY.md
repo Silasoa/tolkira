@@ -29,6 +29,21 @@ component tree.
 **Shell** — Tolkira's own wrapper around the renderer: title, metadata, summary,
 theme, logo.
 
+**Triage index** — the "Needs attention" block above the feature list. It shows
+non-passing features with counts and up to three scenario links; five rows are
+visible and the rest sit behind a disclosure.
+
+**Source strip** — per-input cards above the feature list for multi-file runs
+with real provenance. Each card shows the input's worst status, counts and a
+proportion bar.
+
+**Feature matrix** — the Details table with one row per feature and one count
+column per status present in the run, plus total and duration.
+
+**Provenance** — the input file a feature came from. Tolkira only uses it when
+the feature URI belongs to exactly one input; shared or missing provenance
+renders a flat report.
+
 **Summary** — the stable, renderer-independent JSON document emitted by
 `--json` / `summarizeReport` for agents and CI. It is versioned and is not the
 HTML report.

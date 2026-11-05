@@ -25,9 +25,9 @@ Details comparison; the map and compact lenses stay optional and come later.
 - **Slice 2 — feature rows and matrix.** Feature rows show scenario counts and
   a proportion bar, passed features sit below the attention set, and the
   Details feature table becomes a feature × status matrix.
-- **Slice 3 — source groups.** Add a group level only when the run has more
-  than one input file and the loader carries that provenance; never inferred
-  from a feature URI. A single input renders no group level.
+- **Slice 3 — source provenance.** Add a compact source strip only when the
+  run has more than one input file and the loader carries that provenance;
+  never inferred from a feature URI. A single input renders no strip.
 - Batch the three unreleased CLI edge fixes into the 0.2 release.
 
 ## Impact

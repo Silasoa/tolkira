@@ -95,17 +95,20 @@ img, video { max-width: 100%; height: auto; }
 .triageList { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.875rem; }
 .triageItem { display: grid; gap: 0.25rem; min-width: 0; padding-top: 0.875rem; border-top: 1px solid var(--line); }
 .triageItem:first-child { padding-top: 0; border-top: 0; }
-.triageFeature { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.375rem 0.5rem; min-width: 0; color: var(--ink); font-size: 0.875rem; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.triageFeature { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.375rem 0.5rem; min-width: 0; min-height: 1.5rem; padding-block: 0.125rem; color: var(--ink); font-size: 0.875rem; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
 .triageFeature:hover { text-decoration: underline; text-underline-offset: 0.16em; }
 .triageCounts { margin: 0; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .triageScenarios { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.875rem; margin: 0.125rem 0 0; padding: 0; list-style: none; }
-.triageScenarios a { display: inline-flex; align-items: baseline; gap: 0.375rem; min-width: 0; color: var(--ink-2); font-size: 0.8125rem; text-decoration: none; overflow-wrap: anywhere; }
-.triageScenarios a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 0.16em; }
+.triageScenarios a { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: 0 0.375rem; min-width: 0; min-height: 1.5rem; padding-block: 0.125rem; color: var(--ink-2); font-size: 0.8125rem; text-decoration: underline; text-decoration-color: color-mix(in oklab, var(--line-strong) 70%, transparent); text-underline-offset: 0.16em; overflow-wrap: anywhere; }
+.triageScenarios a:hover { color: var(--ink); text-decoration-color: currentColor; }
 .triageStatus { flex: none; font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.01em; }
 .triageStatus.pass { color: var(--pass); } .triageStatus.fail { color: var(--fail); } .triageStatus.pending { color: var(--pending); } .triageStatus.undefined { color: var(--undefined); } .triageStatus.ambiguous, .triageStatus.skipped, .triageStatus.unknown { color: var(--muted); }
 .triageMore { color: var(--muted); font-size: 0.75rem; }
+.triageRest { margin-top: 0.75rem; }
+.triageRest > summary { min-height: 1.5rem; padding-block: 0.125rem; color: var(--accent-text); font-size: 0.8125rem; cursor: pointer; }
+.triageRest .triageList { margin-top: 0.75rem; }
 .sources { margin: 0 0 1.5rem; }
-.sources h2 { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.sources h2 { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
 .sourceList { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
 .sourceItem { min-width: 0; padding: 0.75rem 0.875rem; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface-2); }
 .sourceHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; }
@@ -120,6 +123,7 @@ img, video { max-width: 100%; height: auto; }
 .featureShape { grid-column: 2; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; min-width: 0; }
 .featureCounts { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .featureShape .bar { flex: 1 1 6rem; max-width: 16rem; margin: 0; height: 0.25rem; }
+.featureSource { color: var(--muted); font-size: 0.6875rem; }
 .featureUri { color: var(--muted); font-size: 0.6875rem; overflow-wrap: anywhere; }
 .feature > summary::-webkit-details-marker, .scenarioButton::-webkit-details-marker { display: none; }
 .feature > summary:focus-visible, .scenarioButton:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -197,11 +201,13 @@ details[open] > summary.scenarioButton { background: var(--accent-soft); }
 .featureTable { width: 100%; min-width: 34rem; border-collapse: collapse; font-size: 0.8125rem; }
 .featureTable th { text-align: left; color: var(--muted); font-size: 0.6875rem; font-weight: 500; padding: 0.5rem 0.5rem 0.5rem 0; border-bottom: 1px solid var(--line-strong); }
 .featureTable th:not(:first-child) { text-align: right; }
+.featureTable th:first-child, .featureTable td:first-child { width: 38%; overflow-wrap: anywhere; }
 .featureTable td { padding: 0.5rem 0.5rem 0.5rem 0; border-bottom: 1px solid var(--line); }
 .featureTable td:last-child, .featureTable th:last-child { text-align: right; }
 .featureTable tr:last-child td { border-bottom: 0; }
 .featureTable .num { text-align: right; font-family: var(--font-mono); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
-.featureTable .zero { color: var(--muted); opacity: 0.55; }
+.featureTable .zero { color: var(--muted); }
+.matrixHint { display: none; }
 .legend { display: grid; gap: 0.375rem; margin-top: 0.625rem; }
 .legendRow { display: grid; grid-template-columns: 0.625rem minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; font-size: 0.8125rem; border-radius: 5px; padding: 0.375rem 0.5rem; background: var(--surface-3); }
 .legendRow.pass { background: var(--pass-soft); } .legendRow.fail { background: var(--fail-soft); } .legendRow.pending { background: var(--pending-soft); } .legendRow.undefined { background: var(--undefined-soft); } .legendRow.ambiguous, .legendRow.skipped, .legendRow.unknown { background: var(--surface-3); }
@@ -241,6 +247,7 @@ details[open] > summary.scenarioButton { background: var(--accent-soft); }
   .thumb { width: 2.5rem; height: 1.875rem; }
   .statusText { min-width: 3.125rem; }
   .filter { min-height: 1.75rem; }
+  .matrixHint { display: block; margin: 0 0 0.5rem; font-size: 0.75rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 @container (max-width: 16rem) {
@@ -250,6 +257,7 @@ details[open] > summary.scenarioButton { background: var(--accent-soft); }
   .feature > summary h2 { grid-area: title; }
   .feature > summary .chev { grid-area: chev; }
   .featureShape { grid-area: shape; }
+  .triageScenarios a { grid-template-columns: minmax(0, 1fr); gap: 0.125rem; }
   .scenarioButton { grid-template-columns: auto auto 1fr auto; grid-template-areas: "status thumb . chev" "title title title title" "meta meta meta meta"; gap: 0.5rem; }
   .scenarioButton .statusCell { grid-area: status; }
   .scenarioButton .thumbCell { grid-area: thumb; }

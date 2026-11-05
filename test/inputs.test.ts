@@ -216,6 +216,21 @@ describe('input merging', () => {
 
     expect(provenanceFor(groups).size).toBe(0);
   });
+
+  it('checks pickle URIs as well as gherkin URIs', () => {
+    const one = legacyFeature('features/one.feature', 'one');
+    const two = legacyFeature('features/two.feature', 'two');
+    const pickle = two.find((envelope) => envelope.pickle);
+    if (pickle?.pickle) pickle.pickle.uri = 'features/one.feature';
+
+    const provenance = provenanceFor([
+      { file: path.resolve('a.json'), envelopes: one },
+      { file: path.resolve('b.json'), envelopes: two },
+    ]);
+
+    expect(provenance.has('features/one.feature')).toBe(false);
+    expect(provenance.get('features/two.feature')).toBe('b.json');
+  });
 });
 
 function legacyFeature(uri: string, scenario: string) {

@@ -25,7 +25,8 @@ pending, skipped, unknown. Input order SHALL be preserved within equal status.
 
 - **WHEN** every scenario passed
 - **THEN** the report keeps input order
-- **AND** the Details view and the JSON summary keep input order in every case
+- **AND** the Details view keeps input order in every case
+- **AND** the JSON summary keeps its documented URI-then-name order
 
 ### Requirement: Show a needs-attention index
 
@@ -33,7 +34,9 @@ When at least one scenario is not passed, the Report view SHALL render a
 "Needs attention" index above the feature list. It SHALL list one row per
 non-passing feature that has at least one scenario, with its worst status, its
 non-passing scenario counts and up to three links to its non-passing scenarios.
-It SHALL NOT render when every scenario passed.
+It SHALL show at most five rows directly, place up to fifteen more behind a
+disclosure, and above twenty features state how many further features are in
+the list. It SHALL NOT render when every scenario passed.
 
 #### Scenario: Index lists non-passing features
 
@@ -46,6 +49,12 @@ It SHALL NOT render when every scenario passed.
 - **WHEN** a feature has five non-passing scenarios
 - **THEN** the index renders three scenario links
 - **AND** a "2 more" note points to the report list without extra links
+
+#### Scenario: More than five features
+
+- **WHEN** six features need attention
+- **THEN** five rows are visible and one is behind a disclosure labelled
+  "Show 1 more feature"
 
 #### Scenario: Feature rows are capped
 
@@ -62,8 +71,9 @@ It SHALL NOT render when every scenario passed.
 #### Scenario: Filters are active
 
 - **WHEN** the user searches, selects a tag or turns off a status filter
-- **THEN** the index is hidden while the list shows the filtered results
-- **AND** clearing the filters shows the index again
+- **THEN** the index and source strip are hidden while the list shows the
+  filtered results
+- **AND** clearing the filters shows them again
 
 ### Requirement: Jump from the index to a result
 
@@ -101,7 +111,8 @@ counts SHALL also be named as text.
 - **WHEN** a feature has passed, failed and pending scenarios
 - **THEN** its row states the passed/total count and the failed and pending
   counts as text
-- **AND** the bar has one segment per present status in severity order
+- **AND** the bar has one segment per present status in the same order as the
+  run bar
 
 #### Scenario: Feature without scenarios
 
@@ -132,31 +143,39 @@ zero, not an empty cell.
 - **THEN** it scrolls inside its labelled region
 - **AND** the page itself does not scroll horizontally
 
-### Requirement: Group by input source only with real provenance
+### Requirement: Show source provenance only when real
 
 When the run has more than one input file and every feature URI belongs to
-exactly one input, the Report view SHALL render a source group level above the
-feature rows, carrying the input file name and that group's aggregates.
-Otherwise it SHALL render a flat list. The report SHALL NOT infer a group from
-a feature URI, tag, directory or name.
+exactly one input, the Report view SHALL render a compact source strip above the
+feature rows, with one card per input file that contributes at least one
+feature, carrying the file name and that input's aggregates. It SHALL show at
+most six cards and state how many further inputs exist above that. Otherwise
+it SHALL render a flat list. The report SHALL NOT infer a source from a feature
+URI, tag, directory or name.
 
 #### Scenario: Two input files
 
 - **WHEN** two files are merged into one report
-- **THEN** the overview shows one group per file
-- **AND** groups are ordered by worst status, then input order
+- **THEN** the strip shows one card per file
+- **AND** cards are ordered by worst status, then input order
 
 #### Scenario: One input file
 
 - **WHEN** a single file contains several features
-- **THEN** no source group level is rendered
+- **THEN** no source strip is rendered
 
 #### Scenario: Shared or missing provenance
 
 - **WHEN** a feature URI appears in two inputs, or a Messages stream has no
   file boundary
 - **THEN** the report renders a flat feature list
-- **AND** no group name is derived from the URI
+- **AND** no source name is derived from the URI
+
+#### Scenario: More than six input files
+
+- **WHEN** more than six input files contribute features
+- **THEN** the strip shows six cards
+- **AND** states how many further inputs exist
 
 ### Requirement: Keep the triage index offline and safe
 

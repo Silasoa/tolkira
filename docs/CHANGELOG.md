@@ -7,20 +7,25 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
-- Report overview: features and scenarios with a non-passing status are listed
-  first, and a compact "Needs attention" index links to each failing, pending,
-  undefined or ambiguous scenario and opens the collapsed detail on the way.
-- Feature rows show passed/total counts and a proportion bar; the Details
-  feature table is now a feature-by-status matrix with totals and durations.
-- Multi-file runs show a source strip with per-input status, counts and a
-  proportion bar; it is omitted when a URI or file name is ambiguous.
+- In the Report view, features and scenarios with any non-passing status
+  (including skipped and unknown) are listed first. The "Needs attention" index
+  shows five features directly, up to fifteen more behind a disclosure, and up
+  to three non-passing scenario links per feature. Details and the JSON summary
+  keep their existing order.
+- Feature rows show passed/total counts, non-passing counts and a proportion
+  bar; the Details feature table is now a feature-by-status matrix with totals
+  and durations.
+- Feature and scenario anchors: opening a `#scenario-...` link expands the
+  target and its ancestors. A compact source strip appears for multi-file runs
+  with per-input status, counts and a bar; it is omitted when a URI or file
+  name is ambiguous.
 
 ### Fixed
 
 - `--logo` without `--out` now fails with a usage error instead of silently
   ignoring the logo file.
-- Non-finite or negative Messages durations are clamped to zero; the JSON
-  summary keeps `durationMs` a finite number.
+- Non-finite or negative Messages durations are clamped to zero in the JSON
+  summary and the HTML report.
 - Explicit empty Messages files report the same “Input is empty” diagnostic as
   empty files found by directory scanning.
 

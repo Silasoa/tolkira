@@ -69,10 +69,11 @@ and is covered by real producer fixtures.
 
 - Server-renders the report model into one HTML file; no React runtime.
 - Default Report tab: title, run metadata, pass-rate health panel, search,
-  status filters, feature disclosures, fixed thumbnail gutter and failed-first
+  status filters, exception-first feature and scenario order, a triage index, a
+  source strip, feature counts/proportion bars, fixed thumbnail gutter and
   scenario details.
-- Details tab: feature table, status distribution, environment and the agent
-  summary.
+- Details tab: feature-by-status matrix, status distribution, environment and
+  the agent summary.
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
   generates `src/render/styles.ts` for the inline report.
 - Adds a small shell: visible title, optional logo and accent colour, system
@@ -139,8 +140,9 @@ Test names, metadata, file names and attachments are untrusted input.
   the view model and writes one HTML string.
 - Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
-- Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.17 s to
-  1.2 MB; 5,000 / 15,000 in about 0.37 s to 6.0 MB.
+- Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
+  1.4 MB; 5,000 / 15,000 in about 0.4–0.5 s to 7.0 MB. Timings vary with host
+  load.
 - Warn when the generated file exceeds 10 MB.
 - External attachments are the escape hatch for large screenshots/videos.
 

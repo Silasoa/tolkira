@@ -126,6 +126,15 @@ test('stays usable across viewports', async ({ page }) => {
       page.locator('[data-triage]'),
       '320x700 at 200% triage index',
     );
+    const triageName = page
+      .locator('.triageScenarios a span:last-child')
+      .first();
+    const triageNameBox = await triageName.boundingBox();
+    expect(triageNameBox, 'zoomed triage name has a box').not.toBeNull();
+    expect(
+      triageNameBox!.width,
+      'zoomed triage name width',
+    ).toBeGreaterThan(96);
     const scenarioTitle = page.locator('.scenarioName').first();
     await expect(scenarioTitle, 'zoomed scenario title').toBeVisible();
     const titleBox = await scenarioTitle.boundingBox();

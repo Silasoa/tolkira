@@ -5,9 +5,9 @@
 Input files are parsed and merged into `ReportModel` as today. Ordering is a
 render concern only: `renderReportView` builds an ordered copy of
 `model.features` and of each feature's `scenarios`, then renders the index and
-the list from that copy. `model`, the Details view and the JSON summary keep
-input order, so summary consumers and the documented contract do not change.
-See ADR 0005 for the server-rendered shell.
+the list from that copy. `model` and the Details view keep input order; the
+JSON summary keeps its documented URI-then-name order. See ADR 0005 for the
+server-rendered shell.
 
 ```
 ReportModel (input order)
@@ -66,8 +66,9 @@ The table keeps its `tableWrap` scroll region.
 Only with real provenance. The loader keeps each input's envelope group and the
 model receives `{ file, envelopes }` groups; features built from a group carry
 `sourceFile` (the input's base name, never an absolute path). The report renders
-a compact source strip above the feature list, one card per input with its
-worst status, feature/scenario counts and a proportion bar, only when:
+a compact source strip above the feature list, one card per input (up to six,
+with a remainder line), with its worst status, feature/scenario counts and a
+proportion bar, only when:
 
 - the run has more than one input file, and
 - every feature URI belongs to exactly one input file.
@@ -85,9 +86,9 @@ parsers synthesise them and their HTML-id safety is not part of the contract.
 
 A small `revealHash()` runs on load and `hashchange`: it resolves
 `location.hash`, opens the target if it is a `<details>`, then opens every
-ancestor `<details>`. It does not move focus or call `scrollIntoView`; the
-browser's own fragment navigation scrolls. The links are ordinary anchors, so
-they keep working if scripting is unavailable.
+ancestor `<details>` and scrolls the target into view. It does not move focus.
+The links are ordinary anchors, so they keep working if scripting is
+unavailable.
 
 ## Styling
 

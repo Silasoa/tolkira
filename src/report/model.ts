@@ -120,7 +120,7 @@ const STATUS_ORDER: TestStepResultStatus[] = [
   TestStepResultStatus.FAILED,
 ];
 
-/** Cucumber severity: higher is worse. Shared by the model and the report view. */
+/** Raw Cucumber ordinal; the report comparator forces passed last. */
 export function statusSeverity(status: ReportStatus): number {
   return STATUS_ORDER.indexOf(status.toUpperCase() as TestStepResultStatus);
 }
@@ -146,7 +146,10 @@ function durationMs(duration: { seconds: number; nanos: number } | undefined): n
   if (!duration) return 0;
   const seconds = Number.isFinite(duration.seconds) ? duration.seconds : 0;
   const nanos = Number.isFinite(duration.nanos) ? duration.nanos : 0;
-  return Math.round((seconds * 1000 + nanos / 1_000_000) * 1000) / 1000;
+  const milliseconds = seconds * 1000 + nanos / 1_000_000;
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return 0;
+  const rounded = Math.round(milliseconds * 1000) / 1000;
+  return Number.isFinite(rounded) ? rounded : 0;
 }
 
 function timestampIso(
@@ -340,6 +343,7 @@ export function buildReportModel(
   provenance?: Map<string, string>,
 ): ReportModel {
   const features = new Map<string, Feature>();
+  const featureUris = new Map<Feature, string>();
   const featureOrder: Feature[] = [];
   const scenarioTree = new Map<string, { scenario: Scenario; ruleName?: string }>();
   const featureByScenarioId = new Map<string, Feature>();
@@ -394,6 +398,7 @@ export function buildReportModel(
       const feature = envelope.gherkinDocument.feature;
       if (!features.has(envelope.gherkinDocument.uri ?? feature.name)) {
         features.set(envelope.gherkinDocument.uri ?? feature.name, feature);
+        featureUris.set(feature, envelope.gherkinDocument.uri ?? feature.name);
         featureOrder.push(feature);
       }
       for (const [id, value] of featureTree(feature)) {
@@ -564,20 +569,33 @@ export function buildReportModel(
   }
 
   const featureRows: ReportFeature[] = [];
+  const inInputOrder = new Set(featureOrder);
   const orderedFeatures = [
     ...featureOrder,
-    ...[...featureScenarios.keys()].filter((feature) => !featureOrder.includes(feature)),
+    ...[...featureScenarios.keys()].filter(
+      (feature) => !inInputOrder.has(feature),
+    ),
   ];
   for (const feature of orderedFeatures) {
     const scenarios = featureScenarios.get(feature) ?? [];
     if (scenarios.length === 0) continue;
-    const status = scenarios.reduce<ReportStatus>((worst, scenario) => {
-      return STATUS_ORDER.indexOf(scenario.status.toUpperCase() as TestStepResultStatus) >
-        STATUS_ORDER.indexOf(worst.toUpperCase() as TestStepResultStatus)
-        ? scenario.status
-        : worst;
-    }, 'unknown');
-    const sourceFile = provenance?.get(scenarios[0]?.uri ?? '');
+    const status = scenarios.some((scenario) => scenario.status !== 'passed')
+      ? scenarios.reduce<ReportStatus>((worst, scenario) => {
+          if (scenario.status === 'passed') return worst;
+          return statusSeverity(scenario.status) > statusSeverity(worst)
+            ? scenario.status
+            : worst;
+        }, 'unknown')
+      : 'passed';
+    const featureUri = featureUris.get(feature) ?? scenarios[0]?.uri ?? '';
+    const sourceFiles = new Set<string | undefined>([
+      ...scenarios.map((scenario) => provenance?.get(scenario.uri)),
+      provenance?.get(featureUri),
+    ]);
+    const sourceFile =
+      sourceFiles.size === 1 && !sourceFiles.has(undefined)
+        ? [...sourceFiles][0]
+        : undefined;
     featureRows.push({
       id: `feature-${featureRows.length + 1}`,
       name: feature.name,

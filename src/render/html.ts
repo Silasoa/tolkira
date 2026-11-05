@@ -81,6 +81,7 @@ interface OrderedFeature {
 
 const TRIAGE_FEATURE_LIMIT = 20;
 const TRIAGE_SCENARIO_LIMIT = 3;
+const SOURCE_LIMIT = 6;
 
 function compareStatus(a: ReportStatus, b: ReportStatus): number {
   const passed = Number(a === 'passed') - Number(b === 'passed');
@@ -114,6 +115,10 @@ function countStatuses(
   return counts;
 }
 
+function barWidth(count: number, total: number): number {
+  return total === 0 ? 0 : Math.round((count / total) * 1000) / 10;
+}
+
 function attentionCounts(scenarios: ReportScenario[]): string {
   const counts = new Map<ReportStatus, number>();
   for (const scenario of scenarios) {
@@ -133,7 +138,7 @@ function featureBar(scenarios: ReportScenario[]): string {
   const segments = ALL_STATUSES.filter((status) => counts[status])
     .map(
       (status) =>
-        `<i class="${statusClass(status)}" style="width:${((counts[status] ?? 0) / total) * 100}%"></i>`,
+        `<i class="${statusClass(status)}" style="width:${barWidth(counts[status] ?? 0, total)}%"></i>`,
     )
     .join('');
   return `<span class="bar" aria-hidden="true">${segments}</span>`;
@@ -148,10 +153,39 @@ function featureShape(
   ).length;
   const attention = attentionCounts(scenarios);
   const counts = `${passed} of ${scenarios.length} passed${attention ? ` · ${attention}` : ''}`;
-  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}<span class="featureUri">${escapeHtml(feature.uri)}</span></span>`;
+  const source = feature.sourceFile
+    ? `<span class="featureSource">from ${escapeHtml(feature.sourceFile)}</span>`
+    : '';
+  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(feature.uri)}</span></span>`;
 }
 
-function renderTriage(features: OrderedFeature[], model: ReportModel): string {
+interface TriageEntry extends OrderedFeature {
+  index: number;
+}
+
+function renderTriageRow({
+  feature,
+  scenarios,
+  index,
+}: TriageEntry): string {
+  const failing = scenarios.filter(
+    (scenario) => scenario.status !== 'passed',
+  );
+  const links = failing
+    .slice(0, TRIAGE_SCENARIO_LIMIT)
+    .map((scenario) => {
+      const scenarioIndex = scenarios.indexOf(scenario) + 1;
+      return `<li><a class="triageScenario" href="#scenario-${index + 1}-${scenarioIndex}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span>${escapeHtml(scenario.name)}</span></a></li>`;
+    })
+    .join('');
+  const more =
+    failing.length > TRIAGE_SCENARIO_LIMIT
+      ? `<li class="triageMore">+${failing.length - TRIAGE_SCENARIO_LIMIT} more in the report</li>`
+      : '';
+  return `<li class="triageItem"><a class="triageFeature" href="#feature-${index + 1}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul></li>`;
+}
+
+function renderTriage(features: OrderedFeature[]): string {
   const attention = features
     .map((entry, index) => ({ ...entry, index }))
     .filter(({ scenarios }) =>
@@ -159,33 +193,27 @@ function renderTriage(features: OrderedFeature[], model: ReportModel): string {
     );
   if (attention.length === 0) return '';
 
-  const shown = attention.slice(0, TRIAGE_FEATURE_LIMIT);
-  const total = model.counts.scenarios.total;
-  const need = total - model.counts.scenarios.passed;
-  const rows = shown
-    .map(({ feature, scenarios, index }) => {
-      const failing = scenarios.filter(
-        (scenario) => scenario.status !== 'passed',
-      );
-      const links = failing
-        .slice(0, TRIAGE_SCENARIO_LIMIT)
-        .map((scenario) => {
-          const scenarioIndex = scenarios.indexOf(scenario) + 1;
-          return `<li><a class="triageScenario" href="#scenario-${index + 1}-${scenarioIndex}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status).toLowerCase()}</span><span>${escapeHtml(scenario.name)}</span></a></li>`;
-        })
-        .join('');
-      const more =
-        failing.length > TRIAGE_SCENARIO_LIMIT
-          ? `<li class="triageMore">+${failing.length - TRIAGE_SCENARIO_LIMIT} more in the report</li>`
-          : '';
-      return `<li class="triageItem"><a class="triageFeature" href="#feature-${index + 1}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status).toLowerCase()}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul></li>`;
-    })
-    .join('');
+  const shown = attention.slice(0, 5);
+  const rest = attention.slice(5, TRIAGE_FEATURE_LIMIT);
+  const total = features.reduce(
+    (sum, entry) => sum + entry.scenarios.length,
+    0,
+  );
+  const need = attention.reduce(
+    (sum, entry) =>
+      sum +
+      entry.scenarios.filter((scenario) => scenario.status !== 'passed').length,
+    0,
+  );
+  const rows = shown.map(renderTriageRow).join('');
+  const restBlock = rest.length
+    ? `<details class="triageRest"><summary>Show ${rest.length} more feature${rest.length === 1 ? '' : 's'}</summary><ol class="triageList">${rest.map(renderTriageRow).join('')}</ol></details>`
+    : '';
   const remainder =
-    attention.length > shown.length
-      ? `<p class="triageMore">${attention.length - shown.length} more feature${attention.length - shown.length === 1 ? '' : 's'} below.</p>`
+    attention.length > TRIAGE_FEATURE_LIMIT
+      ? `<p class="triageMore">${attention.length - TRIAGE_FEATURE_LIMIT} more feature${attention.length - TRIAGE_FEATURE_LIMIT === 1 ? '' : 's'} below.</p>`
       : '';
-  return `<nav class="triage" aria-labelledby="triage-heading" data-triage><h2 id="triage-heading">Needs attention</h2><p class="triageLead">${need} of ${total} scenario${total === 1 ? '' : 's'} ${need === 1 ? 'needs' : 'need'} attention.</p><ol class="triageList">${rows}</ol>${remainder}</nav>`;
+  return `<nav class="triage" aria-labelledby="triage-heading" data-triage><h2 id="triage-heading">Needs attention</h2><p class="triageLead">${need} of ${total} scenario${total === 1 ? '' : 's'} ${need === 1 ? 'needs' : 'need'} attention.</p><ol class="triageList">${rows}</ol>${restBlock}${remainder}</nav>`;
 }
 
 function renderSourceStrip(model: ReportModel): string {
@@ -212,14 +240,20 @@ function renderSourceStrip(model: ReportModel): string {
     return status !== 0 ? status : a.order - b.order;
   });
 
-  const items = entries
+  const shown = entries.slice(0, SOURCE_LIMIT);
+  const remainder = entries.length - shown.length;
+  const items = shown
     .map((entry) => {
       const attention = attentionCounts(entry.scenarios);
       const counts = `${entry.features} feature${entry.features === 1 ? '' : 's'} · ${entry.scenarios.length} scenario${entry.scenarios.length === 1 ? '' : 's'}${attention ? ` · ${attention}` : ''}`;
-      return `<li class="sourceItem"><div class="sourceHead"><span class="triageStatus ${statusClass(entry.status)}">${statusLabel(entry.status).toLowerCase()}</span><span class="sourceName">${escapeHtml(entry.file)}</span></div><p class="sourceCounts">${counts}</p>${featureBar(entry.scenarios)}</li>`;
+      return `<li class="sourceItem"><div class="sourceHead"><span class="triageStatus ${statusClass(entry.status)}">${statusLabel(entry.status)}</span><span class="sourceName">${escapeHtml(entry.file)}</span></div><p class="sourceCounts">${counts}</p>${featureBar(entry.scenarios)}</li>`;
     })
     .join('');
-  return `<section class="sources" aria-labelledby="sources-heading" data-sources><h2 id="sources-heading">Sources</h2><ul class="sourceList">${items}</ul></section>`;
+  const more =
+    remainder > 0
+      ? `<p class="triageMore">${remainder} more input${remainder === 1 ? '' : 's'}</p>`
+      : '';
+  return `<section class="sources" aria-labelledby="sources-heading" data-sources><h2 id="sources-heading">Sources</h2><ul class="sourceList">${items}</ul>${more}</section>`;
 }
 
 function statusBar(model: ReportModel): string {
@@ -228,7 +262,7 @@ function statusBar(model: ReportModel): string {
   return `<div class="bar" aria-hidden="true">${displayStatuses(model)
     .map(
       (status) =>
-        `<i class="${statusClass(status)}" style="width:${(model.counts.scenarios[status] / total) * 100}%"></i>`,
+        `<i class="${statusClass(status)}" style="width:${barWidth(model.counts.scenarios[status], total)}%"></i>`,
     )
     .join('')}</div>`;
 }
@@ -361,10 +395,7 @@ function renderFeature(
 
 function matrixStatuses(model: ReportModel): ReportStatus[] {
   return ALL_STATUSES.filter((status) => model.counts.scenarios[status] > 0).sort(
-    (a, b) => {
-      const passed = Number(a === 'passed') - Number(b === 'passed');
-      return passed !== 0 ? passed : statusSeverity(b) - statusSeverity(a);
-    },
+    compareStatus,
   );
 }
 
@@ -411,7 +442,7 @@ function renderReportView(
   const features = ordered
     .map((feature, index) => renderFeature(feature, index))
     .join('');
-  const triage = renderTriage(ordered, model);
+  const triage = renderTriage(ordered);
   const sources = renderSourceStrip(model);
   const tags = scenarioTags(model);
   const tagFilter = tags.length
@@ -462,7 +493,7 @@ function renderAnalysisView(
       : '',
   ].join('');
   const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps</dt><dd>${model.counts.steps.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
-  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
+  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,

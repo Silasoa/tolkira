@@ -846,7 +846,8 @@ export function parseLegacyValue(
     envelopes.push({
       gherkinDocument: { uri, feature: featureNode, comments: [] },
     });
-    envelopes.push(...scenarioEnvelopes);
+    // Spread would exceed the argument limit on very large feature files.
+    for (const envelope of scenarioEnvelopes) envelopes.push(envelope);
   }
 
   const success = !statuses.some(

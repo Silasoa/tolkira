@@ -634,6 +634,11 @@ test('reflows at 200% page zoom', async ({ page }) => {
         .locator('#analysis-view')
         .evaluate((element) => element.getBoundingClientRect().right),
     ).toBeLessThanOrEqual(320);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(1);
     const tableWrap = page.locator('#analysis-view .tableWrap');
     await expect(tableWrap).toHaveAttribute('tabindex', '0');
     expect(
@@ -689,6 +694,7 @@ test('opens a scenario from the needs-attention index', async ({ page }) => {
     await expect(page.locator('[data-scenario][open]')).toHaveCount(
       openBefore + 1,
     );
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
     await page.reload();
     await expect(page.locator(hash)).toHaveJSProperty('open', true);
@@ -696,6 +702,18 @@ test('opens a scenario from the needs-attention index', async ({ page }) => {
     await page.getByRole('button', { name: /^Passed/ }).click();
     await expect(triage).toBeHidden();
     await page.getByRole('button', { name: /^Passed/ }).click();
+    await expect(triage).toBeVisible();
+
+    const search = page.getByRole('searchbox', { name: 'Search scenarios' });
+    await search.fill('Fred');
+    await expect(triage).toBeHidden();
+    await search.fill('');
+    await expect(triage).toBeVisible();
+
+    const tag = page.locator('select[data-tag-filter]');
+    await tag.selectOption({ index: 1 });
+    await expect(triage).toBeHidden();
+    await tag.selectOption('');
     await expect(triage).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -718,9 +736,26 @@ test('shows a source strip for multiple input files', async ({ page }) => {
     await expect(sources).toBeVisible();
     await expect(sources.getByText('unhappy.json', { exact: true })).toBeVisible();
     await expect(sources.getByText('happy.json', { exact: true })).toBeVisible();
+    expect(await sources.innerText()).not.toContain(
+      path.dirname(unhappyFixture),
+    );
 
     await page.getByRole('button', { name: /^Passed/ }).click();
     await expect(sources).toBeHidden();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('survives a malformed URL hash', async ({ page }) => {
+  const { dir, output } = await writeUnhappyReport();
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  try {
+    await page.goto(`${pathToFileURL(output).href}#%E0%A4%A`);
+    await expect(page.locator('#report-view')).toBeVisible();
+    expect(errors).toEqual([]);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -736,9 +771,10 @@ test.describe('without scripting', () => {
       await page.goto(pathToFileURL(output).href);
       const triage = page.getByRole('navigation', { name: 'Needs attention' });
       await expect(triage).toBeVisible();
-      await expect(
-        triage.getByRole('link', { name: /steps are skipped/ }),
-      ).toHaveAttribute('href', /^#scenario-\d+-\d+$/);
+      const link = triage.getByRole('link', { name: /steps are skipped/ });
+      await expect(link).toHaveAttribute('href', /^#scenario-\d+-\d+$/);
+      const href = await link.getAttribute('href');
+      await expect(page.locator(href!)).toHaveCount(1);
       await expect(page.locator('#feature-1')).toBeVisible();
       await expect(page.locator('#report-view')).toBeVisible();
     } finally {

@@ -153,13 +153,17 @@ export async function loadInputs(
         idPrefix: `legacy-${index}`,
       });
     } else if (legacy?.kind === 'malformed') {
+      // Validation-only: throws on malformed JSON; there is no result to add.
       parseLegacyJson(content, input.file, { idPrefix: `legacy-${index}` });
     } else if (looksLikeJUnit(content)) {
-      parsed = await parseJUnitXml(content, input.file);
+      parsed = await parseJUnitXml(content, input.file, {
+        idPrefix: `junit-${index}`,
+      });
     } else if (looksLikeMessages(content)) {
       parsed = parseMessages(content, input.file);
     } else if (input.explicit && extension === '.xml') {
-      await parseJUnitXml(content, input.file);
+      // Validation-only: throws when the explicit XML is not usable JUnit.
+      await parseJUnitXml(content, input.file, { idPrefix: `junit-${index}` });
     } else {
       if (
         input.explicit &&
@@ -172,6 +176,7 @@ export async function loadInputs(
         invalidJson(content, input.file);
       }
       if (MESSAGES_EXTENSIONS.has(extension)) {
+        // Validation-only fallback; valid Messages are handled above.
         parseMessages(content, input.file);
       }
     }
@@ -200,6 +205,13 @@ export async function loadEnvelopes(
 export function provenanceFor(groups: LoadedInput[]): Map<string, string> {
   const names = new Map<string, Set<string>>();
   for (const group of groups) {
+    if (
+      !group.envelopes.some(
+        (envelope) => envelope.gherkinDocument || envelope.pickle,
+      )
+    ) {
+      continue;
+    }
     const name = path.basename(group.file);
     const set = names.get(name) ?? new Set<string>();
     set.add(group.file);
@@ -216,11 +228,12 @@ export function provenanceFor(groups: LoadedInput[]): Map<string, string> {
     const name = path.basename(group.file);
     if (ambiguous.has(name)) continue;
     for (const envelope of group.envelopes) {
-      const uri = envelope.gherkinDocument?.uri;
-      if (!uri) continue;
-      const set = uriFiles.get(uri) ?? new Set<string>();
-      set.add(name);
-      uriFiles.set(uri, set);
+      for (const uri of [envelope.gherkinDocument?.uri, envelope.pickle?.uri]) {
+        if (!uri) continue;
+        const set = uriFiles.get(uri) ?? new Set<string>();
+        set.add(name);
+        uriFiles.set(uri, set);
+      }
     }
   }
 

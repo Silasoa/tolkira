@@ -193,6 +193,17 @@ describe('JUnit XML input', () => {
     expect(summary.counts.scenarios.total).toBe(6);
   });
 
+  it('keeps both features when two JUnit files are merged', async () => {
+    const summary = await summarizeReport([fixture, edgeCasesFixture]);
+    expect(summary.counts.scenarios.total).toBe(10);
+
+    const html = await renderReport([fixture, edgeCasesFixture], {
+      title: 'Two JUnit files',
+    });
+    expect(html).toContain('checkout');
+    expect(html).toContain('statuses &amp; entities');
+  });
+
   it('maps failures and errors without attributes', async () => {
     const summary = await summarizeReport(failureShapesFixture);
 

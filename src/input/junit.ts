@@ -306,6 +306,7 @@ export function looksLikeJUnit(content: string): boolean {
 export async function parseJUnitXml(
   content: string,
   source: string,
+  options: { idPrefix?: string } = {},
 ): Promise<Envelope[]> {
   const { XMLParser, XMLValidator } = await import('fast-xml-parser');
 
@@ -355,7 +356,9 @@ export async function parseJUnitXml(
   const legacy = suites.map((suite, index) =>
     featureFromSuite(suite, source, index),
   );
-  const envelopes = parseLegacyValue(legacy, source, { idPrefix: 'junit' });
+  const envelopes = parseLegacyValue(legacy, source, {
+    idPrefix: options.idPrefix ?? 'junit',
+  });
   for (const envelope of envelopes) {
     if (envelope.meta) {
       envelope.meta.implementation = { name: 'JUnit XML', version: '' };

@@ -15,8 +15,8 @@ parts only work because the product owns history, identity or a server? A
 pattern that depends on those things is still worth studying, but it must not
 be copied into a one-run artifact as if the data existed.
 
-No production code, tests, CI, README or `package.json` were changed. The only
-new project file is this note.
+This note changes no production code, tests, CI, README or `package.json`. The
+only new project file is this note.
 
 ## Method and evidence
 
@@ -876,7 +876,8 @@ name.
 **Tolkira use:** derive a deterministic scenario key from feature URI +
 scenario name + outline row index; keep the attempt as a separate dimension for
 retries. Use it for the HTML `id`, deep links, filter state and retry grouping.
-Do not use array indexes. Document that renaming a scenario changes its
+0.2 currently uses display-order anchors; stable identity is the post-0.2
+upgrade. Do not use array indexes. Document that renaming a scenario changes its
 identity, so links are not promised across renames.
 
 **History needed:** No, but it is the prerequisite for any future baseline or
@@ -979,7 +980,7 @@ estimates.
 | 1 | **Scope banner and reconciled counts** | "What am I looking at, and do these numbers add up?" | S | No | Cheapest trust fix. Makes every later filter, cause view and share link honest. Status counts become filters; `Showing n of m`; totals stay visible. |
 | 2 | **Failure-cause view** | "Are these failures one bug or many?" | M | No | A single run usually has enough error text for deterministic grouping. It changes triage from row-by-row to cause-by-cause, and links back to the rows. |
 | 3 | **Needs-attention queue with reason badges** | "What needs attention now, and why?" | M | No | Builds on the 0.2 overview. Uses failed/pending/undefined/ambiguous and the first failing step; no invented priority. |
-| 4 | **Stable scenario identity and deep links** | "Can I send this exact failure to someone?" | S–M | No | Required for shareable one-file reports and for any future baseline. Use feature URI + scenario name + outline row; never array indexes. |
+| 4 | **Stable scenario identity for durable deep links** | "Can I send this exact failure to someone?" | S-M | No | Required for shareable one-file reports and for any future baseline. Use feature URI + scenario name + outline row; never array indexes. |
 | 5 | **Optional baseline diff against a previous summary** | "Is this failure new, pre-existing or resolved?" | L | **Yes, a second run/file — not a server** | The first honest history feature. It must be explicit (`--baseline`), versioned against the summary schema, and silent when no baseline is supplied. |
 
 Not in the top five, but cheap and worth folding into the search/filter work:

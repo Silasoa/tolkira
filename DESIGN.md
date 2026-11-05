@@ -103,11 +103,13 @@ describe the viewport, not the font.
 | Top bar / tabs | `.topbar`, `.view` | Report and Details; active tab is a text state, not a card |
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
 | Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features and scenarios; filters only for present statuses |
-| Feature | `details.feature` | Native disclosure; status, name, path, counts, duration |
+| Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, the rest behind a disclosure |
+| Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar |
+| Feature | `details.feature` | Native disclosure; status, name, counts, proportion bar, source badge, URI |
 | Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |
 | Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
-| Details | `.analysis` | Feature table, status distribution, Run / Cucumber environment / Custom metadata blocks, agent summary |
+| Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Cucumber environment / Custom metadata blocks, agent summary |
 
 ## Interaction rules
 
@@ -159,6 +161,8 @@ Direction A is implemented in production:
 - warm paper tokens, hairline sections and monospace measurements;
 - fixed thumbnail gutter on every scenario row, also on mobile;
 - chevrons, failed-first disclosures and search that opens matching features;
+- exception-first Report order, a triage index and a source strip;
+- feature counts/proportion bars and a feature-by-status matrix in Details;
 - `undefined` is a distinct status, not a neutral one;
 - Details tab with producer, runtime, OS, CPU, protocol and user metadata;
 - empty state for search/filter results;
@@ -167,8 +171,7 @@ Direction A is implemented in production:
 CSS lives in `src/render/report.css`; `scripts/build-styles.mjs` generates
 `src/render/styles.ts` for the inline report.
 
-Still open: a 200 % text-zoom pass with real content, and charts/trends in
-Advanced.
+Still open: charts/trends in Details and optional map/compact lenses.
 
 ## Non-goals
 

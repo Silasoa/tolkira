@@ -1,6 +1,7 @@
 # Hierarchical report overview
 
-Status: research note for 0.2, not an approved design.
+Status: research note for 0.2; the shipped design is in
+`openspec/changes/triage-first-report/`.
 
 ## Problem
 

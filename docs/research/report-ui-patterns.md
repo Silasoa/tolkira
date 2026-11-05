@@ -1,6 +1,7 @@
 # Report UI patterns: hierarchy, status, navigation
 
-Status: research note for the 0.2 overview. Not an approved design.
+Status: research note for the 0.2 overview; the shipped design is in
+`openspec/changes/triage-first-report/`.
 Date: 2026-11-04.
 
 This note looks at how established test reports answer three questions on

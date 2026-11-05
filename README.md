@@ -62,11 +62,14 @@ tolkira test-results/ --json
 
 ## What you get
 
+The triage overview, feature bars, matrix and source strip are unreleased; they
+ship with 0.2.
+
 - **One file that works offline.** CSS, JavaScript and attachments are inline.
   No network requests, no remote fonts, no analytics.
 - **The failure first.** Failed scenarios are open by default, and a compact
   triage index lists non-passing features and scenarios before passed ones,
-  with links that open the failing detail.
+  with links that open the scenario detail.
 - **Multi-file context.** A source strip shows per-input status, counts and a
   proportion bar when the run has more than one input file and provenance is
   unambiguous.

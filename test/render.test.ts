@@ -6,6 +6,7 @@ import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
 import { renderHtml } from '../src/render/html.js';
+import { summarizeEnvelopes } from '../src/summary.js';
 
 const fixture = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
@@ -242,6 +243,39 @@ describe('messages rendering', () => {
     expect(html).toContain("script-src 'sha256-");
     expect(html).not.toMatch(/url\((?:https?:)?\/\//i);
   });
+
+  it('clamps negative message durations in the model', async () => {
+    const lines = (await readFile(fixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            testStepFinished?: { testStepResult: { duration: unknown } };
+          },
+      );
+    for (const line of lines) {
+      if (line.testStepFinished) {
+        line.testStepFinished.testStepResult.duration = { seconds: -5, nanos: 0 };
+      }
+    }
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'negative-duration.ndjson',
+    );
+    const model = buildReportModel(envelopes);
+
+    expect(model.durationMs).toBe(0);
+    expect(model.scenarios.every((scenario) => scenario.durationMs === 0)).toBe(
+      true,
+    );
+    expect(
+      model.scenarios
+        .flatMap((scenario) => scenario.steps)
+        .every((step) => step.durationMs === 0),
+    ).toBe(true);
+  });
 });
 
 async function legacyEnvelopes(name: string, idPrefix: string) {
@@ -255,12 +289,14 @@ async function legacyEnvelopes(name: string, idPrefix: string) {
 function syntheticRun(
   features: Array<{
     name: string;
+    uri?: string;
     scenarios: Array<{ name: string; status: string }>;
   }>,
 ) {
   return parseLegacyJson(
     JSON.stringify(
       features.map((feature) => ({
+        uri: feature.uri,
         name: feature.name,
         elements: feature.scenarios.map((scenario) => ({
           keyword: 'Scenario',
@@ -359,6 +395,8 @@ describe('triage overview', () => {
     expect(html).toContain('href="#scenario-2-1"');
     expect(html).toContain('1 failed');
     expect(html).toContain('2 undefined, 1 pending');
+    expect(html).toContain('triageStatus fail">Failed');
+    expect(html).toContain('triageStatus undefined">Undefined');
     expect(html).not.toContain('Behave feature</a>');
   });
 
@@ -370,6 +408,64 @@ describe('triage overview', () => {
     expect(html).not.toContain('Needs attention');
   });
 
+  it('omits features without scenarios from list and matrix', async () => {
+    const html = await renderHtml(
+      syntheticRun([
+        { name: 'Empty feature', scenarios: [] },
+        {
+          name: 'Broken feature',
+          scenarios: [{ name: 'fails', status: 'failed' }],
+        },
+      ]),
+      { title: 'Featureless run' },
+    );
+
+    const list = featureList(html);
+    expect(list).not.toContain('Empty feature');
+    expect(list).toContain('Broken feature');
+  });
+
+  it('treats a passed and unknown feature as needing attention', async () => {
+    const html = await renderHtml(
+      syntheticRun([
+        {
+          name: 'Passed feature',
+          scenarios: [{ name: 'ok', status: 'passed' }],
+        },
+        {
+          name: 'Mixed feature',
+          scenarios: [
+            { name: 'passes', status: 'passed' },
+            { name: 'unknown', status: 'unknown' },
+          ],
+        },
+      ]),
+      { title: 'Mixed unknown' },
+    );
+
+    const names = [...featureList(html).matchAll(/<h2>(.*?)<\/h2>/g)].map(
+      (match) => match[1],
+    );
+    expect(names).toEqual(['Mixed feature', 'Passed feature']);
+    expect(html).toContain('1 of 2 passed · 1 unknown');
+    expect(html).toContain('1 of 3 scenarios needs attention.');
+    expect(html).toContain('<span class="triageStatus unknown">Unknown</span>');
+  });
+
+  it('keeps the JSON summary in input order', async () => {
+    const summary = summarizeEnvelopes([
+      ...(await legacyEnvelopes('behave.json', 'behave')),
+      ...(await legacyEnvelopes('unhappy.json', 'unhappy')),
+      ...(await legacyEnvelopes('failed.json', 'failed')),
+    ]);
+
+    expect(summary.scenarios.map((scenario) => scenario.feature)).toEqual([
+      'Behave feature',
+      ...Array(6).fill('Happy HTML reporting'),
+      ...Array(4).fill('Unhappy HTML reporting'),
+    ]);
+  });
+
   it('caps feature rows and scenario links', async () => {
     const many = syntheticRun(
       Array.from({ length: 21 }, (_, index) => ({
@@ -379,6 +475,7 @@ describe('triage overview', () => {
     );
     const manyHtml = await renderHtml(many, { title: 'Many features' });
     expect(manyHtml.match(/class="triageItem"/g) ?? []).toHaveLength(20);
+    expect(manyHtml).toContain('Show 15 more features');
     expect(manyHtml).toContain('1 more feature below');
 
     const twenty = syntheticRun(
@@ -389,6 +486,7 @@ describe('triage overview', () => {
     );
     const twentyHtml = await renderHtml(twenty, { title: 'Twenty features' });
     expect(twentyHtml.match(/class="triageItem"/g) ?? []).toHaveLength(20);
+    expect(twentyHtml).toContain('Show 15 more features');
     expect(twentyHtml).not.toContain('more feature below');
 
     const noisy = syntheticRun([
@@ -456,6 +554,10 @@ describe('feature overview and matrix', () => {
     );
     expect(happy).toContain('5 of 6 passed · 1 failed');
     expect(happy.match(/<i class="(pass|fail)"/g) ?? []).toHaveLength(2);
+    const bar = happy.slice(happy.indexOf('class="bar"'));
+    expect(bar.indexOf('class="pass"')).toBeLessThan(
+      bar.indexOf('class="fail"'),
+    );
     expect(happy).toContain('class="featureUri"');
 
     const behave = list.slice(list.indexOf('Behave feature'));
@@ -494,6 +596,7 @@ describe('feature overview and matrix', () => {
       (match) => match[1],
     );
     expect(cells.slice(0, 6)).toEqual(['Happy HTML reporting', '6', '1', '0', '0', '5']);
+    expect(cells[6]).toMatch(/^\d+(\.\d+)? (ms|s)$/);
     expect(matrix).toContain('class="num zero"');
   });
 
@@ -550,6 +653,20 @@ describe('source strip', () => {
     ).toBe('failed.json');
   });
 
+  it('escapes hostile source file names', async () => {
+    const html = await renderHtml(await mixedEnvelopes(), {
+      title: 'Hostile source',
+      provenance: new Map([
+        ['features/behave.feature', '"><img src=x onerror=alert(1)>.json'],
+        ['features/unhappy.feature', 'unhappy.json'],
+        ['features/happy.feature', 'failed.json'],
+      ]),
+    });
+
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x');
+  });
+
   it('omits the strip when provenance is incomplete', async () => {
     const html = await renderHtml(await mixedEnvelopes(), {
       title: 'Partial sources',
@@ -569,5 +686,28 @@ describe('source strip', () => {
     );
 
     expect(html).not.toContain('class="sources"');
+  });
+
+  it('caps source cards and states the remainder', async () => {
+    const run = syntheticRun(
+      Array.from({ length: 21 }, (_, index) => ({
+        name: `Source ${index + 1}`,
+        uri: `features/source-${index + 1}.feature`,
+        scenarios: [{ name: 'ok', status: 'passed' }],
+      })),
+    );
+    const provenance = new Map(
+      Array.from({ length: 21 }, (_, index) => [
+        `features/source-${index + 1}.feature`,
+        `source-${index + 1}.json`,
+      ]),
+    );
+    const html = await renderHtml(run, {
+      title: 'Many sources',
+      provenance,
+    });
+
+    expect(html.match(/class="sourceItem"/g) ?? []).toHaveLength(6);
+    expect(html).toContain('15 more inputs');
   });
 });

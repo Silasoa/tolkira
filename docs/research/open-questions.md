@@ -16,8 +16,8 @@ not a backlog of questions.
 3. **Analysis tab.** Rename to **Details** in v0.1; add an environment block
    (producer, runtime, OS, CPU, protocol, user metadata). Charts, trends,
    history and flaky analytics stay Advanced. Within-run retry flakiness is
-   cheap because Messages keep the attempts; cross-run flakiness needs the
-   history file and stays out of 0.2.
+   cheap because Messages keep the attempts, but it is also deferred; cross-run
+   flakiness needs the history file. 0.2 adds none of it.
 4. **UI direction.** A is the base. The lead record is removed; thumbnails are
    in the rows (also mobile); search opens matching features and scenarios; the
    mobile feature header is fixed. The A refinement is implemented in
@@ -54,10 +54,10 @@ not a backlog of questions.
 - Visual regression baselines after the shell is stable; CI screenshot
   artifacts are in place.
 - Pixel baselines for the new tag filter, search highlight and copy action.
-- 0.1.3 candidate: CLI edge fixes (logo without `--out`, non-finite/negative
-  Messages durations, empty Messages diagnostics) once they are batched with
-  another user-facing fix.
-- Hierarchical overview: inline run/source/feature/scenario summary with
-  failed/pending first, optional map/compact lenses, matrix in Details. See
-  `docs/research/hierarchy-overview.md` and `docs/research/report-ui-patterns.md`.
+- 0.2 release: the three CLI edge fixes (logo without `--out`, non-finite or
+  negative Messages durations, empty Messages diagnostics) are batched into the
+  0.2 changelog.
+- Hierarchical overview: the triage index, feature bars, status matrix and
+  source strip shipped in `openspec/changes/triage-first-report/`. Optional
+  map/compact lenses and a treemap remain.
 - AI-first exports: per-scenario JSON, multi-select and a visible action menu.

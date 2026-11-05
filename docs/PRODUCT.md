@@ -82,7 +82,16 @@ it. The gap is the combination.
 - Security baseline: escaping, safe attachments, no telemetry.
 - Tests with fixtures from several Cucumber implementations.
 
-### v0.2 and later
+### v0.2 — triage overview
+
+- Exception-first Report list: non-passing features and scenarios first.
+- A "Needs attention" index with counts and links into the collapsed detail.
+- Feature rows with passed/total counts and proportion bars.
+- Feature-by-status matrix in Details.
+- Source strip for multi-file runs with real provenance.
+- Batched CLI edge fixes from the 0.1.2 audit.
+
+### v0.3 and later
 
 - External attachments / split-assets mode for large media.
 - History/trends via an optional history file.
