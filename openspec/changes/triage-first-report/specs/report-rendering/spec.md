@@ -34,9 +34,7 @@ When at least one scenario is not passed, the Report view SHALL render a
 "Needs attention" index above the feature list. It SHALL list one row per
 non-passing feature that has at least one scenario, with its worst status, its
 non-passing scenario counts and up to three links to its non-passing scenarios.
-It SHALL show at most five rows directly, place up to fifteen more behind a
-disclosure, and above twenty features state how many further features are in
-the list. It SHALL NOT render when every scenario passed.
+It SHALL NOT render when every scenario passed.
 
 #### Scenario: Index lists non-passing features
 
@@ -50,18 +48,6 @@ the list. It SHALL NOT render when every scenario passed.
 - **THEN** the index renders three scenario links
 - **AND** a "2 more" note points to the report list without extra links
 
-#### Scenario: More than five features
-
-- **WHEN** six features need attention
-- **THEN** five rows are visible and one is behind a disclosure labelled
-  "Show 1 more feature"
-
-#### Scenario: Feature rows are capped
-
-- **WHEN** more than 20 features need attention
-- **THEN** the index renders 20 feature rows
-- **AND** states how many further features are listed below
-
 #### Scenario: Nothing to triage
 
 - **WHEN** every scenario passed
@@ -74,6 +60,24 @@ the list. It SHALL NOT render when every scenario passed.
 - **THEN** the index and source strip are hidden while the list shows the
   filtered results
 - **AND** clearing the filters shows them again
+
+### Requirement: Bound the needs-attention index
+
+The index SHALL show at most five rows directly and place up to fifteen more
+behind a disclosure. Above twenty features it SHALL state how many further
+features are in the list.
+
+#### Scenario: More than five features
+
+- **WHEN** six features need attention
+- **THEN** five rows are visible and one is behind a disclosure labelled
+  "Show 1 more feature"
+
+#### Scenario: Feature rows are capped
+
+- **WHEN** more than 20 features need attention
+- **THEN** the index renders 20 feature rows
+- **AND** states how many further features are listed below
 
 ### Requirement: Jump from the index to a result
 
