@@ -79,7 +79,7 @@ Gaps:
 
 Differences: Tolkira is ESM and Node ≥ 22; `chr` is CommonJS with no
 engine floor. Tolkira caps inputs at 100 MB and attachments at 50 MB each /
-100 MB total, and always inlines attachments; split assets are a v0.2 item.
+100 MB total, and always inlines attachments; split assets are a later item.
 
 ## 3. Proposed shim
 
@@ -143,11 +143,11 @@ additions.
 | Options | Reason |
 | --- | --- |
 | `theme`, `columnLayout`, `reportSuiteAsScenarios`, `scenarioTimestamp`, `failedSummaryReport` (chr); all `display*`, `duration*`, `attachmentLayout`, `modal*`, `pageFooter`, `plainDescription` (mchr) | Presentation choices with no Tolkira equivalent. Tolkira always shows scenario and feature counts and uses its own shell. |
-| `storeScreenshots`, `screenshotsDirectory`, `noInlineScreenshots` (chr); `externalizeMedia` (mchr) | The input JSON still contains the embedding bytes, so no screenshots are lost; Tolkira always inlines them. Warn about report size and the 10 MB `--max-size` warning. Split assets are v0.2. |
+| `storeScreenshots`, `screenshotsDirectory`, `noInlineScreenshots` (chr); `externalizeMedia` (mchr) | The input JSON still contains the embedding bytes, so no screenshots are lost; Tolkira always inlines them. Warn about report size and the 10 MB `--max-size` warning. Split assets are later. |
 | `launchReport` (chr); `openReportInBrowser` (mchr) | Tolkira never opens a browser. |
 | `customStyle`, `customScript`, `overrideStyle` (mchr) | Custom JS/CSS conflicts with the CSP/security baseline. |
 | `language` (mchr) | English-only in v0.1. |
-| `emailReport` (mchr) | Email/PDF is v0.2+. |
+| `emailReport` (mchr) | Email/PDF is later. |
 | `useCDN`, `staticFilePath` (mchr) | Tolkira is always one offline file. |
 | `saveCollectedJSON` (mchr) | No merged JSON side effect in v0.1. |
 | `customMetadata` array (mchr) | No per-feature metadata model. |
@@ -170,7 +170,7 @@ page, not only in release notes.
 | Risk | Severity | Mitigation |
 | --- | --- | --- |
 | Visual parity is impossible; old themes/charts will look different. | High | Say so early; offer `--dry-run`. Do not clone themes. |
-| Inline-only attachments enlarge reports; size caps can reject runs the old reporter accepted. | High | Warn on external-media options; document caps; split assets v0.2. |
+| Inline-only attachments enlarge reports; size caps can reject runs the old reporter accepted. | High | Warn on external-media options; document caps; split assets later. |
 | mchr produces a multi-page site; the shim produces only `index.html`. | Medium | Write `<reportPath>/index.html`; warn that deep links and `assets/` are gone. |
 | `jsonDir` recursion and `ignoreBadJsonFile` semantics differ. | Medium | Shim expands directories and filters bad files; test nested/malformed fixtures. |
 | Old `chr` scripts are CommonJS; Tolkira is ESM. `require('tolkira/compat/...')` needs Node 22.12+. | Medium | Document the import change; ship a CJS wrapper only on demand. An npm alias would pollute Tolkira's root API; not recommended. |
@@ -191,5 +191,5 @@ page, not only in release notes.
 
 **Defer:** external screenshots/split assets, themes/charts, custom CSS/JS,
 i18n, email reports, browser launch, merged-JSON output, and any transformation
-of old HTML. Revisit after v0.2 split-assets work, which removes the largest
+of old HTML. Revisit after later split-assets work, which removes the largest
 behavioural gap.

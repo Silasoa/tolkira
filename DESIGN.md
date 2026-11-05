@@ -103,7 +103,7 @@ describe the viewport, not the font.
 | Top bar / tabs | `.topbar`, `.view` | Report and Details; active tab is a text state, not a card |
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
 | Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features and scenarios; filters only for present statuses |
-| Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, the rest behind a disclosure |
+| Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure |
 | Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar |
 | Feature | `details.feature` | Native disclosure; status, name, counts, proportion bar, source badge, URI |
 | Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |

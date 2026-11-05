@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -7,6 +7,9 @@ import { runCli } from '../../src/cli.js';
 
 const fixtures = ['failed.json', 'minimal.json', 'behave.json'].map((name) =>
   fileURLToPath(new URL(`../fixtures/legacy/${name}`, import.meta.url)),
+);
+const unhappy = fileURLToPath(
+  new URL('../fixtures/legacy/unhappy.json', import.meta.url),
 );
 
 const viewports = [
@@ -141,6 +144,35 @@ test('stays usable across viewports', async ({ page }) => {
     expect(titleBox, 'zoomed scenario title has a box').not.toBeNull();
     expect(titleBox!.width, 'zoomed scenario title width').toBeGreaterThan(100);
     expect(errors, '320x700 at 200% text console errors').toEqual([]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps a long source name inside 320px', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-long-source-'));
+  const longName = `report_${'a'.repeat(60)}.json`;
+  const longFile = path.join(dir, longName);
+  const output = path.join(dir, 'long-source.html');
+
+  try {
+    await copyFile(fixtures[0], longFile);
+    const code = await runCli(
+      [unhappy, longFile, '--out', output, '--title', 'Long source'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(pathToFileURL(output).href);
+    expect(await pageOverflow(page), 'long source overflow').toBeLessThanOrEqual(
+      1,
+    );
+    const sourceName = page.locator('.sourceName').filter({ hasText: 'report_' });
+    await expect(sourceName).toBeVisible();
+    const box = await sourceName.boundingBox();
+    expect(box, 'long source name has a box').not.toBeNull();
+    expect(box!.width).toBeLessThanOrEqual(320);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

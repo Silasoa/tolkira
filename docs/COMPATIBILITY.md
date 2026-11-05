@@ -66,7 +66,7 @@ generation fails with a usage error.
   not cloned. The report keeps Tolkira's simple shell and Details view.
 - **External screenshots.** `storeScreenshots`, `screenshotsDirectory` and
   `noInlineScreenshots` are ignored because Tolkira always inlines attachments.
-  Very large runs can hit the 10 MB size warning; split assets are a v0.2 item.
+  Very large runs can hit the 10 MB size warning; split assets are a later item.
 - **The old rendered HTML.** The shim consumes the input JSON and options, not
   the generated HTML. If you only have the old HTML, export the JSON again.
 - **The `output + '.json'` side effect.** Tolkira does not write a merged JSON

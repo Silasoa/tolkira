@@ -742,6 +742,18 @@ test('shows a source strip for multiple input files', async ({ page }) => {
 
     await page.getByRole('button', { name: /^Passed/ }).click();
     await expect(sources).toBeHidden();
+    await page.getByRole('button', { name: /^Passed/ }).click();
+    await expect(sources).toBeVisible();
+
+    const search = page.getByRole('searchbox', { name: 'Search scenarios' });
+    await search.fill('Fred');
+    await expect(sources).toBeHidden();
+    await search.fill('');
+    await expect(sources).toBeVisible();
+
+    const tag = page.locator('select[data-tag-filter]');
+    await tag.selectOption({ index: 1 });
+    await expect(sources).toBeHidden();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

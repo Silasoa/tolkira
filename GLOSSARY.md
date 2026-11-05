@@ -31,7 +31,7 @@ theme, logo.
 
 **Triage index** — the "Needs attention" block above the feature list. It shows
 non-passing features with counts and up to three scenario links; five rows are
-visible and the rest sit behind a disclosure.
+visible and up to fifteen more sit behind a disclosure.
 
 **Source strip** — per-input cards above the feature list for multi-file runs
 with real provenance. Each card shows the input's worst status, counts and a

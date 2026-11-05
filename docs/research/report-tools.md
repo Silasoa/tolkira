@@ -148,9 +148,9 @@ from feature investment and adoption, not quotes.
 
 | Tool | Fit | Why |
 | --- | --- | --- |
-| Official Cucumber formatter | **v0.1 parity; v0.2 history** | Closest peer: Messages, one file, attachments, search. Gaps: metadata, per-scenario duration, history, huge-report size. |
-| multiple-cucumber-html-reporter | **v0.2 dashboard/trends** | Messages, dark mode, emailable report, multi-run. Folder-first; single-file still planned. Too heavy for v0.1. |
-| Allure 3 | **v0.2 history/retries; avoid defaults** | Best-in-class history/stability/quality gates. Single-file exists but has caveats. Default folder/server, plugins and GA conflict. |
+| Official Cucumber formatter | **v0.1 parity; later history** | Closest peer: Messages, one file, attachments, search. Gaps: metadata, per-scenario duration, history, huge-report size. |
+| multiple-cucumber-html-reporter | **later dashboard/trends** | Messages, dark mode, emailable report, multi-run. Folder-first; single-file still planned. Too heavy for v0.1. |
+| Allure 3 | **later history/retries; avoid defaults** | Best-in-class history/stability/quality gates. Single-file exists but has caveats. Default folder/server, plugins and GA conflict. |
 | ReportPortal | **Avoid** | Server + DB + queue + MinIO, ML triage, RBAC. Direct conflict with one file, no server, no telemetry. |
 | Playwright HTML | **Borrow attachment/merge ideas** | Folder + server, trace viewer, blob sharding, `attachmentsBaseURL`, `doNotInlineAssets`. Delivery model conflicts. |
 | Cypress Cloud/Test Replay | **Avoid** | Cloud upload, DOM/network replay, flaky analytics. Privacy and offline conflict. |

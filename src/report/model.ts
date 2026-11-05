@@ -396,9 +396,10 @@ export function buildReportModel(
     }
     if (envelope.gherkinDocument?.feature) {
       const feature = envelope.gherkinDocument.feature;
-      if (!features.has(envelope.gherkinDocument.uri ?? feature.name)) {
-        features.set(envelope.gherkinDocument.uri ?? feature.name, feature);
-        featureUris.set(feature, envelope.gherkinDocument.uri ?? feature.name);
+      const uri = envelope.gherkinDocument.uri;
+      if (!features.has(uri ?? feature.name)) {
+        features.set(uri ?? feature.name, feature);
+        if (uri) featureUris.set(feature, uri);
         featureOrder.push(feature);
       }
       for (const [id, value] of featureTree(feature)) {

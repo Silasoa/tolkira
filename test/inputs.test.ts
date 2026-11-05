@@ -217,6 +217,18 @@ describe('input merging', () => {
     expect(provenanceFor(groups).size).toBe(0);
   });
 
+  it('ignores inputs without features when detecting duplicate names', () => {
+    const provenance = provenanceFor([
+      {
+        file: path.resolve('a/report.json'),
+        envelopes: legacyFeature('features/real.feature', 'real'),
+      },
+      { file: path.resolve('b/report.json'), envelopes: [] },
+    ]);
+
+    expect(provenance.get('features/real.feature')).toBe('report.json');
+  });
+
   it('checks pickle URIs as well as gherkin URIs', () => {
     const one = legacyFeature('features/one.feature', 'one');
     const two = legacyFeature('features/two.feature', 'two');

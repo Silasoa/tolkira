@@ -28,6 +28,10 @@ Keep a Changelog and the project uses semantic versioning.
   summary and the HTML report.
 - Explicit empty Messages files report the same “Input is empty” diagnostic as
   empty files found by directory scanning.
+- Merging two JUnit XML files keeps both features; each input gets its own ID
+  namespace.
+- Source provenance also checks pickle URIs and ignores inputs without features
+  when detecting duplicate file names.
 
 ## [0.1.2] - 2026-11-04
 

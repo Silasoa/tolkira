@@ -40,8 +40,9 @@ shows:
 - the non-passing counts by status ("1 failed, 2 pending"),
 - up to three scenario links with status text, then "N more" as plain text.
 
-Caps: three scenario links and twenty feature rows. Above twenty features a
-single remainder line states how many more are in the list. The caps bound the
+Caps: three scenario links per feature, five rows visible, up to fifteen more
+behind a disclosure, and a twenty-row cap. Above twenty features a single
+remainder line states how many more are in the list. The caps bound the
 DOM at roughly eighty links regardless of run size; no client-side data store
 is added.
 
@@ -61,7 +62,7 @@ matrix stays scannable. Columns are chosen from the statuses actually present,
 like the toolbar filters, so a clean run does not carry five empty columns.
 The table keeps its `tableWrap` scroll region.
 
-## Source groups (slice 3)
+## Source strip (slice 3)
 
 Only with real provenance. The loader keeps each input's envelope group and the
 model receives `{ file, envelopes }` groups; features built from a group carry
@@ -123,5 +124,5 @@ flaky data would need the history contract. A later slice can show "flaky
   within one generated file only, not across runs.
 - The index repeats names and statuses that also appear below. It is bounded
   and link-only; steps and evidence stay in the list.
-- Source groups add a level only for multi-file runs; a merged stream keeps the
-  flat list, so the two shapes must both stay readable.
+- The source strip adds context only for multi-file runs; a merged stream keeps
+  the flat list, so the two shapes must both stay readable.

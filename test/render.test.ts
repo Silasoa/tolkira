@@ -423,6 +423,7 @@ describe('triage overview', () => {
     const list = featureList(html);
     expect(list).not.toContain('Empty feature');
     expect(list).toContain('Broken feature');
+    expect(matrixTable(html)).not.toContain('Empty feature');
   });
 
   it('treats a passed and unknown feature as needing attention', async () => {
@@ -440,7 +441,12 @@ describe('triage overview', () => {
           ],
         },
       ]),
-      { title: 'Mixed unknown' },
+      { title: 'Mixed unknown',
+        provenance: new Map([
+          ['features/legacy-1.feature', 'mixed.json'],
+          ['features/legacy-0.feature', 'passed.json'],
+        ]),
+      },
     );
 
     const names = [...featureList(html).matchAll(/<h2>(.*?)<\/h2>/g)].map(
@@ -450,9 +456,14 @@ describe('triage overview', () => {
     expect(html).toContain('1 of 2 passed · 1 unknown');
     expect(html).toContain('1 of 3 scenarios needs attention.');
     expect(html).toContain('<span class="triageStatus unknown">Unknown</span>');
+    const sources = html.slice(
+      html.indexOf('class="sources"'),
+      html.indexOf('id="feature-list"'),
+    );
+    expect(sources).toContain('triageStatus unknown">Unknown');
   });
 
-  it('keeps the JSON summary in input order', async () => {
+  it("keeps the JSON summary's documented order", async () => {
     const summary = summarizeEnvelopes([
       ...(await legacyEnvelopes('behave.json', 'behave')),
       ...(await legacyEnvelopes('unhappy.json', 'unhappy')),
@@ -514,6 +525,16 @@ describe('triage overview', () => {
     const threeHtml = await renderHtml(three, { title: 'Three failures' });
     expect(threeHtml.match(/class="triageScenario"/g) ?? []).toHaveLength(3);
     expect(threeHtml).not.toContain('more in the report');
+
+    const six = syntheticRun(
+      Array.from({ length: 6 }, (_, index) => ({
+        name: `Feature ${index + 1}`,
+        scenarios: [{ name: `Scenario ${index + 1}`, status: 'failed' }],
+      })),
+    );
+    const sixHtml = await renderHtml(six, { title: 'Six features' });
+    expect(sixHtml.match(/class="triageItem"/g) ?? []).toHaveLength(6);
+    expect(sixHtml).toContain('Show 1 more feature');
   });
 
   it('escapes untrusted names in the index', async () => {

@@ -149,19 +149,24 @@ zero, not an empty cell.
 
 ### Requirement: Show source provenance only when real
 
-When the run has more than one input file and every feature URI belongs to
-exactly one input, the Report view SHALL render a compact source strip above the
-feature rows, with one card per input file that contributes at least one
-feature, carrying the file name and that input's aggregates. It SHALL show at
-most six cards and state how many further inputs exist above that. Otherwise
-it SHALL render a flat list. The report SHALL NOT infer a source from a feature
-URI, tag, directory or name.
+When at least two input files contribute features and every feature URI
+belongs to exactly one input, the Report view SHALL render a compact source
+strip above the feature rows, with one card per input file that contributes at
+least one feature, carrying the file name and that input's aggregates. It SHALL
+show at most six cards and state how many further inputs exist above that.
+Otherwise it SHALL render a flat list. The report SHALL NOT infer a source from
+a feature URI, tag, directory or name.
 
 #### Scenario: Two input files
 
 - **WHEN** two files are merged into one report
 - **THEN** the strip shows one card per file
 - **AND** cards are ordered by worst status, then input order
+
+#### Scenario: One contributing file
+
+- **WHEN** two files are merged but only one contributes features
+- **THEN** no source strip is rendered
 
 #### Scenario: One input file
 
