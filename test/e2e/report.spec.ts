@@ -809,8 +809,12 @@ test('caps search auto-open at 20 scenarios', async ({ page }) => {
     const search = page.getByRole('searchbox', { name: 'Search scenarios' });
     await search.fill('Scenario');
     await expect(page.locator('[data-scenario][open]')).toHaveCount(20);
+    await expect(page.locator('#tolkira-search-note')).toContainText(
+      '20 of 30 matches expanded',
+    );
     await search.fill('');
     await expect(page.locator('[data-scenario][open]')).toHaveCount(0);
+    await expect(page.locator('#tolkira-search-note')).toBeHidden();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

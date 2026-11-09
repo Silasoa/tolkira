@@ -89,6 +89,7 @@ img, video { max-width: 100%; height: auto; }
 .expand { display: flex; gap: 0.25rem; margin-left: auto; }
 .expand button { min-height: 1.875rem; padding: 0 0.5rem; border: 0; background: transparent; color: var(--muted); font-size: 0.75rem; text-decoration: underline; text-underline-offset: 0.16em; }
 .live { margin: 0.625rem 0 0; color: var(--muted); font-size: 0.75rem; }
+.searchNote { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.75rem; }
 .triageBox { margin: 1.25rem 0 1.5rem; }
 .triageBox > summary { display: none; }
 .triageSummary { align-items: baseline; gap: 0.25rem 0.5rem; }
