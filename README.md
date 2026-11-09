@@ -6,7 +6,7 @@ Tolkira turns test results into a single HTML file you can open offline, attach
 to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
 stay inside the file. There is no server, no CDN and no telemetry.
 
-Current release: **v0.1.2** · [npm](https://www.npmjs.com/package/tolkira) · [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
+Current release: **v0.2.0** · [npm](https://www.npmjs.com/package/tolkira) · [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.
 > The maintainer sets the product direction and approves releases. Most code,
@@ -61,9 +61,6 @@ tolkira test-results/ --json
 ```
 
 ## What you get
-
-The triage overview, feature bars, matrix and source strip are unreleased; they
-ship with 0.2.
 
 - **One file that works offline.** CSS, JavaScript and attachments are inline.
   No network requests, no remote fonts, no analytics.

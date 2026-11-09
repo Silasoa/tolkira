@@ -3,7 +3,7 @@ import { renderHtml } from './render/html.js';
 import { summarizeEnvelopes } from './summary.js';
 import type { ReportSummary } from './summary.js';
 
-export const version = '0.1.2';
+export const version = '0.2.0';
 export const phase = 'development';
 
 export type {
