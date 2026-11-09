@@ -23,6 +23,8 @@ Keep a Changelog and the project uses semantic versioning.
   summary and the source strip hides; the per-feature source badge remains.
 - The run header shows the total duration, and each triage row names the first
   failing step with a truncated error excerpt.
+- Search opens at most 20 matching scenarios at once and closes them when the
+  query is cleared; failure text in the search index is capped per step.
 
 ### Fixed
 

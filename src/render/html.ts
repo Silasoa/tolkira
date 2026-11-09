@@ -83,6 +83,7 @@ interface OrderedFeature {
 const TRIAGE_FEATURE_LIMIT = 20;
 const TRIAGE_SCENARIO_LIMIT = 3;
 const SOURCE_LIMIT = 6;
+const SEARCH_MESSAGE_LIMIT = 2000;
 
 function compareStatus(a: ReportStatus, b: ReportStatus): number {
   const passed = Number(a === 'passed') - Number(b === 'passed');
@@ -354,7 +355,7 @@ function scenarioText(scenario: ReportScenario): string {
     scenario.keyword,
     scenario.description,
     scenario.tags.join(' '),
-    scenario.steps.map((step) => `${step.keyword} ${step.text} ${step.message ?? ''}`).join(' '),
+    scenario.steps.map((step) => `${step.keyword} ${step.text} ${(step.message ?? '').slice(0, SEARCH_MESSAGE_LIMIT)}`).join(' '),
   ].join(' ');
 }
 
@@ -539,6 +540,7 @@ const SCRIPT = `<script>
     showView(views[next].getAttribute('data-view'));
   });
   var state = { query: '', hidden: new Set(), tag: '' };
+  var searchOpened = [];
   var scenarios = Array.prototype.slice.call(document.querySelectorAll('[data-scenario]'));
   var features = Array.prototype.slice.call(document.querySelectorAll('[data-feature]'));
   var live = document.getElementById('tolkira-live');
@@ -563,9 +565,16 @@ const SCRIPT = `<script>
       feature.hidden = !any;
       if (any && (query || state.hidden.size || tag)) feature.open = true;
     });
+    searchOpened.forEach(function (scenario) { scenario.open = false; });
+    searchOpened = [];
     if (query) {
+      var opened = 0;
       scenarios.forEach(function (scenario) {
-        if (!scenario.hidden) scenario.open = true;
+        if (!scenario.hidden && opened < 20) {
+          if (!scenario.open) searchOpened.push(scenario);
+          scenario.open = true;
+          opened += 1;
+        }
       });
     }
     if (live) live.textContent = visible + ' of ' + scenarios.length + ' scenarios visible';

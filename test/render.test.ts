@@ -348,7 +348,7 @@ function syntheticRun(
   features: Array<{
     name: string;
     uri?: string;
-    scenarios: Array<{ name: string; status: string }>;
+    scenarios: Array<{ name: string; status: string; message?: string }>;
   }>,
 ) {
   return parseLegacyJson(
@@ -364,7 +364,11 @@ function syntheticRun(
             {
               keyword: 'Given ',
               name: 'a step',
-              result: { status: scenario.status, duration: 1 },
+              result: {
+                status: scenario.status,
+                duration: 1,
+                ...(scenario.message ? { error_message: scenario.message } : {}),
+              },
             },
           ],
         })),
@@ -599,6 +603,23 @@ describe('triage overview', () => {
     const sixHtml = await renderHtml(six, { title: 'Six features' });
     expect(sixHtml.match(/class="triageItem"/g) ?? []).toHaveLength(6);
     expect(sixHtml).toContain('Show 1 more feature');
+  });
+
+  it('caps failure text in the search index', async () => {
+    const long = 'x'.repeat(5000);
+    const html = await renderHtml(
+      syntheticRun([
+        {
+          name: 'Long error',
+          scenarios: [{ name: 'fails', status: 'failed', message: long }],
+        },
+      ]),
+      { title: 'Long error' },
+    );
+    const dataSearch = html.match(/data-search="([^"]*)"/)?.[1] ?? '';
+
+    expect(dataSearch.length).toBeLessThan(4000);
+    expect(html).toContain(long);
   });
 
   it('escapes untrusted names in the index', async () => {

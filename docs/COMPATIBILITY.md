@@ -2,7 +2,8 @@
 
 **Status: experimental.** The compatibility subpath accepts the legacy options
 object and renders with Tolkira. It is a migration aid, not a promise of visual
-parity.
+parity. The shim is ESM-only and asynchronous: use Node 22 or later,
+`import { generate }` and `await generate(...)` before reading the report.
 
 ## Before and after
 
@@ -32,8 +33,8 @@ await generate({
 });
 ```
 
-Only the import changes. `theme` is ignored with a warning; everything else
-maps to Tolkira. The callback form still works:
+Only the import changes, plus `await` and Node 22 or later. `theme` is ignored
+with a warning; everything else maps to Tolkira. The callback form still works:
 
 ```js
 generate(options, (error) => {
@@ -73,6 +74,15 @@ generation fails with a usage error.
   copy next to the report.
 - **Custom CSS/JS, i18n, email reports, CDN mode and browser launch.** These
   conflict with the single-file, no-network baseline or are out of scope.
+
+## Seed-Test
+
+Seed-Test 2.0's dev/AI integration branch is ESM. Use
+`import { generate } from 'tolkira/compat/cucumber-html-reporter'` and await
+the call before reading the HTML. Seed-Test 1.x is CommonJS and needs an ESM
+wrapper or an upgrade; the shim does not provide a CommonJS entry point.
+Seed-Test's group mode also expects a sidecar at `output + '.json'`; Tolkira
+does not write that file.
 
 ## Limits
 

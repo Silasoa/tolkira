@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -771,6 +771,46 @@ test('survives a malformed URL hash', async ({ page }) => {
     await page.goto(`${pathToFileURL(output).href}#%E0%A4%A`);
     await expect(page.locator('#report-view')).toBeVisible();
     expect(errors).toEqual([]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('caps search auto-open at 20 scenarios', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-search-cap-'));
+  const input = path.join(dir, 'many.json');
+  const output = path.join(dir, 'many.html');
+
+  try {
+    const elements = Array.from({ length: 30 }, (_, index) => ({
+      keyword: 'Scenario',
+      type: 'scenario',
+      name: `Scenario ${index + 1}`,
+      steps: [
+        {
+          keyword: 'Given ',
+          name: 'a step',
+          result: { status: 'passed', duration: 1 },
+        },
+      ],
+    }));
+    await writeFile(
+      input,
+      JSON.stringify([{ name: 'Many scenarios', elements }]),
+      'utf8',
+    );
+    const code = await runCli([input, '--out', output], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const search = page.getByRole('searchbox', { name: 'Search scenarios' });
+    await search.fill('Scenario');
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(20);
+    await search.fill('');
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(0);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
