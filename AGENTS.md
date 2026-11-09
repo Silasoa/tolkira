@@ -52,6 +52,8 @@ Spec first, tests first, small vertical slices.
 - One change per issue; one implementer per change.
 - Spawn independent reviewers in one parallel batch; give concurrent workers
   disjoint file ownership.
+- After every user-facing report feature, run the CMP parity comparison
+  reviewer; see `docs/agents/review.md`.
 - Workers never close issues, merge, archive changes or publish releases.
 - Commit and push after every completed step.
 - Long commands run in the foreground; never wait on a background command.

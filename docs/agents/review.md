@@ -36,6 +36,11 @@ diff`) and spawns the reviewers. Reviewers are read-only.
   MIME/size handling, HTML/SVG execution, traversal, no network/telemetry.
 - **UXR — UI/UX.** Report shell, empty/error states, screenshot viewing,
   keyboard/contrast, mobile/print.
+- **CMP — Competitor/Parity.** Always for a user-facing report feature.
+  Compare the shipped slice with the official Cucumber HTML formatter first,
+  then MCHR, Allure and Playwright on the same fixture. Use
+  `docs/research/cucumber-html-parity.md`; report concrete gaps, regressions
+  and what not to copy.
 - **ILA — i18n/Localization.** UI strings, user-facing text, translations and
   key parity. Not relevant until localisation ships.
 - **PCA — Performance/Complexity.** At least every third merged code change,
