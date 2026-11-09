@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -170,6 +170,20 @@ describe('input merging', () => {
 
     const summary = await summarizeReport([dir, file]);
     expect(summary.counts.scenarios.total).toBe(2);
+  });
+
+  it('rejects duplicate Messages ids across inputs', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-dup-ids-'));
+    tempDirs.push(dir);
+    const content = await readFile(secondMessages, 'utf8');
+    const first = path.join(dir, 'a.ndjson');
+    const second = path.join(dir, 'b.ndjson');
+    await writeFile(first, content, 'utf8');
+    await writeFile(second, content.replace('Second', 'Other'), 'utf8');
+
+    await expect(loadInputs([first, second])).rejects.toThrow(
+      /Duplicate Cucumber Messages/,
+    );
   });
 
   it('groups inputs and maps unique feature URIs to file names', async () => {

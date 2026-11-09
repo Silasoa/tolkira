@@ -70,8 +70,9 @@ and is covered by real producer fixtures.
 - Server-renders the report model into one HTML file; no React runtime.
 - Default Report tab: title, run metadata, pass-rate health panel, search,
   status filters, exception-first feature and scenario order, a triage index, a
-  source strip, feature counts/proportion bars, fixed thumbnail gutter and
-  scenario details.
+  source strip for multi-file runs with unambiguous provenance, feature
+  counts/proportion bars, fixed thumbnail gutter and scenario details. Below
+  560 px the triage collapses and the source strip hides.
 - Details tab: feature-by-status matrix, status distribution, environment and
   the agent summary.
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`

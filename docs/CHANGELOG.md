@@ -16,9 +16,13 @@ Keep a Changelog and the project uses semantic versioning.
   bar; the Details feature table is now a feature-by-status matrix with totals
   and durations.
 - Feature and scenario anchors: opening a `#scenario-...` link expands the
-  target and its ancestors. A compact source strip appears for multi-file runs
-  with per-input status, counts and a bar; it is omitted when a URI or file
-  name is ambiguous.
+  target and its ancestors, moves focus to the target summary, and scrolls it
+  into view. A compact source strip appears for multi-file runs with per-input
+  status, counts and a bar; it is omitted when a URI or file name is ambiguous.
+- On viewports of 560 px or narrower the triage index collapses to a one-line
+  summary and the source strip hides; the per-feature source badge remains.
+- The run header shows the total duration, and each triage row names the first
+  failing step with a truncated error excerpt.
 
 ### Fixed
 
@@ -32,6 +36,8 @@ Keep a Changelog and the project uses semantic versioning.
   namespace.
 - Source provenance also checks pickle URIs and ignores inputs without features
   when detecting duplicate file names.
+- Large legacy feature files no longer hit the argument limit when expanding
+  scenario envelopes.
 
 ## [0.1.2] - 2026-11-04
 

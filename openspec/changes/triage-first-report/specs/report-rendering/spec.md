@@ -2,6 +2,15 @@
 
 ## ADDED Requirements
 
+### Requirement: Show run duration in the header
+
+The Report view SHALL show the total run duration in the header metadata.
+
+#### Scenario: Duration is visible
+
+- **WHEN** a report is rendered
+- **THEN** the header shows the total run duration
+
 ### Requirement: Order results exception-first
 
 The Report view SHALL list features and, inside each feature, scenarios with
@@ -34,13 +43,21 @@ When at least one scenario is not passed, the Report view SHALL render a
 "Needs attention" index above the feature list. It SHALL list one row per
 non-passing feature that has at least one scenario, with its worst status, its
 non-passing scenario counts and up to three links to its non-passing scenarios.
-It SHALL NOT render when every scenario passed.
+Where a failed scenario has a message, the row SHALL also show the failing step
+and the first line of the message, truncated to 120 characters. It SHALL NOT
+render when every scenario passed.
 
 #### Scenario: Index lists non-passing features
 
 - **WHEN** a run has one failed and one pending feature
 - **THEN** the index lists both before any passed feature
 - **AND** each row shows the status as text and the failures per status
+
+#### Scenario: Failure reason
+
+- **WHEN** a feature has a failed scenario with a message
+- **THEN** the row shows the failing step and the first message line
+- **AND** the excerpt is escaped and truncated to 120 characters
 
 #### Scenario: Scenario links are capped
 
@@ -60,6 +77,12 @@ It SHALL NOT render when every scenario passed.
 - **THEN** the index and source strip are hidden while the list shows the
   filtered results
 - **AND** clearing the filters shows them again
+
+#### Scenario: Narrow viewport
+
+- **WHEN** the report is opened at 560 px or narrower
+- **THEN** the index is a collapsed disclosure with a one-line summary
+- **AND** expanding it reveals the rows
 
 ### Requirement: Bound the needs-attention index
 
@@ -83,7 +106,8 @@ features are in the list.
 
 Index entries SHALL be ordinary links to stable anchors on the feature and
 scenario rows. Following a link SHALL expand the target and its collapsed
-ancestors so the scenario and its steps are visible.
+ancestors, move focus to the target summary, and scroll the target into view so
+the scenario and its steps are visible.
 
 #### Scenario: Link to a collapsed pending scenario
 
@@ -152,8 +176,7 @@ zero, not an empty cell.
 When at least two input files contribute features and every feature URI
 belongs to exactly one input, the Report view SHALL render a compact source
 strip above the feature rows, with one card per input file that contributes at
-least one feature, carrying the file name and that input's aggregates. It SHALL
-show at most six cards and state how many further inputs exist above that.
+least one feature, carrying the file name and that input's aggregates.
 Otherwise it SHALL render a flat list. The report SHALL NOT infer a source from
 a feature URI, tag, directory or name.
 
@@ -180,11 +203,23 @@ a feature URI, tag, directory or name.
 - **THEN** the report renders a flat feature list
 - **AND** no source name is derived from the URI
 
+### Requirement: Bound and adapt the source strip
+
+The strip SHALL show at most six cards and state how many further inputs exist
+above that. Below 560 px it SHALL be hidden and each feature row SHALL keep its
+source badge.
+
 #### Scenario: More than six input files
 
 - **WHEN** more than six input files contribute features
 - **THEN** the strip shows six cards
 - **AND** states how many further inputs exist
+
+#### Scenario: Narrow viewport
+
+- **WHEN** the report is opened at 560 px or narrower
+- **THEN** the source strip is hidden
+- **AND** each feature row keeps its source badge
 
 ### Requirement: Keep the triage index offline and safe
 

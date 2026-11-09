@@ -422,6 +422,32 @@ describe('CLI input edge cases', () => {
     expect((await readdir(dir)).sort()).toEqual(['nested', 'outdir']);
   });
 
+  it('refuses to overwrite an input file', async () => {
+    const dir = await tempDir();
+    const input = path.join(dir, 'same.json');
+    await copyFile(legacy, input);
+    const before = await readFile(input, 'utf8');
+
+    const run = await cli([input, '--out', input]);
+
+    expect(run.code).toBe(2);
+    expect(run.stderr).toContain('must not overwrite');
+    await expect(readFile(input, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects empty --out and --logo values', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+
+    const emptyOut = await cli([legacy, '--out=', '--json']);
+    expect(emptyOut.code).toBe(2);
+    expect(emptyOut.stderr).toContain('--out requires a file path');
+
+    const emptyLogo = await cli([legacy, '--out', output, '--logo=']);
+    expect(emptyLogo.code).toBe(2);
+    expect(emptyLogo.stderr).toContain('--logo requires a file path');
+  });
+
   it('rejects invalid logo files and accent values as usage errors', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'report.html');

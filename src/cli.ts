@@ -132,6 +132,27 @@ async function readLogo(file: string): Promise<string> {
   return `data:${mime};base64,${data.toString('base64')}`;
 }
 
+async function outputOverwritesInput(
+  inputs: string[],
+  output: string,
+): Promise<boolean> {
+  const outputPath = path.resolve(output);
+  const outputInfo = await stat(outputPath).catch(() => undefined);
+  if (!outputInfo?.isFile()) return false;
+  const outputReal = realpathSync(outputPath);
+
+  for (const input of inputs) {
+    const inputInfo = await stat(input).catch(() => undefined);
+    if (!inputInfo) continue;
+    if (inputInfo.isFile() && realpathSync(input) === outputReal) return true;
+    if (inputInfo.isDirectory()) {
+      const directory = realpathSync(input);
+      if (outputReal.startsWith(`${directory}${path.sep}`)) return true;
+    }
+  }
+  return false;
+}
+
 export async function runCli(
   argv: string[],
   io: CliIO = {
@@ -168,8 +189,23 @@ export async function runCli(
     return 2;
   }
 
+  if (parsed.values.out === '') {
+    io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (parsed.values.logo === '') {
+    io.stderr(`tolkira: --logo requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
   if (!output && parsed.values.logo) {
     io.stderr(`tolkira: --logo requires --out\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (output && (await outputOverwritesInput(inputs, output))) {
+    io.stderr(`tolkira: --out must not overwrite an input file\n\n${USAGE}`);
     return 2;
   }
 

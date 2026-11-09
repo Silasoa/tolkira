@@ -24,10 +24,17 @@ Limits:
   observable semantics and public documentation, not conformance.
 - The Tolkira numbers are from one 22-scenario sample, not a scale test.
 
+Status: the failure reason in the triage index, total run duration, focus
+handoff and mobile compact mode were implemented after this capture. The
+competitor comparison remains valid; the phone toolbar and sticky toolbar are
+still open.
+
 ## Our 0.2 first screen
 
-Generated from four legacy fixtures to exercise mixed statuses, screenshots
-and source provenance:
+Generated from four legacy fixtures to exercise mixed statuses and screenshots.
+The four fixtures share `features/happy.feature`, so this sample has no source
+strip; the provenance path is covered by the distinct-URI fixtures in the UX
+capture.
 
 ```text
 node dist/cli.js \
@@ -88,9 +95,10 @@ width; 1440 viewport: 1425 scroll width).
 - The “Needs attention” index and exception-first order answer “what needs
   attention” before the reader parses a feature list. The official formatter
   has status filters but no triage index or explicit failure promotion.
-- Arbitrary run metadata, source provenance and feature proportion bars are on
-  the first screen. The official formatter shows CI/commit/branch but has no
-  arbitrary metadata path (#106).
+- Arbitrary run metadata and feature proportion bars are on the first screen.
+  Source provenance is available when the inputs have distinct URIs; this
+  sample does not, so it renders no source strip. The official formatter shows
+  CI/commit/branch but has no arbitrary metadata path (#106).
 - Legacy JSON input and one command without a Messages pipeline. The official
   formatter is Messages-only.
 - 0.2 has a verified 390 px first screen; the official formatter's mobile

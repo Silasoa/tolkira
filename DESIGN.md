@@ -104,7 +104,7 @@ describe the viewport, not the font.
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
 | Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features and scenarios; filters only for present statuses |
 | Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure |
-| Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar |
+| Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar; hidden below 560 px, where the feature source badge remains |
 | Feature | `details.feature` | Native disclosure; status, name, counts, proportion bar, source badge, URI |
 | Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |
 | Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
@@ -116,8 +116,9 @@ describe the viewport, not the font.
 - Feature and scenario summaries are the only click targets that toggle; a
   click inside the detail does not close it.
 - Chevron rotates on open; `prefers-reduced-motion` removes the transition.
-- Search and filters: hide non-matches, open features and matched scenarios,
-  update a polite live region, show an empty state when nothing matches.
+- Search and filters: hide non-matches and open matching features; search also
+  opens matching scenarios, update a polite live region, show an empty state
+  when nothing matches.
 - Switching tabs scrolls to the top; the previous panel's scroll position is
   not restored.
 - The lightbox locks background scrolling, restores focus to its trigger on
@@ -126,7 +127,8 @@ describe the viewport, not the font.
 - Status is never colour-only: scenario badges carry text, step markers carry a
   shape glyph plus a screen-reader label, and forced-colours mode keeps the
   glyph, marker border and disclosure chevron visible.
-- The failure is open by default; everything else is scannable when collapsed.
+- The failure is open by default; screenshot-bearing scenarios and their
+  features also open; everything else is scannable when collapsed.
 - No right-click-only actions; use visible buttons or a `…` menu. Keyboard and
   touch must reach the same actions.
 - No modal for a task that inline disclosure can solve.

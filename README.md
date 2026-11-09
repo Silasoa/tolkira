@@ -72,7 +72,8 @@ ship with 0.2.
   with links that open the scenario detail.
 - **Multi-file context.** A source strip shows per-input status, counts and a
   proportion bar when the run has more than one input file and provenance is
-  unambiguous.
+  unambiguous. On phones the strip is hidden and the feature row keeps the
+  source.
 - **Screenshots and attachments that survive.** Images, text, video, audio and
   files are preserved through the legacy JSON adapter.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by

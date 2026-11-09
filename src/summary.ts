@@ -155,6 +155,12 @@ function durationMs(duration: Duration | undefined): number {
   return Number.isFinite(rounded) ? rounded : 0;
 }
 
+function finiteDuration(value: number): number {
+  return Number.isFinite(value) && value > 0
+    ? Math.round(value * 1000) / 1000
+    : 0;
+}
+
 function scenarioStatus(results: TestStepResult[]): SummaryStatus {
   if (results.length === 0) return 'unknown';
   return toStatus(getWorstTestStepResult(results).status);
@@ -164,14 +170,15 @@ function statusOrdinal(status: SummaryStatus): number {
   return STATUS_ORDER.indexOf(status.toUpperCase() as TestStepResultStatus);
 }
 
-function displayUri(uri: string): string {
+export function displayUri(uri: string): string {
   const normalized = uri.replace(/\\/g, '/');
   if (!/^[a-z]:\//i.test(normalized) && !normalized.startsWith('/')) {
     return normalized;
   }
   const marker = normalized.lastIndexOf('/features/');
   if (marker >= 0) return normalized.slice(marker + 1);
-  return normalized.split('/').filter(Boolean).slice(-2).join('/');
+  const parts = normalized.split('/').filter(Boolean);
+  return parts[parts.length - 1] ?? uri;
 }
 
 function featureTree(document: Feature | undefined): {
@@ -391,7 +398,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
       uri: displayUri(pickle.uri ?? ''),
       feature: tree.featureName,
       status,
-      durationMs: Math.round(scenarioDuration * 1000) / 1000,
+      durationMs: finiteDuration(scenarioDuration),
       attempt: started?.attempt ?? 0,
       tags: (pickle.tags ?? []).map((tag) => tag.name),
       attachments: scenarioAttachments.length,
@@ -422,7 +429,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   return {
     schemaVersion: SUMMARY_SCHEMA_VERSION,
     status: overall,
-    durationMs: Math.round(totalDuration * 1000) / 1000,
+    durationMs: finiteDuration(totalDuration),
     counts: {
       features: featureSet.size,
       scenarios: scenarioCounts,

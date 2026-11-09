@@ -94,7 +94,9 @@ test('renders a messages report in the browser', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Failing scenario' }),
     ).toBeVisible();
-    await expect(page.getByText('Expected 1 to equal 2')).toBeVisible();
+    await expect(
+      page.locator('.error').filter({ hasText: 'Expected 1 to equal 2' }),
+    ).toBeVisible();
 
     const failedFilter = page.locator('button.filter[data-status="failed"]');
     await page.getByRole('heading', { name: 'Failing scenario' }).click();
@@ -685,6 +687,7 @@ test('opens a scenario from the needs-attention index', async ({ page }) => {
     const target = page.locator(hash);
     await expect(target).toBeVisible();
     await expect(target).toHaveJSProperty('open', true);
+    await expect(page.locator(`${hash} > summary`)).toBeFocused();
     expect(
       await target.evaluate(
         (element) =>

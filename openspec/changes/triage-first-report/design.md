@@ -52,8 +52,9 @@ A feature row keeps its status cell and name, and gains a compact meta line:
 passed / total scenarios, non-passing counts where present, and a segmented
 proportion bar with the same status colours as the run bar. The existing URI
 stays, truncated by CSS rather than cut in the model. Passed features are
-collapsed and sit after the attention set by the ordering rule; no second
-"passed features" disclosure is needed.
+collapsed and sit after the attention set by the ordering rule; a feature whose
+scenario carries an image opens for evidence. No second "passed features"
+disclosure is needed.
 
 The Details feature table becomes the matrix: one row per feature, a total
 column, one count column per status present in the run (ordered failed first,
@@ -64,12 +65,12 @@ The table keeps its `tableWrap` scroll region.
 
 ## Source strip (slice 3)
 
-Only with real provenance. The loader keeps each input's envelope group and the
-model receives `{ file, envelopes }` groups; features built from a group carry
-`sourceFile` (the input's base name, never an absolute path). The report renders
-a compact source strip above the feature list, one card per input (up to six,
-with a remainder line), with its worst status, feature/scenario counts and a
-proportion bar, only when:
+Only with real provenance. The loader keeps each input's envelopes and builds a
+URI-to-file map from the gherkin and pickle URIs; features carry `sourceFile`
+(the input's base name, never an absolute path) only when the gherkin URI and
+every scenario URI agree on one file. The report renders a compact source strip
+above the feature list, one card per input (up to six, with a remainder line),
+with its worst status, feature/scenario counts and a proportion bar, only when:
 
 - the run has more than one input file, and
 - every feature URI belongs to exactly one input file.
@@ -97,6 +98,11 @@ The index is a bordered block between the toolbar and the feature list, using
 the existing tokens, one row per feature, wrapping counts on narrow widths.
 Text status is mandatory; colour is only a secondary cue. No fixed widths,
 no horizontal scroll; check 320 px and 200 % text zoom.
+
+Below 560 px the index collapses to a one-line `<details>` summary and the
+source strip is hidden; the per-feature source badge keeps provenance visible.
+Desktop keeps the full index and strip. Expanding the summary restores the
+rows; without scripting it stays expanded.
 
 ## Deferred: flaky
 

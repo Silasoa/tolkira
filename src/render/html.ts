@@ -12,7 +12,7 @@ import {
   type ReportStep,
 } from '../report/model.js';
 import type { ReportSummary } from '../summary.js';
-import { summarizeEnvelopes } from '../summary.js';
+import { summarizeEnvelopes, displayUri } from '../summary.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { escapeHtml } from './escape.js';
 import { REPORT_CSS } from './styles.js';
@@ -45,6 +45,7 @@ const STEP_GLYPHS: Record<ReportStatus, string> = {
 };
 
 function durationLabel(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return '0 ms';
   if (milliseconds < 1000) return `${Math.round(milliseconds * 100) / 100} ms`;
   return `${(milliseconds / 1000).toFixed(2)} s`;
 }
@@ -156,7 +157,7 @@ function featureShape(
   const source = feature.sourceFile
     ? `<span class="featureSource">from ${escapeHtml(feature.sourceFile)}</span>`
     : '';
-  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(feature.uri)}</span></span>`;
+  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(displayUri(feature.uri))}</span></span>`;
 }
 
 interface TriageEntry extends OrderedFeature {
@@ -182,7 +183,14 @@ function renderTriageRow({
     failing.length > TRIAGE_SCENARIO_LIMIT
       ? `<li class="triageMore">+${failing.length - TRIAGE_SCENARIO_LIMIT} more in the report</li>`
       : '';
-  return `<li class="triageItem"><a class="triageFeature" href="#feature-${index + 1}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul></li>`;
+  const failed = scenarios.find((scenario) => scenario.status === 'failed');
+  const failedStep = failed?.steps.find(
+    (step) => step.status === 'failed' && step.message,
+  );
+  const reason = failedStep?.message
+    ? `${failedStep.keyword ? `${failedStep.keyword} ` : ''}${failedStep.text} — ${failedStep.message.split(/\r?\n/)[0].trim().slice(0, 120)}${failedStep.message.split(/\r?\n/)[0].trim().length > 120 ? '…' : ''}`
+    : '';
+  return `<li class="triageItem"><a class="triageFeature" href="#feature-${index + 1}" title="${escapeHtml(displayUri(feature.uri))}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul>${reason ? `<p class="triageReason"><span class="triageReasonLabel">First failure:</span> ${escapeHtml(reason)}</p>` : ''}</li>`;
 }
 
 function renderTriage(features: OrderedFeature[]): string {
@@ -213,7 +221,8 @@ function renderTriage(features: OrderedFeature[]): string {
     attention.length > TRIAGE_FEATURE_LIMIT
       ? `<p class="triageMore">${attention.length - TRIAGE_FEATURE_LIMIT} more feature${attention.length - TRIAGE_FEATURE_LIMIT === 1 ? '' : 's'} below.</p>`
       : '';
-  return `<nav class="triage" aria-labelledby="triage-heading" data-triage><h2 id="triage-heading">Needs attention</h2><p class="triageLead">${need} of ${total} scenario${total === 1 ? '' : 's'} ${need === 1 ? 'needs' : 'need'} attention.</p><ol class="triageList">${rows}</ol>${restBlock}${remainder}</nav>`;
+  const lead = `${need} of ${total} scenario${total === 1 ? '' : 's'} ${need === 1 ? 'needs' : 'need'} attention.`;
+  return `<details class="triageBox" data-triage open><summary class="triageSummary"><span class="triageTitle">Needs attention</span><span class="triageSummaryLead">${lead}</span><span class="chev" aria-hidden="true"></span></summary><nav class="triage" aria-label="Needs attention"><h2 id="triage-heading">Needs attention</h2><p class="triageLead">${lead}</p><ol class="triageList">${rows}</ol>${restBlock}${remainder}</nav></details>`;
 }
 
 function renderSourceStrip(model: ReportModel): string {
@@ -341,7 +350,7 @@ function scenarioText(scenario: ReportScenario): string {
   return [
     scenario.name,
     scenario.featureName,
-    scenario.uri,
+    displayUri(scenario.uri),
     scenario.keyword,
     scenario.description,
     scenario.tags.join(' '),
@@ -371,7 +380,7 @@ function renderScenario(
     scenario.status === 'failed'
       ? '<button class="copyFailure" type="button" data-copy-failure>Copy failure</button>'
       : '';
-  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(scenario.uri)}" data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><h4>Steps</h4>${copyFailure}</div><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><h4>Steps</h4>${copyFailure}</div><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
 function renderFeature(
@@ -413,7 +422,7 @@ function renderFeatureMatrix(model: ReportModel): string {
           return `<td class="num${count === 0 ? ' zero' : ''}">${count}</td>`;
         })
         .join('');
-      return `<tr><td>${escapeHtml(feature.name)}</td><td class="num">${feature.scenarios.length}</td>${cells}<td class="num">${durationLabel(feature.durationMs)}</td></tr>`;
+      return `<tr><th scope="row"><span class="matrixName">${escapeHtml(feature.name)}</span><span class="matrixUri">${escapeHtml(displayUri(feature.uri))}</span></th><td class="num">${feature.scenarios.length}</td>${cells}<td class="num">${durationLabel(feature.durationMs)}</td></tr>`;
     })
     .join('');
   return `<table class="featureTable"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
@@ -448,7 +457,7 @@ function renderReportView(
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
     : '';
-  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} of ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
+  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} of ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
     .map(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
@@ -769,8 +778,19 @@ const SCRIPT = `<script>
       if (node.tagName === 'DETAILS') node.open = true;
       node = node.parentElement;
     }
+    var focusTarget = target.tagName === 'DETAILS' ? target.querySelector('summary') : target;
+    if (focusTarget) {
+      if (!focusTarget.hasAttribute('tabindex')) focusTarget.setAttribute('tabindex', '-1');
+      try { focusTarget.focus({ preventScroll: true }); } catch (error) { focusTarget.focus(); }
+    }
     target.scrollIntoView();
   }
+  var compact = window.matchMedia('(max-width: 560px)');
+  function syncCompact() {
+    if (triage) triage.open = !compact.matches;
+  }
+  if (compact.addEventListener) compact.addEventListener('change', syncCompact);
+  syncCompact();
   window.addEventListener('hashchange', revealHash);
   showView('report');
   revealHash();

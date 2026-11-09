@@ -87,6 +87,13 @@ describe('legacy JSON adapter', () => {
     expect(html).toContain('text/plain');
   });
 
+  it('does not present the generator runtime as the test environment', async () => {
+    const html = await renderReport(happy, { title: 'Legacy environment' });
+
+    expect(html).not.toContain(`node.js ${process.versions.node}`);
+    expect(html).not.toContain(process.platform);
+  });
+
   it('renders a legacy screenshot as an image attachment', async () => {
     const html = await renderReport(screenshot, { title: 'Legacy image' });
 

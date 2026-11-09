@@ -1,5 +1,5 @@
-export function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => {
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => {
     switch (character) {
       case '&':
         return '&amp;';

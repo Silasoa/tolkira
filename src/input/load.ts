@@ -45,8 +45,9 @@ function sniffLegacy(content: string): LegacySniff {
 
 function looksLikeMessages(content: string): boolean {
   const firstLine = content
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^\uFEFF/, '').trim())
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/, 20)
+    .map((line) => line.trim())
     .find(Boolean);
   if (!firstLine) return false;
 
@@ -186,6 +187,33 @@ export async function loadInputs(
 
   if (groups.every((group) => group.envelopes.length === 0)) {
     throw new Error('No supported report files found.');
+  }
+
+  const seenIds = new Map<string, string>();
+  for (const group of groups) {
+    const file = path.basename(group.file);
+    for (const envelope of group.envelopes) {
+      const ids: Array<[string, string | undefined]> = [
+        ['pickle', envelope.pickle?.id],
+        ['testCase', envelope.testCase?.id],
+        ['testCaseStarted', envelope.testCaseStarted?.id],
+        ['hook', envelope.hook?.id],
+      ];
+      for (const step of envelope.testCase?.testSteps ?? []) {
+        ids.push(['testStep', step.id]);
+      }
+      for (const [kind, id] of ids) {
+        if (!id) continue;
+        const key = `${kind}:${id}`;
+        const previous = seenIds.get(key);
+        if (previous) {
+          throw new Error(
+            `Duplicate Cucumber Messages ${kind} id in ${previous} and ${file}. Merge the streams before splitting or use unique ids.`,
+          );
+        }
+        seenIds.set(key, file);
+      }
+    }
   }
 
   return groups;

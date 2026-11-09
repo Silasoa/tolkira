@@ -244,6 +244,60 @@ describe('messages rendering', () => {
     expect(html).not.toMatch(/url\((?:https?:)?\/\//i);
   });
 
+  it('normalizes absolute Messages URIs in the report', async () => {
+    const lines = (await readFile(fixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            gherkinDocument?: { uri?: string };
+            pickle?: { uri?: string };
+          },
+      );
+    const absolute = 'C:\\Users\\name\\proj\\features\\screenshot.feature';
+    for (const line of lines) {
+      if (line.gherkinDocument) line.gherkinDocument.uri = absolute;
+      if (line.pickle) line.pickle.uri = absolute;
+    }
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'absolute.ndjson',
+    );
+    const html = await renderHtml(envelopes, { title: 'Absolute URI' });
+
+    expect(html).not.toContain('Users');
+    expect(html).toContain('features/screenshot.feature');
+  });
+
+  it('defaults a missing Messages attempt to zero', async () => {
+    const lines = (await readFile(fixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            testCaseStarted?: { attempt?: number };
+          },
+      );
+    for (const line of lines) {
+      if (line.testCaseStarted) delete line.testCaseStarted.attempt;
+    }
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'no-attempt.ndjson',
+    );
+    const model = buildReportModel(envelopes);
+    const html = await renderHtml(envelopes, { title: 'No attempt' });
+
+    expect(model.scenarios.every((scenario) => scenario.attempt === 0)).toBe(
+      true,
+    );
+    expect(html).not.toContain('Attempt: NaN');
+  });
+
   it('clamps negative message durations in the model', async () => {
     const lines = (await readFile(fixture, 'utf8'))
       .trim()
@@ -402,6 +456,12 @@ describe('triage overview', () => {
     expect(html).toContain('triageStatus fail">Failed');
     expect(html).toContain('triageStatus undefined">Undefined');
     expect(html).not.toContain('Behave feature</a>');
+    const triage = html.slice(
+      html.indexOf('class="triageBox"'),
+      html.indexOf('id="feature-list"'),
+    );
+    expect(triage).toContain('First failure:');
+    expect(triage).toContain('Expected values to be strictly equal');
   });
 
   it('omits the index when every scenario passed', async () => {
@@ -632,22 +692,26 @@ describe('feature overview and matrix', () => {
       'Duration',
     ]);
 
-    const names = [...matrix.matchAll(/<tr><td>(.*?)<\/td>/g)].map(
-      (match) => match[1],
-    );
+    const names = [
+      ...matrix.matchAll(
+        /<tr><th scope="row"><span class="matrixName">(.*?)<\/span>/g,
+      ),
+    ].map((match) => match[1]);
     expect(names).toEqual([
       'Behave feature',
       'Unhappy HTML reporting',
       'Happy HTML reporting',
     ]);
 
-    const row = matrix.match(/<tr><td>Happy HTML reporting<\/td>.*?<\/tr>/)?.[0];
+    const row = matrix.match(
+      /<tr><th scope="row"><span class="matrixName">Happy HTML reporting<\/span>.*?<\/tr>/,
+    )?.[0];
     expect(row).toBeDefined();
     const cells = [...row!.matchAll(/<td[^>]*>(.*?)<\/td>/g)].map(
       (match) => match[1],
     );
-    expect(cells.slice(0, 6)).toEqual(['Happy HTML reporting', '6', '1', '0', '0', '5']);
-    expect(cells[6]).toMatch(/^\d+(\.\d+)? (ms|s)$/);
+    expect(cells.slice(0, 5)).toEqual(['6', '1', '0', '0', '5']);
+    expect(cells[5]).toMatch(/^\d+(\.\d+)? (ms|s)$/);
     expect(matrix).toContain('class="num zero"');
   });
 
@@ -725,6 +789,7 @@ describe('source strip', () => {
     });
 
     expect(html).not.toContain('class="sources"');
+    expect(html).not.toContain('class="featureSource"');
   });
 
   it('omits the strip for a single input file', async () => {

@@ -152,14 +152,20 @@ function durationMs(duration: { seconds: number; nanos: number } | undefined): n
   return Number.isFinite(rounded) ? rounded : 0;
 }
 
+function finiteDuration(value: number): number {
+  return Number.isFinite(value) && value > 0
+    ? Math.round(value * 1000) / 1000
+    : 0;
+}
+
 function timestampIso(
   timestamp: { seconds: number; nanos: number } | undefined,
 ): string | undefined {
   if (!timestamp) return undefined;
   const milliseconds = timestamp.seconds * 1000 + timestamp.nanos / 1_000_000;
-  return Number.isFinite(milliseconds)
-    ? new Date(milliseconds).toISOString()
-    : undefined;
+  if (!Number.isFinite(milliseconds)) return undefined;
+  const date = new Date(milliseconds);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 function normalizeText(value: string | undefined): string {
@@ -554,8 +560,8 @@ export function buildReportModel(
       featureName: feature?.name ?? pickle.uri,
       ...(tree?.ruleName ? { ruleName: tree.ruleName } : {}),
       status,
-      durationMs: Math.round(duration * 1000) / 1000,
-      attempt: latest.attempt,
+      durationMs: finiteDuration(duration),
+      attempt: Number.isFinite(latest.attempt) ? latest.attempt : 0,
       ...(timestampIso(latest.timestamp) ? { startedAt: timestampIso(latest.timestamp) } : {}),
       tags: pickle.tags.map((tag) => tag.name),
       steps: stepRows,
@@ -608,11 +614,17 @@ export function buildReportModel(
       description: normalizeText(feature.description),
       tags: feature.tags.map((tag) => tag.name),
       status,
-      durationMs: Math.round(scenarios.reduce((sum, scenario) => sum + scenario.durationMs, 0) * 1000) / 1000,
+      durationMs: finiteDuration(
+        scenarios.reduce((sum, scenario) => sum + scenario.durationMs, 0),
+      ),
       scenarios,
       attachments: scenarios.reduce((sum, scenario) => sum + scenario.attachments.length, 0),
       ...(sourceFile ? { sourceFile } : {}),
     });
+  }
+
+  if (featureRows.some((feature) => !feature.sourceFile)) {
+    for (const feature of featureRows) delete feature.sourceFile;
   }
 
   const attachmentRows = scenarioRows.flatMap((scenario) => scenario.attachments);
@@ -629,7 +641,9 @@ export function buildReportModel(
       attachments: allAttachments.length,
       attachmentBytes: allAttachments.reduce((sum, attachment) => sum + attachment.bytes, 0),
     },
-    durationMs: Math.round(scenarioRows.reduce((sum, scenario) => sum + scenario.durationMs, 0) * 1000) / 1000,
+    durationMs: finiteDuration(
+      scenarioRows.reduce((sum, scenario) => sum + scenario.durationMs, 0),
+    ),
     ...(startedAt ? { startedAt } : {}),
     ...(finishedAt ? { finishedAt } : {}),
     source,

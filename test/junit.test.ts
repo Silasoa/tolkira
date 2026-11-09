@@ -204,11 +204,14 @@ describe('JUnit XML input', () => {
     expect(html).toContain('checkout');
     expect(html).toContain('profile loads');
     expect(html).toContain('statuses &amp; entities');
+    expect(html).not.toContain(path.dirname(fixture));
 
     const matrix = html.slice(html.indexOf('<table class="featureTable">'));
-    const names = [...matrix.matchAll(/<tr><td>(.*?)<\/td>/g)].map(
-      (match) => match[1],
-    );
+    const names = [
+      ...matrix.matchAll(
+        /<tr><th scope="row"><span class="matrixName">(.*?)<\/span>/g,
+      ),
+    ].map((match) => match[1]);
     expect(names).toEqual(['checkout', 'profile', 'statuses &amp; entities']);
   });
 

@@ -2,7 +2,6 @@ import {
   AttachmentContentEncoding,
   HookType,
   TestStepResultStatus,
-  version as messagesVersion,
 } from '@cucumber/messages';
 import type {
   Attachment,
@@ -593,11 +592,11 @@ export function parseLegacyValue(
   let attachmentCounter = 0;
 
   const meta: Meta = {
-    protocolVersion: messagesVersion,
+    protocolVersion: '',
     implementation: { name: 'tolkira-legacy-json' },
-    runtime: { name: 'node.js', version: process.versions.node },
-    os: { name: process.platform },
-    cpu: { name: process.arch },
+    runtime: { name: '' },
+    os: { name: '' },
+    cpu: { name: '' },
   };
   envelopes.push({ meta });
   envelopes.push({ testRunStarted: { id: runId, timestamp: timestamp(startedAt) } });
