@@ -168,6 +168,13 @@ test('keeps a long source name inside 320px', async ({ page }) => {
     expect(await pageOverflow(page), 'long source overflow').toBeLessThanOrEqual(
       1,
     );
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await pageOverflow(page),
+      'long source 200% overflow',
+    ).toBeLessThanOrEqual(1);
     const sourceName = page.locator('.sourceName').filter({ hasText: 'report_' });
     await expect(sourceName).toBeVisible();
     const box = await sourceName.boundingBox();

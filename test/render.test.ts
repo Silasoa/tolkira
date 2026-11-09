@@ -275,6 +275,10 @@ describe('messages rendering', () => {
         .flatMap((scenario) => scenario.steps)
         .every((step) => step.durationMs === 0),
     ).toBe(true);
+
+    const html = await renderHtml(envelopes, { title: 'Negative duration' });
+    expect(html).not.toContain('-5000');
+    expect(html).toContain('0 ms');
   });
 });
 
@@ -565,6 +569,32 @@ describe('feature overview and matrix', () => {
       { title: 'Feature overview' },
     );
   }
+
+  it('names every non-passing status in a feature row', async () => {
+    const html = await renderHtml(
+      syntheticRun([
+        {
+          name: 'Mixed row',
+          scenarios: [
+            { name: 'passes', status: 'passed' },
+            { name: 'fails', status: 'failed' },
+            { name: 'waits', status: 'pending' },
+          ],
+        },
+      ]),
+      { title: 'Mixed row' },
+    );
+    const list = featureList(html);
+
+    expect(list).toContain('1 of 3 passed · 1 failed, 1 pending');
+    const bar = list.slice(list.indexOf('class="bar"'));
+    expect(bar.indexOf('class="pass"')).toBeLessThan(
+      bar.indexOf('class="fail"'),
+    );
+    expect(bar.indexOf('class="fail"')).toBeLessThan(
+      bar.indexOf('class="pending"'),
+    );
+  });
 
   it('shows counts and a proportion bar on each feature row', async () => {
     const list = featureList(await mixedReport());

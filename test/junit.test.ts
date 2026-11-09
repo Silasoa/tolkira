@@ -196,12 +196,20 @@ describe('JUnit XML input', () => {
   it('keeps both features when two JUnit files are merged', async () => {
     const summary = await summarizeReport([fixture, edgeCasesFixture]);
     expect(summary.counts.scenarios.total).toBe(10);
+    expect(summary.counts.features).toBe(3);
 
     const html = await renderReport([fixture, edgeCasesFixture], {
       title: 'Two JUnit files',
     });
     expect(html).toContain('checkout');
+    expect(html).toContain('profile loads');
     expect(html).toContain('statuses &amp; entities');
+
+    const matrix = html.slice(html.indexOf('<table class="featureTable">'));
+    const names = [...matrix.matchAll(/<tr><td>(.*?)<\/td>/g)].map(
+      (match) => match[1],
+    );
+    expect(names).toEqual(['checkout', 'profile', 'statuses &amp; entities']);
   });
 
   it('maps failures and errors without attributes', async () => {

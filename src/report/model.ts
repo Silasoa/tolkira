@@ -344,6 +344,7 @@ export function buildReportModel(
 ): ReportModel {
   const features = new Map<string, Feature>();
   const featureUris = new Map<Feature, string>();
+  const featureSeen = new Set<Feature>();
   const featureOrder: Feature[] = [];
   const scenarioTree = new Map<string, { scenario: Scenario; ruleName?: string }>();
   const featureByScenarioId = new Map<string, Feature>();
@@ -397,8 +398,10 @@ export function buildReportModel(
     if (envelope.gherkinDocument?.feature) {
       const feature = envelope.gherkinDocument.feature;
       const uri = envelope.gherkinDocument.uri;
-      if (!features.has(uri ?? feature.name)) {
-        features.set(uri ?? feature.name, feature);
+      const key = uri ?? feature.name;
+      if (!features.has(key)) features.set(key, feature);
+      if (!featureSeen.has(feature)) {
+        featureSeen.add(feature);
         if (uri) featureUris.set(feature, uri);
         featureOrder.push(feature);
       }
