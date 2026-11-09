@@ -435,6 +435,27 @@ describe('CLI input edge cases', () => {
     await expect(readFile(input, 'utf8')).resolves.toBe(before);
   });
 
+  it('refuses to overwrite the logo file', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'same.png');
+    await writeFile(file, 'logo bytes', 'utf8');
+
+    const run = await cli([legacy, '--out', file, '--logo', file]);
+
+    expect(run.code).toBe(2);
+    expect(run.stderr).toContain('must not overwrite');
+    await expect(readFile(file, 'utf8')).resolves.toBe('logo bytes');
+  });
+
+  it('allows rerunning a report into an input directory', async () => {
+    const dir = await tempDir();
+    await copyFile(legacy, path.join(dir, 'input.json'));
+    const output = path.join(dir, 'report.html');
+
+    expect((await cli([dir, '--out', output])).code).toBe(0);
+    expect((await cli([dir, '--out', output])).code).toBe(0);
+  });
+
   it('rejects empty --out and --logo values', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'report.html');

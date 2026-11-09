@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { generateReport, summarizeReport, version } from './index.js';
+import { collectReportFiles } from './input/files.js';
 import { writeAtomic } from './output.js';
 import { ACCENT_PATTERN } from './validation.js';
 
@@ -132,14 +133,34 @@ async function readLogo(file: string): Promise<string> {
   return `data:${mime};base64,${data.toString('base64')}`;
 }
 
+async function outputIsLogo(
+  output: string,
+  logo: string,
+): Promise<boolean> {
+  const outputPath = path.resolve(output);
+  const outputInfo = await stat(outputPath).catch(() => undefined);
+  if (!outputInfo?.isFile()) return false;
+  try {
+    return realpathSync(outputPath) === realpathSync(logo);
+  } catch {
+    return false;
+  }
+}
+
 async function outputOverwritesInput(
   inputs: string[],
   output: string,
+  logo?: string,
 ): Promise<boolean> {
   const outputPath = path.resolve(output);
   const outputInfo = await stat(outputPath).catch(() => undefined);
   if (!outputInfo?.isFile()) return false;
   const outputReal = realpathSync(outputPath);
+
+  if (logo) {
+    const logoInfo = await stat(logo).catch(() => undefined);
+    if (logoInfo?.isFile() && realpathSync(logo) === outputReal) return true;
+  }
 
   for (const input of inputs) {
     const inputInfo = await stat(input).catch(() => undefined);
@@ -147,7 +168,9 @@ async function outputOverwritesInput(
     if (inputInfo.isFile() && realpathSync(input) === outputReal) return true;
     if (inputInfo.isDirectory()) {
       const directory = realpathSync(input);
-      if (outputReal.startsWith(`${directory}${path.sep}`)) return true;
+      for (const file of await collectReportFiles(directory)) {
+        if (realpathSync(file) === outputReal) return true;
+      }
     }
   }
   return false;
@@ -184,13 +207,13 @@ export async function runCli(
   const output = parsed.values.out;
   const wantsJson = parsed.values.json;
 
-  if (inputs.length === 0 || (!output && !wantsJson)) {
-    io.stderr(USAGE);
+  if (parsed.values.out === '') {
+    io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
     return 2;
   }
 
-  if (parsed.values.out === '') {
-    io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
+  if (inputs.length === 0 || (!output && !wantsJson)) {
+    io.stderr(USAGE);
     return 2;
   }
 
@@ -204,7 +227,7 @@ export async function runCli(
     return 2;
   }
 
-  if (output && (await outputOverwritesInput(inputs, output))) {
+  if (output && (await outputOverwritesInput(inputs, output, parsed.values.logo))) {
     io.stderr(`tolkira: --out must not overwrite an input file\n\n${USAGE}`);
     return 2;
   }

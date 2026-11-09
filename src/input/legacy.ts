@@ -288,13 +288,13 @@ function createIdFactory(prefix: string): (kind: string) => string {
 
 function normalizeUri(uri: string | undefined, index: number): string {
   if (!uri) return `features/legacy-${index}.feature`;
-  const slashed = uri.replace(/\\/g, '/');
+  const slashed = uri.replace(/\\/g, '/').replace(/^file:\/\/+/i, '');
   const normalized = slashed.replace(/^\.\//, '');
   if (/^[a-z]:\//i.test(normalized) || slashed.startsWith('/')) {
     const marker = slashed.lastIndexOf('/features/');
     if (marker >= 0) return slashed.slice(marker + 1);
     const parts = slashed.split('/').filter(Boolean);
-    return parts.slice(-2).join('/') || `features/legacy-${index}.feature`;
+    return parts[parts.length - 1] ?? `features/legacy-${index}.feature`;
   }
   return normalized || `features/legacy-${index}.feature`;
 }

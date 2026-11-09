@@ -153,9 +153,9 @@ function durationMs(duration: { seconds: number; nanos: number } | undefined): n
 }
 
 function finiteDuration(value: number): number {
-  return Number.isFinite(value) && value > 0
-    ? Math.round(value * 1000) / 1000
-    : 0;
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const rounded = Math.round(value * 1000) / 1000;
+  return Number.isFinite(rounded) ? rounded : 0;
 }
 
 function timestampIso(

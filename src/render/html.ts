@@ -780,7 +780,6 @@ const SCRIPT = `<script>
     }
     var focusTarget = target.tagName === 'DETAILS' ? target.querySelector('summary') : target;
     if (focusTarget) {
-      if (!focusTarget.hasAttribute('tabindex')) focusTarget.setAttribute('tabindex', '-1');
       try { focusTarget.focus({ preventScroll: true }); } catch (error) { focusTarget.focus(); }
     }
     target.scrollIntoView();

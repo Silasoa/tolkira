@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { renderReport, summarizeReport } from '../src/index.js';
+import { renderHtml } from '../src/render/html.js';
 
 const happy = fileURLToPath(
   new URL('./fixtures/legacy/happy.json', import.meta.url),
@@ -85,6 +86,37 @@ describe('legacy JSON adapter', () => {
     expect(html).toContain('Happy HTML reporting');
     expect(html).toContain('Fred wants to see passing scenarios');
     expect(html).toContain('text/plain');
+  });
+
+  it('reduces absolute legacy URIs to the file name', async () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          uri: 'C:\\Users\\alice\\secret-project\\login.feature',
+          name: 'Absolute feature',
+          elements: [
+            {
+              keyword: 'Scenario',
+              type: 'scenario',
+              name: 'One',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a step',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'absolute.json',
+    );
+    const html = await renderHtml(envelopes, { title: 'Absolute' });
+
+    expect(html).not.toContain('alice');
+    expect(html).not.toContain('secret-project');
+    expect(html).toContain('login.feature');
   });
 
   it('does not present the generator runtime as the test environment', async () => {

@@ -156,9 +156,9 @@ function durationMs(duration: Duration | undefined): number {
 }
 
 function finiteDuration(value: number): number {
-  return Number.isFinite(value) && value > 0
-    ? Math.round(value * 1000) / 1000
-    : 0;
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const rounded = Math.round(value * 1000) / 1000;
+  return Number.isFinite(rounded) ? rounded : 0;
 }
 
 function scenarioStatus(results: TestStepResult[]): SummaryStatus {
@@ -171,7 +171,7 @@ function statusOrdinal(status: SummaryStatus): number {
 }
 
 export function displayUri(uri: string): string {
-  const normalized = uri.replace(/\\/g, '/');
+  const normalized = uri.replace(/\\/g, '/').replace(/^file:\/\/+/i, '');
   if (!/^[a-z]:\//i.test(normalized) && !normalized.startsWith('/')) {
     return normalized;
   }

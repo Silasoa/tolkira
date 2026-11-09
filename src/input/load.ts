@@ -81,6 +81,23 @@ async function canonicalPath(file: string): Promise<string> {
   }
 }
 
+function collectGherkinIds(value: unknown): string[] {
+  const ids: string[] = [];
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child);
+      return;
+    }
+    if (!node || typeof node !== 'object') return;
+    for (const [key, child] of Object.entries(node)) {
+      if (key === 'id' && typeof child === 'string') ids.push(child);
+      else visit(child);
+    }
+  };
+  visit(value);
+  return ids;
+}
+
 export interface LoadedInput {
   file: string;
   envelopes: Envelope[];
@@ -201,6 +218,9 @@ export async function loadInputs(
       ];
       for (const step of envelope.testCase?.testSteps ?? []) {
         ids.push(['testStep', step.id]);
+      }
+      for (const id of collectGherkinIds(envelope.gherkinDocument)) {
+        ids.push(['gherkin', id]);
       }
       for (const [kind, id] of ids) {
         if (!id) continue;

@@ -6,7 +6,7 @@ import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
 import { renderHtml } from '../src/render/html.js';
-import { summarizeEnvelopes } from '../src/summary.js';
+import { summarizeEnvelopes, displayUri } from '../src/summary.js';
 
 const fixture = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
