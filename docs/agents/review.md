@@ -29,6 +29,24 @@ diff`) and spawns the reviewers. Reviewers are read-only.
   after the change, and a fresh agent could pick the change up from the repo:
   README, AGENTS, GLOSSARY, specs, ADRs, changelog, code comments.
 
+## Pre-implementation spec gate (parallel, before code)
+
+Run this small swarm over the proposal, spec delta and design before
+implementation starts. It is a quick pass, not the full post-implementation
+review.
+
+- **PIR — Parity & Vision.** Compare the planned behavior with the official
+  Cucumber HTML formatter first, then the legacy reporter, MCHR, Allure and
+  Playwright. Check feature/vision parity, over-promises, missing edge cases
+  and scope that should wait.
+- **DXR — Developer Experience & Integration.** Check how teams actually use
+  the tool: CLI, ESM API, CI artifacts, the compatibility shim and Seed-Test
+  2.0. Check the summary contract, integration tests and docs an integrator
+  needs.
+
+Blockers are fixed in the spec before code. The post-implementation CMP review
+still runs for every user-facing report feature.
+
 ## Triggered reviewers
 
 - **SEC — Security.** Always for input parsing, attachment handling, HTML

@@ -14,11 +14,12 @@ SHALL NOT include hooks.
 - **THEN** the scenario subtitle states one step and two hooks
 - **AND** the step count for the run excludes both hooks
 
-#### Scenario: Hook order is preserved
+#### Scenario: Hooks keep their place around steps
 
 - **WHEN** a scenario has before, step and after hooks
-- **THEN** the hook rows keep their test-case order within the hook group
-- **AND** the ordinary steps keep their order in the steps list
+- **THEN** before hooks render before the steps list and after hooks after it
+- **AND** the ordinary steps keep their order
+- **AND** a failed before hook is visible before the step it affected
 
 ### Requirement: Show hook identity and outcome
 
@@ -43,13 +44,20 @@ its type and name, such as `Before: name`.
 - **THEN** the row is visible inline in the scenario
 - **AND** it shows the error message
 - **AND** the scenario remains non-passing and in the triage index
+- **AND** the triage reason and copied failure can use the failed hook when no
+  step failed
 
 #### Scenario: Hook attachment
 
 - **WHEN** a hook has an image or text attachment
 - **THEN** the attachment is rendered with that hook
-- **AND** it is not duplicated on another hook or on the scenario-level
-  attachments
+- **AND** it is not duplicated on another hook or in the run attachments
+
+#### Scenario: Durations include hook time
+
+- **WHEN** a scenario has hooks and steps
+- **THEN** its duration includes both
+- **AND** the feature and run durations include the hook time
 
 ### Requirement: Collapse passed hooks
 
@@ -68,17 +76,25 @@ the number of hooks. Failed and other non-passing hooks SHALL remain inline.
 - **THEN** the failed hook is visible inline
 - **AND** the passed hook remains behind the hooks disclosure
 
+#### Scenario: Skipped hooks are kept
+
+- **WHEN** a hook is skipped
+- **THEN** it remains visible inline because it explains the skipped result
+- **AND** this deliberate difference from the official step filter is
+  documented
+
 ### Requirement: Show test-run hooks
 
-Tolkira SHALL render test-run hooks in a separate Hooks section above the
-feature list. Each row SHALL show BeforeAll/AfterAll type or name, status,
-duration, error message and attachments. The section SHALL be omitted when the
-run has no test-run hooks.
+Tolkira SHALL render test-run hooks in a separate Hooks section below the
+feature list. Each row SHALL show the hook name when present, otherwise
+BeforeAll/AfterAll, plus status, duration, error message and attachments. The
+section SHALL be omitted when the run has no test-run hooks.
 
 #### Scenario: BeforeAll and AfterAll
 
 - **WHEN** the input contains a BeforeAll and an AfterAll hook
 - **THEN** the Hooks section lists both with their status and duration
+- **AND** a named run hook shows its name
 - **AND** a failed test-run hook shows its error and attachments
 
 #### Scenario: No test-run hooks
@@ -86,12 +102,21 @@ run has no test-run hooks.
 - **WHEN** the input has only per-scenario hooks
 - **THEN** no test-run Hooks section is rendered
 - **AND** the scenario hook groups are unchanged
+- **AND** this omission is a documented deliberate difference from the
+  official empty Hooks section
 
 #### Scenario: Missing hook metadata
 
 - **WHEN** a test-run hook start or finish has no matching Hook envelope
 - **THEN** the row falls back to the hook type or a generic hook label
 - **AND** the report still renders without an error
+
+#### Scenario: Run-hook attachments are counted once
+
+- **WHEN** a test-run hook has an attachment
+- **THEN** the attachment is rendered in the Hooks section
+- **AND** it is not repeated in the run attachments list
+- **AND** the attachment totals count it once
 
 ### Requirement: Keep hook data searchable and safe
 
@@ -103,7 +128,8 @@ report SHALL remain a single offline file with no new network request.
 
 - **WHEN** the user searches for a hook name or a hook error
 - **THEN** the matching scenario is visible and opened
-- **AND** its hook row remains visible after the search
+- **AND** a matching passed-hook group opens so the hook row is visible
+- **AND** the 20-match expansion cap still applies
 
 #### Scenario: Untrusted hook text
 
@@ -119,17 +145,32 @@ report SHALL remain a single offline file with no new network request.
 
 ### Requirement: Preserve the summary and fallback contracts
 
-The JSON summary SHALL keep its version-1 contract in this slice: hooks remain
-entries in `scenarios[].steps` with `keyword: "Hook"`. The HTML report SHALL
-separate them. Legacy JSON SHALL keep its per-scenario hooks as best effort and
-has no test-run hooks; JUnit has no hooks.
+The JSON summary SHALL keep its version-1 shape: hooks remain entries in
+`scenarios[].steps` with `keyword: "Hook"`, and an optional hook `name` is
+added additively. A failed test-run hook SHALL make the summary status failed.
+The HTML report SHALL separate hooks and label its step counts as excluding
+them.
 
-#### Scenario: Summary stays stable
+#### Scenario: Summary stays version 1
 
 - **WHEN** a Messages run with hooks is summarised
 - **THEN** `schemaVersion` remains 1
 - **AND** hook entries keep `keyword: "Hook"`
+- **AND** a named hook carries its name
 - **AND** the HTML report still separates hooks from steps
+
+#### Scenario: Failed run hook fails the summary
+
+- **WHEN** a BeforeAll or AfterAll hook fails after otherwise passing scenarios
+- **THEN** the JSON summary status is failed
+- **AND** CI can detect the failure from the documented interface
+
+#### Scenario: Two step totals are labelled
+
+- **WHEN** the Details view shows the model step count and the embedded summary
+- **THEN** the HTML count is labelled as excluding hooks
+- **AND** the summary count is labelled as including hook entries
+- **AND** a Hooks count is shown separately
 
 #### Scenario: Legacy hooks
 
@@ -137,6 +178,7 @@ has no test-run hooks; JUnit has no hooks.
 - **THEN** the hooks render as per-scenario hook rows with status, duration,
   error and attachments
 - **AND** no test-run Hooks section is invented
+- **AND** the compatibility shim still returns the summary
 
 #### Scenario: JUnit without hooks
 

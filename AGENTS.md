@@ -22,6 +22,8 @@ Spec first, tests first, small vertical slices.
 
 - A change starts with an OpenSpec proposal, a spec delta with acceptance
   criteria, a design, and tasks.
+- Before implementation, run a short pre-implementation parity and integration
+  review (PIR + DXR) over the spec and design; blockers go back into the spec.
 - No production code before the user approves the spec.
 - A task is implemented test-first (RED → GREEN) and ends with a working
   end-to-end slice, not a layer.

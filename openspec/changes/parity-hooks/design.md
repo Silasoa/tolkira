@@ -74,33 +74,60 @@ by start timestamp, then input order. A start without a finish is kept with
 status `unknown`; a finish without a start is ignored. Missing Hook metadata
 falls back to a generic `Hook` label.
 
-### Render scenario hooks after the steps
+### Render scenario hooks around the steps
 
-The scenario subtitle becomes `N steps · M hooks` when hooks exist. The steps
-list stays first. After it, a hook group renders:
+The scenario subtitle becomes `N steps · M hooks` when hooks exist. Before
+hooks render before the steps list and after hooks after it. In each position:
 
-- non-passing hooks inline as hook rows;
-- passed hooks inside `<details class="hookGroup">` with a `N hooks` summary.
+- non-passing hooks render inline as hook rows;
+- passed hooks sit inside `<details class="hookGroup">` with a `N hooks`
+  summary.
 
 A hook row shows the type/name label, status text, duration, error and
 attachments. `Before: name`, `After: name`, `BeforeStep: name` and
 `AfterStep: name` are the labels; without a name, the type alone is shown. The
-group is omitted when there are no hooks.
+group is omitted when there are no hooks. Skipped hooks stay visible because
+they explain a skipped result; this is a deliberate difference from the
+official step filter and is documented.
 
-### Render run hooks above the feature list
+### Render run hooks below the feature list
 
-A `Hooks` section with `data-run-hooks` renders above the feature list when
-`model.runHooks` is non-empty. Each row shows `BeforeAll`/`AfterAll` type or
-name, status, duration, error and attachments. The section is static HTML and
-works without JavaScript.
+A `Hooks` section with `data-run-hooks` renders below the feature list when
+`model.runHooks` is non-empty. Each row shows the hook name when present,
+otherwise `BeforeAll`/`AfterAll`, plus status, duration, error and attachments.
+The section is static HTML and works without JavaScript. The empty section is
+omitted; the official formatter always shows it with an empty message. That
+difference is deliberate and documented.
+
+### Count hook time and attachments once
+
+`scenario.durationMs` sums steps and hooks. `feature.durationMs` and the run
+duration inherit it. Hook attachments are part of the scenario aggregate for
+thumbnails and counts, but render only in the hook row. Run-hook attachments
+are indexed by `testRunHookStartedId` and excluded from `runAttachments`, so
+they are not repeated in the run attachments list.
+
+### Use failed hooks in triage and copy failure
+
+`renderTriageRow` and `failureText()` first look for a failed step, then for a
+failed hook. A hook-only failure shows the hook label and first error line in
+the triage reason and copied text. The scenario remains failed because the
+existing worst-result calculation includes hook results.
 
 ### Keep search and summary contracts
 
 `scenarioText` adds hook names and messages (capped like step messages) so a
-hook failure remains findable. Run hooks are not part of the scenario search;
-they are a run-level section. The JSON summary remains computed from envelopes
-and keeps its version-1 hook-as-step representation. `docs/AGENT-INTERFACE.md`
-states the difference between the summary and the HTML.
+hook failure remains findable. When a search matches a scenario, its hook
+groups open so a matching passed hook is visible; the existing 20-match cap
+applies. Run hooks are not part of the scenario search; they are a run-level
+section.
+
+The JSON summary remains computed from envelopes and keeps its version-1
+hook-as-step representation. Add an optional `name` to hook summary entries
+(additive, no schema bump), and fold test-run hook results into the overall
+summary status so a failed BeforeAll/AfterAll cannot produce a green summary.
+`docs/AGENT-INTERFACE.md` states that summary steps and counts include hooks
+while the HTML separates them, and the Details view labels both totals.
 
 ### Legacy and JUnit fallbacks
 
@@ -111,15 +138,20 @@ the generic label and still renders.
 
 ## Risks / Trade-offs
 
-- **Step counts change** → HTML step counts exclude hooks; the summary stays
-  version 1. Tests and docs must state both.
+- **Step counts diverge** → HTML step counts exclude hooks; summary steps and
+  counts include them. Label both totals and document the difference.
+- **A failed run hook could stay green in the summary** → fold test-run hook
+  results into the summary status and cover a passing-scenarios/failed-AfterAll
+  case.
+- **Hook order and triage** → before hooks render before steps, after hooks
+  after; a failed hook must feed the triage reason and copy-failure text.
 - **Attachments counted twice** → hook attachments are included in the
-  scenario aggregate but rendered only in the hook row; assert counts and no
-  duplicate rendering.
+  scenario aggregate but rendered only in the hook row; run-hook attachments
+  are excluded from `runAttachments`; assert counts and no duplicate rendering.
 - **Run-hook metadata is incomplete** → fallback labels and unknown status;
   cover a missing Hook envelope.
-- **Search grows with hook errors** → cap hook messages like step messages and
-  keep the existing 20-match expansion cap.
+- **Search grows with hook errors** → cap hook messages like step messages,
+  open matching hook groups and keep the existing 20-match expansion cap.
 - **Passed hooks hidden** → the disclosure summary is keyboard operable and
   non-passing hooks stay inline; cover keyboard and no-JS.
 - **Legacy expectations** → legacy has no run hooks and often no names; the
