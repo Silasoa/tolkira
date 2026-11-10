@@ -33,6 +33,120 @@ const examplesAttachmentFixture = fileURLToPath(
   new URL('../fixtures/messages/examples-tables-attachment.ndjson', import.meta.url),
 );
 
+function outlineNdjson(count: number): string {
+  const rows = Array.from({ length: count }, (_, index) => ({
+    id: `r${index + 1}`,
+    cells: [{ value: String(index + 1) }],
+  }));
+  const envelopes: Array<Record<string, unknown>> = [
+    { testRunStarted: { timestamp: { seconds: 1, nanos: 0 } } },
+    {
+      gherkinDocument: {
+        uri: 'features/many-outlines.feature',
+        comments: [],
+        feature: {
+          name: 'Many outline examples',
+          keyword: 'Feature',
+          language: 'en',
+          description: '',
+          tags: [],
+          location: { line: 1, column: 1 },
+          children: [
+            {
+              scenario: {
+                id: 's1',
+                keyword: 'Scenario Outline',
+                name: 'Stress outline <n>',
+                description: '',
+                tags: [],
+                location: { line: 2, column: 1 },
+                steps: [
+                  {
+                    id: 'step1',
+                    keyword: 'Given ',
+                    keywordType: 'CONTEXT',
+                    text: 'value <n>',
+                    location: { line: 3, column: 1 },
+                  },
+                ],
+                examples: [
+                  {
+                    id: 'e1',
+                    keyword: 'Examples',
+                    name: 'Rows',
+                    description: '',
+                    tags: [],
+                    location: { line: 4, column: 1 },
+                    tableHeader: {
+                      id: 'h1',
+                      location: { line: 5, column: 1 },
+                      cells: [{ value: 'n' }],
+                    },
+                    tableBody: rows,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    },
+  ];
+  for (let index = 0; index < count; index += 1) {
+    const n = index + 1;
+    envelopes.push(
+      {
+        pickle: {
+          id: `p${n}`,
+          uri: 'features/many-outlines.feature',
+          name: `Stress outline ${n}`,
+          language: 'en',
+          astNodeIds: ['s1', `r${n}`],
+          tags: [],
+          steps: [{ id: `ps${n}`, text: `value ${n}`, astNodeIds: ['step1'] }],
+        },
+      },
+      {
+        testCase: {
+          id: `tc${n}`,
+          pickleId: `p${n}`,
+          testSteps: [{ id: `ts${n}`, pickleStepId: `ps${n}` }],
+        },
+      },
+      {
+        testCaseStarted: {
+          id: `tcs${n}`,
+          testCaseId: `tc${n}`,
+          attempt: 0,
+          timestamp: { seconds: 1, nanos: n },
+        },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: `tcs${n}`,
+          testStepId: `ts${n}`,
+          timestamp: { seconds: 1, nanos: n },
+          testStepResult: {
+            status: 'PASSED',
+            duration: { seconds: 0, nanos: 1000000 },
+          },
+        },
+      },
+      {
+        testCaseFinished: {
+          testCaseStartedId: `tcs${n}`,
+          timestamp: { seconds: 1, nanos: n },
+          willBeRetried: false,
+        },
+      },
+    );
+  }
+  envelopes.push({
+    testRunFinished: { timestamp: { seconds: 2, nanos: 0 }, success: true },
+  });
+  return envelopes.map((envelope) => JSON.stringify(envelope)).join('\n');
+}
+
 test('renders a messages report in the browser', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-e2e-'));
   const output = path.join(dir, 'report.html');
@@ -855,20 +969,58 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
     await expect(failed).toHaveAttribute('open', '');
     await expect(failed.locator('summary')).toBeFocused();
 
+    await expect(
+      page.locator('[data-example="#1.1"][data-scenario-name="Eating cucumbers"]'),
+    ).not.toHaveAttribute('open', '');
+    await expect(
+      page.locator('[data-example="#2.1"][data-scenario-name="Eating cucumbers"]'),
+    ).toHaveAttribute('open', '');
+
     const search = page.getByRole('searchbox', { name: /Search/ });
     await search.fill('Eating cucumbers with <friends> friends');
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
     await expect(page.locator('details.scenario:visible')).toHaveCount(3);
 
-    await search.fill('');
-    const tagFilter = page.locator('select[data-tag-filter]');
-    await tagFilter.selectOption('@failing');
+    await search.fill('These are failing');
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
     await expect(page.locator('details.scenario:visible')).toHaveCount(2);
 
+    await search.fill('');
+    const tagFilter = page.locator('select[data-tag-filter]');
+    await tagFilter.selectOption('@passing');
+    await expect(page.locator('section.outline:visible')).toHaveCount(1);
+    await expect(page.locator('section.examples:visible')).toHaveCount(1);
+    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+
+    await tagFilter.selectOption('@failing');
+    await expect(page.locator('section.outline:visible')).toHaveCount(1);
+    await expect(page.locator('section.examples:visible')).toHaveCount(1);
+    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(
+      page.locator('details.scenario:visible .exampleNo').first(),
+    ).toHaveText('#2.1');
+
     await tagFilter.selectOption('');
+    await expect(page.locator('details.scenario:visible')).toHaveCount(7);
+    await expect(
+      page.locator('details.scenario:visible .exampleNo').first(),
+    ).toHaveText('#1.1');
+
+    const failedFilter = page.locator('button.filter[data-status="failed"]');
+    await failedFilter.click();
+    await expect(page.locator('details.scenario:visible')).toHaveCount(5);
+    await expect(page.locator('section.outline:visible')).toHaveCount(2);
+    await expect(page.locator('section.examples:visible')).toHaveCount(2);
+    await failedFilter.click();
+
+    const passedFilter = page.locator('button.filter[data-status="passed"]');
+    await passedFilter.click();
+    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.locator('section.outline:visible')).toHaveCount(1);
+    await expect(page.locator('section.examples:visible')).toHaveCount(1);
+    await passedFilter.click();
     await expect(page.locator('details.scenario:visible')).toHaveCount(7);
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -994,6 +1146,36 @@ test('does not duplicate a retried outline row', async ({ page }) => {
   }
 });
 
+test('caps grouped outline search at 20 rows', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-outline-cap-e2e-'));
+  const input = path.join(dir, 'many-outlines.ndjson');
+  const output = path.join(dir, 'many-outlines.html');
+
+  try {
+    await writeFile(input, outlineNdjson(30), 'utf8');
+    const code = await runCli([input, '--out', output, '--title', 'Many outlines'], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    await search.fill('Stress outline');
+    await expect(page.locator('details.scenario[open]')).toHaveCount(20);
+    await expect(page.locator('#tolkira-search-note')).toContainText(
+      '20 of 30 matches expanded',
+    );
+    await expect(page.locator('section.outline:visible')).toHaveCount(1);
+    await expect(page.locator('section.examples:visible')).toHaveCount(1);
+
+    await search.fill('');
+    await expect(page.locator('details.scenario[open]')).toHaveCount(0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('keeps each example attachment on its own row', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-outline-attach-e2e-'));
   const output = path.join(dir, 'outlines-attach.html');
@@ -1012,7 +1194,10 @@ test('keeps each example attachment on its own row', async ({ page }) => {
     await expect(rows.nth(1).locator('.thumb')).toBeVisible();
     await expect(rows.nth(0).locator('.shot')).toHaveCount(1);
     await expect(rows.nth(1).locator('.shot')).toHaveCount(1);
+    await expect(rows.nth(0).locator('.rowRight')).toContainText('1 attachment');
+    await expect(rows.nth(1).locator('.rowRight')).toContainText('1 attachment');
 
+    await rows.nth(0).locator('summary').click();
     await rows.nth(0).locator('.shotButton').click();
     await expect(page.locator('#tolkira-lightbox')).toBeVisible();
   } finally {

@@ -30,11 +30,15 @@ Messages input carries the Gherkin document, so Tolkira groups executed
 examples under one outline section and numbers them `#1.1`, `#1.2`, `#2.1`.
 Unexecuted rows and examples blocks are omitted, matching the official
 formatter. Outline and examples tags, descriptions and keywords come from the
-AST; the substituted values remain visible in the steps.
+AST; the substituted values remain visible in the steps. Outlines are ordered
+failed-first like the rest of the report; examples inside an outline keep their
+Gherkin order and numbering.
 
 Legacy JSON has no Gherkin document and arrives with examples already expanded.
-Tolkira keeps those rows flat and does not invent an outline. The same applies
-to a Messages outline without examples: it falls back to a flat row.
+Tolkira keeps those rows flat and does not invent an outline. A Messages
+outline without examples also falls back to a flat row; this is a deliberate
+difference from the official formatter, which renders the outline with no
+examples.
 
 ## Breaking changes that matter
 

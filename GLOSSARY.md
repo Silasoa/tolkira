@@ -41,7 +41,8 @@ proportion bar.
 column per status present in the run, plus total and duration.
 
 **Scenario outline** — a Gherkin scenario template with an Examples table.
-Tolkira renders one outline section per outline in Messages input.
+Tolkira renders one outline section per executed outline with examples in
+Messages input.
 
 **Examples block** — one Examples table under a scenario outline, with its own
 name, tags and description. An outline can have several.

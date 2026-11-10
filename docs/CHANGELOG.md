@@ -11,8 +11,8 @@ Keep a Changelog and the project uses semantic versioning.
   examples blocks. Executed examples are numbered `#1.1`, `#1.2`, `#2.1` and
   keep their own outcome, attachments and anchor. The triage index and copied
   failures include the example number and examples block name.
-- Legacy Cucumber JSON and Messages outlines without examples stay flat; the
-  format cannot reconstruct the outline reliably.
+- Legacy Cucumber JSON arrives with expanded examples and stays flat. Messages
+  outlines without examples also stay flat as a deliberate fallback.
 
 ## [0.2.0] - 2026-11-10
 

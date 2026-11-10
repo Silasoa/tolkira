@@ -143,8 +143,9 @@ Field contract:
   three decimals.
 - `scenarios` is sorted by `uri`, then `name`, so output is stable across runs.
 - `scenarios[].name` is the Cucumber pickle name. Examples of one scenario
-  outline can share the same name; the HTML report adds the `#1.1` example
-  number and the examples block name, but the summary does not expose them yet.
+  outline can share the same name; the HTML report labels rows with `#1.1` and
+  shows the examples block name on the examples heading and in triage and
+  copy-failure text, but the summary does not expose them yet.
 - `attempt` is the latest Cucumber retry attempt for that scenario.
 - `attachments.bytes` is the decoded size, not the base64 length.
 - `steps[].message` is present only when the step result has a message. For

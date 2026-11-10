@@ -346,6 +346,7 @@ function count(counts: Record<ReportStatus, number> & { total: number }, status:
 }
 
 interface OutlineExample {
+  uri: string;
   scenario: Scenario;
   ruleName?: string;
   examples: Examples;
@@ -369,16 +370,20 @@ function featureTree(document: Feature | undefined): Map<string, {
   return map;
 }
 
-function exampleRowTree(document: Feature | undefined): Map<string, OutlineExample> {
+function exampleRowTree(
+  document: Feature | undefined,
+  uri: string,
+): Map<string, OutlineExample> {
   const map = new Map<string, OutlineExample>();
   if (!document) return map;
   const visit = (children: readonly (FeatureChild | RuleChild)[], ruleName?: string): void => {
     for (const child of children) {
       if (child.scenario) {
         const scenario = child.scenario;
-        scenario.examples.forEach((examples, examplesIndex) => {
-          examples.tableBody.forEach((row, exampleIndex) => {
-            map.set(row.id, {
+        (scenario.examples ?? []).forEach((examples, examplesIndex) => {
+          (examples.tableBody ?? []).forEach((row, exampleIndex) => {
+            map.set(`${uri}\0${row.id}`, {
+              uri,
               scenario,
               ruleName,
               examples,
@@ -467,7 +472,7 @@ export function buildReportModel(
         scenarioTree.set(id, value);
         featureByScenarioId.set(id, feature);
       }
-      for (const [id, value] of exampleRowTree(feature)) {
+      for (const [id, value] of exampleRowTree(feature, uri ?? '')) {
         outlineRows.set(id, value);
       }
       const collectSteps = (children: readonly (FeatureChild | RuleChild)[]): void => {
@@ -598,7 +603,11 @@ export function buildReportModel(
       : 'unknown';
     const duration = stepRows.reduce((sum, step) => sum + step.durationMs, 0);
     const astIds = pickle.astNodeIds ?? [];
-    const candidate = astIds.length ? outlineRows.get(astIds.at(-1) ?? '') : undefined;
+    // The deepest AST id is the examples row; the URI-scoped map also proves
+    // which outline owns it when inputs are merged.
+    const candidate = astIds.length
+      ? outlineRows.get(`${pickle.uri ?? ''}\0${astIds.at(-1) ?? ''}`)
+      : undefined;
     const outlineExample =
       candidate && astIds.includes(candidate.scenario.id) ? candidate : undefined;
     const scenarioId = outlineExample?.scenario.id ?? astIds[0] ?? '';
@@ -617,12 +626,12 @@ export function buildReportModel(
           keyword: outlineExample.scenario.keyword,
           name: outlineExample.scenario.name,
           description: normalizeText(outlineExample.scenario.description),
-          tags: outlineExample.scenario.tags.map((tag) => tag.name),
+          tags: (outlineExample.scenario.tags ?? []).map((tag) => tag.name),
           examplesId: outlineExample.examples.id,
           examplesKeyword: outlineExample.examples.keyword,
           examplesName: outlineExample.examples.name,
           examplesDescription: normalizeText(outlineExample.examples.description),
-          examplesTags: outlineExample.examples.tags.map((tag) => tag.name),
+          examplesTags: (outlineExample.examples.tags ?? []).map((tag) => tag.name),
           examplesIndex: outlineExample.examplesIndex,
           exampleIndex: outlineExample.exampleIndex,
         }
@@ -639,7 +648,7 @@ export function buildReportModel(
       durationMs: finiteDuration(duration),
       attempt: Number.isFinite(latest.attempt) ? latest.attempt : 0,
       ...(timestampIso(latest.timestamp) ? { startedAt: timestampIso(latest.timestamp) } : {}),
-      tags: pickle.tags.map((tag) => tag.name),
+      tags: (pickle.tags ?? []).map((tag) => tag.name),
       ...(outline ? { outline } : {}),
       steps: stepRows,
       attachments: scenarioAttachments,
@@ -689,7 +698,7 @@ export function buildReportModel(
       keyword: feature.keyword,
       uri: scenarios[0]?.uri ?? '',
       description: normalizeText(feature.description),
-      tags: feature.tags.map((tag) => tag.name),
+      tags: (feature.tags ?? []).map((tag) => tag.name),
       status,
       durationMs: finiteDuration(
         scenarios.reduce((sum, scenario) => sum + scenario.durationMs, 0),

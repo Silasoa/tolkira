@@ -167,10 +167,35 @@ describe('report model', () => {
       '',
       '',
     ]);
+    expect(second.map((scenario) => scenario.outline?.examplesIndex)).toEqual([
+      0, 0, 0,
+    ]);
     expect(second.map((scenario) => scenario.outline?.exampleIndex)).toEqual([
       0, 1, 2,
     ]);
     expect(second[0]?.name).toBe('Eating cucumbers with 11 friends');
+  });
+
+  it('uses the deepest AST id and tolerates a missing examples row', async () => {
+    const source = await readFile(examplesTables, 'utf8');
+    const envelopes = parseMessages(source, examplesTables);
+    const pickle = envelopes.find(
+      (envelope) => envelope.pickle?.astNodeIds.length === 2,
+    )?.pickle;
+    expect(pickle).toBeDefined();
+    if (!pickle) return;
+
+    pickle.astNodeIds = [pickle.astNodeIds[0] ?? '', 'extra-ast-id', pickle.astNodeIds[1] ?? ''];
+    const grouped = buildReportModel(envelopes).scenarios.find(
+      (scenario) => scenario.id === pickle.id,
+    );
+    expect(grouped?.outline).toBeDefined();
+
+    pickle.astNodeIds = [pickle.astNodeIds[0] ?? '', 'missing-row'];
+    const flat = buildReportModel(envelopes).scenarios.find(
+      (scenario) => scenario.id === pickle.id,
+    );
+    expect(flat?.outline).toBeUndefined();
   });
 
   it('keeps each example attachment on its own row', async () => {
@@ -185,8 +210,9 @@ describe('report model', () => {
     expect(new Set(withImages.map((scenario) => scenario.id)).size).toBe(
       withImages.length,
     );
-    expect(model.features[0]?.attachments).toBe(
-      rows.reduce((sum, scenario) => sum + scenario.attachments.length, 0),
+    expect(model.features[0]?.attachments).toBe(2);
+    expect(rows.every((scenario) => scenario.attachments.length === 1)).toBe(
+      true,
     );
   });
 
@@ -206,6 +232,50 @@ describe('report model', () => {
 
     expect(model.scenarios).toHaveLength(7);
     expect(model.scenarios.every((scenario) => !scenario.outline)).toBe(true);
+  });
+
+  it('tolerates omitted repeated fields in a valid Gherkin document', async () => {
+    const source = await readFile(examplesTables, 'utf8');
+    const cases: Array<(envelopes: ReturnType<typeof parseMessages>) => void> = [
+      (envelopes) => {
+        const document = envelopes.find((envelope) => envelope.gherkinDocument)
+          ?.gherkinDocument;
+        const scenario = document?.feature?.children.find((child) => child.scenario)
+          ?.scenario;
+        if (!scenario) return;
+        delete (scenario as unknown as { tags?: unknown }).tags;
+        delete (scenario as unknown as { examples?: unknown }).examples;
+      },
+      (envelopes) => {
+        const document = envelopes.find((envelope) => envelope.gherkinDocument)
+          ?.gherkinDocument;
+        const scenario = document?.feature?.children.find((child) => child.scenario)
+          ?.scenario;
+        const examples = scenario?.examples?.[0];
+        if (!examples) return;
+        delete (examples as unknown as { tableBody?: unknown }).tableBody;
+        delete (examples as unknown as { tags?: unknown }).tags;
+        delete (scenario as unknown as { tags?: unknown }).tags;
+      },
+      (envelopes) => {
+        const document = envelopes.find((envelope) => envelope.gherkinDocument)
+          ?.gherkinDocument;
+        if (!document?.feature) return;
+        delete (document.feature as unknown as { tags?: unknown }).tags;
+        for (const envelope of envelopes) {
+          if (envelope.pickle) {
+            delete (envelope.pickle as unknown as { tags?: unknown }).tags;
+          }
+        }
+      },
+    ];
+
+    for (const mutate of cases) {
+      const envelopes = parseMessages(source, examplesTables);
+      mutate(envelopes);
+      expect(() => buildReportModel(envelopes)).not.toThrow();
+      expect(buildReportModel(envelopes).scenarios).toHaveLength(7);
+    }
   });
 
   it('keeps one row for a retried outline example', async () => {
