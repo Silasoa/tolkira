@@ -14,3 +14,11 @@ files document the Gherkin source; the `.ndjson` files are the Messages input.
 same Compatibility Kit samples on the same date. `hooks` covers per-scenario
 hooks; the `global-hooks` samples cover BeforeAll/AfterAll and their
 attachments.
+
+`undefined.*`, `undefined-multiple.*`, `ambiguous.*`, `all-statuses.*` and
+`empty.*` are copied unmodified from the same Compatibility Kit samples on
+2026-11-10. `undefined` and `undefined-multiple` carry `suggestion` envelopes;
+`ambiguous` and `all-statuses` carry `stepDefinition` envelopes. `ambiguous`
+has two matching definitions; there is no separate `ambiguous-multiple` sample.
+`all-statuses` covers passed, failed, pending, skipped, undefined and ambiguous.
+`empty` has a scenario without steps.

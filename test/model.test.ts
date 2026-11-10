@@ -30,6 +30,21 @@ const globalHooksFixture = fileURLToPath(
 const globalHookAttachments = fileURLToPath(
   new URL('./fixtures/messages/global-hooks-attachments.ndjson', import.meta.url),
 );
+const undefinedFixture = fileURLToPath(
+  new URL('./fixtures/messages/undefined.ndjson', import.meta.url),
+);
+const undefinedMultipleFixture = fileURLToPath(
+  new URL('./fixtures/messages/undefined-multiple.ndjson', import.meta.url),
+);
+const ambiguousFixture = fileURLToPath(
+  new URL('./fixtures/messages/ambiguous.ndjson', import.meta.url),
+);
+const allStatusesFixture = fileURLToPath(
+  new URL('./fixtures/messages/all-statuses.ndjson', import.meta.url),
+);
+const emptyFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty.ndjson', import.meta.url),
+);
 
 async function modelFor(file: string) {
   const content = await readFile(file, 'utf8');
@@ -419,5 +434,200 @@ describe('report model', () => {
     expect(model.scenarios.some((scenario) => scenario.hooks.length > 0)).toBe(
       true,
     );
+  });
+});
+
+describe('parity diagnostics model', () => {
+  it('parses the CCK parity fixtures with their expected statuses', async () => {
+    const undefinedModel = await messagesModelFor(undefinedFixture);
+    expect(undefinedModel.counts.scenarios).toMatchObject({
+      total: 4,
+      undefined: 4,
+    });
+    expect(undefinedModel.counts.steps).toMatchObject({
+      total: 6,
+      passed: 1,
+      undefined: 4,
+      skipped: 1,
+    });
+
+    const multipleModel = await messagesModelFor(undefinedMultipleFixture);
+    expect(multipleModel.counts.scenarios).toMatchObject({
+      total: 7,
+      undefined: 7,
+    });
+    expect(multipleModel.counts.steps).toMatchObject({
+      total: 22,
+      passed: 4,
+      undefined: 14,
+      skipped: 4,
+    });
+
+    const ambiguousModel = await messagesModelFor(ambiguousFixture);
+    expect(ambiguousModel.counts.scenarios).toMatchObject({
+      total: 1,
+      ambiguous: 1,
+    });
+    expect(ambiguousModel.counts.steps).toMatchObject({
+      total: 1,
+      ambiguous: 1,
+    });
+
+    const allStatusesModel = await messagesModelFor(allStatusesFixture);
+    expect(allStatusesModel.counts.scenarios).toMatchObject({
+      total: 6,
+      passed: 1,
+      failed: 1,
+      pending: 1,
+      skipped: 1,
+      undefined: 1,
+      ambiguous: 1,
+    });
+    expect(allStatusesModel.counts.steps).toMatchObject({
+      total: 18,
+      passed: 8,
+      failed: 1,
+      pending: 1,
+      skipped: 6,
+      undefined: 1,
+      ambiguous: 1,
+    });
+
+    const emptyModel = await messagesModelFor(emptyFixture);
+    expect(emptyModel.counts.scenarios).toMatchObject({
+      total: 1,
+      unknown: 1,
+    });
+    expect(emptyModel.counts.steps.total).toBe(0);
+  });
+
+  it('attaches suggestion snippets to undefined steps', async () => {
+    const model = await messagesModelFor(undefinedFixture);
+    const scenario = model.scenarios.find(
+      (entry) => entry.name === 'Snippets reflect parameter types',
+    );
+    const step = scenario?.steps[0];
+
+    expect(step?.status).toBe('undefined');
+    expect(step?.suggestions).toEqual([
+      {
+        language: 'typescript',
+        code: 'Given("a list of {int} things", (int: number) => {\n  return "pending"\n})',
+      },
+      {
+        language: 'typescript',
+        code: 'Given("a list of {float} things", (float: number) => {\n  return "pending"\n})',
+      },
+    ]);
+  });
+
+  it('attaches matching definitions to ambiguous and passed steps', async () => {
+    const ambiguousModel = await messagesModelFor(ambiguousFixture);
+    const ambiguousStep = ambiguousModel.scenarios[0]?.steps[0];
+
+    expect(ambiguousStep?.status).toBe('ambiguous');
+    expect(ambiguousStep?.definitions).toEqual([
+      {
+        pattern: '^a (.*?) with (.*?)$',
+        source: 'samples/ambiguous/ambiguous.ts:3',
+      },
+      {
+        pattern: '^a step with (.*?)$',
+        source: 'samples/ambiguous/ambiguous.ts:7',
+      },
+    ]);
+
+    const undefinedModel = await messagesModelFor(undefinedFixture);
+    const passedStep = undefinedModel.scenarios.find(
+      (entry) => entry.name === 'Steps before undefined steps are executed',
+    )?.steps[0];
+
+    expect(passedStep?.status).toBe('passed');
+    expect(passedStep?.definitions).toEqual([
+      { pattern: 'an implemented step', source: 'samples/undefined/undefined.ts:3' },
+    ]);
+  });
+
+  it('guards omitted or malformed suggestion and definition fields', async () => {
+    const source = await readFile(undefinedFixture, 'utf8');
+    const cases: Array<{
+      name: string;
+      mutate: (envelopes: ReturnType<typeof parseMessages>) => void;
+      hasSuggestions: boolean;
+      hasDefinitions: boolean;
+    }> = [
+      {
+        name: 'omitted snippets',
+        mutate: (envelopes) => {
+          for (const envelope of envelopes) {
+            if (envelope.suggestion) {
+              delete (envelope.suggestion as unknown as { snippets?: unknown })
+                .snippets;
+            }
+          }
+        },
+        hasSuggestions: false,
+        hasDefinitions: true,
+      },
+      {
+        name: 'malformed snippets',
+        mutate: (envelopes) => {
+          for (const envelope of envelopes) {
+            if (envelope.suggestion) {
+              (envelope.suggestion as unknown as { snippets: unknown }).snippets =
+                'not-an-array';
+            }
+          }
+        },
+        hasSuggestions: false,
+        hasDefinitions: true,
+      },
+      {
+        name: 'omitted pattern and source',
+        mutate: (envelopes) => {
+          for (const envelope of envelopes) {
+            if (envelope.stepDefinition) {
+              delete (
+                envelope.stepDefinition as unknown as { pattern?: unknown }
+              ).pattern;
+              delete (
+                envelope.stepDefinition as unknown as { sourceReference?: unknown }
+              ).sourceReference;
+            }
+          }
+        },
+        hasSuggestions: true,
+        hasDefinitions: false,
+      },
+      {
+        name: 'omitted step definition ids',
+        mutate: (envelopes) => {
+          for (const envelope of envelopes) {
+            for (const step of envelope.testCase?.testSteps ?? []) {
+              delete (step as unknown as { stepDefinitionIds?: unknown })
+                .stepDefinitionIds;
+            }
+          }
+        },
+        hasSuggestions: true,
+        hasDefinitions: false,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const envelopes = parseMessages(source, undefinedFixture);
+      testCase.mutate(envelopes);
+      const model = buildReportModel(envelopes);
+      const steps = model.scenarios.flatMap((scenario) => scenario.steps);
+      expect(steps.length, testCase.name).toBe(6);
+      expect(
+        steps.some((step) => Boolean(step.suggestions)),
+        `${testCase.name} suggestions`,
+      ).toBe(testCase.hasSuggestions);
+      expect(
+        steps.some((step) => Boolean(step.definitions)),
+        `${testCase.name} definitions`,
+      ).toBe(testCase.hasDefinitions);
+    }
   });
 });

@@ -50,6 +50,8 @@ export interface ReportStep {
   message?: string;
   docString?: string;
   dataTable?: string[][];
+  suggestions?: Array<{ language?: string; code: string }>;
+  definitions?: Array<{ pattern: string; source?: string }>;
   attachments: ReportAttachment[];
 }
 
@@ -447,6 +449,8 @@ export function buildReportModel(
   const results = new Map<string, TestStepFinished[]>();
   const attachments = new Map<string, Attachment[]>();
   const runHookAttachments = new Map<string, Attachment[]>();
+  const suggestions = new Map<string, Array<{ language?: string; code: string }>>();
+  const stepDefinitions = new Map<string, { pattern: string; source?: string }>();
   const finishedStarted = new Set<string>();
   const attachmentCache = new Map<Attachment, ReportAttachment>();
   let attachmentIndex = 0;
@@ -544,6 +548,36 @@ export function buildReportModel(
       list.push(envelope.attachment);
       target.set(id, list);
     }
+    if (envelope.suggestion) {
+      const snippets = Array.isArray(envelope.suggestion.snippets)
+        ? envelope.suggestion.snippets
+        : [];
+      const list = snippets
+        .filter((snippet) => typeof snippet?.code === 'string')
+        .map((snippet) => ({
+          ...(typeof snippet.language === 'string' && snippet.language
+            ? { language: snippet.language }
+            : {}),
+          code: snippet.code,
+        }));
+      if (list.length > 0) suggestions.set(envelope.suggestion.pickleStepId, list);
+    }
+    if (envelope.stepDefinition) {
+      const pattern = envelope.stepDefinition.pattern;
+      if (typeof pattern?.source === 'string') {
+        const reference = envelope.stepDefinition.sourceReference;
+        const uri = typeof reference?.uri === 'string' ? reference.uri : '';
+        const line =
+          typeof reference?.location?.line === 'number'
+            ? reference.location.line
+            : undefined;
+        const source = uri ? (line ? `${uri}:${line}` : uri) : undefined;
+        stepDefinitions.set(envelope.stepDefinition.id, {
+          pattern: pattern.source,
+          ...(source ? { source } : {}),
+        });
+      }
+    }
   }
 
   const testCasesByPickle = new Map<string, TestCase[]>();
@@ -611,6 +645,16 @@ export function buildReportModel(
           startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
         );
         const message = stepResultMessage(result);
+        const stepSuggestions = suggestions.get(testStep.pickleStepId) ?? [];
+        const definitionIds = Array.isArray(testStep.stepDefinitionIds)
+          ? testStep.stepDefinitionIds
+          : [];
+        const stepMatches = definitionIds
+          .map((id) => stepDefinitions.get(id))
+          .filter(
+            (definition): definition is { pattern: string; source?: string } =>
+              Boolean(definition),
+          );
         stepRows.push({
           id: testStep.id,
           order: testStepOrder++,
@@ -621,6 +665,10 @@ export function buildReportModel(
           ...(message ? { message: stripAnsi(message) } : {}),
           ...(data.docString ? { docString: data.docString } : {}),
           ...(data.dataTable ? { dataTable: data.dataTable } : {}),
+          ...(stepSuggestions.length > 0
+            ? { suggestions: stepSuggestions }
+            : {}),
+          ...(stepMatches.length > 0 ? { definitions: stepMatches } : {}),
           attachments: stepAttachments,
         });
       } else if (testStep.hookId) {
