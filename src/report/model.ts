@@ -42,6 +42,7 @@ export interface ReportAttachment {
 
 export interface ReportStep {
   id: string;
+  order: number;
   keyword: string;
   text: string;
   status: ReportStatus;
@@ -54,6 +55,7 @@ export interface ReportStep {
 
 export interface ReportHook {
   id: string;
+  order: number;
   type: string;
   name?: string;
   status: ReportStatus;
@@ -595,6 +597,7 @@ export function buildReportModel(
     );
     const stepRows: ReportStep[] = [];
     const hookRows: ReportHook[] = [];
+    let testStepOrder = 0;
 
     for (const testStep of testCase.testSteps) {
       const result = resultsByStep.get(testStep.id);
@@ -610,6 +613,7 @@ export function buildReportModel(
         const message = stepResultMessage(result);
         stepRows.push({
           id: testStep.id,
+          order: testStepOrder++,
           keyword: data.keyword,
           text: pickleStep?.text ?? '',
           status: statusOf(result.status),
@@ -627,6 +631,7 @@ export function buildReportModel(
         const message = stepResultMessage(result);
         hookRows.push({
           id: testStep.id,
+          order: testStepOrder++,
           type: hookLabel(hook?.type),
           ...(hook?.name ? { name: hook.name } : {}),
           status: statusOf(result.status),
@@ -766,7 +771,15 @@ export function buildReportModel(
   }
 
   const runHooks: ReportRunHook[] = [];
-  for (const start of runHookStarts.values()) {
+  const orderedRunHooks = [...runHookStarts.values()]
+    .map((start, index) => ({ start, index }))
+    .sort((a, b) => {
+      const seconds = (a.start.timestamp?.seconds ?? 0) - (b.start.timestamp?.seconds ?? 0);
+      if (seconds !== 0) return seconds;
+      const nanos = (a.start.timestamp?.nanos ?? 0) - (b.start.timestamp?.nanos ?? 0);
+      return nanos !== 0 ? nanos : a.index - b.index;
+    });
+  for (const { start } of orderedRunHooks) {
     const finish = runHookFinishes.get(start.id);
     const hook = hooks.get(start.hookId);
     const result = finish?.result;
@@ -781,6 +794,7 @@ export function buildReportModel(
       attachments: mapAttachments(runHookAttachments.get(start.id) ?? []),
     });
   }
+  for (const hook of runHooks) count(hookCounts, hook.status);
 
   const attachmentRows = scenarioRows.flatMap((scenario) => scenario.attachments);
   const runAttachments = mapAttachments(attachments.get('') ?? []);

@@ -43,9 +43,13 @@ examples.
 ## Hooks
 
 Messages per-scenario hooks render separately from steps. The subtitle counts
-both; named hooks show `Before: name`; passed hooks collapse behind `N hooks`,
-while failed and skipped hooks stay inline with their error and attachments.
-BeforeAll/AfterAll render in a Hooks section below the feature list.
+both; named hooks show `Before: name`; passed hooks collapse behind one
+`N hooks` disclosure, while failed and skipped hooks stay inline with their
+error and attachments. Skipped hooks are kept because they explain the skip;
+the official formatter filters some of them. BeforeAll/AfterAll render in a
+Hooks section below the feature list; a named run hook shows its bare name.
+The section is omitted when empty, while the official formatter shows an empty
+section.
 
 Legacy JSON has per-scenario before/after hooks but no test-run hooks. JUnit has
 no hooks. The JSON summary keeps its version-1 shape: hooks stay in

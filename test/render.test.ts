@@ -416,6 +416,16 @@ describe('hooks rendering', () => {
     expect(html).toContain('Before — hook boom');
   });
 
+  it('renders a hook without Hook metadata with a generic label', async () => {
+    const content = await readFile(hooksFixture, 'utf8');
+    const envelopes = parseMessages(content, hooksFixture).filter(
+      (envelope) => !envelope.hook,
+    );
+    const html = await renderHtml(envelopes, { title: 'Generic hooks' });
+    expect(html).toContain('class="hook"');
+    expect(html).toContain('class="hookLabel">Hook');
+  });
+
   it('renders a named hook with its type and name', async () => {
     const content = await readFile(hooksFixture, 'utf8');
     const envelopes = parseMessages(content, hooksFixture);

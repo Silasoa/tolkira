@@ -359,36 +359,32 @@ function renderStep(step: ReportStep, scenarioName: string): string {
   return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
 }
 
-function hookLabel(hook: ReportHook | ReportRunHook): string {
-  return hook.name ? `${hook.type}: ${hook.name}` : hook.type;
+function hookLabel(
+  hook: ReportHook | ReportRunHook,
+  bareName = false,
+): string {
+  if (hook.name) return bareName ? hook.name : `${hook.type}: ${hook.name}`;
+  return hook.type;
 }
 
-function renderHook(hook: ReportHook | ReportRunHook, scenarioName: string): string {
+function renderHook(
+  hook: ReportHook | ReportRunHook,
+  scenarioName: string,
+  bareName = false,
+): string {
   const error = hook.message
     ? `<pre class="error">${escapeHtml(hook.message)}</pre>`
     : '';
+  const label = hookLabel(hook, bareName);
   const attachments = hook.attachments
-    .map((attachment) => renderAttachment(attachment, `${scenarioName}: ${hookLabel(hook)}`))
+    .map((attachment) => renderAttachment(attachment, `${scenarioName}: ${label}`))
     .join('');
-  return `<li class="hook" data-status="${hook.status}"><span class="stepMarker ${statusClass(hook.status)}"><span aria-hidden="true">${STEP_GLYPHS[hook.status]}</span><span class="sr">${statusLabel(hook.status)}</span></span><div><span class="hookLabel">${escapeHtml(hookLabel(hook))}</span>${error}${attachments}</div><span class="dur">${durationLabel(hook.durationMs)}</span></li>`;
-}
-
-function renderHooks(hooks: ReportHook[], scenarioName: string): string {
-  if (hooks.length === 0) return '';
-  const inline = hooks.filter((hook) => hook.status !== 'passed');
-  const passed = hooks.filter((hook) => hook.status === 'passed');
-  const inlineList = inline.length
-    ? `<ul class="hooks" aria-label="Hooks">${inline.map((hook) => renderHook(hook, scenarioName)).join('')}</ul>`
-    : '';
-  const passedGroup = passed.length
-    ? `<details class="hookGroup"><summary>${passed.length} hook${passed.length === 1 ? '' : 's'}</summary><ul class="hooks" aria-label="Passed hooks">${passed.map((hook) => renderHook(hook, scenarioName)).join('')}</ul></details>`
-    : '';
-  return `${inlineList}${passedGroup}`;
+  return `<li class="hook" data-status="${hook.status}"><span class="stepMarker ${statusClass(hook.status)}"><span aria-hidden="true">${STEP_GLYPHS[hook.status]}</span><span class="sr">${statusLabel(hook.status)}</span></span><div><span class="hookLabel">${escapeHtml(label)}</span>${error}${attachments}</div><span class="dur">${durationLabel(hook.durationMs)}</span></li>`;
 }
 
 function renderRunHooks(model: ReportModel): string {
   if (model.runHooks.length === 0) return '';
-  return `<section class="runHooks" data-run-hooks aria-labelledby="run-hooks-heading"><h2 id="run-hooks-heading">Hooks</h2><ul class="hooks">${model.runHooks.map((hook) => renderHook(hook, 'Run')).join('')}</ul></section>`;
+  return `<section class="runHooks" data-run-hooks aria-labelledby="run-hooks-heading"><h2 id="run-hooks-heading">Hooks</h2><ul class="hooks">${model.runHooks.map((hook) => renderHook(hook, 'Run', true)).join('')}</ul></section>`;
 }
 
 function scenarioLabel(scenario: ReportScenario): string {
@@ -457,17 +453,24 @@ function renderScenario(
     (attachment) => attachment.kind === 'image' && attachment.dataUri,
   );
   const open = scenario.status === 'failed' || (!grouped && Boolean(image));
-  const steps = scenario.steps
-    .map((step) => renderStep(step, scenario.name))
+  const passedHooks = scenario.hooks.filter(
+    (hook) => hook.status === 'passed',
+  );
+  const inlineItems = [
+    ...scenario.steps.map((step) => ({
+      order: step.order,
+      html: renderStep(step, scenario.name),
+    })),
+    ...scenario.hooks
+      .filter((hook) => hook.status !== 'passed')
+      .map((hook) => ({ order: hook.order, html: renderHook(hook, scenario.name) })),
+  ]
+    .sort((a, b) => a.order - b.order)
+    .map((item) => item.html)
     .join('');
-  const beforeHooks = renderHooks(
-    scenario.hooks.filter((hook) => hook.type.startsWith('Before')),
-    scenario.name,
-  );
-  const afterHooks = renderHooks(
-    scenario.hooks.filter((hook) => hook.type.startsWith('After')),
-    scenario.name,
-  );
+  const passedHooksGroup = passedHooks.length
+    ? `<details class="hookGroup"><summary>${passedHooks.length} hook${passedHooks.length === 1 ? '' : 's'}</summary><ul class="hooks" aria-label="Passed hooks">${passedHooks.map((hook) => renderHook(hook, scenario.name)).join('')}</ul></details>`
+    : '';
   const description =
     !grouped && scenario.description
       ? `<p class="description">${escapeHtml(scenario.description)}</p>`
@@ -494,7 +497,7 @@ function renderScenario(
     grouped && outline
       ? `<span>Scenario: ${escapeHtml(scenario.name)}</span>`
       : '';
-  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}${beforeHooks}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps">${steps}</ol>${afterHooks}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps and hooks">${inlineItems}</ol>${passedHooksGroup}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
 function renderExamples(

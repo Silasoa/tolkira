@@ -380,6 +380,7 @@ describe('report model', () => {
       'AfterAll',
       'AfterAll',
     ]);
+    expect(model.counts.hooks.total).toBe(4);
 
     const withAttachments = await messagesModelFor(globalHookAttachments);
     expect(

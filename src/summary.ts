@@ -447,9 +447,13 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           'unknown' as SummaryStatus,
         );
   const overall =
-    statusOrdinal(runHookStatus) > statusOrdinal(scenarioOverall)
-      ? runHookStatus
-      : scenarioOverall;
+    scenarios.length === 0
+      ? runHookStatus === 'failed'
+        ? 'failed'
+        : 'unknown'
+      : statusOrdinal(runHookStatus) > statusOrdinal(scenarioOverall)
+        ? runHookStatus
+        : scenarioOverall;
 
   const orphanAttachments = attachmentList.filter(
     (attachment) =>

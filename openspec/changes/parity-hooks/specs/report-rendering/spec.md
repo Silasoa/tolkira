@@ -14,10 +14,10 @@ SHALL NOT include hooks.
 - **THEN** the scenario subtitle states one step and two hooks
 - **AND** the step count for the run excludes both hooks
 
-#### Scenario: Hooks keep their place around steps
+#### Scenario: Non-passing hooks keep their place among steps
 
 - **WHEN** a scenario has before, step and after hooks
-- **THEN** before hooks render before the steps list and after hooks after it
+- **THEN** non-passing hooks render inline in their test-case order among the steps
 - **AND** the ordinary steps keep their order
 - **AND** a failed before hook is visible before the step it affected
 
@@ -67,7 +67,7 @@ the number of hooks. Failed and other non-passing hooks SHALL remain inline.
 #### Scenario: Passed hooks are collapsed
 
 - **WHEN** a scenario has two passed hooks and no failed hook
-- **THEN** the scenario shows a `2 hooks` disclosure
+- **THEN** the scenario shows one `2 hooks` disclosure
 - **AND** the hook rows are hidden until the disclosure is opened
 
 #### Scenario: Non-passing hooks stay visible

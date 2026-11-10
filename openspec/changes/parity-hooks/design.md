@@ -76,19 +76,17 @@ falls back to a generic `Hook` label.
 
 ### Render scenario hooks around the steps
 
-The scenario subtitle becomes `N steps · M hooks` when hooks exist. Before
-hooks render before the steps list and after hooks after it. In each position:
-
-- non-passing hooks render inline as hook rows;
-- passed hooks sit inside `<details class="hookGroup">` with a `N hooks`
-  summary.
+The scenario subtitle becomes `N steps · M hooks` when hooks exist. Steps and
+non-passing hooks render inline in test-case order; one passed-hooks disclosure
+sits after the list with the total passed count. The disclosure is a single
+`<details class="hookGroup">` with a `N hooks` summary, not one group per hook
+type.
 
 A hook row shows the type/name label, status text, duration, error and
 attachments. `Before: name`, `After: name`, `BeforeStep: name` and
-`AfterStep: name` are the labels; without a name, the type alone is shown. The
-group is omitted when there are no hooks. Skipped hooks stay visible because
-they explain a skipped result; this is a deliberate difference from the
-official step filter and is documented.
+`AfterStep: name` are the labels; without a name, the type alone is shown.
+Skipped hooks stay visible because they explain a skipped result; this is a
+deliberate difference from the official step filter and is documented.
 
 ### Render run hooks below the feature list
 
