@@ -198,14 +198,15 @@ Field contract:
   `suggestion` envelopes. Each entry has an optional `language` and the `code`
   to implement. `steps[].definitions` is present only for an ambiguous Messages
   step with `stepDefinition` envelopes. Each entry has the `pattern` and an
-  optional `source` in `uri:line` form with absolute paths reduced to the
-  report-relative form. Both fields are additive, so `schemaVersion` stays 1;
+  optional `source` in `uri:line` form with absolute paths reduced to a
+  relative form. Both fields are additive, so `schemaVersion` stays 1;
   a passed step never carries them.
 - Attachment file names are not part of the summary. `scenarios[].attachments`
   is a count; open the HTML report to see the image or file.
 
 The summary does not expose absolute input paths: absolute `uri` values are
-reduced to a report-relative form (`features/...`).
+reduced to a relative form (`features/...`, or the last path segments for files
+outside `features/`).
 
 ## Recommended agent workflow
 

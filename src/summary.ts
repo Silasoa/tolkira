@@ -182,8 +182,18 @@ export function displayUri(uri: string): string {
   }
   const marker = normalized.lastIndexOf('/features/');
   if (marker >= 0) return normalized.slice(marker + 1);
-  const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] ?? uri;
+  const parts = normalized
+    .replace(/^[a-z]:/i, '')
+    .split('/')
+    .filter(Boolean);
+  // Drop a home directory so a user name never reaches the report.
+  if (
+    parts.length > 1 &&
+    /^(Users|home|Documents and Settings)$/i.test(parts[0] ?? '')
+  ) {
+    parts.splice(0, 2);
+  }
+  return parts.slice(-3).join('/') || uri;
 }
 
 function featureTree(document: Feature | undefined): {

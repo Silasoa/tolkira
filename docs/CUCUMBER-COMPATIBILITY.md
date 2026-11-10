@@ -62,7 +62,7 @@ Messages input carries `suggestion` and `stepDefinition` envelopes. For an
 undefined step Tolkira shows "No step definition found." and renders every
 suggestion snippet as escaped code with its language label. For an ambiguous
 step it shows "Multiple matching step definitions found:" and each matching
-pattern with its source reference in the report-relative `uri:line` form.
+pattern with its source reference in the relative `uri:line` form.
 Multiple snippets and multiple definitions are supported. A passed step can
 carry definition ids but never shows a diagnostic.
 

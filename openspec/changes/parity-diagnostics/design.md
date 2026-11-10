@@ -57,8 +57,8 @@ attachment:
   definitions exist, add the pattern and source-reference rows.
 
 All text is escaped. Source references use `displayUri` so absolute CI paths
-are reduced to the report-relative form. The diagnostic is visible when the
-scenario is open, which G6 guarantees for non-passed results.
+are reduced to a relative form. The diagnostic is visible when the scenario is
+open, which G6 guarantees for non-passed results.
 
 ### Open non-passed results
 
@@ -78,10 +78,13 @@ status-only behavior.
 
 ### Cover the scale and integration paths
 
-Add a stress mode that renders 1,000 non-passed scenarios so mass auto-open is
-measured, not assumed. Add a legacy compat test with an undefined/skipped
-scenario and document that auto-open applies to legacy/JUnit while diagnostics
-are Messages-only.
+Add a stress mode that renders 1,000 non-passed scenarios and checks that every
+row is open, generation stays within its time budget and the report stays within
+its size budget. A Playwright test loads that 1,000-row report and budgets the
+browser load and the first search at 10 seconds each, so mass auto-open is
+measured in a browser, not assumed. Add a legacy compat test with an
+undefined/skipped scenario and document that auto-open applies to legacy/JUnit
+while diagnostics are Messages-only.
 
 ## Risks / Trade-offs
 

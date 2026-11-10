@@ -6,7 +6,7 @@ import { summarizeReport } from '../src/index.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
-import { summarizeEnvelopes } from '../src/summary.js';
+import { displayUri, summarizeEnvelopes } from '../src/summary.js';
 
 const messages = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
@@ -267,6 +267,36 @@ describe('machine-readable summary', () => {
     const definitions = summary.scenarios[0]?.steps[0]?.definitions ?? [];
     expect(definitions[0]?.source).toBe('features/ambiguous.ts:3');
     expect(JSON.stringify(summary)).not.toContain('Users');
+  });
+
+  it('reduces a plain Windows source path without the user or drive', async () => {
+    const envelopes = parseMessages(
+      await readFile(ambiguousFixture, 'utf8'),
+      ambiguousFixture,
+    );
+    const definition = envelopes.find(
+      (envelope) => envelope.stepDefinition?.id === '4',
+    )?.stepDefinition;
+    expect(definition).toBeDefined();
+    if (!definition?.sourceReference) return;
+    definition.sourceReference.uri =
+      'C:\\Users\\name\\proj\\features\\ambiguous.ts';
+    definition.sourceReference.location = { line: 3 };
+
+    const summary = summarizeEnvelopes(envelopes);
+    const definitions = summary.scenarios[0]?.steps[0]?.definitions ?? [];
+    expect(definitions[0]?.source).toBe('features/ambiguous.ts:3');
+    expect(JSON.stringify(summary)).not.toContain('Users');
+    expect(JSON.stringify(summary)).not.toContain('C:');
+  });
+
+  it('keeps same-named step files in different directories distinct', () => {
+    const source = displayUri('C:\\Users\\name\\proj\\src\\steps\\login.ts');
+    const test = displayUri('C:/Users/name/proj/test/steps/login.ts');
+
+    expect(source).toBe('src/steps/login.ts');
+    expect(test).toBe('test/steps/login.ts');
+    expect(`${source} ${test}`).not.toContain('Users');
   });
 
   it('does not invent diagnostics for legacy input', async () => {

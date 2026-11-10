@@ -44,8 +44,9 @@
   markup or script executes and the SEC review can reuse the fixture.
 - [x] 3.4 Verify 320 px and 320 px at 200 % text zoom with diagnostics; no
   horizontal page scroll or clipped code blocks.
-- [x] 3.5 Add a 1,000-scenario non-passed stress mode and record load/size
-  budgets; verify mass auto-open does not exceed them.
+- [x] 3.5 Add a 1,000-scenario non-passed stress mode that checks every row is
+  open and records generation/size budgets; add a browser test that loads the
+  1,000-row report and budgets load and first search.
 - [x] 3.6 Add a legacy compat test with an undefined/skipped scenario and note
   that auto-open covers legacy/JUnit while diagnostics are Messages-only.
 
