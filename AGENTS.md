@@ -27,8 +27,13 @@ Spec first, tests first, small vertical slices.
 - No production code before the user approves the spec.
 - A task is implemented test-first (RED → GREEN) and ends with a working
   end-to-end slice, not a layer.
+- Every implementation runs as a two-worker TDD pair: a TDD-Red worker writes
+  the failing acceptance and edge tests from the spec, then the implementer
+  makes them green without weakening them and adds any missing tests.
 - Use ISTQB-inspired test design for edge cases: equivalence classes,
   boundary values, decision tables, state transitions, pairwise combinations.
+  The TDD-Red worker covers these explicitly; the implementer may add tests
+  but may not delete, skip or loosen a Red test to pass.
 - Keep the dependency surface small. Prefer Node built-ins and the official
   Cucumber packages. A new runtime dependency needs a written reason in the
   change.
@@ -41,7 +46,17 @@ Spec first, tests first, small vertical slices.
 
 - **Coordinator (root):** plans, decides small things, spawns workers,
   integrates, closes issues. Writes no production code.
-- **Implementer:** TDD, one vertical slice per change.
+- **TDD-Red worker:** writes failing acceptance and ISTQB edge tests from the
+  approved spec; does not implement production code.
+- **Implementer:** makes the Red tests green without weakening them, completes
+  the vertical slice and adds missing tests.
+- **STR — Structure/Test-Health reviewer:** checks module/folder logic,
+  agent- and human-friendly layout, and whether the test suite is sufficient
+  without being bloated.
+- **MKT — Market/Drop-in reviewer:** checks whether Tolkira is publicly
+  positioned as an open drop-in alternative for AI agents and teams migrating
+  from legacy HTML reporters. Findings inform README/positioning, not the
+  OpenSpec contract.
 - **Independent reviewers:** blind review, see `docs/agents/review.md`.
   Standard set: SCR (Spec-Compliance), CR (Code Review), DAR (Documentation &
   Agent-Readability). Triggered: SEC (security/attachments), UXR (report shell),

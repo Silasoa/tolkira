@@ -61,6 +61,13 @@ still runs for every user-facing report feature.
   and what not to copy.
 - **ILA — i18n/Localization.** UI strings, user-facing text, translations and
   key parity. Not relevant until localisation ships.
+- **STR — Structure/Test-Health.** Checks module and folder logic, agent- and
+  human-friendly layout, and whether the test suite is sufficient without
+  being bloated. Runs at least once per change.
+- **MKT — Market/Drop-in.** Checks whether Tolkira is publicly positioned as an
+  open drop-in alternative for AI agents and teams migrating from legacy HTML
+  reporters. Findings inform README/positioning, not the OpenSpec contract.
+  Runs before a release, not as a merge blocker.
 - **PCA — Performance/Complexity.** At least every third merged code change,
   and always for hot paths, large-report handling, streaming or memory.
 - **PSA — Prompt/Skill Auditor.** When prompts, LLM-facing instructions or
