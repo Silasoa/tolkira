@@ -10,8 +10,9 @@ Keep a Changelog and the project uses semantic versioning.
 - Messages rules render as sections with their keyword, name, description and
   tags, ordered by severity without moving scenarios across rule boundaries.
   Rule tags render once on the section; feature tags render once in the feature
-  header. Scenario rows show only their own tags, while inherited tags stay in
-  the tag filter and search. A rule section hides when a filter leaves no
+  header. Standalone scenario rows show only their own tags; grouped example
+  rows repeat neither outline nor examples tags. Inherited tags stay in the tag
+  filter and search. A rule section hides when a filter leaves no
   visible scenario.
 - Messages feature and rule backgrounds render their keyword, name and
   description once when either is present. Background steps stay in their

@@ -48,7 +48,7 @@
 - [x] 4.1 Update `docs/CHANGELOG.md`, `docs/CUCUMBER-COMPATIBILITY.md`,
   `docs/AGENT-INTERFACE.md` and `GLOSSARY.md` with rules, backgrounds, tag
   inheritance, the HTML-only structure and the legacy fallback.
-- [ ] 4.2 Run the full reviewer set (SCR, CR, DAR, SEC, UXR, PCA, CMP); the CMP
+- [x] 4.2 Run the full reviewer set (SCR, CR, DAR, SEC, UXR, PCA, CMP); the CMP
   reviewer compares the official formatter first, then MCHR, Allure and
   Playwright on the same fixtures. Fix every blocker.
 - [x] 4.3 Run `npm run check` and `npm run test:e2e`; verify the gate is green.
