@@ -19,7 +19,7 @@ diagnostics and default open state must be in the generated HTML.
 - Attach suggestion snippets to undefined steps.
 - Attach matching definitions to ambiguous steps.
 - Open every non-passed scenario and its feature by default.
-- Keep diagnostics escaped, offline and out of the summary contract.
+- Keep diagnostics escaped, offline and additive in the summary contract.
 
 **Non-Goals:**
 

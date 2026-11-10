@@ -56,7 +56,7 @@
   `docs/AGENT-INTERFACE.md` and `GLOSSARY.md` with diagnostics, auto-expansion,
   summary fields and the legacy/JUnit fallbacks; verify the documented example
   matches the generated report.
-- [ ] 4.2 Run the full reviewer set (SCR, CR, DAR, SEC, UXR, PCA, CMP); the CMP
+- [x] 4.2 Run the full reviewer set (SCR, CR, DAR, SEC, UXR, PCA, CMP); the CMP
   reviewer compares the official formatter first, then MCHR, Allure and
   Playwright on the same fixtures. Fix every blocker.
 - [x] 4.3 Run `npm run check` and `npm run test:e2e`; verify the gate is green.
