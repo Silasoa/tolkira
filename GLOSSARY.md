@@ -59,11 +59,13 @@ tags; scenarios stay inside their rule.
 them into each pickle, so the report keeps the steps in the scenario step lists
 and renders only the background heading and description once, when present.
 
-**Own tag** — a tag written on the scenario itself, or on the examples block for
-an outline row. Scenario rows display only own tags.
+**Own tag** — a tag written on the scenario itself; for an outline row, the
+examples-block tags. A standalone scenario row shows its own tags. Outline
+scenario tags appear on the outline heading and examples tags on the examples
+heading; example rows show no tags.
 
-**Inherited tag** — a feature, rule or examples tag carried into a pickle. It
-stays available to the tag filter and search but is not repeated on every row.
+**Inherited tag** — a feature or rule tag carried into a pickle. It stays
+available to the tag filter and search but is not repeated on every row.
 
 **Hook** — a Cucumber before/after function around a scenario or step. The
 report shows per-scenario hooks separately from steps.

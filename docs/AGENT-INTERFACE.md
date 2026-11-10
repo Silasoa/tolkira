@@ -189,8 +189,10 @@ Field contract:
   copy-failure text, but the summary does not expose them yet.
 - `scenarios[].tags` is the inherited pickle tag set, including feature, rule,
   scenario and examples tags. The HTML report uses the same set for its tag
-  filter and search; it shows feature and rule tags once at their section and
-  shows only a scenario's own tags on a row. The summary does not expose rules,
+  filter and search. Feature and rule tags render once at their section;
+  scenario tags render on the scenario row or, for an outline, on the outline
+  heading, and examples tags on the examples heading. Example rows repeat
+  neither scenario nor examples tags. The summary does not expose rules,
   backgrounds or the own/inherited distinction.
 - `attempt` is the latest Cucumber retry attempt for that scenario.
 - `attachments.bytes` is the decoded size, not the base64 length.

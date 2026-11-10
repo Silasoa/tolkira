@@ -1804,6 +1804,15 @@ describe('parity rules rendering', () => {
     expect(ruleHtml).not.toContain('data-scenario-name="Not enough money"');
   });
 
+  it('renders no background heading for a legacy synthetic background', async () => {
+    const html = await renderReport(passedOnlyFixture, {
+      title: 'Legacy background',
+    });
+
+    expect(html).not.toContain('<section class="background" data-background>');
+    expect(html).not.toContain('Shared setup');
+  });
+
   it('omits empty background headings and keeps background steps once', async () => {
     const html = await renderMessagesFile(backgroundsFixture);
 

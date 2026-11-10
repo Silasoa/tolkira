@@ -50,10 +50,11 @@ not move across rule boundaries. Features without rules keep their previous
 layout.
 
 Feature tags render once in the feature header. Rule tags render once on the
-rule section. Scenario rows show only their own scenario tags; for an outline
-row that is the examples-block tag set. Feature, rule and examples tags remain
-in the pickle tag set for the tag filter, search and the JSON summary, but they
-are not repeated on every row. A rule section is hidden when a search, status
+rule section. Scenario tags render on their scenario row or, for an outline, on
+the outline heading; examples tags render once on the examples heading. Example
+rows show no tags. Feature, rule, scenario and examples tags remain in the
+pickle tag set for the tag filter, search and the JSON summary, but they are
+not repeated on every row. A rule section is hidden when a search, status
 or tag filter leaves no visible scenario below it.
 
 Feature and rule backgrounds render their keyword, name and description once

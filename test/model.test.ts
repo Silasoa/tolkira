@@ -12,6 +12,9 @@ const happy = fileURLToPath(
 const screenshot = fileURLToPath(
   new URL('./fixtures/legacy/screenshot.json', import.meta.url),
 );
+const behave = fileURLToPath(
+  new URL('./fixtures/legacy/behave.json', import.meta.url),
+);
 const messages = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
 );
@@ -768,7 +771,7 @@ describe('parity rules model', () => {
   });
 
   it('skips synthetic legacy backgrounds and invents no rules', async () => {
-    const model = await modelFor(happy);
+    const model = await modelFor(behave);
     expect(model.features[0]?.backgrounds).toEqual([]);
     expect(model.scenarios.every((scenario) => !scenario.rule)).toBe(true);
     expect(model.scenarios.every((scenario) => !scenario.ruleName)).toBe(true);
@@ -778,9 +781,7 @@ describe('parity rules model', () => {
   });
 
   it('keeps legacy scenario tags own and inherited ones on the pickle', async () => {
-    const model = await modelFor(
-      fileURLToPath(new URL('./fixtures/legacy/behave.json', import.meta.url)),
-    );
+    const model = await modelFor(behave);
     const scenario = model.scenarios[0];
     expect(scenario?.ownTags).toEqual(['@scenario']);
     expect(scenario?.tags).toEqual(['@behave', '@scenario']);
