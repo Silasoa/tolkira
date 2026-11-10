@@ -129,6 +129,46 @@ omitted.
 This example is abridged: it shows only the failing scenario, not the passing
 one that carries the screenshot. The totals reflect the whole input.
 
+Undefined and ambiguous Messages steps add optional diagnostic fields:
+
+```json
+{
+  "keyword": "Given",
+  "text": "a list of 8 things",
+  "status": "undefined",
+  "durationMs": 0,
+  "suggestions": [
+    {
+      "language": "typescript",
+      "code": "Given(\"a list of {int} things\", (int: number) => {\n  return \"pending\"\n})"
+    },
+    {
+      "language": "typescript",
+      "code": "Given(\"a list of {float} things\", (float: number) => {\n  return \"pending\"\n})"
+    }
+  ]
+}
+```
+
+```json
+{
+  "keyword": "Given",
+  "text": "a step with multiple definitions",
+  "status": "ambiguous",
+  "durationMs": 0,
+  "definitions": [
+    {
+      "pattern": "^a (.*?) with (.*?)$",
+      "source": "samples/ambiguous/ambiguous.ts:3"
+    },
+    {
+      "pattern": "^a step with (.*?)$",
+      "source": "samples/ambiguous/ambiguous.ts:7"
+    }
+  ]
+}
+```
+
 Field contract:
 
 - `schemaVersion` is `1`. A breaking change increments it.
@@ -154,6 +194,13 @@ Field contract:
   when Cucumber provides one. Summary step counts include hook entries; the
   HTML report counts steps and hooks separately. A failed test-run hook makes
   the overall summary `status` failed.
+- `steps[].suggestions` is present only for an undefined Messages step with
+  `suggestion` envelopes. Each entry has an optional `language` and the `code`
+  to implement. `steps[].definitions` is present only for an ambiguous Messages
+  step with `stepDefinition` envelopes. Each entry has the `pattern` and an
+  optional `source` in `uri:line` form with absolute paths reduced to the
+  report-relative form. Both fields are additive, so `schemaVersion` stays 1;
+  a passed step never carries them.
 - Attachment file names are not part of the summary. `scenarios[].attachments`
   is a count; open the HTML report to see the image or file.
 
@@ -183,5 +230,9 @@ reduced to a report-relative form (`features/...`).
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave-shaped durations are
   interpreted as nanoseconds, like cucumber-js.
+- Legacy Cucumber JSON and JUnit have no suggestion or step-definition
+  envelopes. An undefined or ambiguous legacy step still shows the status lead
+  in HTML, but never invented snippets or definitions; JUnit renders no
+  diagnostics.
 - cucumber-js, Behave-shaped and Messages inputs are covered by fixtures;
   cucumber-jvm and cucumber-ruby fixtures are follow-ups.

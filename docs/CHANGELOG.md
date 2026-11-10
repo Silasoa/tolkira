@@ -18,6 +18,25 @@ Keep a Changelog and the project uses semantic versioning.
   skipped hooks stay visible.
 - BeforeAll/AfterAll test-run hooks get a Hooks section below the feature list,
   with status, duration, errors and attachments.
+- Messages undefined steps show "No step definition found." with every
+  suggestion snippet, escaped as code and labelled with its language.
+  Ambiguous steps show "Multiple matching step definitions found:" with the
+  matching patterns and report-relative `uri:line` source references. The lead
+  is shown even without suggestion or definition envelopes; diagnostics render
+  only for undefined and ambiguous steps and are searchable.
+- Features and scenarios whose status is not `passed` (undefined, ambiguous,
+  pending, skipped, unknown) open by default. Passed scenarios stay collapsed
+  unless they carry an image. The search cap still opens at most 20 rows, now
+  counting only rows the search newly opens.
+- The JSON summary gains optional `suggestions` and `definitions` fields on
+  summary steps for undefined and ambiguous Messages steps. `schemaVersion`
+  stays 1 because the fields are additive.
+- Compatibility Kit fixtures for `undefined`, `undefined-multiple`,
+  `ambiguous`, `all-statuses` and `empty`, plus a `non-passed` stress mode for
+  1,000 auto-opened scenarios.
+- Legacy JSON and JUnit keep status-only behaviour: undefined and ambiguous
+  legacy steps show the lead but never invented snippets or definitions, and
+  JUnit renders no diagnostics.
 
 ## [0.2.0] - 2026-11-10
 

@@ -56,6 +56,38 @@ no hooks. The JSON summary keeps its version-1 shape: hooks stay in
 `scenarios[].steps` with `keyword: "Hook"`, plus an optional `name`. Summary
 step counts include hooks; the HTML counts steps and hooks separately.
 
+## Step diagnostics
+
+Messages input carries `suggestion` and `stepDefinition` envelopes. For an
+undefined step Tolkira shows "No step definition found." and renders every
+suggestion snippet as escaped code with its language label. For an ambiguous
+step it shows "Multiple matching step definitions found:" and each matching
+pattern with its source reference in the report-relative `uri:line` form.
+Multiple snippets and multiple definitions are supported. A passed step can
+carry definition ids but never shows a diagnostic.
+
+The lead is status-based: it appears even when the producer sent no suggestion
+or definition envelope. Snippets and patterns are Messages-only. Legacy JSON has
+no such envelopes, so an undefined or ambiguous legacy step shows the lead and
+nothing else; Tolkira never invents a definition. JUnit has no Gherkin step
+statuses and renders no diagnostics.
+
+The `undefined`, `undefined-multiple`, `ambiguous`, `all-statuses` and `empty`
+Compatibility Kit samples are checked in as fixtures. `ambiguous` already has
+two matching definitions; there is no separate `ambiguous-multiple` sample.
+
+## Auto-expansion
+
+The report opens every feature and scenario whose status is not `passed`,
+including undefined, ambiguous, pending, skipped and unknown. Passed scenarios
+stay collapsed unless they carry an image. This applies to Messages, legacy JSON
+and JUnit input because it is a status rule, not an input-format rule. Text
+search still opens at most 20 rows, counting only rows it newly opens.
+
+The JSON summary keeps its version-1 shape. Undefined summary steps may carry
+`suggestions`; ambiguous summary steps may carry `definitions`. The fields are
+optional and additive, so `schemaVersion` does not change.
+
 ## Breaking changes that matter
 
 - **3.2.1 (2017):** JSON mime-type revert; duration handling was still in flux.

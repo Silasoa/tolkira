@@ -57,6 +57,20 @@ report shows per-scenario hooks separately from steps.
 **Test-run hook** — a BeforeAll/AfterAll function around the whole run. It
 appears in the report's Hooks section, not inside a scenario.
 
+**Step diagnostic** — the block inside an undefined or ambiguous step. It
+always shows the status lead and adds suggestion snippets or matching step
+definitions when the Messages input provides them.
+
+**Snippet** — the suggested step-definition code from a Messages `suggestion`
+envelope, shown escaped inside an undefined step.
+
+**Step definition match** — a `stepDefinition` pattern and its `uri:line`
+source reference, shown inside an ambiguous step.
+
+**Auto-expansion** — the report opens features and scenarios whose status is
+not `passed` by default. Passed scenarios stay collapsed unless they carry an
+image; text search still opens at most 20 rows.
+
 **Provenance** — the input file a feature came from. Tolkira only uses it when
 the feature URI belongs to exactly one input; shared or missing provenance
 renders a flat report.
