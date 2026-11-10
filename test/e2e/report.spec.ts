@@ -1368,6 +1368,19 @@ test('searching a hook name opens its hook group', async ({ page }) => {
 });
 
 test('shows a failed hook inline', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied =
+            text;
+          return Promise.resolve();
+        },
+      },
+    });
+  });
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hook-fail-e2e-'));
   const input = path.join(dir, 'failed-hook.ndjson');
   const output = path.join(dir, 'failed-hook.html');
@@ -1409,7 +1422,15 @@ test('shows a failed hook inline', async ({ page }) => {
     const failed = page.locator('.hook[data-status="failed"]').first();
     await expect(failed).toBeVisible();
     await expect(failed).toContainText('hook boom');
-    await expect(page.locator('[data-copy-failure]').first()).toBeVisible();
+    const copy = page.locator('[data-copy-failure]').first();
+    await expect(copy).toBeVisible();
+    await copy.click();
+    const copied = await page.evaluate(
+      () =>
+        (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ?? '',
+    );
+    expect(copied).toContain('Hook: Before');
+    expect(copied).toContain('hook boom');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

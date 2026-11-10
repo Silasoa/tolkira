@@ -390,6 +390,25 @@ describe('report model', () => {
     expect(withAttachments.counts.attachments).toBeGreaterThan(0);
   });
 
+  it('keeps a started run hook without a finish as unknown', async () => {
+    const envelopes = parseMessages(
+      await readFile(globalHooksFixture, 'utf8'),
+      globalHooksFixture,
+    );
+    const started = envelopes.find(
+      (envelope) => envelope.testRunHookStarted,
+    )?.testRunHookStarted;
+    expect(started).toBeDefined();
+    if (!started) return;
+    const filtered = envelopes.filter(
+      (envelope) =>
+        envelope.testRunHookFinished?.testRunHookStartedId !== started.id,
+    );
+    const model = buildReportModel(filtered);
+    const hook = model.runHooks.find((entry) => entry.id === started.id);
+    expect(hook?.status).toBe('unknown');
+  });
+
   it('keeps legacy hooks out of steps', async () => {
     const model = await modelFor(happy);
     expect(
