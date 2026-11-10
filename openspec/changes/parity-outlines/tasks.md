@@ -87,7 +87,7 @@
 - [x] 4.2 Add an outline-heavy 1000/5000-scenario stress case and run it with
   the existing stress harness; record timings and confirm no meaningful size
   regression.
-- [ ] 4.3 Run the full reviewer set from `docs/agents/review.md` (SCR, CR, DAR,
+- [x] 4.3 Run the full reviewer set from `docs/agents/review.md` (SCR, CR, DAR,
   SEC, UXR, PCA, CMP); the CMP reviewer compares the official formatter first,
   then MCHR, Allure and Playwright on the same fixtures, and treats G8 Markdown
   and G11 `meta.ci` as known out-of-scope differences. Record findings and fix

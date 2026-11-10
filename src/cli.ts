@@ -133,20 +133,6 @@ async function readLogo(file: string): Promise<string> {
   return `data:${mime};base64,${data.toString('base64')}`;
 }
 
-async function outputIsLogo(
-  output: string,
-  logo: string,
-): Promise<boolean> {
-  const outputPath = path.resolve(output);
-  const outputInfo = await stat(outputPath).catch(() => undefined);
-  if (!outputInfo?.isFile()) return false;
-  try {
-    return realpathSync(outputPath) === realpathSync(logo);
-  } catch {
-    return false;
-  }
-}
-
 async function outputOverwritesInput(
   inputs: string[],
   output: string,

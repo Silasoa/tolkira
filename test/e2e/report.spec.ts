@@ -57,7 +57,7 @@ function outlineNdjson(count: number): string {
                 id: 's1',
                 keyword: 'Scenario Outline',
                 name: 'Stress outline <n>',
-                description: '',
+                description: 'Outline description line.',
                 tags: [],
                 location: { line: 2, column: 1 },
                 steps: [
@@ -74,7 +74,7 @@ function outlineNdjson(count: number): string {
                     id: 'e1',
                     keyword: 'Examples',
                     name: 'Rows',
-                    description: '',
+                    description: 'Examples description line.',
                     tags: [],
                     location: { line: 4, column: 1 },
                     tableHeader: {
@@ -1168,6 +1168,11 @@ test('caps grouped outline search at 20 rows', async ({ page }) => {
     );
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
+
+    await search.fill('Outline description line.');
+    await expect(page.locator('details.scenario[open]')).toHaveCount(20);
+    await search.fill('Examples description line.');
+    await expect(page.locator('details.scenario[open]')).toHaveCount(20);
 
     await search.fill('');
     await expect(page.locator('details.scenario[open]')).toHaveCount(0);

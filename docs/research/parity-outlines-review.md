@@ -760,6 +760,34 @@ walker should too.
   rerun metadata, telemetry.
 - Lazy rendering that would weaken the no-JS baseline.
 
+## Post-implementation review (2026-11-10)
+
+The blind reviewer set ran on the implementation: SCR/DAR, CR/PCA, SEC/UXR and
+CMP. The first pass found no architecture problems and no security issues, but
+it did find test-contract gaps and one producer edge case.
+
+Fixed before handover:
+
+- omitted `examples`, `tableBody`, `scenario.tags`, `examples.tags`,
+  `feature.tags` and `pickle.tags` no longer crash the model;
+- outline/examples descriptions are searchable through wrapper-level
+  `data-search` without repeating them on every row;
+- URI-less Gherkin documents still group; row ids are checked against the
+  pickle URI when both exist;
+- grouped passed rows with screenshots stay collapsed, failed rows stay open;
+- exact two-outline numbering, single-row and whole-block partial execution,
+  Rule nesting, extra AST ids, table-value exclusion, no-examples fallback,
+  status/tag filters, the grouped 20-match cap and heading order are covered;
+- `#1.1` is searchable, the Steps list has an accessible name, the example
+  number is hidden from the screen-reader label, and the narrow thumbnail is
+  hidden at the smallest container size;
+- docs distinguish the legacy flat rendering from the deliberate Messages
+  no-examples fallback.
+
+Final gate: 179 unit tests, 84 browser tests, `npm run check` and
+`npm run test:e2e` green. Stress: 1,000 outline examples 118 ms / 1.47 MB;
+5,000 273 ms / 7.22 MB.
+
 ## Evidence limits
 
 - The official DOM was inspected in Chromium from the rendered 24.2.0 report.

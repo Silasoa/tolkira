@@ -382,7 +382,7 @@ function exampleRowTree(
         const scenario = child.scenario;
         (scenario.examples ?? []).forEach((examples, examplesIndex) => {
           (examples.tableBody ?? []).forEach((row, exampleIndex) => {
-            map.set(`${uri}\0${row.id}`, {
+            map.set(row.id, {
               uri,
               scenario,
               ruleName,
@@ -603,13 +603,15 @@ export function buildReportModel(
       : 'unknown';
     const duration = stepRows.reduce((sum, step) => sum + step.durationMs, 0);
     const astIds = pickle.astNodeIds ?? [];
-    // The deepest AST id is the examples row; the URI-scoped map also proves
-    // which outline owns it when inputs are merged.
-    const candidate = astIds.length
-      ? outlineRows.get(`${pickle.uri ?? ''}\0${astIds.at(-1) ?? ''}`)
-      : undefined;
+    // The deepest AST id is the examples row. Verify the URI as well so a
+    // merged input cannot attach the same row id to the wrong outline.
+    const candidate = astIds.length ? outlineRows.get(astIds.at(-1) ?? '') : undefined;
     const outlineExample =
-      candidate && astIds.includes(candidate.scenario.id) ? candidate : undefined;
+      candidate &&
+      astIds.includes(candidate.scenario.id) &&
+      (!candidate.uri || !pickle.uri || candidate.uri === pickle.uri)
+        ? candidate
+        : undefined;
     const scenarioId = outlineExample?.scenario.id ?? astIds[0] ?? '';
     const tree = outlineExample ?? scenarioTree.get(scenarioId);
     const feature =

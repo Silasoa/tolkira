@@ -452,7 +452,7 @@ function renderExamples(
   const title = outline.examplesName
     ? `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span> ${escapeHtml(outline.examplesName)}`
     : `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span>`;
-  return `<section class="examples" data-examples>${tagsMarkup(outline.examplesTags)}<h4 class="examplesTitle">${title}</h4>${description}<div class="exampleRows">${rows
+  return `<section class="examples" data-examples data-search="${escapeHtml(outline.examplesDescription)}">${tagsMarkup(outline.examplesTags)}<h4 class="examplesTitle">${title}</h4>${description}<div class="exampleRows">${rows
     .map((scenario) =>
       renderScenario(
         scenario,
@@ -489,7 +489,7 @@ function renderOutline(
   const description = outline.description
     ? `<p class="description">${escapeHtml(outline.description)}</p>`
     : '';
-  return `<section class="outline" data-outline>${tagsMarkup(outline.tags)}<h3 class="outlineTitle"><span class="kw">${escapeHtml(outline.keyword)}:</span> ${escapeHtml(outline.name)}</h3>${description}${exampleBlocks}</section>`;
+  return `<section class="outline" data-outline data-search="${escapeHtml(outline.description)}">${tagsMarkup(outline.tags)}<h3 class="outlineTitle"><span class="kw">${escapeHtml(outline.keyword)}:</span> ${escapeHtml(outline.name)}</h3>${description}${exampleBlocks}</section>`;
 }
 
 interface RenderItem {
@@ -715,6 +715,7 @@ const SCRIPT = `<script>
   var state = { query: '', hidden: new Set(), tag: '' };
   var searchOpened = [];
   var scenarios = Array.prototype.slice.call(document.querySelectorAll('[data-scenario]'));
+  var highlightTargets = scenarios.concat(Array.prototype.slice.call(document.querySelectorAll('.outlineTitle, .examplesTitle')));
   var features = Array.prototype.slice.call(document.querySelectorAll('[data-feature]'));
   var exampleGroups = Array.prototype.slice.call(document.querySelectorAll('[data-examples]')).map(function (group) {
     return { group: group, rows: Array.prototype.slice.call(group.querySelectorAll('[data-scenario]')) };
@@ -732,7 +733,10 @@ const SCRIPT = `<script>
     var visible = 0;
     scenarios.forEach(function (scenario) {
       var status = scenario.getAttribute('data-status');
-      var text = (scenario.getAttribute('data-search') || '').toLowerCase();
+      var outline = scenario.closest('[data-outline]');
+      var examples = scenario.closest('[data-examples]');
+      var groupSearch = (outline ? ' ' + (outline.getAttribute('data-search') || '') : '') + (examples ? ' ' + (examples.getAttribute('data-search') || '') : '');
+      var text = ((scenario.getAttribute('data-search') || '') + groupSearch).toLowerCase();
       var tags = ' ' + (scenario.getAttribute('data-tags') || '') + ' ';
       var tagMatch = !tag || tags.indexOf(' ' + tag + ' ') !== -1;
       var match = !state.hidden.has(status) && tagMatch && (!query || text.indexOf(query) !== -1);
@@ -802,9 +806,10 @@ const SCRIPT = `<script>
     try {
       var pattern = new RegExp(escapeRegex(needle), 'gi');
       var ranges = [];
-      scenarios.forEach(function (scenario) {
-        if (scenario.hidden || !scenario.open || ranges.length >= 200) return;
-        var walker = document.createTreeWalker(scenario, NodeFilter.SHOW_TEXT, null);
+      highlightTargets.forEach(function (target) {
+        if (target.hidden || target.closest('[hidden]') || ranges.length >= 200) return;
+        if (target.hasAttribute('data-scenario') && !target.open) return;
+        var walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, null);
         var node;
         while (ranges.length < 200 && (node = walker.nextNode())) {
           var value = node.nodeValue;
