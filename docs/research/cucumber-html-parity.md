@@ -59,7 +59,9 @@ Inspected and ran, in a temporary directory outside the repository:
 - `cucumber-html-reporter@7.2.0` (published 2024-10-01), its `index.d.ts`,
   README, `lib/reporter.js` and rendered output;
 - `@cucumber/compatibility-kit@31.0.0` NDJSON fixtures;
-- Tolkira 0.1.2 (`dist/cli.js`) against the same fixtures.
+- Tolkira 0.2.0 (`dist/cli.js`) against the same fixtures. The size table was
+  first measured on 0.1.2 and re-checked on 0.2.0; the values stayed within
+  roughly 2 KB.
 
 Both reports were rendered from the same NDJSON and inspected in Chromium via
 Playwright. Sizes below are measured from those local renders, not estimates.
@@ -70,7 +72,7 @@ Representative fixture results:
 | --- | ---: | ---: | --- |
 | `empty` | 921 KB | 48 KB | Official React bundle dominates its size. |
 | `retry` | 930 KB | 52 KB | Both show the final attempt. |
-| `examples-tables` | 942 KB | 60 KB | Tolkira has 7 flat rows; official groups them. |
+| `examples-tables` | 942 KB | 60 KB | Both have 7 examples; official groups them into 2 outlines, Tolkira has 7 flat rows. |
 | `attachments` | 950 KB | 72 KB | Attachment payloads included in both. |
 
 The official HTML is roughly 920 KB for a minimal fixture because it embeds
@@ -84,18 +86,18 @@ Legend: **Match** = equivalent for the user; **Exceeds** = Tolkira does more;
 **Partial** = present but materially narrower; **Missing** = not implemented;
 **Deliberate** = intentionally different.
 
-| Area | Official formatter 24.2.0 | cucumber-html-reporter 7.2.0 | Tolkira 0.1.2 | Verdict |
+| Area | Official formatter 24.2.0 | cucumber-html-reporter 7.2.0 | Tolkira 0.2.0 | Verdict |
 | --- | --- | --- | --- | --- |
 | Input formats | Cucumber Messages only (NDJSON stream) | Legacy Cucumber JSON only | Legacy JSON, Messages (`.jsonl`/`.ndjson`), JUnit XML; auto-detected; directories and multiple inputs | **Exceeds** |
 | Entry points | ESM `CucumberHtmlStream` Transform; Java/Ruby/.NET wrappers; no CLI since v19 | CommonJS `generate(options, callback?)`; no CLI | CLI, ESM API (`generateReport`, `renderReport`, `summarizeReport`), compat shim | **Exceeds**, except no stream adapter |
 | Attachments | Inline base64 and external `attachment.url`; image, video, log, text, `text/uri-list`, JSON, binary; image/video collapsed in `<details>`; download button | Inline images or external screenshot files; text/JSON/binary; no video/audio special handling | Inline only; image (lightbox), video, audio, text, binary; 50 MB each / 100 MB total; rejects remote URLs | **Partial / Deliberate** |
 | Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else `attachment-<n>.<ext>` | **Different, low impact** |
 | Metadata | `meta.implementation/runtime/os`; `meta.ci` job link and git revision/branch/tag | Arbitrary `metadata` key/value; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; `meta` producer/runtime/OS/CPU/protocol; no `meta.ci` | **Partial** |
-| Search | Full-text Gherkin index; text or tag expression; 500 ms debounce; URL query state | None | Substring over scenario/feature/URI/keyword/description/tags/steps incl. error messages; single-tag dropdown; no URL state | **Partial** |
+| Search | Full-text Gherkin index; text or tag expression; 500 ms debounce; URL query state. The index covers feature/scenario/rule/background names and descriptions and steps, but not examples block names, examples table values, substituted pickle names, errors or attachments | None | Substring over scenario/feature/URI/keyword/description/tags/steps incl. error messages; single-tag dropdown; no URL state | **Partial** |
 | Status filters | Checkboxes that hide statuses; counts; only shown when more than one status exists | None | Toggle buttons per status with counts | **Match** |
 | Status counts | Scenario counts by worst final status; pie chart; pass rate | Feature and scenario counts; pass/fail/pending/undefined/ambiguous/skipped/rerun; pie chart | Feature, scenario and step counts; pass rate; attachments; duration | **Exceeds** |
 | Retries / attempts | Final attempt only (`testCaseFinished.willBeRetried` filtered); no attempt history | No real retry model; `rerun` comes from a LambdaTest `META_FILE` side channel | Latest attempt by `attempt` number; attempt number shown; no attempt history | **Match** in outcome, **Exceeds** in display |
-| Scenario outlines / examples | Gherkin outline rendered once; Examples headings and tags; example rows numbered `#1.1`, `#1.2` with outcomes | Legacy JSON arrives expanded; no outline reconstruction | One flat scenario row per example; substituted names and steps; no examples grouping or numbering; description repeats per row | **Missing** |
+| Scenario outlines / examples | Gherkin outline rendered once; Examples headings and tags; executed example rows numbered `#1.1`, `#1.2` with outcomes; unexecuted rows and blocks are pruned | Legacy JSON arrives expanded; no outline reconstruction | One flat scenario row per executed example; the first outline's rows share one pickle name; no examples grouping or numbering; description repeats per row | **Missing** |
 | Rules / backgrounds / tags | Rule heading, description and tags; background heading/description; feature/rule/scenario/examples tags | No rules; tags per scenario; background is flattened by the legacy JSON | Rule name only in the scenario detail; feature/rule tags not rendered; background heading/description not rendered | **Partial** |
 | Hooks | Per-scenario hooks: passed hooks collapsed behind `N hooks`, failed hooks inline, hook names (`Before: name`); test-run hooks section with BeforeAll/AfterAll, status, duration, error, attachments | `before`/`after` merged into scenario steps; no test-run hooks | All per-scenario hooks shown inline as steps; type label only, no hook name; no test-run hooks section | **Partial / Missing** |
 | Doc strings / data tables | Rendered; numbers right-aligned in tables | Rendered | Rendered; no numeric alignment | **Match** |
@@ -125,18 +127,18 @@ dependency/architecture.
 
 | # | Gap | Status | Cost | Conflicts with one-file/offline? | Smallest implementation shape |
 | --- | --- | --- | --- | --- | --- |
-| G1 | Scenario outline / examples grouping and numbering | Missing | M | No | Group `ReportScenario` rows by outline and examples table; add `ReportOutline`/`ReportExample`; render outline heading, tags, description once, then `#examplesIndex.exampleIndex` rows with outcomes. Map `pickle.astNodeIds.at(-1)` to the examples `TableRow`. |
+| G1 | Scenario outline / examples grouping and numbering | Missing | M | No | Group executed `ReportScenario` rows by outline and examples table, preferably with optional outline metadata on each row; render outline heading, tags and description once, then `#examplesIndex.exampleIndex` rows with outcomes. Map `pickle.astNodeIds.at(-1)` to the examples `TableRow`; omit unexecuted rows and blocks. |
 | G2 | Test-run hooks (BeforeAll/AfterAll) | Missing | M | No | Collect `testRunHookStarted`/`testRunHookFinished` and `hook`; add `ReportRunHook`; render a Hooks section with name, status, duration, error and attachments. |
 | G3 | Hook names and passed-hook collapsing | Partial | S | No | Carry `hook.name` into `ReportStep`; label `Before: name`; hide passed hooks behind a `N hooks` disclosure; keep failed and relevant skipped hooks inline. |
 | G4 | Undefined-step suggestions | Missing | S | No | Index `suggestion` envelopes by `pickleStepId`; render "No step definition found" plus snippet `<pre>` blocks under the undefined step. |
 | G5 | Ambiguous step definitions | Missing | M | No | Index `stepDefinition` by id; map `testStep.stepDefinitionIds`; render matching patterns and source references under the ambiguous step. |
-| G6 | Undefined/ambiguous/pending scenarios stay collapsed | Different | S | No | Open any scenario whose status is not `passed`, not only `failed`; keep the search auto-open cap. |
-| G7 | Empty/no-step scenarios counted as `unknown` and flagged as attention | Different | S | No | Add an `executed` flag: a scenario with no `testStepFinished` is displayed as not executed, excluded from scenario counts and triage, and ignored for feature status. Decide the summary contract (new `executed` field or documented count semantics) and bump `schemaVersion` if needed. |
+| G6 | Undefined/ambiguous/pending scenarios stay collapsed | Different | S | No | Open any scenario whose status is not `passed`, not only `failed`, and open the containing feature as well; keep the search auto-open cap. |
+| G7 | Empty/no-step scenarios counted as `unknown` and flagged as attention | Different | S/M | No | Add an `executed` flag: keep the finished empty row and also create the started-but-unfinished row, display both without an outcome, exclude them from scenario counts and triage, and set the feature status to `unknown` when every scenario is unexecuted. Open non-passed features (G6), show `0 / 0`, and decide the summary contract (new `executed` field or documented count semantics), bumping `schemaVersion` if needed. |
 | G8 | Markdown descriptions | Missing | M with a small dependency, L without | No | Render a safe GFM subset (headings, emphasis, code, links, lists, tables, blockquotes) with HTML escaped; keep the existing remote-image stripping. A dependency needs a written reason. |
 | G9 | Rules, background headings and feature/rule tags | Partial | M | No | Build rule nodes in the model; render Rule heading/description/tags and Background heading/description; attach scenarios to their rule; include tags in search. |
 | G10 | Search tag expressions and URL state | Partial | M | No | Use `@cucumber/tag-expressions` (official Cucumber package) when the query looks like a tag expression; sync `?query=` and `?hide=` with `URLSearchParams`; keep the tag dropdown as a shortcut. |
 | G11 | CI/git metadata from `meta.ci` | Missing | S | No | Read `meta.ci.name/url` and `meta.ci.git.revision/branch/tag`; render a CI link and short commit in the header/details. |
-| G12 | Attachment presentation polish | Partial | S | No | Match the `attachment.<ext>` fallback where safe; pretty-print JSON attachments; render `text/uri-list` as links; keep the lightbox for images. |
+| G12 | Attachment presentation polish | Partial | S | No | Match the `attachment.<ext>` fallback where safe; pretty-print JSON attachments; render `text/uri-list` as links; render `text/x.cucumber.log+plain` with ANSI colours and a copy button; keep the lightbox for images. |
 | G13 | External attachments / split assets | Deliberate difference | L | Yes | Do not copy. Keep rejecting remote URLs. A later opt-in split-assets mode is a separate product decision, not parity. |
 | G14 | `CucumberHtmlStream`-shaped adapter | Missing, optional | S | No | A Transform that collects envelopes and calls `renderHtml` on flush. Only needed if teams want to swap the formatter inside a Cucumber implementation without a post-run script. |
 | G15 | Parameter highlighting in steps | Missing, optional | S | No | Use `testStep.stepMatchArgumentsLists` and `parameterType` names to wrap matched fragments. Cosmetic; not needed for triage. |
@@ -197,20 +199,29 @@ dependency/architecture.
 
 Official, from `examples-tables.ndjson`:
 
-- one `Scenario Outline: Eating cucumbers` section;
-- `Examples: These are passing` with `#1.1`, `#1.2`;
-- `Examples: These are failing` with `#2.1`, `#2.2`;
-- tags on the examples block, not repeated on every row.
+- two outline sections: `Scenario Outline: Eating cucumbers` and
+  `Scenario Outline: Eating cucumbers with <friends> friends`;
+- the first outline has `Examples: These are passing` with `#1.1`, `#1.2` and
+  `Examples: These are failing` with `#2.1`, `#2.2`;
+- the second outline has one unnamed examples block with `#1.1`, `#1.2`,
+  `#1.3`; its numbering resets per outline;
+- tags on the examples block, not repeated on every row;
+- only executed examples and blocks are rendered; unexecuted rows and blocks
+  are pruned.
 
-Tolkira:
+Tolkira 0.2.0:
 
-- seven flat rows named `Eating cucumbers`, `Eating cucumbers with 11 friends`,
-  etc.;
+- seven flat rows; the first outline's four rows all share the pickle name
+  `Eating cucumbers`, while the second outline's rows have substituted names
+  such as `Eating cucumbers with 11 friends`;
 - no examples headings or numbering;
 - the outline description repeats on every row;
 - tags appear per row because pickle tags include the examples tags.
 
-Counts agree (5 of 7 passed). Only the structure and numbering differ.
+Counts agree (5 of 7 passed). Only the structure and numbering differ. The
+legacy reporter and multiple-cucumber-html-reporter also flatten examples;
+MCHR 4.6.0's Messages adapter maps each pickle to a legacy `scenario` with no
+examples metadata. The official formatter is the only structural peer for G1.
 
 ### Hooks
 
@@ -299,7 +310,8 @@ Official:
   `@cucumber/tag-expressions`;
 - status checkboxes that hide statuses;
 - state persisted in `?query=` and repeated `?hide=` parameters;
-- no search over error messages or attachments.
+- no search over examples block names, examples table values, substituted
+  pickle names, error messages or attachments.
 
 Tolkira:
 

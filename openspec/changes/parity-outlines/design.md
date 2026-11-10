@@ -7,12 +7,13 @@ See `proposal.md` for motivation. The current pipeline is:
 `loadEnvelopes` → format detection and normalisation → `sanitizeEnvelopes` →
 `buildReportModel` → `renderHtml` → one self-contained HTML file.
 
-`buildReportModel` already receives the Gherkin document and pickles from
-Messages. It builds one flat `ReportScenario` per pickle, maps
-`pickle.astNodeIds[0]` to the scenario AST node and uses `pickle.tags` for the
-tag filter. `renderFeature` orders scenarios failed-first and renders each one
-as a `<details data-scenario>` row. Triage, counts, the status matrix, search
-and the JSON summary all read the flat scenario list.
+`buildReportModel` receives the Gherkin document and pickles from Messages. It
+builds one flat `ReportScenario` per pickle that has a test case with results,
+maps `pickle.astNodeIds[0]` to the scenario AST node and uses `pickle.tags` for
+the tag filter. `renderFeature` orders scenarios failed-first and renders each
+one as a `<details data-scenario>` row. Triage, counts and the status matrix
+read the flat scenario list. The JSON summary is computed separately from the
+envelopes by `summarizeEnvelopes`; grouping must not change it.
 
 ADR 0004 makes Messages the normal form for legacy JSON, but legacy input
 arrives with examples already expanded. ADR 0005 keeps the report shell
@@ -24,11 +25,14 @@ client-side reconstruction.
 **Goals:**
 
 - Recover outline and examples structure from the Gherkin AST and render it
-  without changing counts, triage, search or the summary.
+  without changing counts, triage membership, search semantics or the summary
+  schema.
 - Keep one flat scenario list as the source of truth so later changes (hooks,
   rules, empty runs) do not have to unwind a second model.
 - Preserve per-example outcomes, attachments, anchors and filters.
-- Keep legacy and JUnit output unchanged.
+- Give triage and copy-failure output enough context to distinguish examples
+  that share a pickle name.
+- Keep legacy, JUnit and non-outline output unchanged.
 
 **Non-Goals:**
 
@@ -36,8 +40,10 @@ client-side reconstruction.
 - Rendering the examples table values as a table. The official formatter shows
   the numbered outcome, not the table; substituted values already appear in the
   steps.
-- Rules, backgrounds, feature tags, hooks, undefined/ambiguous diagnostics and
-  empty-run semantics.
+- Markdown descriptions (G8), tag-expression search/URL state (G10), `meta.ci`
+  (G11), attachment polish (G12), the stream adapter (G14), parameter
+  highlighting (G15), rules/backgrounds/tags (G9), hooks (G2/G3), diagnostics
+  and auto-expansion (G4/G5/G6) and empty-run semantics (G7).
 
 ## Decisions
 
@@ -51,8 +57,8 @@ Add an optional `outline` object to `ReportScenario`:
 
 The feature still owns one flat `scenarios` array. `renderFeature` partitions
 that array into outline groups and standalone scenarios, then renders groups.
-Counts, triage, the matrix, the tag list and the JSON summary keep reading the
-flat array.
+Counts, triage membership, the matrix, the tag list and the JSON summary keep
+their current sources.
 
 Alternatives considered:
 
@@ -62,74 +68,119 @@ Alternatives considered:
 - **Grouping in the browser.** Contradicts ADR 0005 and breaks the no-JS
   report. Rejected.
 
-### Derive metadata from `pickle.astNodeIds`
+### Derive metadata from the deepest AST node
 
 The Gherkin pickle compiler emits `astNodeIds: [scenarioId, tableRowId]` for an
-outline example and `[scenarioId]` for an ordinary scenario. While walking the
-feature tree, build a map from examples table-row id to
-`{ scenario, examples, examplesIndex, exampleIndex }`. When building a
-`ReportScenario`, look up `astNodeIds[1]`, verify that the row belongs to the
-scenario in `astNodeIds[0]`, and attach the outline metadata. If the lookup
-fails, leave the row flat.
+outline example and `[scenarioId]` for an ordinary scenario. The official
+formatter uses the deepest lineage, so Tolkira uses `pickle.astNodeIds.at(-1)`
+as the table-row key and the row map's stored scenario for grouping. Do not
+assume index 0 or 1; producers may add AST ids. Verify the map entry exists and
+that the pickle includes the scenario id; otherwise leave the row flat.
 
-This is producer-independent because it relies only on the Messages contract,
-not on a particular Cucumber implementation.
+While walking the feature tree, including `rule.children`, build a map from
+examples table-row id to
+`{ scenario, ruleName, examples, examplesIndex, exampleIndex }`. Iterate all
+examples blocks, including empty ones, so a block without a header still
+advances the numbering. When building a `ReportScenario`, attach the metadata
+only for executed rows; unexecuted rows and blocks have no row and therefore no
+heading.
+
+`ReportScenario.tags` stays `pickle.tags` (feature + rule + outline + examples
+tags) so the tag dropdown, `data-tags` and the tag filter keep working. The AST
+outline and examples tags are used only for heading display.
 
 ### Order outlines failed-first, examples in Gherkin order
 
-Outline groups are ordered by the worst row status, matching the current
-failed-first feature body. Inside a group, examples blocks and rows keep their
-Gherkin order and numbering. A failed row is open by default even when it is
-not first. This keeps `#1.1`, `#1.2`, `#2.1` meaningful while the triage index
-still surfaces failures.
+Grouping uses the input-order `feature.scenarios` array. Render items are
+either a standalone scenario or an outline group. Each item's severity is the
+scenario status or the worst status in the group. Items are sorted by severity,
+then by the first input index, so the result is stable. Within a group, rows are
+sorted by `examplesIndex`, then `exampleIndex`; this preserves `#1.1`, `#1.2`,
+`#2.1` and keeps numbering trustworthy.
+
+Row ids use the severity-ordered array that `orderFeatures` already gives the
+triage index. Build an id map from that array and use it for both the rendered
+row and the triage link. Do not derive ids from grouped render order.
 
 Alternative rejected: sorting rows by status. It would produce `#1.2` before
-`#1.1` and make the numbering untrustworthy.
+`#1.1` and break the numbering.
 
 ### Render static outline sections around the existing row component
 
-An outline renders as a `<section data-outline>` with an `h3`, tags and
-description. Each examples block is a `<section data-examples>` with an `h4`,
-tags and description. Example rows reuse the existing scenario `<details>`
-markup with `#<examplesIndex>.<exampleIndex>` as the visible heading and an
-screen-reader label containing the outline and substituted scenario name.
-Standalone scenarios keep the current row.
+An outline renders as a `<section data-outline>` with tags above an `h3` and
+the description below. Each examples block is a `<section data-examples>` with
+tags above an `h4`, the keyword/name and the description below. An empty
+examples name renders `Examples:`.
 
-The wrappers are static so they work without JavaScript. The row remains the
-only collapsible element; there is no second expansion state to manage.
+Example rows reuse the existing scenario `<details>` markup. The visible row
+heading is `#<examplesIndex>.<exampleIndex>`. The substituted name is available
+through a screen-reader label and `data-scenario-name`; the examples name is
+available through `data-examples-name`. The row detail metadata can repeat the
+substituted name for orientation.
+
+Heading hierarchy is `h2` feature → `h3` outline → `h4` examples → `h5` example
+row. The inner "Steps" and "Attachments" labels change from `h4` to a
+non-heading `<p class="detailLabel">` for all rows, so a grouped row never has a
+child heading above its parent. Standalone rows keep their current `h3`.
+
+Tags render before the heading and descriptions after, matching the official
+order. The examples table itself is not rendered.
+
+### Give triage and copy failure the example context
+
+Add a `scenarioLabel(scenario)` helper:
+
+- no outline: `scenario.name`;
+- outline: `#<n>.<m> · <substituted name>`, prefixed with the examples block
+  name when it is non-empty.
+
+Use it for triage labels and the row's screen-reader label. `failureText()`
+uses `data-scenario-name`, `data-example` and `data-examples-name` so a copied
+failure contains the substituted name, example number and examples block name.
+The JSON summary keeps the pickle name; the duplicate-name limitation for
+outline examples is documented in `docs/AGENT-INTERFACE.md` instead of changing
+the schema in this slice.
 
 ### Keep search and filters row-based
 
 `data-scenario`, `data-tags` and `data-search` stay on the row. Outline and
 examples names and tags are added to the row's search text so a search for the
-outline still finds its examples. After filtering, a small client-side pass
-hides `[data-examples]` and `[data-outline]` wrappers that contain no visible
-row. The 20-match auto-open cap and the existing empty-state logic stay
-unchanged.
+outline or examples block finds its examples. Examples table values are not
+indexed separately; only values substituted into steps are searchable. After
+filtering, a small client-side pass hides `[data-examples]` and `[data-outline]`
+wrappers that contain no visible row. The 20-match auto-open cap and the
+existing empty-state logic stay unchanged. The official formatter also
+highlights headings; Tolkira's highlight pass stays row-based in this slice.
 
-### Keep anchors per example row
+### Fall back to flat rendering
 
-Row ids keep the existing `scenario-<feature>-<index>` shape, with the index
-taken from the flat ordered list rather than the grouped render order. The
-existing anchor handler already opens `details` ancestors and focuses the
-summary; static sections need no extra handling.
+Legacy JSON, JUnit, ordinary scenarios and Messages pickles that cannot be
+linked to an examples row keep the current flat row. An executed outline with
+no examples also falls back to a flat row; this is a deliberate difference from
+the official formatter and is documented in the changelog and compatibility
+notes. A test case that started but has no finished step is still dropped by
+the current model; that interrupted-run case belongs to G7 and must be handled
+there, not silently inherited here.
 
 ## Risks / Trade-offs
 
-- **AST mapping differs across producers** → validate that the table row
-  belongs to the scenario before grouping; fall back to a flat row otherwise,
-  and cover the fallback with a synthetic Messages test.
+- **AST mapping differs across producers** → use `.at(-1)` and the row map,
+  verify membership, fall back flat, and cover extra-AST-id and unlinked cases.
 - **Failed-first ordering conflicts with example numbering** → order groups,
-  not rows, by severity; keep failed rows open and covered by a browser test.
+  not rows, by severity; keep failed rows open; cover the tie-breaker and the
+  triage link with tests.
 - **Search leaves empty headings** → hide empty examples and outline wrappers
   after every filter pass; test search, status and tag filters together.
-- **Heading hierarchy becomes deeper** → outline `h3`, examples `h4`, example
-  row `h5`; standalone rows keep `h3`. Cover with an accessibility assertion.
+- **Heading hierarchy becomes deeper** → change inner section labels to
+  non-headings and assert heading order.
+- **Copy failure loses the scenario name** → use data attributes and test the
+  copied text on a grouped failed example.
 - **Large outlines add DOM wrappers** → two static elements per examples block
-  and no extra details; re-run the 1000/5000-scenario stress check to confirm
-  the change stays within noise.
-- **Legacy users see no change** → intentional; document it in the changelog
-  and compatibility notes so the difference is not mistaken for a bug.
+  and no extra details; add an outline-heavy stress run.
+- **Legacy users see no change** → intentional; document it so the difference
+  is not mistaken for a bug.
+- **JSON summary names remain duplicated** → document the limitation; a schema
+  field is a later, explicit decision.
 
 ## Migration Plan
 
@@ -139,5 +190,7 @@ artifacts need migration.
 
 ## Open Questions
 
-None. The examples-table presentation follows the official formatter: numbered
-outcome rows, not a re-rendered table.
+None for this slice. The review questions are resolved above: triage labels
+include example context, the JSON summary keeps its schema, unexecuted examples
+are omitted, examples descriptions are rendered, and outlines inside rules are
+grouped.
