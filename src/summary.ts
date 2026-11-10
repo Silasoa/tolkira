@@ -323,7 +323,8 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           typeof reference?.location?.line === 'number'
             ? reference.location.line
             : undefined;
-        const source = uri ? (line ? `${uri}:${line}` : uri) : undefined;
+        const display = displayUri(uri);
+        const source = display ? (line ? `${display}:${line}` : display) : undefined;
         stepDefinitions.set(envelope.stepDefinition.id, {
           pattern: pattern.source,
           ...(source ? { source } : {}),

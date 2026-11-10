@@ -249,6 +249,26 @@ describe('machine-readable summary', () => {
     ]);
   });
 
+  it('shows a relative source path for step definitions', async () => {
+    const envelopes = parseMessages(
+      await readFile(ambiguousFixture, 'utf8'),
+      ambiguousFixture,
+    );
+    const definition = envelopes.find(
+      (envelope) => envelope.stepDefinition?.id === '4',
+    )?.stepDefinition;
+    expect(definition).toBeDefined();
+    if (!definition?.sourceReference) return;
+    definition.sourceReference.uri =
+      'file:///C:/Users/name/proj/features/ambiguous.ts';
+    definition.sourceReference.location = { line: 3 };
+
+    const summary = summarizeEnvelopes(envelopes);
+    const definitions = summary.scenarios[0]?.steps[0]?.definitions ?? [];
+    expect(definitions[0]?.source).toBe('features/ambiguous.ts:3');
+    expect(JSON.stringify(summary)).not.toContain('Users');
+  });
+
   it('does not invent diagnostics for legacy input', async () => {
     const summary = await summarizeReport(unhappyLegacy);
     const steps = summary.scenarios.flatMap((scenario) => scenario.steps);
