@@ -38,7 +38,7 @@
   fallback labels for missing metadata, and run-hook attachments counted once.
 - [x] 2.4 Implement the run Hooks section below the feature list; verify 2.3
   passes and no-JS output remains readable.
-- [ ] 2.5 Add hook names and error messages to the scenario search text with
+- [x] 2.5 Add hook names and error messages to the scenario search text with
   the existing message cap, and open matching hook groups; verify search finds
   a hook name and error and the 20-match cap still works.
 - [x] 2.6 Test escaping of hook names, type labels, messages and attachment
@@ -51,11 +51,11 @@
 
 ## 3. Browser and regression
 
-- [ ] 3.1 Add a browser test that opens the passed-hooks disclosure, keeps a
+- [x] 3.1 Add a browser test that opens the passed-hooks disclosure, keeps a
   failed hook visible, and checks the scenario subtitle counts.
 - [x] 3.2 Add a browser test for the run Hooks section, including a failed run
   hook error and attachment.
-- [ ] 3.3 Verify keyboard operation of the hooks disclosure, focus behaviour
+- [x] 3.3 Verify keyboard operation of the hooks disclosure, focus behaviour
   and the no-JS report; add assertions.
 - [x] 3.4 Verify the JSON summary still reports hooks as steps with
   `keyword: "Hook"`, an optional hook name and `schemaVersion: 1`; verify a

@@ -1292,8 +1292,135 @@ test('shows run-hook attachments in the Hooks section', async ({ page }) => {
   }
 });
 
+test('searching a hook name opens its hook group', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hook-search-e2e-'));
+  const input = path.join(dir, 'named-hooks.ndjson');
+  const output = path.join(dir, 'named-hooks.html');
+
+  try {
+    const lines = (await readFile(hooksFixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    const hook = lines.find((line) => line.hook)?.hook;
+    expect(hook).toBeTruthy();
+    hook.name = 'seed database';
+    await writeFile(
+      input,
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+
+    const code = await runCli([input, '--out', output, '--title', 'Hook search'], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await page.getByRole('searchbox', { name: /Search/ }).fill('seed database');
+    const group = page.locator('details.hookGroup[open]').first();
+    await expect(group).toBeVisible();
+    await expect(group.locator('.hookLabel').first()).toContainText(
+      'Before: seed database',
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('shows a failed hook inline', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hook-fail-e2e-'));
+  const input = path.join(dir, 'failed-hook.ndjson');
+  const output = path.join(dir, 'failed-hook.html');
+
+  try {
+    const lines = (await readFile(hooksFixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    const hookStepIds = new Set<string>(
+      lines.flatMap((line) =>
+        (line.testCase?.testSteps ?? [])
+          .filter((step: { hookId?: string }) => step.hookId)
+          .map((step: { id: string }) => step.id),
+      ),
+    );
+    for (const line of lines) {
+      if (
+        line.testStepFinished &&
+        hookStepIds.has(line.testStepFinished.testStepId)
+      ) {
+        line.testStepFinished.testStepResult.status = 'FAILED';
+        line.testStepFinished.testStepResult.message = 'hook boom';
+      }
+    }
+    await writeFile(
+      input,
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+
+    const code = await runCli([input, '--out', output, '--title', 'Hook failure'], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const failed = page.locator('.hook[data-status="failed"]').first();
+    await expect(failed).toBeVisible();
+    await expect(failed).toContainText('hook boom');
+    await expect(page.locator('[data-copy-failure]').first()).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('operates the hooks disclosure by keyboard', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hook-keyboard-e2e-'));
+  const output = path.join(dir, 'hooks-keyboard.html');
+
+  try {
+    const code = await runCli([hooksFixture, '--out', output, '--title', 'Hook keyboard'], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const group = page.locator('details.hookGroup').first();
+    await group.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(group).toHaveAttribute('open', '');
+    await expect(group.locator('.hook').first()).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test.describe('without scripting', () => {
   test.use({ javaScriptEnabled: false });
+
+  test('keeps hook disclosures readable', async ({ page }) => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hook-nojs-e2e-'));
+    const output = path.join(dir, 'hooks-nojs.html');
+
+    try {
+      const code = await runCli(
+        [hooksFixture, '--out', output, '--title', 'Hooks no JS'],
+        { stdout: () => undefined, stderr: () => undefined },
+      );
+      expect(code).toBe(0);
+      await page.goto(pathToFileURL(output).href);
+      const group = page.locator('details.hookGroup').first();
+      await expect(group).toBeVisible();
+      await group.locator('summary').click();
+      await expect(group.locator('.hook').first()).toBeVisible();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 
   test('keeps the triage links readable', async ({ page }) => {
     const { dir, output } = await writeUnhappyReport();
