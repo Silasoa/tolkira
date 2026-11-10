@@ -14,6 +14,9 @@ const unhappy = fileURLToPath(
 const outlineFixture = fileURLToPath(
   new URL('../fixtures/messages/examples-tables.ndjson', import.meta.url),
 );
+const allStatusesFixture = fileURLToPath(
+  new URL('../fixtures/messages/all-statuses.ndjson', import.meta.url),
+);
 
 const viewports = [
   { width: 320, height: 700 },
@@ -283,6 +286,69 @@ test('keeps hooks readable at 320px and 200% zoom', async ({ page }) => {
     expect(
       await pageOverflow(page),
       'hooks 200% overflow',
+    ).toBeLessThanOrEqual(1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps diagnostics readable at 320px and 200% zoom', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-diagnostics-responsive-'));
+  const output = path.join(dir, 'diagnostics-responsive.html');
+
+  try {
+    const code = await runCli(
+      [allStatusesFixture, '--out', output, '--title', 'Diagnostics responsive'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(pathToFileURL(output).href);
+    expect(await pageOverflow(page), 'diagnostics 320 overflow').toBeLessThanOrEqual(
+      1,
+    );
+
+    const undefinedScenario = page.locator('[data-scenario-name="Undefined"]');
+    const ambiguousScenario = page.locator('[data-scenario-name="Ambiguous"]');
+    await expect(undefinedScenario).toHaveAttribute('open', '');
+    await expect(ambiguousScenario).toHaveAttribute('open', '');
+    await expectWithinViewport(
+      page,
+      undefinedScenario.locator('.diagnostic'),
+      'undefined diagnostic at 320',
+    );
+    await expectWithinViewport(
+      page,
+      ambiguousScenario.locator('.diagnostic'),
+      'ambiguous diagnostic at 320',
+    );
+    const snippet = undefinedScenario.locator('.snippet pre');
+    expect(
+      await snippet.evaluate((element) => element.scrollWidth - element.clientWidth),
+      'snippet clipped at 320',
+    ).toBeLessThanOrEqual(1);
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await pageOverflow(page),
+      'diagnostics 200% overflow',
+    ).toBeLessThanOrEqual(1);
+    await expectWithinViewport(
+      page,
+      undefinedScenario.locator('.diagnostic'),
+      'undefined diagnostic at 200%',
+    );
+    await expectWithinViewport(
+      page,
+      ambiguousScenario.locator('.diagnostic'),
+      'ambiguous diagnostic at 200%',
+    );
+    expect(
+      await snippet.evaluate((element) => element.scrollWidth - element.clientWidth),
+      'snippet clipped at 200%',
     ).toBeLessThanOrEqual(1);
   } finally {
     await rm(dir, { recursive: true, force: true });

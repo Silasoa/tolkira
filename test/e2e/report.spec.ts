@@ -41,6 +41,12 @@ const globalHooksFixture = fileURLToPath(
 const globalHookAttachments = fileURLToPath(
   new URL('../fixtures/messages/global-hooks-attachments.ndjson', import.meta.url),
 );
+const undefinedFixture = fileURLToPath(
+  new URL('../fixtures/messages/undefined.ndjson', import.meta.url),
+);
+const ambiguousFixture = fileURLToPath(
+  new URL('../fixtures/messages/ambiguous.ndjson', import.meta.url),
+);
 
 function outlineNdjson(count: number): string {
   const rows = Array.from({ length: count }, (_, index) => ({
@@ -800,7 +806,7 @@ async function writeUnhappyReport(): Promise<{ dir: string; output: string }> {
   return { dir, output };
 }
 
-test('opens a scenario from the needs-attention index', async ({ page }) => {
+test('focuses a scenario from the needs-attention index', async ({ page }) => {
   const { dir, output } = await writeUnhappyReport();
 
   try {
@@ -826,9 +832,7 @@ test('opens a scenario from the needs-attention index', async ({ page }) => {
           element.closest<HTMLDetailsElement>('details[data-feature]')?.open,
       ),
     ).toBe(true);
-    await expect(page.locator('[data-scenario][open]')).toHaveCount(
-      openBefore + 1,
-    );
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(openBefore);
     expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
     await page.reload();
@@ -1453,6 +1457,216 @@ test('operates the hooks disclosure by keyboard', async ({ page }) => {
     await page.keyboard.press('Enter');
     await expect(group).toHaveAttribute('open', '');
     await expect(group.locator('.hook').first()).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('shows undefined-step snippets and finds them by search', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-undefined-e2e-'));
+  const output = path.join(dir, 'undefined.html');
+
+  try {
+    const code = await runCli(
+      [undefinedFixture, '--out', output, '--title', 'Undefined E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const feature = page.locator('details.feature').first();
+    await expect(feature).toHaveAttribute('open', '');
+    const scenario = page.locator(
+      '[data-scenario-name="Snippets reflect parameter types"]',
+    );
+    await expect(scenario).toHaveAttribute('open', '');
+    await expect(scenario.locator('.diagnosticLead')).toHaveText(
+      'No step definition found. Implement with the snippet(s) below:',
+    );
+    await expect(scenario.locator('.snippet')).toHaveCount(2);
+    await expect(scenario.locator('.snippetLang').first()).toHaveText(
+      'typescript',
+    );
+    await expect(scenario.locator('.snippet').first()).toContainText(
+      'Given("a list of {int} things"',
+    );
+
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    await search.fill('{int}');
+    await expect(scenario).toBeVisible();
+    await expect(scenario).toHaveAttribute('open', '');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('shows ambiguous definitions with relative sources', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-ambiguous-e2e-'));
+  const output = path.join(dir, 'ambiguous.html');
+
+  try {
+    const code = await runCli(
+      [ambiguousFixture, '--out', output, '--title', 'Ambiguous E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const scenario = page.locator(
+      '[data-scenario-name="Multiple step definitions for a step"]',
+    );
+    await expect(scenario).toHaveAttribute('open', '');
+    await expect(scenario.locator('.diagnosticLead')).toHaveText(
+      'Multiple matching step definitions found:',
+    );
+    await expect(scenario.locator('.definitionPattern')).toHaveCount(2);
+    await expect(scenario.locator('.definitionPattern').first()).toHaveText(
+      '^a (.*?) with (.*?)$',
+    );
+    await expect(scenario.locator('.definitionSource').first()).toHaveText(
+      'samples/ambiguous/ambiguous.ts:3',
+    );
+    await expect(scenario.locator('.definitionSource').nth(1)).toHaveText(
+      'samples/ambiguous/ambiguous.ts:7',
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('does not execute markup in snippets, patterns or sources', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-diagnostic-xss-'));
+  let dialogOpened = false;
+  page.on('dialog', async (dialog) => {
+    dialogOpened = true;
+    await dialog.dismiss();
+  });
+
+  try {
+    const undefinedLines = (await readFile(undefinedFixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    for (const line of undefinedLines) {
+      if (line.suggestion) {
+        line.suggestion.snippets[0].code =
+          '<script>window.__tolkiraXss=1</script>';
+      }
+    }
+    const undefinedInput = path.join(dir, 'undefined-xss.ndjson');
+    const undefinedOutput = path.join(dir, 'undefined-xss.html');
+    await writeFile(
+      undefinedInput,
+      `${undefinedLines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+    const undefinedCode = await runCli(
+      [undefinedInput, '--out', undefinedOutput],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(undefinedCode).toBe(0);
+
+    await page.goto(pathToFileURL(undefinedOutput).href);
+    await expect(page.locator('.snippet').first()).toContainText(
+      '<script>window.__tolkiraXss=1</script>',
+    );
+    expect(await page.locator('.diagnostic script').count()).toBe(0);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __tolkiraXss?: number }).__tolkiraXss,
+      ),
+    ).toBeUndefined();
+
+    const ambiguousLines = (await readFile(ambiguousFixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    for (const line of ambiguousLines) {
+      if (line.stepDefinition) {
+        line.stepDefinition.pattern.source =
+          '<img src=x onerror="window.__tolkiraXss=1">';
+        line.stepDefinition.sourceReference.uri =
+          '"><svg onload="window.__tolkiraXss=1">';
+      }
+    }
+    const ambiguousInput = path.join(dir, 'ambiguous-xss.ndjson');
+    const ambiguousOutput = path.join(dir, 'ambiguous-xss.html');
+    await writeFile(
+      ambiguousInput,
+      `${ambiguousLines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+    const ambiguousCode = await runCli(
+      [ambiguousInput, '--out', ambiguousOutput],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(ambiguousCode).toBe(0);
+
+    await page.goto(pathToFileURL(ambiguousOutput).href);
+    await expect(page.locator('.definitionPattern').first()).toContainText(
+      '<img src=x onerror="window.__tolkiraXss=1">',
+    );
+    await expect(page.locator('.definitionSource').first()).toContainText(
+      '"><svg onload="window.__tolkiraXss=1">',
+    );
+    expect(await page.locator('.diagnostic img').count()).toBe(0);
+    expect(await page.locator('.diagnostic svg').count()).toBe(0);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __tolkiraXss?: number }).__tolkiraXss,
+      ),
+    ).toBeUndefined();
+    expect(dialogOpened).toBe(false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('caps search auto-open at 20 newly opened rows', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-search-cap-new-'));
+  const input = path.join(dir, 'mixed.json');
+  const output = path.join(dir, 'mixed.html');
+
+  try {
+    const elements = Array.from({ length: 30 }, (_, index) => ({
+      keyword: 'Scenario',
+      type: 'scenario',
+      name: `Scenario ${index + 1}`,
+      steps: [
+        {
+          keyword: 'Given ',
+          name: 'a step',
+          result: {
+            status: index < 5 ? 'undefined' : 'passed',
+            duration: 1,
+          },
+        },
+      ],
+    }));
+    await writeFile(
+      input,
+      JSON.stringify([{ name: 'Mixed scenarios', elements }]),
+      'utf8',
+    );
+    const code = await runCli([input, '--out', output], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(5);
+    await page.getByRole('searchbox', { name: 'Search scenarios' }).fill(
+      'Scenario',
+    );
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(25);
+    await expect(page.locator('#tolkira-search-note')).toContainText(
+      '20 of 25 matches expanded',
+    );
+    await page.getByRole('searchbox', { name: 'Search scenarios' }).fill('');
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(5);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
