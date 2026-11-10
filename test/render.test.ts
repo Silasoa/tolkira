@@ -20,6 +20,76 @@ const passedOnlyFixture = fileURLToPath(
 const minimalFixture = fileURLToPath(
   new URL('./fixtures/legacy/minimal.json', import.meta.url),
 );
+const examplesTables = fileURLToPath(
+  new URL('./fixtures/messages/examples-tables.ndjson', import.meta.url),
+);
+
+async function renderMessagesFile(file: string): Promise<string> {
+  const content = await readFile(file, 'utf8');
+  return renderHtml(parseMessages(content, file), { title: 'Outlines' });
+}
+
+describe('scenario outlines', () => {
+  it('renders two outlines with examples headings and numbering', async () => {
+    const html = await renderMessagesFile(examplesTables);
+
+    expect(html.match(/<section class="outline" data-outline>/g)).toHaveLength(2);
+    expect(html.match(/<section class="examples" data-examples>/g)).toHaveLength(3);
+    expect(html).toContain('Scenario Outline:</span> Eating cucumbers');
+    expect(html).toContain(
+      'Scenario Outline:</span> Eating cucumbers with &lt;friends&gt; friends',
+    );
+    expect(html).toContain('Examples:</span> These are passing');
+    expect(html).toContain('Examples:</span> These are failing');
+    expect(html).toContain('<h4 class="examplesTitle"><span class="kw">Examples:</span></h4>');
+    expect(html.match(/class="exampleNo"/g)).toHaveLength(7);
+    expect(html).toContain('class="exampleNo">#1.1');
+    expect(html).toContain('class="exampleNo">#2.2');
+    expect(html).toContain('data-example="#2.1"');
+    expect(html).toContain('<h5 class="scenarioName">');
+    expect(html).not.toContain('<h4>Steps</h4>');
+  });
+
+  it('renders outline and examples metadata once and escapes it', async () => {
+    const content = await readFile(examplesTables, 'utf8');
+    const envelopes = parseMessages(content, examplesTables);
+    const document = envelopes.find((envelope) => envelope.gherkinDocument)
+      ?.gherkinDocument;
+    const scenario = document?.feature?.children.find((child) => child.scenario)
+      ?.scenario;
+    const examples = scenario?.examples[0];
+    expect(scenario).toBeDefined();
+    expect(examples).toBeDefined();
+    if (!scenario || !examples) return;
+
+    scenario.description = '<script>outline</script>';
+    scenario.tags = [
+      { id: 'outline-tag', name: '@outline-x', location: { line: 1, column: 1 } },
+    ];
+    examples.description = '<script>examples</script>';
+    examples.tags = [
+      { id: 'examples-tag', name: '@examples-x', location: { line: 1, column: 1 } },
+    ];
+
+    const html = await renderHtml(envelopes, { title: 'Escaped outlines' });
+
+    expect(html).toContain('&lt;script&gt;outline&lt;/script&gt;');
+    expect(html).not.toContain('<script>outline</script>');
+    expect(html).toContain('&lt;script&gt;examples&lt;/script&gt;');
+    expect(html.match(/class="tag">@outline-x/g)).toHaveLength(1);
+    expect(html.match(/class="tag">@examples-x/g)).toHaveLength(1);
+  });
+
+  it('labels triage and copied failures with example context', async () => {
+    const html = await renderMessagesFile(examplesTables);
+
+    expect(html).toContain('These are failing #2.1 · Eating cucumbers');
+    expect(html).toContain('These are failing #2.2 · Eating cucumbers');
+    expect(html).toContain('data-scenario-name="Eating cucumbers"');
+    expect(html).toContain('data-examples-name="These are failing"');
+    expect(html).toContain('<h3 class="outlineTitle">');
+  });
+});
 
 describe('messages rendering', () => {
   it('renders the simple report and analysis view', async () => {
@@ -32,7 +102,7 @@ describe('messages rendering', () => {
     expect(html).toContain('id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"');
     expect(html).toContain('id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden');
     expect(html).toContain('aria-label="Agent summary JSON"');
-    expect(html).toContain('<h4>Steps</h4>');
+    expect(html).toContain('<p class="detailLabel">Steps</p>');
     expect(html).toContain('class="stepMarker');
     expect(html).toContain('Cucumber environment');
     expect(html).toContain('Producer');

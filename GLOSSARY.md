@@ -40,6 +40,16 @@ proportion bar.
 **Feature matrix** — the Details table with one row per feature and one count
 column per status present in the run, plus total and duration.
 
+**Scenario outline** — a Gherkin scenario template with an Examples table.
+Tolkira renders one outline section per outline in Messages input.
+
+**Examples block** — one Examples table under a scenario outline, with its own
+name, tags and description. An outline can have several.
+
+**Example row** — one executed row of an examples block, labelled
+`#<examples>.<example>` in the report. Each row keeps its own outcome,
+attachments and anchor.
+
 **Provenance** — the input file a feature came from. Tolkira only uses it when
 the feature URI belongs to exactly one input; shared or missing provenance
 renders a flat report.

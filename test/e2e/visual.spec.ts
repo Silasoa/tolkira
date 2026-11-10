@@ -13,16 +13,19 @@ fixtures.push(
   fileURLToPath(
     new URL('../fixtures/messages/screenshot.ndjson', import.meta.url),
   ),
+  fileURLToPath(
+    new URL('../fixtures/messages/examples-tables.ndjson', import.meta.url),
+  ),
 );
 
 async function waitForImages(page: Page): Promise<void> {
-  await page.evaluate(() =>
-    Promise.all(
-      Array.from(document.images).map((image) =>
-        image.decode().catch(() => undefined),
-      ),
-    ),
-  );
+  await page.evaluate(() => {
+    const images = Array.from(document.images);
+    images.forEach((image) => {
+      image.loading = 'eager';
+    });
+    return Promise.all(images.map((image) => image.decode().catch(() => undefined)));
+  });
 }
 
 async function capture(

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -25,6 +25,12 @@ const noMessageFixture = fileURLToPath(
 );
 const unhappyFixture = fileURLToPath(
   new URL('../fixtures/legacy/unhappy.json', import.meta.url),
+);
+const examplesFixture = fileURLToPath(
+  new URL('../fixtures/messages/examples-tables.ndjson', import.meta.url),
+);
+const examplesAttachmentFixture = fileURLToPath(
+  new URL('../fixtures/messages/examples-tables-attachment.ndjson', import.meta.url),
 );
 
 test('renders a messages report in the browser', async ({ page }) => {
@@ -815,6 +821,200 @@ test('caps search auto-open at 20 scenarios', async ({ page }) => {
     await search.fill('');
     await expect(page.locator('[data-scenario][open]')).toHaveCount(0);
     await expect(page.locator('#tolkira-search-note')).toBeHidden();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('groups outlines and keeps triage, search and tag filters usable', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-outline-e2e-'));
+  const output = path.join(dir, 'outlines.html');
+
+  try {
+    const code = await runCli(
+      [examplesFixture, '--out', output, '--title', 'Outlines'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(page.locator('section.outline')).toHaveCount(2);
+    await expect(page.locator('section.examples')).toHaveCount(3);
+    await expect(page.locator('.exampleNo')).toHaveCount(7);
+    await expect(
+      page.locator('.triageScenario').filter({ hasText: 'These are failing #2.1' }),
+    ).toBeVisible();
+
+    await page
+      .locator('.triageScenario')
+      .filter({ hasText: 'These are failing #2.1' })
+      .click();
+    const failed = page.locator('[data-scenario][data-example="#2.1"]');
+    await expect(failed).toHaveAttribute('open', '');
+    await expect(failed.locator('summary')).toBeFocused();
+
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    await search.fill('Eating cucumbers with <friends> friends');
+    await expect(page.locator('section.outline:visible')).toHaveCount(1);
+    await expect(page.locator('section.examples:visible')).toHaveCount(1);
+    await expect(page.locator('details.scenario:visible')).toHaveCount(3);
+
+    await search.fill('');
+    const tagFilter = page.locator('select[data-tag-filter]');
+    await tagFilter.selectOption('@failing');
+    await expect(page.locator('section.outline:visible')).toHaveCount(1);
+    await expect(page.locator('section.examples:visible')).toHaveCount(1);
+    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+
+    await tagFilter.selectOption('');
+    await expect(page.locator('details.scenario:visible')).toHaveCount(7);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('copies a grouped failure with example context', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-outline-copy-e2e-'));
+  const output = path.join(dir, 'outlines-copy.html');
+
+  try {
+    await page.addInitScript(() => {
+      (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: (text: string) => {
+            (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied =
+              text;
+            return Promise.resolve();
+          },
+        },
+      });
+    });
+
+    const code = await runCli(
+      [examplesFixture, '--out', output, '--title', 'Outlines copy'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const row = page.locator('[data-scenario][data-example="#2.1"]');
+    await row.locator('[data-copy-failure]').click();
+    const copied = await page.evaluate(
+      () =>
+        (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ?? '',
+    );
+
+    expect(copied).toContain('Scenario: Eating cucumbers');
+    expect(copied).toContain('Example: #2.1 (These are failing)');
+    expect(copied).toContain('URI:');
+    expect(copied).toContain('Step:');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('does not duplicate a retried outline row', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-outline-retry-e2e-'));
+  const input = path.join(dir, 'outline-retry.ndjson');
+  const output = path.join(dir, 'outline-retry.html');
+
+  try {
+    const lines = (await readFile(examplesFixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    const pickle = lines.find((line) => line.pickle?.astNodeIds?.length === 2)
+      ?.pickle;
+    const testCase = lines.find(
+      (line) => line.testCase?.pickleId === pickle?.id,
+    )?.testCase;
+    const started = lines.find(
+      (line) => line.testCaseStarted?.testCaseId === testCase?.id,
+    )?.testCaseStarted;
+    const finished = lines.find(
+      (line) => line.testCaseFinished?.testCaseStartedId === started?.id,
+    )?.testCaseFinished;
+    const stepFinished = lines.find(
+      (line) => line.testStepFinished?.testCaseStartedId === started?.id,
+    )?.testStepFinished;
+    expect(pickle && started && finished && stepFinished).toBeTruthy();
+    const retryId = `${started.id}-retry`;
+    lines.push(
+      {
+        testCaseStarted: {
+          ...started,
+          id: retryId,
+          attempt: 1,
+          timestamp: { seconds: 10, nanos: 0 },
+        },
+      },
+      {
+        testStepFinished: {
+          ...stepFinished,
+          testCaseStartedId: retryId,
+          timestamp: { seconds: 10, nanos: 0 },
+          testStepResult: {
+            ...stepFinished.testStepResult,
+            status: 'FAILED',
+          },
+        },
+      },
+      {
+        testCaseFinished: {
+          ...finished,
+          testCaseStartedId: retryId,
+          timestamp: { seconds: 10, nanos: 0 },
+        },
+      },
+    );
+    await writeFile(
+      input,
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+
+    const code = await runCli([input, '--out', output, '--title', 'Retry'], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const retried = page.locator(
+      '[data-example="#1.1"][data-scenario-name="Eating cucumbers"]',
+    );
+    await expect(retried).toHaveCount(1);
+    await expect(retried).toHaveAttribute('data-status', 'failed');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps each example attachment on its own row', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-outline-attach-e2e-'));
+  const output = path.join(dir, 'outlines-attach.html');
+
+  try {
+    const code = await runCli(
+      [examplesAttachmentFixture, '--out', output, '--title', 'Outlines attach'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const rows = page.locator('details.scenario');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0).locator('.thumb')).toBeVisible();
+    await expect(rows.nth(1).locator('.thumb')).toBeVisible();
+    await expect(rows.nth(0).locator('.shot')).toHaveCount(1);
+    await expect(rows.nth(1).locator('.shot')).toHaveCount(1);
+
+    await rows.nth(0).locator('.shotButton').click();
+    await expect(page.locator('#tolkira-lightbox')).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

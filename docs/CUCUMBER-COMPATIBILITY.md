@@ -24,6 +24,18 @@ passes, one fails with `Error: boom`.
 | cucumber-ruby | 12.0.1 real run | `message` formatter; `exception.message` carries the readable error while `message` is the stack, so the report merges them. |
 | Behave | not applicable | No Messages formatter. |
 
+## Scenario outlines
+
+Messages input carries the Gherkin document, so Tolkira groups executed
+examples under one outline section and numbers them `#1.1`, `#1.2`, `#2.1`.
+Unexecuted rows and examples blocks are omitted, matching the official
+formatter. Outline and examples tags, descriptions and keywords come from the
+AST; the substituted values remain visible in the steps.
+
+Legacy JSON has no Gherkin document and arrives with examples already expanded.
+Tolkira keeps those rows flat and does not invent an outline. The same applies
+to a Messages outline without examples: it falls back to a flat row.
+
 ## Breaking changes that matter
 
 - **3.2.1 (2017):** JSON mime-type revert; duration handling was still in flux.

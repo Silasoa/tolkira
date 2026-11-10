@@ -7,6 +7,7 @@ import {
   type ReportAttachment,
   type ReportFeature,
   type ReportModel,
+  type ReportOutline,
   type ReportScenario,
   type ReportStatus,
   type ReportStep,
@@ -177,7 +178,7 @@ function renderTriageRow({
     .slice(0, TRIAGE_SCENARIO_LIMIT)
     .map((scenario) => {
       const scenarioIndex = scenarios.indexOf(scenario) + 1;
-      return `<li><a class="triageScenario" href="#scenario-${index + 1}-${scenarioIndex}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span>${escapeHtml(scenario.name)}</span></a></li>`;
+      return `<li><a class="triageScenario" href="#scenario-${index + 1}-${scenarioIndex}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span>${escapeHtml(scenarioLabel(scenario))}</span></a></li>`;
     })
     .join('');
   const more =
@@ -347,7 +348,22 @@ function renderStep(step: ReportStep, scenarioName: string): string {
   return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
 }
 
+function scenarioLabel(scenario: ReportScenario): string {
+  const outline = scenario.outline;
+  if (!outline) return scenario.name;
+  const number = `#${outline.examplesIndex + 1}.${outline.exampleIndex + 1}`;
+  const examples = outline.examplesName ? `${outline.examplesName} ` : '';
+  return `${examples}${number} · ${scenario.name}`.trim();
+}
+
+function tagsMarkup(tags: string[]): string {
+  return tags.length
+    ? `<span class="tags">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>`
+    : '';
+}
+
 function scenarioText(scenario: ReportScenario): string {
+  const outline = scenario.outline;
   return [
     scenario.name,
     scenario.featureName,
@@ -355,15 +371,44 @@ function scenarioText(scenario: ReportScenario): string {
     scenario.keyword,
     scenario.description,
     scenario.tags.join(' '),
+    ...(outline
+      ? [
+          outline.keyword,
+          outline.name,
+          outline.description,
+          outline.tags.join(' '),
+          outline.examplesKeyword,
+          outline.examplesName,
+          outline.examplesDescription,
+          outline.examplesTags.join(' '),
+        ]
+      : []),
     scenario.steps.map((step) => `${step.keyword} ${step.text} ${(step.message ?? '').slice(0, SEARCH_MESSAGE_LIMIT)}`).join(' '),
   ].join(' ');
+}
+
+function worstStatus(scenarios: ReportScenario[]): ReportStatus {
+  return scenarios.reduce<ReportStatus>(
+    (worst, scenario) =>
+      statusSeverity(scenario.status) > statusSeverity(worst)
+        ? scenario.status
+        : worst,
+    'unknown',
+  );
 }
 
 function renderScenario(
   scenario: ReportScenario,
   featureIndex: number,
   scenarioIndex: number,
+  grouped = false,
 ): string {
+  const outline = scenario.outline;
+  const example =
+    grouped && outline
+      ? `#${outline.examplesIndex + 1}.${outline.exampleIndex + 1}`
+      : '';
+  const heading = grouped ? 'h5' : 'h3';
   const image = scenario.attachments.find(
     (attachment) => attachment.kind === 'image' && attachment.dataUri,
   );
@@ -371,17 +416,94 @@ function renderScenario(
   const steps = scenario.steps
     .map((step) => renderStep(step, scenario.name))
     .join('');
-  const description = scenario.description
-    ? `<p class="description">${escapeHtml(scenario.description)}</p>`
-    : '';
+  const description =
+    !grouped && scenario.description
+      ? `<p class="description">${escapeHtml(scenario.description)}</p>`
+      : '';
+  const screenReaderLabel =
+    grouped && outline
+      ? `<span class="sr">${escapeHtml(`Scenario Outline ${outline.name}${outline.examplesName ? `, Examples ${outline.examplesName}` : ''}, example ${example}, ${scenario.name}`)}</span>`
+      : '';
+  const visibleName = grouped
+    ? `<span class="exampleNo">${escapeHtml(example)}</span>${screenReaderLabel}`
+    : escapeHtml(scenario.name);
+  const rowTags = grouped ? '' : tagsMarkup(scenario.tags);
   const extraAttachments = scenario.extraAttachments.length
-    ? `<h4>Attachments</h4>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name)).join('')}`
+    ? `<p class="detailLabel">Attachments</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name)).join('')}`
     : '';
   const copyFailure =
     scenario.status === 'failed'
       ? '<button class="copyFailure" type="button" data-copy-failure>Copy failure</button>'
       : '';
-  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><h3 class="scenarioName">${escapeHtml(scenario.name)}</h3><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.tags.length ? ` <span class="tags">${scenario.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><h4>Steps</h4>${copyFailure}</div><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta"><span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  const exampleData = grouped
+    ? ` data-example="${escapeHtml(example)}" data-examples-name="${escapeHtml(outline?.examplesName ?? '')}"`
+    : '';
+  const scenarioMeta =
+    grouped && outline
+      ? `<span>Scenario: ${escapeHtml(scenario.name)}</span>`
+      : '';
+  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps">${steps}</ol>${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+}
+
+function renderExamples(
+  outline: ReportOutline,
+  rows: ReportScenario[],
+  featureIndex: number,
+  idIndex: Map<string, number>,
+): string {
+  const description = outline.examplesDescription
+    ? `<p class="description">${escapeHtml(outline.examplesDescription)}</p>`
+    : '';
+  const title = outline.examplesName
+    ? `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span> ${escapeHtml(outline.examplesName)}`
+    : `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span>`;
+  return `<section class="examples" data-examples>${tagsMarkup(outline.examplesTags)}<h4 class="examplesTitle">${title}</h4>${description}<div class="exampleRows">${rows
+    .map((scenario) =>
+      renderScenario(
+        scenario,
+        featureIndex,
+        idIndex.get(scenario.id) ?? 0,
+        true,
+      ),
+    )
+    .join('')}</div></section>`;
+}
+
+function renderOutline(
+  outline: ReportOutline,
+  rows: ReportScenario[],
+  featureIndex: number,
+  idIndex: Map<string, number>,
+): string {
+  const blocks = new Map<string, { outline: ReportOutline; rows: ReportScenario[] }>();
+  for (const row of rows) {
+    if (!row.outline) continue;
+    const block = blocks.get(row.outline.examplesId) ?? {
+      outline: row.outline,
+      rows: [],
+    };
+    block.rows.push(row);
+    blocks.set(row.outline.examplesId, block);
+  }
+  const exampleBlocks = [...blocks.values()]
+    .sort((a, b) => a.outline.examplesIndex - b.outline.examplesIndex)
+    .map((block) =>
+      renderExamples(block.outline, block.rows, featureIndex, idIndex),
+    )
+    .join('');
+  const description = outline.description
+    ? `<p class="description">${escapeHtml(outline.description)}</p>`
+    : '';
+  return `<section class="outline" data-outline>${tagsMarkup(outline.tags)}<h3 class="outlineTitle"><span class="kw">${escapeHtml(outline.keyword)}:</span> ${escapeHtml(outline.name)}</h3>${description}${exampleBlocks}</section>`;
+}
+
+interface RenderItem {
+  kind: 'scenario' | 'outline';
+  status: ReportStatus;
+  order: number;
+  scenario?: ReportScenario;
+  outline?: ReportOutline;
+  rows?: ReportScenario[];
 }
 
 function renderFeature(
@@ -396,9 +518,63 @@ function renderFeature(
   const description = feature.description
     ? `<p class="description">${escapeHtml(feature.description)}</p>`
     : '';
-  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>${description}<div class="rows">${scenarios
-    .map((scenario, scenarioIndex) =>
-      renderScenario(scenario, featureIndex, scenarioIndex),
+  const idIndex = new Map(scenarios.map((scenario, index) => [scenario.id, index]));
+  const inputIndex = new Map(
+    feature.scenarios.map((scenario, index) => [scenario.id, index]),
+  );
+  const groups = new Map<string, { outline: ReportOutline; rows: ReportScenario[]; order: number }>();
+  const items: RenderItem[] = [];
+  for (const scenario of feature.scenarios) {
+    if (scenario.outline) {
+      const group = groups.get(scenario.outline.id) ?? {
+        outline: scenario.outline,
+        rows: [],
+        order: inputIndex.get(scenario.id) ?? 0,
+      };
+      group.rows.push(scenario);
+      groups.set(scenario.outline.id, group);
+    } else {
+      items.push({
+        kind: 'scenario',
+        status: scenario.status,
+        order: inputIndex.get(scenario.id) ?? 0,
+        scenario,
+      });
+    }
+  }
+  for (const group of groups.values()) {
+    group.rows.sort((a, b) => {
+      const outlineA = a.outline;
+      const outlineB = b.outline;
+      if (!outlineA || !outlineB) return 0;
+      return (
+        outlineA.examplesIndex - outlineB.examplesIndex ||
+        outlineA.exampleIndex - outlineB.exampleIndex
+      );
+    });
+    items.push({
+      kind: 'outline',
+      status: worstStatus(group.rows),
+      order: group.order,
+      outline: group.outline,
+      rows: group.rows,
+    });
+  }
+  items.sort((a, b) => {
+    const status = compareStatus(a.status, b.status);
+    return status !== 0 ? status : a.order - b.order;
+  });
+  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>${description}<div class="rows">${items
+    .map((item) =>
+      item.kind === 'outline' && item.outline && item.rows
+        ? renderOutline(item.outline, item.rows, featureIndex, idIndex)
+        : item.scenario
+          ? renderScenario(
+              item.scenario,
+              featureIndex,
+              idIndex.get(item.scenario.id) ?? 0,
+            )
+          : '',
     )
     .join('')}</div></details>`;
 }
@@ -566,6 +742,14 @@ const SCRIPT = `<script>
       feature.hidden = !any;
       if (any && (query || state.hidden.size || tag)) feature.open = true;
     });
+    Array.prototype.slice.call(document.querySelectorAll('[data-examples]')).forEach(function (group) {
+      var any = Array.prototype.some.call(group.querySelectorAll('[data-scenario]'), function (child) { return !child.hidden; });
+      group.hidden = !any;
+    });
+    Array.prototype.slice.call(document.querySelectorAll('[data-outline]')).forEach(function (group) {
+      var any = Array.prototype.some.call(group.querySelectorAll('[data-scenario]'), function (child) { return !child.hidden; });
+      group.hidden = !any;
+    });
     searchOpened.forEach(function (scenario) { scenario.open = false; });
     searchOpened = [];
     if (query) {
@@ -714,6 +898,9 @@ const SCRIPT = `<script>
     var feature = scenario.closest('[data-feature]');
     var featureTitle = feature ? feature.querySelector('h2') : null;
     var scenarioTitle = scenario.querySelector('.scenarioName');
+    var scenarioName = scenario.getAttribute('data-scenario-name') || (scenarioTitle ? scenarioTitle.textContent : '');
+    var example = scenario.getAttribute('data-example') || '';
+    var examplesName = scenario.getAttribute('data-examples-name') || '';
     var step = scenario.querySelector('.step[data-status="failed"]');
     var keyword = step && step.querySelector('.kw') ? step.querySelector('.kw').textContent.trim() : '';
     var body = step ? step.querySelector('div') : null;
@@ -727,10 +914,15 @@ const SCRIPT = `<script>
     var stepLabel = keyword === 'Hook' ? text.trim() : (keyword + ' ' + text.trim()).trim();
     var lines = [
       'Feature: ' + (featureTitle ? featureTitle.textContent : ''),
-      'Scenario: ' + (scenarioTitle ? scenarioTitle.textContent : ''),
+      'Scenario: ' + scenarioName
+    ];
+    if (example) {
+      lines.push('Example: ' + example + (examplesName ? ' (' + examplesName + ')' : ''));
+    }
+    lines.push(
       'URI: ' + (scenario.getAttribute('data-uri') || ''),
       'Step: ' + stepLabel
-    ];
+    );
     if (error && error.textContent.trim()) {
       lines.push('Error:\\n' + error.textContent.trim());
     }

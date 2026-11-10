@@ -5,6 +5,7 @@ import {
 import type {
   Attachment,
   Envelope,
+  Examples,
   Feature,
   FeatureChild,
   Hook,
@@ -50,6 +51,21 @@ export interface ReportStep {
   hook?: string;
 }
 
+export interface ReportOutline {
+  id: string;
+  keyword: string;
+  name: string;
+  description: string;
+  tags: string[];
+  examplesId: string;
+  examplesKeyword: string;
+  examplesName: string;
+  examplesDescription: string;
+  examplesTags: string[];
+  examplesIndex: number;
+  exampleIndex: number;
+}
+
 export interface ReportScenario {
   id: string;
   name: string;
@@ -63,6 +79,7 @@ export interface ReportScenario {
   attempt: number;
   startedAt?: string;
   tags: string[];
+  outline?: ReportOutline;
   steps: ReportStep[];
   attachments: ReportAttachment[];
   extraAttachments: ReportAttachment[];
@@ -328,6 +345,14 @@ function count(counts: Record<ReportStatus, number> & { total: number }, status:
   counts[status] += 1;
 }
 
+interface OutlineExample {
+  scenario: Scenario;
+  ruleName?: string;
+  examples: Examples;
+  examplesIndex: number;
+  exampleIndex: number;
+}
+
 function featureTree(document: Feature | undefined): Map<string, {
   scenario: Scenario;
   ruleName?: string;
@@ -344,6 +369,32 @@ function featureTree(document: Feature | undefined): Map<string, {
   return map;
 }
 
+function exampleRowTree(document: Feature | undefined): Map<string, OutlineExample> {
+  const map = new Map<string, OutlineExample>();
+  if (!document) return map;
+  const visit = (children: readonly (FeatureChild | RuleChild)[], ruleName?: string): void => {
+    for (const child of children) {
+      if (child.scenario) {
+        const scenario = child.scenario;
+        scenario.examples.forEach((examples, examplesIndex) => {
+          examples.tableBody.forEach((row, exampleIndex) => {
+            map.set(row.id, {
+              scenario,
+              ruleName,
+              examples,
+              examplesIndex,
+              exampleIndex,
+            });
+          });
+        });
+      }
+      if ('rule' in child && child.rule) visit(child.rule.children ?? [], child.rule.name);
+    }
+  };
+  visit(document.children ?? []);
+  return map;
+}
+
 export function buildReportModel(
   envelopes: Envelope[],
   provenance?: Map<string, string>,
@@ -353,6 +404,7 @@ export function buildReportModel(
   const featureSeen = new Set<Feature>();
   const featureOrder: Feature[] = [];
   const scenarioTree = new Map<string, { scenario: Scenario; ruleName?: string }>();
+  const outlineRows = new Map<string, OutlineExample>();
   const featureByScenarioId = new Map<string, Feature>();
   const stepById = new Map<string, Step>();
   const pickles = new Map<string, Pickle>();
@@ -414,6 +466,9 @@ export function buildReportModel(
       for (const [id, value] of featureTree(feature)) {
         scenarioTree.set(id, value);
         featureByScenarioId.set(id, feature);
+      }
+      for (const [id, value] of exampleRowTree(feature)) {
+        outlineRows.set(id, value);
       }
       const collectSteps = (children: readonly (FeatureChild | RuleChild)[]): void => {
         for (const child of children) {
@@ -542,15 +597,36 @@ export function buildReportModel(
       ? statusOf(getWorstTestStepResult(rawResults).status)
       : 'unknown';
     const duration = stepRows.reduce((sum, step) => sum + step.durationMs, 0);
-    const tree = scenarioTree.get(pickle.astNodeIds[0] ?? '');
+    const astIds = pickle.astNodeIds ?? [];
+    const candidate = astIds.length ? outlineRows.get(astIds.at(-1) ?? '') : undefined;
+    const outlineExample =
+      candidate && astIds.includes(candidate.scenario.id) ? candidate : undefined;
+    const scenarioId = outlineExample?.scenario.id ?? astIds[0] ?? '';
+    const tree = outlineExample ?? scenarioTree.get(scenarioId);
     const feature =
-      featureByScenarioId.get(pickle.astNodeIds[0] ?? '') ??
+      featureByScenarioId.get(scenarioId) ??
       features.get(pickle.uri);
     const stepAttachments = stepRows.flatMap((step) => step.attachments);
     const extraAttachments = mapAttachments(
       startedAttachments.filter((attachment) => !attachment.testStepId),
     );
     const scenarioAttachments = [...stepAttachments, ...extraAttachments];
+    const outline: ReportOutline | undefined = outlineExample
+      ? {
+          id: outlineExample.scenario.id,
+          keyword: outlineExample.scenario.keyword,
+          name: outlineExample.scenario.name,
+          description: normalizeText(outlineExample.scenario.description),
+          tags: outlineExample.scenario.tags.map((tag) => tag.name),
+          examplesId: outlineExample.examples.id,
+          examplesKeyword: outlineExample.examples.keyword,
+          examplesName: outlineExample.examples.name,
+          examplesDescription: normalizeText(outlineExample.examples.description),
+          examplesTags: outlineExample.examples.tags.map((tag) => tag.name),
+          examplesIndex: outlineExample.examplesIndex,
+          exampleIndex: outlineExample.exampleIndex,
+        }
+      : undefined;
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
@@ -564,6 +640,7 @@ export function buildReportModel(
       attempt: Number.isFinite(latest.attempt) ? latest.attempt : 0,
       ...(timestampIso(latest.timestamp) ? { startedAt: timestampIso(latest.timestamp) } : {}),
       tags: pickle.tags.map((tag) => tag.name),
+      ...(outline ? { outline } : {}),
       steps: stepRows,
       attachments: scenarioAttachments,
       extraAttachments,

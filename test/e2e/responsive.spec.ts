@@ -11,6 +11,9 @@ const fixtures = ['failed.json', 'minimal.json', 'behave.json'].map((name) =>
 const unhappy = fileURLToPath(
   new URL('../fixtures/legacy/unhappy.json', import.meta.url),
 );
+const outlineFixture = fileURLToPath(
+  new URL('../fixtures/messages/examples-tables.ndjson', import.meta.url),
+);
 
 const viewports = [
   { width: 320, height: 700 },
@@ -250,6 +253,57 @@ test('keeps a long source name inside 320px', async ({ page }) => {
     const box = await sourceName.boundingBox();
     expect(box, 'long source name has a box').not.toBeNull();
     expect(box!.width).toBeLessThanOrEqual(320);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps grouped outlines readable at 320px and 200% zoom', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-outline-responsive-'));
+  const output = path.join(dir, 'outline-responsive.html');
+
+  try {
+    const code = await runCli(
+      [outlineFixture, '--out', output, '--title', 'Outline responsive'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(pathToFileURL(output).href);
+    expect(await pageOverflow(page), 'outline 320 overflow').toBeLessThanOrEqual(
+      1,
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('.outlineTitle').first(),
+      'outline title at 320',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('.examplesTitle').first(),
+      'examples title at 320',
+    );
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await pageOverflow(page),
+      'outline 200% overflow',
+    ).toBeLessThanOrEqual(1);
+    await expectWithinViewport(
+      page,
+      page.locator('.outlineTitle').first(),
+      'outline title at 200%',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('.examplesTitle').first(),
+      'examples title at 200%',
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
