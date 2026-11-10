@@ -199,6 +199,17 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .marker.pass { background: var(--pass); } .marker.fail { background: var(--fail); } .marker.pending { background: var(--pending); } .marker.undefined { background: var(--undefined); } .marker.ambiguous, .marker.skipped, .marker.unknown { background: var(--muted); }
 .step .kw { color: var(--muted); }
 .step .dur { color: var(--accent-text); font-family: var(--font-mono); font-size: 0.6875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.diagnostic { margin: 0.375rem 0 0.125rem; padding: 0.5rem 0.625rem; border: 1px solid var(--line); border-left: 3px solid var(--undefined); border-radius: 5px; background: var(--undefined-soft); }
+.diagnostic[data-diagnostic="ambiguous"] { border-left-color: var(--ambiguous); background: var(--surface-3); }
+.diagnosticLead { margin: 0; color: var(--ink-2); font-size: 0.75rem; }
+.snippet { margin: 0.375rem 0 0; min-width: 0; }
+.snippetLang { display: block; color: var(--muted); font-family: var(--font-mono); font-size: 0.625rem; }
+.snippet pre { margin: 0.125rem 0 0; padding: 0.5rem 0.625rem; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); color: var(--ink); font: 0.6875rem/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.snippet code { font: inherit; }
+.definitions { display: grid; gap: 0.25rem; margin: 0.375rem 0 0; padding: 0; list-style: none; }
+.definitions li { display: grid; gap: 0.125rem; min-width: 0; padding: 0.375rem 0.5rem; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); }
+.definitionPattern { font: 0.6875rem/1.5 var(--font-mono); overflow-wrap: anywhere; }
+.definitionSource { color: var(--muted); font-family: var(--font-mono); font-size: 0.625rem; overflow-wrap: anywhere; }
 .error { margin: 0.375rem 0 0.125rem; padding: 0.5rem 0.625rem; border: 1px solid color-mix(in oklab, var(--fail) 24%, var(--line)); border-radius: 5px; background: var(--fail-soft); color: var(--fail); font: 0.6875rem/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .docString { margin: 0.375rem 0 0.125rem; padding: 0.5rem 0.625rem; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-3); color: var(--ink-2); font: 0.6875rem/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .tableWrap { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }

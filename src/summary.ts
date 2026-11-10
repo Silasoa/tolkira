@@ -51,6 +51,8 @@ export interface SummaryStep {
   status: SummaryStatus;
   durationMs: number;
   message?: string;
+  suggestions?: Array<{ language?: string; code: string }>;
+  definitions?: Array<{ pattern: string; source?: string }>;
 }
 
 export interface SummaryScenario {
@@ -238,6 +240,8 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   const attachmentList: Attachment[] = [];
   const finishedIds = new Set<string>();
   const scenarioFeatures = new Map<string, Feature>();
+  const suggestions = new Map<string, Array<{ language?: string; code: string }>>();
+  const stepDefinitions = new Map<string, { pattern: string; source?: string }>();
 
   const indexFeature = (feature: Feature): void => {
     const visit = (children: readonly (FeatureChild | RuleChild)[]): void => {
@@ -294,6 +298,36 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         const list = attachments.get(startedId) ?? [];
         list.push(envelope.attachment);
         attachments.set(startedId, list);
+      }
+    }
+    if (envelope.suggestion) {
+      const snippets = Array.isArray(envelope.suggestion.snippets)
+        ? envelope.suggestion.snippets
+        : [];
+      const list = snippets
+        .filter((snippet) => typeof snippet?.code === 'string')
+        .map((snippet) => ({
+          ...(typeof snippet.language === 'string' && snippet.language
+            ? { language: snippet.language }
+            : {}),
+          code: snippet.code,
+        }));
+      if (list.length > 0) suggestions.set(envelope.suggestion.pickleStepId, list);
+    }
+    if (envelope.stepDefinition) {
+      const pattern = envelope.stepDefinition.pattern;
+      if (typeof pattern?.source === 'string') {
+        const reference = envelope.stepDefinition.sourceReference;
+        const uri = typeof reference?.uri === 'string' ? reference.uri : '';
+        const line =
+          typeof reference?.location?.line === 'number'
+            ? reference.location.line
+            : undefined;
+        const source = uri ? (line ? `${uri}:${line}` : uri) : undefined;
+        stepDefinitions.set(envelope.stepDefinition.id, {
+          pattern: pattern.source,
+          ...(source ? { source } : {}),
+        });
       }
     }
   }
@@ -377,14 +411,33 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
       if (testStep.pickleStepId) {
         const pickleStep = pickleSteps.get(testStep.pickleStepId);
         const astNodeId = pickleStep?.astNodeIds[0];
+        const status = toStatus(result.status);
+        const stepSuggestions =
+          status === 'undefined'
+            ? (suggestions.get(testStep.pickleStepId) ?? [])
+            : [];
+        const definitionIds =
+          status === 'ambiguous' && Array.isArray(testStep.stepDefinitionIds)
+            ? testStep.stepDefinitionIds
+            : [];
+        const stepMatches = definitionIds
+          .map((id) => stepDefinitions.get(id))
+          .filter(
+            (definition): definition is { pattern: string; source?: string } =>
+              Boolean(definition),
+          );
         steps.push({
           keyword: astNodeId
             ? (tree.stepKeywords.get(astNodeId) ?? '').trim()
             : '',
           text: pickleStep?.text ?? '',
-          status: toStatus(result.status),
+          status,
           durationMs: durationMs(result.duration),
           ...(message ? { message } : {}),
+          ...(stepSuggestions.length > 0
+            ? { suggestions: stepSuggestions }
+            : {}),
+          ...(stepMatches.length > 0 ? { definitions: stepMatches } : {}),
         });
       } else if (testStep.hookId) {
         const hook = hooks.get(testStep.hookId);

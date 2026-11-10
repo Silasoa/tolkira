@@ -33,6 +33,21 @@ const globalHooksFixture = fileURLToPath(
 const globalHookAttachments = fileURLToPath(
   new URL('./fixtures/messages/global-hooks-attachments.ndjson', import.meta.url),
 );
+const undefinedFixture = fileURLToPath(
+  new URL('./fixtures/messages/undefined.ndjson', import.meta.url),
+);
+const ambiguousFixture = fileURLToPath(
+  new URL('./fixtures/messages/ambiguous.ndjson', import.meta.url),
+);
+const allStatusesFixture = fileURLToPath(
+  new URL('./fixtures/messages/all-statuses.ndjson', import.meta.url),
+);
+const junitFixture = fileURLToPath(
+  new URL('./fixtures/junit/basic.xml', import.meta.url),
+);
+const unhappyFixture = fileURLToPath(
+  new URL('./fixtures/legacy/unhappy.json', import.meta.url),
+);
 
 async function renderMessagesFile(file: string): Promise<string> {
   const content = await readFile(file, 'utf8');
@@ -1177,6 +1192,270 @@ describe('feature overview and matrix', () => {
       (match) => match[1],
     );
     expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Duration']);
+  });
+});
+
+function scenarioOpeningTag(html: string, name: string): string {
+  const marker = `data-scenario-name="${name}"`;
+  const index = html.indexOf(marker);
+  expect(index, `scenario ${name}`).toBeGreaterThan(-1);
+  const start = html.lastIndexOf('<details class="scenario"', index);
+  return html.slice(start, html.indexOf('>', index) + 1);
+}
+
+function featureOpeningTag(html: string): string {
+  const start = html.indexOf('<details class="feature');
+  return html.slice(start, html.indexOf('>', start) + 1);
+}
+
+describe('parity diagnostics rendering', () => {
+  it('renders an undefined-step snippet', async () => {
+    const html = await renderReport(undefinedFixture, { title: 'Undefined' });
+
+    expect(html).toContain('data-diagnostic="undefined"');
+    expect(html).toContain(
+      'No step definition found. Implement with the snippet(s) below:',
+    );
+    expect(html).toContain('class="snippet"');
+    expect(html).toContain(
+      'Given(&quot;a step that is yet to be defined&quot;, () =&gt; {',
+    );
+  });
+
+  it('renders every suggestion with its language label', async () => {
+    const html = await renderReport(undefinedFixture, { title: 'Snippets' });
+
+    expect(html).toContain('a list of {int} things');
+    expect(html).toContain('a list of {float} things');
+    expect(html).toContain('class="snippetLang">typescript');
+  });
+
+  it('renders the undefined lead without snippet data', async () => {
+    const envelopes = parseMessages(
+      await readFile(undefinedFixture, 'utf8'),
+      undefinedFixture,
+    ).filter((envelope) => !envelope.suggestion);
+    const html = await renderHtml(envelopes, { title: 'No snippets' });
+
+    expect(html).toContain('No step definition found.');
+    expect(html).not.toContain('Implement with the snippet(s) below:');
+    expect(html).not.toContain('class="snippet"');
+  });
+
+  it('renders ambiguous patterns with relative source references', async () => {
+    const html = await renderReport(ambiguousFixture, { title: 'Ambiguous' });
+
+    expect(html).toContain('data-diagnostic="ambiguous"');
+    expect(html).toContain('Multiple matching step definitions found:');
+    expect(html).toContain('^a (.*?) with (.*?)$');
+    expect(html).toContain('^a step with (.*?)$');
+    expect(html).toContain('samples/ambiguous/ambiguous.ts:3');
+    expect(html).toContain('samples/ambiguous/ambiguous.ts:7');
+  });
+
+  it('renders the ambiguous lead without definition data', async () => {
+    const envelopes = parseMessages(
+      await readFile(ambiguousFixture, 'utf8'),
+      ambiguousFixture,
+    ).filter((envelope) => !envelope.stepDefinition);
+    const html = await renderHtml(envelopes, { title: 'No definitions' });
+
+    expect(html).toContain('Multiple matching step definitions found:');
+    expect(html).not.toContain('class="definitions"');
+  });
+
+  it('reduces absolute definition sources to the report-relative form', async () => {
+    const envelopes = parseMessages(
+      await readFile(ambiguousFixture, 'utf8'),
+      ambiguousFixture,
+    );
+    const definition = envelopes.find(
+      (envelope) => envelope.stepDefinition,
+    )?.stepDefinition;
+    expect(definition).toBeDefined();
+    if (!definition) return;
+    definition.sourceReference.uri =
+      'C:\\Users\\name\\proj\\features\\ambiguous.ts';
+
+    const html = await renderHtml(envelopes, { title: 'Absolute source' });
+
+    expect(html).toContain('features/ambiguous.ts:3');
+    expect(html).not.toContain('Users');
+  });
+
+  it('escapes snippets, patterns and source references', async () => {
+    const undefinedEnvelopes = parseMessages(
+      await readFile(undefinedFixture, 'utf8'),
+      undefinedFixture,
+    );
+    const suggestion = undefinedEnvelopes.find(
+      (envelope) => envelope.suggestion,
+    )?.suggestion;
+    expect(suggestion).toBeDefined();
+    if (suggestion) {
+      suggestion.snippets[0].code = '<script>alert(1)</script>';
+    }
+    const undefinedHtml = await renderHtml(undefinedEnvelopes, {
+      title: 'Escaped snippets',
+    });
+
+    expect(undefinedHtml).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(undefinedHtml).not.toContain('<script>alert(1)</script>');
+
+    const ambiguousEnvelopes = parseMessages(
+      await readFile(ambiguousFixture, 'utf8'),
+      ambiguousFixture,
+    );
+    const definition = ambiguousEnvelopes.find(
+      (envelope) => envelope.stepDefinition,
+    )?.stepDefinition;
+    expect(definition).toBeDefined();
+    if (!definition) return;
+    definition.pattern.source = '<img src=x onerror=alert(2)>';
+    definition.sourceReference.uri = '"><svg onload=alert(3)>';
+    const ambiguousHtml = await renderHtml(ambiguousEnvelopes, {
+      title: 'Escaped definitions',
+    });
+
+    expect(ambiguousHtml).toContain(
+      '&lt;img src=x onerror=alert(2)&gt;',
+    );
+    expect(ambiguousHtml).not.toContain('<img src=x');
+    expect(ambiguousHtml).toContain(
+      '&quot;&gt;&lt;svg onload=alert(3)&gt;',
+    );
+    expect(ambiguousHtml).not.toContain('<svg onload');
+  });
+
+  it('does not render a diagnostic on a passed step with definitions', async () => {
+    const html = await renderReport(undefinedFixture, { title: 'Passed step' });
+    const marker = html.indexOf('an implemented step</div>');
+    expect(marker).toBeGreaterThan(-1);
+    const start = html.lastIndexOf('<li class="step"', marker);
+    const end = html.indexOf('</li>', marker);
+    const passedStep = html.slice(start, end);
+
+    expect(passedStep).toContain('an implemented step');
+    expect(passedStep).not.toContain('data-diagnostic');
+    expect(html.match(/<div class="diagnostic"/g) ?? []).toHaveLength(4);
+  });
+
+  it('indexes diagnostic snippets and patterns for search', async () => {
+    const undefinedHtml = await renderReport(undefinedFixture, {
+      title: 'Search snippets',
+    });
+    const undefinedSearch =
+      undefinedHtml.match(
+        /data-scenario-name="Snippets reflect parameter types"[^>]*data-search="([^"]*)"/,
+      )?.[1] ?? '';
+    expect(undefinedSearch).toContain('a list of {int} things');
+    expect(undefinedSearch).toContain('a list of {float} things');
+
+    const ambiguousHtml = await renderReport(ambiguousFixture, {
+      title: 'Search patterns',
+    });
+    const ambiguousSearch =
+      ambiguousHtml.match(
+        /data-scenario-name="Multiple step definitions for a step"[^>]*data-search="([^"]*)"/,
+      )?.[1] ?? '';
+    expect(ambiguousSearch).toContain('^a (.*?) with (.*?)$');
+    expect(ambiguousSearch).toContain('samples/ambiguous/ambiguous.ts:3');
+  });
+
+  it('caps diagnostic text in the search index', async () => {
+    const envelopes = parseMessages(
+      await readFile(ambiguousFixture, 'utf8'),
+      ambiguousFixture,
+    );
+    const definition = envelopes.find(
+      (envelope) => envelope.stepDefinition,
+    )?.stepDefinition;
+    expect(definition).toBeDefined();
+    if (!definition) return;
+    const long = 'x'.repeat(5000);
+    definition.pattern.source = long;
+
+    const html = await renderHtml(envelopes, { title: 'Long pattern' });
+    const dataSearch = html.match(/data-search="([^"]*)"/)?.[1] ?? '';
+
+    expect(dataSearch.length).toBeLessThan(4000);
+    expect(html).toContain(long);
+  });
+});
+
+describe('default open state', () => {
+  it('opens non-passed features and scenarios and keeps passed ones collapsed', async () => {
+    const html = await renderReport(allStatusesFixture, {
+      title: 'All statuses',
+    });
+
+    expect(featureOpeningTag(html)).toContain(' open>');
+    for (const name of ['Failing', 'Pending', 'Skipped', 'Undefined', 'Ambiguous']) {
+      expect(scenarioOpeningTag(html, name), name).toContain(' open>');
+    }
+    expect(scenarioOpeningTag(html, 'Passing')).not.toContain(' open>');
+  });
+
+  it('opens an unknown scenario and its feature', async () => {
+    const html = await renderHtml(
+      syntheticRun([
+        {
+          name: 'Unknown feature',
+          scenarios: [{ name: 'Unknown scenario', status: 'unknown' }],
+        },
+      ]),
+      { title: 'Unknown' },
+    );
+
+    expect(featureOpeningTag(html)).toContain(' open>');
+    expect(scenarioOpeningTag(html, 'Unknown scenario')).toContain(' open>');
+  });
+
+  it('keeps passed scenarios without images collapsed', async () => {
+    const html = await renderReport(minimalFixture, { title: 'Passed only' });
+
+    expect(html.match(/<details class="scenario"[^>]* open>/g) ?? []).toHaveLength(
+      0,
+    );
+  });
+
+  it('opens non-passed legacy and JUnit rows without diagnostics', async () => {
+    const legacyHtml = await renderReport(unhappyFixture, {
+      title: 'Legacy open',
+    });
+    expect(
+      scenarioOpeningTag(
+        legacyHtml,
+        'Fred wants to see if steps are undefined on the HTML report',
+      ),
+    ).toContain(' open>');
+    expect(legacyHtml).toContain('No step definition found.');
+    expect(legacyHtml).not.toContain('class="snippet"');
+    expect(legacyHtml).not.toContain(
+      '<div class="diagnostic" data-diagnostic="ambiguous"',
+    );
+
+    const junitHtml = await renderReport(junitFixture, { title: 'JUnit open' });
+    expect(scenarioOpeningTag(junitHtml, 'slow payment')).toContain(' open>');
+    expect(junitHtml).not.toContain('<div class="diagnostic"');
+  });
+
+  it('renders 1000 non-passed scenarios with every row open', async () => {
+    const run = syntheticRun([
+      {
+        name: 'Mass failure feature',
+        scenarios: Array.from({ length: 1000 }, (_, index) => ({
+          name: `Scenario ${index + 1}`,
+          status: 'undefined',
+        })),
+      },
+    ]);
+    const html = await renderHtml(run, { title: 'Stress non-passed' });
+
+    expect(
+      html.match(/<details class="scenario"[^>]* open>/g) ?? [],
+    ).toHaveLength(1000);
+    expect(html.length).toBeLessThan(5 * 1024 * 1024);
   });
 });
 

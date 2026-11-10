@@ -20,6 +20,15 @@ const failed = fileURLToPath(
 const globalHooks = fileURLToPath(
   new URL('./fixtures/messages/global-hooks.ndjson', import.meta.url),
 );
+const undefinedFixture = fileURLToPath(
+  new URL('./fixtures/messages/undefined.ndjson', import.meta.url),
+);
+const ambiguousFixture = fileURLToPath(
+  new URL('./fixtures/messages/ambiguous.ndjson', import.meta.url),
+);
+const unhappyLegacy = fileURLToPath(
+  new URL('./fixtures/legacy/unhappy.json', import.meta.url),
+);
 
 describe('machine-readable summary', () => {
   it('summarizes a Messages report', async () => {
@@ -201,6 +210,53 @@ describe('machine-readable summary', () => {
     const summary = summarizeEnvelopes(envelopes);
     expect(summary.schemaVersion).toBe(1);
     expect(summary.status).toBe('failed');
+  });
+
+  it('exposes step diagnostics without changing the schema version', async () => {
+    const undefinedSummary = await summarizeReport(undefinedFixture);
+    expect(undefinedSummary.schemaVersion).toBe(1);
+    const list = undefinedSummary.scenarios.find(
+      (scenario) => scenario.name === 'Snippets reflect parameter types',
+    );
+    expect(list?.steps[0]?.suggestions).toEqual([
+      {
+        language: 'typescript',
+        code: 'Given("a list of {int} things", (int: number) => {\n  return "pending"\n})',
+      },
+      {
+        language: 'typescript',
+        code: 'Given("a list of {float} things", (float: number) => {\n  return "pending"\n})',
+      },
+    ]);
+
+    const passed = undefinedSummary.scenarios.find(
+      (scenario) => scenario.name === 'Steps before undefined steps are executed',
+    )?.steps[0];
+    expect(passed?.status).toBe('passed');
+    expect(passed?.definitions).toBeUndefined();
+
+    const ambiguousSummary = await summarizeReport(ambiguousFixture);
+    expect(ambiguousSummary.schemaVersion).toBe(1);
+    expect(ambiguousSummary.scenarios[0]?.steps[0]?.definitions).toEqual([
+      {
+        pattern: '^a (.*?) with (.*?)$',
+        source: 'samples/ambiguous/ambiguous.ts:3',
+      },
+      {
+        pattern: '^a step with (.*?)$',
+        source: 'samples/ambiguous/ambiguous.ts:7',
+      },
+    ]);
+  });
+
+  it('does not invent diagnostics for legacy input', async () => {
+    const summary = await summarizeReport(unhappyLegacy);
+    const steps = summary.scenarios.flatMap((scenario) => scenario.steps);
+
+    expect(steps.some((step) => step.status === 'undefined')).toBe(true);
+    expect(
+      steps.every((step) => !step.suggestions && !step.definitions),
+    ).toBe(true);
   });
 
   it('carries a per-scenario hook name in the summary', async () => {

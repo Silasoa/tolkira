@@ -332,7 +332,38 @@ function scenarioTags(model: ReportModel): string[] {
   );
 }
 
+function renderDiagnostic(step: ReportStep): string {
+  if (step.status === 'undefined') {
+    const suggestions = step.suggestions ?? [];
+    const lead = suggestions.length
+      ? 'No step definition found. Implement with the snippet(s) below:'
+      : 'No step definition found.';
+    const snippets = suggestions
+      .map((suggestion) => {
+        const language = suggestion.language
+          ? `<span class="snippetLang">${escapeHtml(suggestion.language)}</span>`
+          : '';
+        return `<div class="snippet">${language}<pre><code>${escapeHtml(suggestion.code)}</code></pre></div>`;
+      })
+      .join('');
+    return `<div class="diagnostic" data-diagnostic="undefined"><p class="diagnosticLead">${lead}</p>${snippets}</div>`;
+  }
+  if (step.status === 'ambiguous') {
+    const definitions = step.definitions ?? [];
+    const items = definitions
+      .map(
+        (definition) =>
+          `<li><code class="definitionPattern">${escapeHtml(definition.pattern)}</code>${definition.source ? `<span class="definitionSource">${escapeHtml(displayUri(definition.source))}</span>` : ''}</li>`,
+      )
+      .join('');
+    const list = items ? `<ul class="definitions">${items}</ul>` : '';
+    return `<div class="diagnostic" data-diagnostic="ambiguous"><p class="diagnosticLead">Multiple matching step definitions found:</p>${list}</div>`;
+  }
+  return '';
+}
+
 function renderStep(step: ReportStep, scenarioName: string): string {
+  const diagnostic = renderDiagnostic(step);
   const docString = step.docString
     ? `<pre class="docString">${escapeHtml(step.docString)}</pre>`
     : '';
@@ -356,7 +387,7 @@ function renderStep(step: ReportStep, scenarioName: string): string {
   const attachments = step.attachments
     .map((attachment) => renderAttachment(attachment, context))
     .join('');
-  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
+  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
 }
 
 function hookLabel(
@@ -423,7 +454,27 @@ function scenarioText(scenario: ReportScenario): string {
           `${hook.type} ${hook.name ?? ''} ${(hook.message ?? '').slice(0, SEARCH_MESSAGE_LIMIT)}`,
       )
       .join(' '),
-    scenario.steps.map((step) => `${step.keyword} ${step.text} ${(step.message ?? '').slice(0, SEARCH_MESSAGE_LIMIT)}`).join(' '),
+    scenario.steps
+      .map((step) => {
+        const diagnostic =
+          step.status === 'undefined' || step.status === 'ambiguous'
+            ? [
+                ...(step.suggestions ?? []).flatMap((suggestion) => [
+                  suggestion.language ?? '',
+                  suggestion.code.slice(0, SEARCH_MESSAGE_LIMIT),
+                ]),
+                ...(step.definitions ?? []).flatMap((definition) => [
+                  definition.pattern.slice(0, SEARCH_MESSAGE_LIMIT),
+                  displayUri(definition.source ?? '').slice(
+                    0,
+                    SEARCH_MESSAGE_LIMIT,
+                  ),
+                ]),
+              ].join(' ')
+            : '';
+        return `${step.keyword} ${step.text} ${(step.message ?? '').slice(0, SEARCH_MESSAGE_LIMIT)} ${diagnostic}`;
+      })
+      .join(' '),
   ].join(' ');
 }
 
@@ -452,7 +503,8 @@ function renderScenario(
   const image = scenario.attachments.find(
     (attachment) => attachment.kind === 'image' && attachment.dataUri,
   );
-  const open = scenario.status === 'failed' || (!grouped && Boolean(image));
+  const open =
+    scenario.status !== 'passed' || (!grouped && Boolean(image));
   const passedHooks = scenario.hooks.filter(
     (hook) => hook.status === 'passed',
   );
@@ -565,11 +617,11 @@ function renderFeature(
   { feature, scenarios }: OrderedFeature,
   featureIndex: number,
 ): string {
-  const open =
-    feature.status === 'failed' ||
-    scenarios.some((scenario) =>
+  const open = scenarios.some(
+    (scenario) =>
+      scenario.status !== 'passed' ||
       scenario.attachments.some((attachment) => attachment.kind === 'image'),
-    );
+  );
   const description = feature.description
     ? `<p class="description">${escapeHtml(feature.description)}</p>`
     : '';
@@ -823,26 +875,32 @@ const SCRIPT = `<script>
     searchOpened = [];
     searchOpenedHooks.forEach(function (group) { group.open = false; });
     searchOpenedHooks = [];
+    var opened = 0;
+    var openable = 0;
     if (query) {
-      var opened = 0;
       scenarios.forEach(function (scenario) {
-        if (!scenario.hidden && opened < 20) {
-          if (!scenario.open) searchOpened.push(scenario);
+        if (!scenario.hidden && !scenario.open) openable += 1;
+      });
+      scenarios.forEach(function (scenario) {
+        if (scenario.hidden) return;
+        if (!scenario.open) {
+          if (opened >= 20) return;
           scenario.open = true;
+          searchOpened.push(scenario);
           opened += 1;
-          Array.prototype.slice.call(scenario.querySelectorAll('details.hookGroup')).forEach(function (group) {
-            if (!group.open) {
-              group.open = true;
-              searchOpenedHooks.push(group);
-            }
-          });
         }
+        Array.prototype.slice.call(scenario.querySelectorAll('details.hookGroup')).forEach(function (group) {
+          if (!group.open) {
+            group.open = true;
+            searchOpenedHooks.push(group);
+          }
+        });
       });
     }
     if (live) live.textContent = visible + ' of ' + scenarios.length + ' scenarios visible';
     if (searchNote) {
-      if (query && visible > 20) {
-        searchNote.textContent = '20 of ' + visible + ' matches expanded. Use Expand all to open the rest.';
+      if (query && opened === 20 && openable > 20) {
+        searchNote.textContent = '20 of ' + openable + ' matches expanded. Use Expand all to open the rest.';
         searchNote.hidden = false;
       } else {
         searchNote.hidden = true;
