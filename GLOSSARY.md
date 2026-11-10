@@ -51,6 +51,12 @@ name, tags and description. An outline can have several.
 `#<examples>.<example>` in the report. Each row keeps its own outcome,
 attachments and anchor.
 
+**Hook** — a Cucumber before/after function around a scenario or step. The
+report shows per-scenario hooks separately from steps.
+
+**Test-run hook** — a BeforeAll/AfterAll function around the whole run. It
+appears in the report's Hooks section, not inside a scenario.
+
 **Provenance** — the input file a feature came from. Tolkira only uses it when
 the feature URI belongs to exactly one input; shared or missing provenance
 renders a flat report.

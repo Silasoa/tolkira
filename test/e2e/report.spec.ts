@@ -32,6 +32,15 @@ const examplesFixture = fileURLToPath(
 const examplesAttachmentFixture = fileURLToPath(
   new URL('../fixtures/messages/examples-tables-attachment.ndjson', import.meta.url),
 );
+const hooksFixture = fileURLToPath(
+  new URL('../fixtures/messages/hooks.ndjson', import.meta.url),
+);
+const globalHooksFixture = fileURLToPath(
+  new URL('../fixtures/messages/global-hooks.ndjson', import.meta.url),
+);
+const globalHookAttachments = fileURLToPath(
+  new URL('../fixtures/messages/global-hooks-attachments.ndjson', import.meta.url),
+);
 
 function outlineNdjson(count: number): string {
   const rows = Array.from({ length: count }, (_, index) => ({
@@ -568,7 +577,10 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
       page.getByRole('heading', { name: 'Happy HTML reporting' }),
     ).toBeVisible();
     await expect(page.getByText('attachment-1.png')).toBeVisible();
-    await expect(page.getByText('Before hook').first()).toBeVisible();
+    const hookGroup = page.locator('details.hookGroup').first();
+    await expect(hookGroup).toBeVisible();
+    await hookGroup.locator('summary').click();
+    await expect(hookGroup.locator('.hookLabel').first()).toContainText('Before');
     await expect(
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
@@ -1205,6 +1217,76 @@ test('keeps each example attachment on its own row', async ({ page }) => {
     await rows.nth(0).locator('summary').click();
     await rows.nth(0).locator('.shotButton').click();
     await expect(page.locator('#tolkira-lightbox')).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('shows per-scenario hooks separately and opens passed hooks', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hooks-e2e-'));
+  const output = path.join(dir, 'hooks.html');
+
+  try {
+    const code = await runCli([hooksFixture, '--out', output, '--title', 'Hooks'], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const group = page.locator('details.hookGroup').first();
+    await expect(group).toBeVisible();
+    await expect(group.locator('summary')).toContainText('hook');
+    await group.locator('summary').click();
+    await expect(group.locator('.hook').first()).toBeVisible();
+    await expect(page.locator('.scenarioSub').first()).toContainText('hook');
+    await expect(page.locator('[data-run-hooks]')).toHaveCount(0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('shows test-run hooks below the features', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-run-hooks-e2e-'));
+  const output = path.join(dir, 'run-hooks.html');
+
+  try {
+    const code = await runCli(
+      [globalHooksFixture, '--out', output, '--title', 'Run hooks'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const section = page.locator('[data-run-hooks]');
+    await expect(section).toBeVisible();
+    await expect(section).toContainText('BeforeAll');
+    await expect(section).toContainText('AfterAll');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('shows run-hook attachments in the Hooks section', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-run-hook-attach-e2e-'));
+  const output = path.join(dir, 'run-hook-attach.html');
+
+  try {
+    const code = await runCli(
+      [globalHookAttachments, '--out', output, '--title', 'Run hook attachments'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(page.locator('[data-run-hooks]')).toContainText(
+      'Attachment from BeforeAll hook',
+    );
+    await expect(page.locator('[data-run-hooks]')).toContainText(
+      'Attachment from AfterAll hook',
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

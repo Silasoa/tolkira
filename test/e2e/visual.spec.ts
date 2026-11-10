@@ -95,3 +95,30 @@ test('captures report screenshots for visual review', async ({
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('captures hook screenshots for visual review', async ({
+  page,
+}, testInfo) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-visual-hooks-'));
+  const output = path.join(dir, 'hooks.html');
+  const hooks = fileURLToPath(
+    new URL('../fixtures/messages/hooks.ndjson', import.meta.url),
+  );
+
+  try {
+    const code = await runCli(
+      [hooks, '--out', output, '--title', 'Tolkira hook review'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pathToFileURL(output).href);
+    await capture(page, testInfo, 'hooks-desktop');
+
+    await page.locator('details.hookGroup').first().locator('summary').click();
+    await capture(page, testInfo, 'hooks-expanded');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

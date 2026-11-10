@@ -21,6 +21,15 @@ const examplesTables = fileURLToPath(
 const examplesAttachments = fileURLToPath(
   new URL('./fixtures/messages/examples-tables-attachment.ndjson', import.meta.url),
 );
+const hooksFixture = fileURLToPath(
+  new URL('./fixtures/messages/hooks.ndjson', import.meta.url),
+);
+const globalHooksFixture = fileURLToPath(
+  new URL('./fixtures/messages/global-hooks.ndjson', import.meta.url),
+);
+const globalHookAttachments = fileURLToPath(
+  new URL('./fixtures/messages/global-hooks-attachments.ndjson', import.meta.url),
+);
 
 async function modelFor(file: string) {
   const content = await readFile(file, 'utf8');
@@ -43,12 +52,14 @@ describe('report model', () => {
 
     expect(model.counts.features).toBe(1);
     expect(model.counts.scenarios.total).toBe(6);
-    expect(model.counts.steps.total).toBe(30);
+    expect(model.counts.steps.total).toBe(24);
+    expect(model.counts.hooks.total).toBe(6);
     expect(model.features[0]?.name).toBe('Happy HTML reporting');
     expect(model.features[0]?.description).toContain('cucumber reports');
     expect(model.scenarios[0]?.status).toBe('passed');
-    expect(model.scenarios[0]?.steps[0]?.keyword).toBe('Hook');
+    expect(model.scenarios[0]?.hooks[0]?.type).toBe('Before');
     expect(model.scenarios[0]?.steps.some((step) => step.keyword === 'Given')).toBe(true);
+    expect(model.scenarios[0]?.steps.some((step) => step.keyword === 'Hook')).toBe(false);
   });
 
   it('keeps doc strings, tables and errors', async () => {
@@ -345,5 +356,48 @@ describe('report model', () => {
     expect(rows[0]?.attempt).toBe(1);
     expect(rows[0]?.status).toBe('failed');
     expect(rows[0]?.outline?.exampleIndex).toBe(0);
+  });
+
+  it('separates per-scenario hooks from steps', async () => {
+    const model = await messagesModelFor(hooksFixture);
+    const hooks = model.scenarios.flatMap((scenario) => scenario.hooks);
+
+    expect(hooks.length).toBeGreaterThan(0);
+    expect(model.counts.hooks.total).toBe(hooks.length);
+    expect(
+      model.scenarios.every((scenario) =>
+        scenario.steps.every((step) => step.keyword !== 'Hook'),
+      ),
+    ).toBe(true);
+    expect(hooks[0]?.type).toBe('Before');
+  });
+
+  it('collects test-run hooks and their attachments', async () => {
+    const model = await messagesModelFor(globalHooksFixture);
+    expect(model.runHooks.map((hook) => hook.type)).toEqual([
+      'BeforeAll',
+      'BeforeAll',
+      'AfterAll',
+      'AfterAll',
+    ]);
+
+    const withAttachments = await messagesModelFor(globalHookAttachments);
+    expect(
+      withAttachments.runHooks.some((hook) => hook.attachments.length > 0),
+    ).toBe(true);
+    expect(withAttachments.runAttachments).toHaveLength(0);
+    expect(withAttachments.counts.attachments).toBeGreaterThan(0);
+  });
+
+  it('keeps legacy hooks out of steps', async () => {
+    const model = await modelFor(happy);
+    expect(
+      model.scenarios.every((scenario) =>
+        scenario.steps.every((step) => step.keyword !== 'Hook'),
+      ),
+    ).toBe(true);
+    expect(model.scenarios.some((scenario) => scenario.hooks.length > 0)).toBe(
+      true,
+    );
   });
 });

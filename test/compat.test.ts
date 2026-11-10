@@ -24,6 +24,18 @@ async function tempDir(): Promise<string> {
 }
 
 describe('cucumber-html-reporter compat', () => {
+  it('keeps legacy hooks in the compat report and summary', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'hooks.html');
+    const result = await generate({ jsonFile: legacy, output });
+    const html = await readFile(output, 'utf8');
+
+    expect(html).toContain('class="hook"');
+    expect(html).toContain('Before');
+    expect(result.summary.schemaVersion).toBe(1);
+    expect(result.summary.counts.steps.total).toBe(30);
+  });
+
   it('maps the old options and warns about ignored ones', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'nested', 'report.html');

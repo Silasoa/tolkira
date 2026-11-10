@@ -13,6 +13,11 @@ Keep a Changelog and the project uses semantic versioning.
   failures include the example number and examples block name.
 - Legacy Cucumber JSON arrives with expanded examples and stays flat. Messages
   outlines without examples also stay flat as a deliberate fallback.
+- Per-scenario hooks are shown separately from steps, with names, status,
+  duration, errors and attachments. Passed hooks are collapsed; failed and
+  skipped hooks stay visible.
+- BeforeAll/AfterAll test-run hooks get a Hooks section below the feature list,
+  with status, duration, errors and attachments.
 
 ## [0.2.0] - 2026-11-10
 

@@ -40,6 +40,18 @@ outline without examples also falls back to a flat row; this is a deliberate
 difference from the official formatter, which renders the outline with no
 examples.
 
+## Hooks
+
+Messages per-scenario hooks render separately from steps. The subtitle counts
+both; named hooks show `Before: name`; passed hooks collapse behind `N hooks`,
+while failed and skipped hooks stay inline with their error and attachments.
+BeforeAll/AfterAll render in a Hooks section below the feature list.
+
+Legacy JSON has per-scenario before/after hooks but no test-run hooks. JUnit has
+no hooks. The JSON summary keeps its version-1 shape: hooks stay in
+`scenarios[].steps` with `keyword: "Hook"`, plus an optional `name`. Summary
+step counts include hooks; the HTML counts steps and hooks separately.
+
 ## Breaking changes that matter
 
 - **3.2.1 (2017):** JSON mime-type revert; duration handling was still in flux.

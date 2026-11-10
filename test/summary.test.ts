@@ -1,7 +1,10 @@
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { TestStepResultStatus } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
 import { summarizeReport } from '../src/index.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
+import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
 import { summarizeEnvelopes } from '../src/summary.js';
 
@@ -13,6 +16,9 @@ const legacy = fileURLToPath(
 );
 const failed = fileURLToPath(
   new URL('./fixtures/legacy/failed.json', import.meta.url),
+);
+const globalHooks = fileURLToPath(
+  new URL('./fixtures/messages/global-hooks.ndjson', import.meta.url),
 );
 
 describe('machine-readable summary', () => {
@@ -169,5 +175,52 @@ describe('machine-readable summary', () => {
 
     const keys = first.scenarios.map((scenario) => `${scenario.uri}\0${scenario.name}`);
     expect(keys).toEqual([...keys].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it('fails the summary when a test-run hook fails', async () => {
+    const envelopes = parseMessages(
+      await readFile(globalHooks, 'utf8'),
+      globalHooks,
+    );
+    for (const envelope of envelopes) {
+      if (
+        envelope.testStepFinished?.testStepResult.status ===
+        TestStepResultStatus.FAILED
+      ) {
+        envelope.testStepFinished.testStepResult.status =
+          TestStepResultStatus.PASSED;
+      }
+    }
+    const runHook = envelopes.find(
+      (envelope) => envelope.testRunHookFinished,
+    )?.testRunHookFinished;
+    expect(runHook).toBeDefined();
+    if (!runHook) return;
+    runHook.result.status = TestStepResultStatus.FAILED;
+
+    const summary = summarizeEnvelopes(envelopes);
+    expect(summary.schemaVersion).toBe(1);
+    expect(summary.status).toBe('failed');
+  });
+
+  it('carries a per-scenario hook name in the summary', async () => {
+    const hookFixture = fileURLToPath(
+      new URL('./fixtures/messages/hooks.ndjson', import.meta.url),
+    );
+    const envelopes = parseMessages(
+      await readFile(hookFixture, 'utf8'),
+      hookFixture,
+    );
+    const hook = envelopes.find((envelope) => envelope.hook)?.hook;
+    expect(hook).toBeDefined();
+    if (!hook) return;
+    hook.name = 'seed database';
+
+    const summary = summarizeEnvelopes(envelopes);
+    expect(
+      summary.scenarios
+        .flatMap((scenario) => scenario.steps)
+        .some((step) => step.keyword === 'Hook' && step.name === 'seed database'),
+    ).toBe(true);
   });
 });

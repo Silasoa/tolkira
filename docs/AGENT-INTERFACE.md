@@ -149,7 +149,10 @@ Field contract:
 - `attempt` is the latest Cucumber retry attempt for that scenario.
 - `attachments.bytes` is the decoded size, not the base64 length.
 - `steps[].message` is present only when the step result has a message. For
-  hooks, `keyword` is `"Hook"` and `text` is the hook type.
+  hooks, `keyword` is `"Hook"`, `text` is the hook type and `name` is present
+  when Cucumber provides one. Summary step counts include hook entries; the
+  HTML report counts steps and hooks separately. A failed test-run hook makes
+  the overall summary `status` failed.
 - Attachment file names are not part of the summary. `scenarios[].attachments`
   is a count; open the HTML report to see the image or file.
 

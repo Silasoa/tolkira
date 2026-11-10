@@ -13,6 +13,8 @@ import type {
   RuleChild,
   TestCase,
   TestCaseStarted,
+  TestRunHookFinished,
+  TestRunHookStarted,
   TestStepFinished,
   TestStepResult,
 } from '@cucumber/messages';
@@ -45,6 +47,7 @@ export interface StatusCounts {
 export interface SummaryStep {
   keyword: string;
   text: string;
+  name?: string;
   status: SummaryStatus;
   durationMs: number;
   message?: string;
@@ -228,6 +231,8 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   const testCasesByPickle = new Map<string, TestCase[]>();
   const startedByTestCase = new Map<string, TestCaseStarted[]>();
   const hooks = new Map<string, Hook>();
+  const runHookStarts = new Map<string, TestRunHookStarted>();
+  const runHookFinishes = new Map<string, TestRunHookFinished>();
   const results = new Map<string, TestStepFinished[]>();
   const attachments = new Map<string, Attachment[]>();
   const attachmentList: Attachment[] = [];
@@ -268,6 +273,15 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
       finishedIds.add(envelope.testCaseFinished.testCaseStartedId);
     }
     if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
+    if (envelope.testRunHookStarted) {
+      runHookStarts.set(envelope.testRunHookStarted.id, envelope.testRunHookStarted);
+    }
+    if (envelope.testRunHookFinished) {
+      runHookFinishes.set(
+        envelope.testRunHookFinished.testRunHookStartedId,
+        envelope.testRunHookFinished,
+      );
+    }
     if (envelope.testStepFinished) {
       const list = results.get(envelope.testStepFinished.testCaseStartedId) ?? [];
       list.push(envelope.testStepFinished);
@@ -377,6 +391,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         steps.push({
           keyword: 'Hook',
           text: hook?.type ?? 'hook',
+          ...(hook?.name ? { name: hook.name } : {}),
           status: toStatus(result.status),
           durationMs: durationMs(result.duration),
           ...(message ? { message } : {}),
@@ -410,7 +425,18 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     (a, b) => a.uri.localeCompare(b.uri) || a.name.localeCompare(b.name),
   );
 
-  const overall =
+  const runHookResults: TestStepResult[] = [];
+  for (const start of runHookStarts.values()) {
+    const result = runHookFinishes.get(start.id)?.result;
+    if (result) runHookResults.push(result);
+  }
+  const runHookStatus = scenarioStatus(runHookResults);
+  totalDuration += runHookResults.reduce(
+    (sum, result) => sum + durationMs(result.duration),
+    0,
+  );
+
+  const scenarioOverall =
     scenarios.length === 0
       ? 'unknown'
       : scenarios.reduce(
@@ -420,6 +446,10 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
               : worst,
           'unknown' as SummaryStatus,
         );
+  const overall =
+    statusOrdinal(runHookStatus) > statusOrdinal(scenarioOverall)
+      ? runHookStatus
+      : scenarioOverall;
 
   const orphanAttachments = attachmentList.filter(
     (attachment) =>

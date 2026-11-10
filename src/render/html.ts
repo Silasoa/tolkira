@@ -6,8 +6,10 @@ import {
   statusSeverity,
   type ReportAttachment,
   type ReportFeature,
+  type ReportHook,
   type ReportModel,
   type ReportOutline,
+  type ReportRunHook,
   type ReportScenario,
   type ReportStatus,
   type ReportStep,
@@ -189,8 +191,17 @@ function renderTriageRow({
   const failedStep = failed?.steps.find(
     (step) => step.status === 'failed' && step.message,
   );
-  const reason = failedStep?.message
-    ? `${failedStep.keyword ? `${failedStep.keyword} ` : ''}${failedStep.text} — ${failedStep.message.split(/\r?\n/)[0].trim().slice(0, 120)}${failedStep.message.split(/\r?\n/)[0].trim().length > 120 ? '…' : ''}`
+  const failedHook = failed?.hooks.find(
+    (hook) => hook.status === 'failed' && hook.message,
+  );
+  const reasonSource = failedStep?.message
+    ? `${failedStep.keyword ? `${failedStep.keyword} ` : ''}${failedStep.text}`
+    : failedHook?.message
+      ? hookLabel(failedHook)
+      : '';
+  const reasonMessage = failedStep?.message ?? failedHook?.message ?? '';
+  const reason = reasonSource
+    ? `${reasonSource} — ${reasonMessage.split(/\r?\n/)[0].trim().slice(0, 120)}${reasonMessage.split(/\r?\n/)[0].trim().length > 120 ? '…' : ''}`
     : '';
   return `<li class="triageItem"><a class="triageFeature" href="#feature-${index + 1}" title="${escapeHtml(displayUri(feature.uri))}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul>${reason ? `<p class="triageReason"><span class="triageReasonLabel">First failure:</span> ${escapeHtml(reason)}</p>` : ''}</li>`;
 }
@@ -348,6 +359,38 @@ function renderStep(step: ReportStep, scenarioName: string): string {
   return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
 }
 
+function hookLabel(hook: ReportHook | ReportRunHook): string {
+  return hook.name ? `${hook.type}: ${hook.name}` : hook.type;
+}
+
+function renderHook(hook: ReportHook | ReportRunHook, scenarioName: string): string {
+  const error = hook.message
+    ? `<pre class="error">${escapeHtml(hook.message)}</pre>`
+    : '';
+  const attachments = hook.attachments
+    .map((attachment) => renderAttachment(attachment, `${scenarioName}: ${hookLabel(hook)}`))
+    .join('');
+  return `<li class="hook" data-status="${hook.status}"><span class="stepMarker ${statusClass(hook.status)}"><span aria-hidden="true">${STEP_GLYPHS[hook.status]}</span><span class="sr">${statusLabel(hook.status)}</span></span><div><span class="hookLabel">${escapeHtml(hookLabel(hook))}</span>${error}${attachments}</div><span class="dur">${durationLabel(hook.durationMs)}</span></li>`;
+}
+
+function renderHooks(hooks: ReportHook[], scenarioName: string): string {
+  if (hooks.length === 0) return '';
+  const inline = hooks.filter((hook) => hook.status !== 'passed');
+  const passed = hooks.filter((hook) => hook.status === 'passed');
+  const inlineList = inline.length
+    ? `<ul class="hooks" aria-label="Hooks">${inline.map((hook) => renderHook(hook, scenarioName)).join('')}</ul>`
+    : '';
+  const passedGroup = passed.length
+    ? `<details class="hookGroup"><summary>${passed.length} hook${passed.length === 1 ? '' : 's'}</summary><ul class="hooks" aria-label="Passed hooks">${passed.map((hook) => renderHook(hook, scenarioName)).join('')}</ul></details>`
+    : '';
+  return `${inlineList}${passedGroup}`;
+}
+
+function renderRunHooks(model: ReportModel): string {
+  if (model.runHooks.length === 0) return '';
+  return `<section class="runHooks" data-run-hooks aria-labelledby="run-hooks-heading"><h2 id="run-hooks-heading">Hooks</h2><ul class="hooks">${model.runHooks.map((hook) => renderHook(hook, 'Run')).join('')}</ul></section>`;
+}
+
 function scenarioLabel(scenario: ReportScenario): string {
   const outline = scenario.outline;
   if (!outline) return scenario.name;
@@ -378,6 +421,12 @@ function scenarioText(scenario: ReportScenario): string {
       ? [outline.name, outline.examplesKeyword, outline.examplesName, example]
       : [scenario.description]),
     scenario.tags.join(' '),
+    scenario.hooks
+      .map(
+        (hook) =>
+          `${hook.type} ${hook.name ?? ''} ${(hook.message ?? '').slice(0, SEARCH_MESSAGE_LIMIT)}`,
+      )
+      .join(' '),
     scenario.steps.map((step) => `${step.keyword} ${step.text} ${(step.message ?? '').slice(0, SEARCH_MESSAGE_LIMIT)}`).join(' '),
   ].join(' ');
 }
@@ -411,6 +460,14 @@ function renderScenario(
   const steps = scenario.steps
     .map((step) => renderStep(step, scenario.name))
     .join('');
+  const beforeHooks = renderHooks(
+    scenario.hooks.filter((hook) => hook.type.startsWith('Before')),
+    scenario.name,
+  );
+  const afterHooks = renderHooks(
+    scenario.hooks.filter((hook) => hook.type.startsWith('After')),
+    scenario.name,
+  );
   const description =
     !grouped && scenario.description
       ? `<p class="description">${escapeHtml(scenario.description)}</p>`
@@ -437,7 +494,7 @@ function renderScenario(
     grouped && outline
       ? `<span>Scenario: ${escapeHtml(scenario.name)}</span>`
       : '';
-  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps">${steps}</ol>${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}${beforeHooks}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps">${steps}</ol>${afterHooks}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
 function renderExamples(
@@ -627,6 +684,7 @@ function renderReportView(
     .join('');
   const triage = renderTriage(ordered);
   const sources = renderSourceStrip(model);
+  const runHooks = renderRunHooks(model);
   const tags = scenarioTags(model);
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
@@ -636,7 +694,7 @@ function renderReportView(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
     )
-    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="sr" id="tolkira-copy-live" aria-live="polite"></p><p class="searchNote" id="tolkira-search-note" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div><div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
+    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="sr" id="tolkira-copy-live" aria-live="polite"></p><p class="searchNote" id="tolkira-search-note" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div>${runHooks}<div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
 }
 
 function renderAnalysisView(
@@ -675,13 +733,13 @@ function renderAnalysisView(
       ? `<dt>Protocol</dt><dd>${escapeHtml(model.environment.protocol)}</dd>`
       : '',
   ].join('');
-  const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps</dt><dd>${model.counts.steps.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
+  const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
   return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,
     )
-    .join('')}</div><h2 class="subhead">Run</h2><dl class="metaList">${runRows}</dl>${environmentRows ? `<h2 class="subhead">Cucumber environment</h2><dl class="metaList">${environmentRows}</dl>` : ''}${customRows ? `<h2 class="subhead">Custom metadata</h2><dl class="metaList">${customRows}</dl>` : ''}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, 'Run attachments')).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents.</p><pre class="json" tabindex="0" aria-label="Agent summary JSON">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
+    .join('')}</div><h2 class="subhead">Run</h2><dl class="metaList">${runRows}</dl>${environmentRows ? `<h2 class="subhead">Cucumber environment</h2><dl class="metaList">${environmentRows}</dl>` : ''}${customRows ? `<h2 class="subhead">Custom metadata</h2><dl class="metaList">${customRows}</dl>` : ''}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, 'Run attachments')).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents. Its step counts include hook entries; the HTML counts above exclude them.</p><pre class="json" tabindex="0" aria-label="Agent summary JSON">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
 }
 
 const SCRIPT = `<script>
@@ -714,6 +772,7 @@ const SCRIPT = `<script>
   });
   var state = { query: '', hidden: new Set(), tag: '' };
   var searchOpened = [];
+  var searchOpenedHooks = [];
   var scenarios = Array.prototype.slice.call(document.querySelectorAll('[data-scenario]'));
   var highlightTargets = scenarios.concat(Array.prototype.slice.call(document.querySelectorAll('.outlineTitle, .examplesTitle')));
   var features = Array.prototype.slice.call(document.querySelectorAll('[data-feature]'));
@@ -759,6 +818,8 @@ const SCRIPT = `<script>
     });
     searchOpened.forEach(function (scenario) { scenario.open = false; });
     searchOpened = [];
+    searchOpenedHooks.forEach(function (group) { group.open = false; });
+    searchOpenedHooks = [];
     if (query) {
       var opened = 0;
       scenarios.forEach(function (scenario) {
@@ -766,6 +827,12 @@ const SCRIPT = `<script>
           if (!scenario.open) searchOpened.push(scenario);
           scenario.open = true;
           opened += 1;
+          Array.prototype.slice.call(scenario.querySelectorAll('details.hookGroup')).forEach(function (group) {
+            if (!group.open) {
+              group.open = true;
+              searchOpenedHooks.push(group);
+            }
+          });
         }
       });
     }
@@ -910,6 +977,7 @@ const SCRIPT = `<script>
     var example = scenario.getAttribute('data-example') || '';
     var examplesName = scenario.getAttribute('data-examples-name') || '';
     var step = scenario.querySelector('.step[data-status="failed"]');
+    var hook = !step ? scenario.querySelector('.hook[data-status="failed"]') : null;
     var keyword = step && step.querySelector('.kw') ? step.querySelector('.kw').textContent.trim() : '';
     var body = step ? step.querySelector('div') : null;
     var text = '';
@@ -918,8 +986,11 @@ const SCRIPT = `<script>
         if (node.nodeType === 3) text += node.nodeValue;
       });
     }
-    var error = step ? step.querySelector('.error') : null;
-    var stepLabel = keyword === 'Hook' ? text.trim() : (keyword + ' ' + text.trim()).trim();
+    var error = step ? step.querySelector('.error') : hook ? hook.querySelector('.error') : null;
+    var stepLabel = hook
+      ? (hook.querySelector('.hookLabel') ? hook.querySelector('.hookLabel').textContent.trim() : 'Hook')
+      : (keyword + ' ' + text.trim()).trim();
+    var stepKind = hook ? 'Hook: ' : 'Step: ';
     var lines = [
       'Feature: ' + (featureTitle ? featureTitle.textContent : ''),
       'Scenario: ' + scenarioName
@@ -929,7 +1000,7 @@ const SCRIPT = `<script>
     }
     lines.push(
       'URI: ' + (scenario.getAttribute('data-uri') || ''),
-      'Step: ' + stepLabel
+      stepKind + stepLabel
     );
     if (error && error.textContent.trim()) {
       lines.push('Error:\\n' + error.textContent.trim());

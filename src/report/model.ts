@@ -15,6 +15,8 @@ import type {
   Step,
   TestCase,
   TestCaseStarted,
+  TestRunHookFinished,
+  TestRunHookStarted,
   TestStepFinished,
 } from '@cucumber/messages';
 
@@ -48,7 +50,26 @@ export interface ReportStep {
   docString?: string;
   dataTable?: string[][];
   attachments: ReportAttachment[];
-  hook?: string;
+}
+
+export interface ReportHook {
+  id: string;
+  type: string;
+  name?: string;
+  status: ReportStatus;
+  durationMs: number;
+  message?: string;
+  attachments: ReportAttachment[];
+}
+
+export interface ReportRunHook {
+  id: string;
+  type: string;
+  name?: string;
+  status: ReportStatus;
+  durationMs: number;
+  message?: string;
+  attachments: ReportAttachment[];
 }
 
 export interface ReportOutline {
@@ -81,6 +102,7 @@ export interface ReportScenario {
   tags: string[];
   outline?: ReportOutline;
   steps: ReportStep[];
+  hooks: ReportHook[];
   attachments: ReportAttachment[];
   extraAttachments: ReportAttachment[];
 }
@@ -103,6 +125,7 @@ export interface ReportCounts {
   features: number;
   scenarios: Record<ReportStatus, number> & { total: number };
   steps: Record<ReportStatus, number> & { total: number };
+  hooks: Record<ReportStatus, number> & { total: number };
   attachments: number;
   attachmentBytes: number;
 }
@@ -124,6 +147,7 @@ export interface ReportModel {
   source: string;
   environment?: ReportEnvironment;
   scenarios: ReportScenario[];
+  runHooks: ReportRunHook[];
   runAttachments: ReportAttachment[];
 }
 
@@ -209,17 +233,17 @@ function stripAnsi(value: string): string {
 function hookLabel(type: string | undefined): string {
   switch (type) {
     case 'BEFORE_TEST_CASE':
-      return 'Before hook';
+      return 'Before';
     case 'AFTER_TEST_CASE':
-      return 'After hook';
+      return 'After';
     case 'BEFORE_TEST_STEP':
-      return 'Before step hook';
+      return 'BeforeStep';
     case 'AFTER_TEST_STEP':
-      return 'After step hook';
+      return 'AfterStep';
     case 'BEFORE_TEST_RUN':
-      return 'Before run hook';
+      return 'BeforeAll';
     case 'AFTER_TEST_RUN':
-      return 'After run hook';
+      return 'AfterAll';
     default:
       return 'Hook';
   }
@@ -416,8 +440,11 @@ export function buildReportModel(
   const testCases = new Map<string, TestCase>();
   const started = new Map<string, TestCaseStarted>();
   const hooks = new Map<string, Hook>();
+  const runHookStarts = new Map<string, TestRunHookStarted>();
+  const runHookFinishes = new Map<string, TestRunHookFinished>();
   const results = new Map<string, TestStepFinished[]>();
   const attachments = new Map<string, Attachment[]>();
+  const runHookAttachments = new Map<string, Attachment[]>();
   const finishedStarted = new Set<string>();
   const attachmentCache = new Map<Attachment, ReportAttachment>();
   let attachmentIndex = 0;
@@ -493,15 +520,27 @@ export function buildReportModel(
     if (envelope.testCaseStarted) started.set(envelope.testCaseStarted.id, envelope.testCaseStarted);
     if (envelope.testCaseFinished) finishedStarted.add(envelope.testCaseFinished.testCaseStartedId);
     if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
+    if (envelope.testRunHookStarted) {
+      runHookStarts.set(envelope.testRunHookStarted.id, envelope.testRunHookStarted);
+    }
+    if (envelope.testRunHookFinished) {
+      runHookFinishes.set(
+        envelope.testRunHookFinished.testRunHookStartedId,
+        envelope.testRunHookFinished,
+      );
+    }
     if (envelope.testStepFinished) {
       const list = results.get(envelope.testStepFinished.testCaseStartedId) ?? [];
       list.push(envelope.testStepFinished);
       results.set(envelope.testStepFinished.testCaseStartedId, list);
     }
     if (envelope.attachment) {
-      const list = attachments.get(envelope.attachment.testCaseStartedId ?? '') ?? [];
+      const key = envelope.attachment.testRunHookStartedId;
+      const target = key ? runHookAttachments : attachments;
+      const id = key ?? envelope.attachment.testCaseStartedId ?? '';
+      const list = target.get(id) ?? [];
       list.push(envelope.attachment);
-      attachments.set(envelope.attachment.testCaseStartedId ?? '', list);
+      target.set(id, list);
     }
   }
 
@@ -522,6 +561,7 @@ export function buildReportModel(
   const scenarioRows: ReportScenario[] = [];
   const scenarioCounts = emptyStatusCounts();
   const stepCounts = emptyStatusCounts();
+  const hookCounts = emptyStatusCounts();
   const featureScenarios = new Map<Feature, ReportScenario[]>();
 
   for (const pickle of pickles.values()) {
@@ -554,6 +594,7 @@ export function buildReportModel(
       (results.get(latest.id) ?? []).map((entry) => [entry.testStepId, entry.testStepResult]),
     );
     const stepRows: ReportStep[] = [];
+    const hookRows: ReportHook[] = [];
 
     for (const testStep of testCase.testSteps) {
       const result = resultsByStep.get(testStep.id);
@@ -580,19 +621,18 @@ export function buildReportModel(
         });
       } else if (testStep.hookId) {
         const hook = hooks.get(testStep.hookId);
-        const stepAttachments = mapAttachments(
+        const hookAttachments = mapAttachments(
           startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
         );
         const message = stepResultMessage(result);
-        stepRows.push({
+        hookRows.push({
           id: testStep.id,
-          keyword: 'Hook',
-          text: hookLabel(hook?.type),
+          type: hookLabel(hook?.type),
+          ...(hook?.name ? { name: hook.name } : {}),
           status: statusOf(result.status),
           durationMs: durationMs(result.duration),
           ...(message ? { message: stripAnsi(message) } : {}),
-          attachments: stepAttachments,
-          hook: hook?.type,
+          attachments: hookAttachments,
         });
       }
     }
@@ -601,7 +641,10 @@ export function buildReportModel(
     const status = rawResults.length
       ? statusOf(getWorstTestStepResult(rawResults).status)
       : 'unknown';
-    const duration = stepRows.reduce((sum, step) => sum + step.durationMs, 0);
+    const duration = [...stepRows, ...hookRows].reduce(
+      (sum, entry) => sum + entry.durationMs,
+      0,
+    );
     const astIds = pickle.astNodeIds ?? [];
     // The deepest AST id is the examples row. Verify the URI as well so a
     // merged input cannot attach the same row id to the wrong outline.
@@ -618,10 +661,15 @@ export function buildReportModel(
       featureByScenarioId.get(scenarioId) ??
       features.get(pickle.uri);
     const stepAttachments = stepRows.flatMap((step) => step.attachments);
+    const hookAttachments = hookRows.flatMap((hook) => hook.attachments);
     const extraAttachments = mapAttachments(
       startedAttachments.filter((attachment) => !attachment.testStepId),
     );
-    const scenarioAttachments = [...stepAttachments, ...extraAttachments];
+    const scenarioAttachments = [
+      ...stepAttachments,
+      ...hookAttachments,
+      ...extraAttachments,
+    ];
     const outline: ReportOutline | undefined = outlineExample
       ? {
           id: outlineExample.scenario.id,
@@ -653,12 +701,14 @@ export function buildReportModel(
       tags: (pickle.tags ?? []).map((tag) => tag.name),
       ...(outline ? { outline } : {}),
       steps: stepRows,
+      hooks: hookRows,
       attachments: scenarioAttachments,
       extraAttachments,
     };
     scenarioRows.push(row);
     count(scenarioCounts, status);
     for (const step of stepRows) count(stepCounts, step.status);
+    for (const hook of hookRows) count(hookCounts, hook.status);
     if (feature) {
       const list = featureScenarios.get(feature) ?? [];
       list.push(row);
@@ -715,22 +765,46 @@ export function buildReportModel(
     for (const feature of featureRows) delete feature.sourceFile;
   }
 
+  const runHooks: ReportRunHook[] = [];
+  for (const start of runHookStarts.values()) {
+    const finish = runHookFinishes.get(start.id);
+    const hook = hooks.get(start.hookId);
+    const result = finish?.result;
+    const message = result ? stepResultMessage(result) : '';
+    runHooks.push({
+      id: start.id,
+      type: hookLabel(hook?.type),
+      ...(hook?.name ? { name: hook.name } : {}),
+      status: result ? statusOf(result.status) : 'unknown',
+      durationMs: durationMs(result?.duration),
+      ...(message ? { message: stripAnsi(message) } : {}),
+      attachments: mapAttachments(runHookAttachments.get(start.id) ?? []),
+    });
+  }
+
   const attachmentRows = scenarioRows.flatMap((scenario) => scenario.attachments);
   const runAttachments = mapAttachments(attachments.get('') ?? []);
-  const allAttachments = [...attachmentRows, ...runAttachments];
+  const allAttachments = [
+    ...attachmentRows,
+    ...runHooks.flatMap((hook) => hook.attachments),
+    ...runAttachments,
+  ];
   return {
     features: featureRows,
     scenarios: scenarioRows,
+    runHooks,
     runAttachments,
     counts: {
       features: featureRows.length,
       scenarios: scenarioCounts,
       steps: stepCounts,
+      hooks: hookCounts,
       attachments: allAttachments.length,
       attachmentBytes: allAttachments.reduce((sum, attachment) => sum + attachment.bytes, 0),
     },
     durationMs: finiteDuration(
-      scenarioRows.reduce((sum, scenario) => sum + scenario.durationMs, 0),
+      scenarioRows.reduce((sum, scenario) => sum + scenario.durationMs, 0) +
+        runHooks.reduce((sum, hook) => sum + hook.durationMs, 0),
     ),
     ...(startedAt ? { startedAt } : {}),
     ...(finishedAt ? { finishedAt } : {}),
