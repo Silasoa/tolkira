@@ -5,8 +5,9 @@
 ### Requirement: Show feature and rule tags
 
 The report SHALL render feature tags once in the feature header and rule tags
-once in the rule section. Inherited tags SHALL NOT be repeated on every
-scenario row.
+once in the rule section. Scenario rows SHALL display only their own scenario
+tags; inherited feature, rule and examples tags SHALL remain available to the
+tag filter and search but SHALL NOT be repeated on every row.
 
 #### Scenario: Feature tags
 
@@ -37,6 +38,18 @@ without rules SHALL keep their current layout.
 - **WHEN** a rule contains a scenario outline
 - **THEN** the outline and its examples render inside the rule section
 
+#### Scenario: Mixed feature-level and rule scenarios
+
+- **WHEN** a feature has a scenario before a rule and a scenario inside it
+- **THEN** feature-level and rule blocks are ordered by severity, then input
+- **AND** scenarios do not move across rule boundaries
+
+#### Scenario: Filtered rule
+
+- **WHEN** a search, status or tag filter hides every scenario in a rule
+- **THEN** the rule section is hidden
+- **AND** a rule with a visible scenario keeps its heading and tags
+
 #### Scenario: Rule tags in search
 
 - **WHEN** the user searches for a rule name or tag
@@ -46,8 +59,10 @@ without rules SHALL keep their current layout.
 ### Requirement: Render background headings and descriptions
 
 The report SHALL show the background keyword, name and description for
-features and rules. Background steps SHALL remain in their existing scenario
-step lists and SHALL NOT be duplicated as a second step list.
+features and rules when the name or description is non-empty. Background steps
+SHALL remain in their existing scenario step lists and SHALL NOT be duplicated
+as a second step list. Synthetic backgrounds created by legacy normalisation
+SHALL NOT be rendered.
 
 #### Scenario: Feature background
 
@@ -63,13 +78,16 @@ step lists and SHALL NOT be duplicated as a second step list.
 ### Requirement: Preserve counts, search and summary
 
 Grouping by rule SHALL change presentation only. Counts, triage membership,
-status matrix, search, tag filtering and the JSON summary SHALL keep using the
-flat scenario list and SHALL remain unchanged.
+status matrix, tag filtering and the JSON summary SHALL keep using the flat
+scenario list and SHALL remain unchanged. Search SHALL additionally index rule
+and background names and descriptions; a matching rule or background keeps its
+descendant scenarios visible.
 
 #### Scenario: Counts unchanged
 
 - **WHEN** a feature with rules is rendered
 - **THEN** scenario and step counts match the summary
+- **AND** every scenario remains in the triage and status matrix
 - **AND** the summary remains version 1
 
 #### Scenario: Legacy fallback
