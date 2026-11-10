@@ -134,13 +134,14 @@ Field contract:
 - `schemaVersion` is `1`. A breaking change increments it.
 - `status` is one of `passed`, `failed`, `skipped`, `pending`, `undefined`,
   `ambiguous`, `unknown`.
-- `status` is the worst scenario status. A scenario is the worst step status,
-  using the standard Cucumber severity order.
+- `status` is the worst scenario status, or `failed` when a test-run hook
+  fails. A scenario is the worst step status, using the standard Cucumber
+  severity order.
 - `counts.features` is the number of distinct Gherkin documents.
 - `counts.scenarios` and `counts.steps` always contain every status key, even
   when the value is `0`. `total` is the sum.
-- `durationMs` is a number of milliseconds. `steps[].durationMs` is rounded to
-  three decimals.
+- `durationMs` is a number of milliseconds and includes scenario and test-run
+  hook time. `steps[].durationMs` is rounded to three decimals.
 - `scenarios` is sorted by `uri`, then `name`, so output is stable across runs.
 - `scenarios[].name` is the Cucumber pickle name. Examples of one scenario
   outline can share the same name; the HTML report labels rows with `#1.1` and

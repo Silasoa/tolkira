@@ -1269,6 +1269,44 @@ test('shows test-run hooks below the features', async ({ page }) => {
   }
 });
 
+test('shows a failed run-hook error', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-run-hook-fail-e2e-'));
+  const input = path.join(dir, 'failed-run-hook.ndjson');
+  const output = path.join(dir, 'failed-run-hook.html');
+
+  try {
+    const lines = (await readFile(globalHooksFixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    const finished = lines.find((line) => line.testRunHookFinished)
+      ?.testRunHookFinished;
+    expect(finished).toBeTruthy();
+    if (!finished) return;
+    finished.result.status = 'FAILED';
+    finished.result.message = 'run hook boom';
+    await writeFile(
+      input,
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+
+    const code = await runCli(
+      [input, '--out', output, '--title', 'Failed run hook'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(page.locator('[data-run-hooks]')).toContainText('run hook boom');
+    await expect(
+      page.locator('[data-run-hooks] .hook[data-status="failed"]'),
+    ).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('shows run-hook attachments in the Hooks section', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-run-hook-attach-e2e-'));
   const output = path.join(dir, 'run-hook-attach.html');

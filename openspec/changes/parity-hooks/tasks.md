@@ -70,7 +70,7 @@
   `docs/AGENT-INTERFACE.md` and `GLOSSARY.md` with hook rows, the run Hooks
   section, legacy fallbacks, the summary step/hook count labels and the
   unchanged schema; verify the documented example matches the generated report.
-- [ ] 4.2 Run the full reviewer set from `docs/agents/review.md` (SCR, CR, DAR,
+- [x] 4.2 Run the full reviewer set from `docs/agents/review.md` (SCR, CR, DAR,
   SEC, UXR, PCA, CMP); the CMP reviewer compares the official formatter first,
   then MCHR, Allure and Playwright on the same fixtures. Record findings and fix
   every blocker.

@@ -258,6 +258,37 @@ test('keeps a long source name inside 320px', async ({ page }) => {
   }
 });
 
+test('keeps hooks readable at 320px and 200% zoom', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hooks-responsive-'));
+  const output = path.join(dir, 'hooks-responsive.html');
+  const hooks = fileURLToPath(
+    new URL('../fixtures/messages/hooks.ndjson', import.meta.url),
+  );
+
+  try {
+    const code = await runCli(
+      [hooks, '--out', output, '--title', 'Hooks responsive'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(pathToFileURL(output).href);
+    expect(await pageOverflow(page), 'hooks 320 overflow').toBeLessThanOrEqual(1);
+    await expect(page.locator('details.hookGroup').first()).toBeVisible();
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await pageOverflow(page),
+      'hooks 200% overflow',
+    ).toBeLessThanOrEqual(1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('keeps grouped outlines readable at 320px and 200% zoom', async ({
   page,
 }) => {
