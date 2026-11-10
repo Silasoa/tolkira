@@ -1615,6 +1615,10 @@ test('shows undefined-step snippets and finds them by search', async ({ page }) 
     await search.fill('{int}');
     await expect(scenario).toBeVisible();
     await expect(scenario).toHaveAttribute('open', '');
+
+    await search.fill('No step definition found.');
+    await expect(page.locator('details.scenario:visible')).toHaveCount(4);
+    await expect(scenario).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -1649,6 +1653,12 @@ test('shows ambiguous definitions with relative sources', async ({ page }) => {
     await expect(scenario.locator('.definitionSource').nth(1)).toHaveText(
       'samples/ambiguous/ambiguous.ts:7',
     );
+
+    await page
+      .getByRole('searchbox', { name: /Search/ })
+      .fill('Multiple matching step definitions found:');
+    await expect(page.locator('details.scenario:visible')).toHaveCount(1);
+    await expect(scenario).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -1759,7 +1769,7 @@ test('caps search auto-open at 20 newly opened rows', async ({ page }) => {
           keyword: 'Given ',
           name: 'a step',
           result: {
-            status: index < 5 ? 'undefined' : 'passed',
+            status: index < 5 ? 'failed' : 'passed',
             duration: 1,
           },
         },
@@ -1782,8 +1792,9 @@ test('caps search auto-open at 20 newly opened rows', async ({ page }) => {
       'Scenario',
     );
     await expect(page.locator('[data-scenario][open]')).toHaveCount(25);
-    await expect(page.locator('#tolkira-search-note')).toContainText(
-      '20 of 25 matches expanded',
+    await expect(page.locator('[data-scenario]:not([open])')).toHaveCount(5);
+    await expect(page.locator('#tolkira-search-note')).toHaveText(
+      '20 of 30 matches expanded. Use Expand all to open the rest.',
     );
     await page.getByRole('searchbox', { name: 'Search scenarios' }).fill('');
     await expect(page.locator('[data-scenario][open]')).toHaveCount(5);

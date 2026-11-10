@@ -26,13 +26,15 @@ No tracking issue exists yet; the change is driven by
   ambiguous, pending and skipped. The search auto-open cap is unchanged.
 - Legacy JSON and JUnit keep their current status-only behavior; they have no
   suggestions or step-definition matches.
-- The JSON summary contract is unchanged; diagnostics are an HTML view feature.
+- The JSON summary keeps `schemaVersion` 1 and gains optional additive
+  `suggestions` and `definitions` fields on summary steps; diagnostics remain an
+  HTML view feature.
 - Diagnostics are escaped and stay inside the single offline file.
 
 Out of scope: rules/backgrounds/feature tags (G9), empty-run semantics (G7),
 Markdown descriptions (G8), tag-expression search and URL state (G10),
 `meta.ci` (G11), attachment polish (G12), the stream adapter (G14), parameter
-highlighting (G15), source-location links and summary-schema changes.
+highlighting (G15), source-location links and breaking summary-schema changes.
 
 ## Capabilities
 
@@ -54,7 +56,8 @@ None.
 - Tests and fixtures: CCK `undefined`, `undefined-multiple`, `ambiguous`,
   `all-statuses` and `empty`; render, browser, responsive, stress and security
   coverage. `ambiguous` already contains two matching definitions.
-- No CLI, API, summary-schema or dependency change.
+- No CLI, API or dependency change. The summary schema stays version 1; its
+  step entries gain optional additive `suggestions` and `definitions` fields.
 - Documentation: `docs/CHANGELOG.md`, `docs/CUCUMBER-COMPATIBILITY.md` and
   `GLOSSARY.md`.
 - After implementation, the CMP reviewer compares the result with the official

@@ -1,0 +1,23 @@
+[
+  {
+    "uri": "features/legacy-ambiguous.feature",
+    "name": "Legacy ambiguous",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "Ambiguous legacy step",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a step with multiple definitions",
+            "result": {
+              "status": "ambiguous",
+              "duration": 1
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

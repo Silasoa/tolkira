@@ -87,6 +87,8 @@ const TRIAGE_FEATURE_LIMIT = 20;
 const TRIAGE_SCENARIO_LIMIT = 3;
 const SOURCE_LIMIT = 6;
 const SEARCH_MESSAGE_LIMIT = 2000;
+const UNDEFINED_LEAD = 'No step definition found.';
+const AMBIGUOUS_LEAD = 'Multiple matching step definitions found:';
 
 function compareStatus(a: ReportStatus, b: ReportStatus): number {
   const passed = Number(a === 'passed') - Number(b === 'passed');
@@ -336,8 +338,8 @@ function renderDiagnostic(step: ReportStep): string {
   if (step.status === 'undefined') {
     const suggestions = step.suggestions ?? [];
     const lead = suggestions.length
-      ? 'No step definition found. Implement with the snippet(s) below:'
-      : 'No step definition found.';
+      ? `${UNDEFINED_LEAD} Implement with the snippet(s) below:`
+      : UNDEFINED_LEAD;
     const snippets = suggestions
       .map((suggestion) => {
         const language = suggestion.language
@@ -357,7 +359,7 @@ function renderDiagnostic(step: ReportStep): string {
       )
       .join('');
     const list = items ? `<ul class="definitions">${items}</ul>` : '';
-    return `<div class="diagnostic" data-diagnostic="ambiguous"><p class="diagnosticLead">Multiple matching step definitions found:</p>${list}</div>`;
+    return `<div class="diagnostic" data-diagnostic="ambiguous"><p class="diagnosticLead">${AMBIGUOUS_LEAD}</p>${list}</div>`;
   }
   return '';
 }
@@ -459,6 +461,7 @@ function scenarioText(scenario: ReportScenario): string {
         const diagnostic =
           step.status === 'undefined' || step.status === 'ambiguous'
             ? [
+                step.status === 'undefined' ? UNDEFINED_LEAD : AMBIGUOUS_LEAD,
                 ...(step.suggestions ?? []).flatMap((suggestion) => [
                   suggestion.language ?? '',
                   suggestion.code.slice(0, SEARCH_MESSAGE_LIMIT),
@@ -876,11 +879,7 @@ const SCRIPT = `<script>
     searchOpenedHooks.forEach(function (group) { group.open = false; });
     searchOpenedHooks = [];
     var opened = 0;
-    var openable = 0;
     if (query) {
-      scenarios.forEach(function (scenario) {
-        if (!scenario.hidden && !scenario.open) openable += 1;
-      });
       scenarios.forEach(function (scenario) {
         if (scenario.hidden) return;
         if (!scenario.open) {
@@ -899,8 +898,8 @@ const SCRIPT = `<script>
     }
     if (live) live.textContent = visible + ' of ' + scenarios.length + ' scenarios visible';
     if (searchNote) {
-      if (query && opened === 20 && openable > 20) {
-        searchNote.textContent = '20 of ' + openable + ' matches expanded. Use Expand all to open the rest.';
+      if (query && opened === 20 && visible > 20) {
+        searchNote.textContent = '20 of ' + visible + ' matches expanded. Use Expand all to open the rest.';
         searchNote.hidden = false;
       } else {
         searchNote.hidden = true;

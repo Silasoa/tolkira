@@ -48,6 +48,9 @@ const junitFixture = fileURLToPath(
 const unhappyFixture = fileURLToPath(
   new URL('./fixtures/legacy/unhappy.json', import.meta.url),
 );
+const legacyAmbiguousFixture = fileURLToPath(
+  new URL('./fixtures/legacy/ambiguous.json', import.meta.url),
+);
 
 async function renderMessagesFile(file: string): Promise<string> {
   const content = await readFile(file, 'utf8');
@@ -1264,6 +1267,18 @@ describe('parity diagnostics rendering', () => {
     expect(html).not.toContain('class="definitions"');
   });
 
+  it('shows the ambiguous lead for legacy input without definitions', async () => {
+    const html = await renderReport(legacyAmbiguousFixture, {
+      title: 'Legacy ambiguous',
+    });
+
+    expect(scenarioOpeningTag(html, 'Ambiguous legacy step')).toContain(' open>');
+    expect(html).toContain('data-diagnostic="ambiguous"');
+    expect(html).toContain('Multiple matching step definitions found:');
+    expect(html).not.toContain('class="definitions"');
+    expect(html).not.toContain('<code class="definitionPattern">');
+  });
+
   it('reduces absolute definition sources to the report-relative form', async () => {
     const envelopes = parseMessages(
       await readFile(ambiguousFixture, 'utf8'),
@@ -1348,6 +1363,7 @@ describe('parity diagnostics rendering', () => {
       undefinedHtml.match(
         /data-scenario-name="Snippets reflect parameter types"[^>]*data-search="([^"]*)"/,
       )?.[1] ?? '';
+    expect(undefinedSearch).toContain('No step definition found.');
     expect(undefinedSearch).toContain('a list of {int} things');
     expect(undefinedSearch).toContain('a list of {float} things');
 
@@ -1358,8 +1374,20 @@ describe('parity diagnostics rendering', () => {
       ambiguousHtml.match(
         /data-scenario-name="Multiple step definitions for a step"[^>]*data-search="([^"]*)"/,
       )?.[1] ?? '';
+    expect(ambiguousSearch).toContain('Multiple matching step definitions found:');
     expect(ambiguousSearch).toContain('^a (.*?) with (.*?)$');
     expect(ambiguousSearch).toContain('samples/ambiguous/ambiguous.ts:3');
+  });
+
+  it('keeps model and summary scenario counts in parity', async () => {
+    const envelopes = parseMessages(
+      await readFile(allStatusesFixture, 'utf8'),
+      allStatusesFixture,
+    );
+    const model = buildReportModel(envelopes);
+    const summary = summarizeEnvelopes(envelopes);
+
+    expect(model.counts.scenarios).toEqual(summary.counts.scenarios);
   });
 
   it('caps diagnostic text in the search index', async () => {
