@@ -17,6 +17,9 @@ const outlineFixture = fileURLToPath(
 const allStatusesFixture = fileURLToPath(
   new URL('../fixtures/messages/all-statuses.ndjson', import.meta.url),
 );
+const rulesOutlineBackgroundFixture = fileURLToPath(
+  new URL('../fixtures/messages/rules-outline-background.ndjson', import.meta.url),
+);
 
 const viewports = [
   { width: 320, height: 700 },
@@ -400,6 +403,75 @@ test('keeps grouped outlines readable at 320px and 200% zoom', async ({
       page,
       page.locator('.examplesTitle').first(),
       'examples title at 200%',
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps rule and background headings readable at 320px and 200% zoom', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-rules-responsive-'));
+  const output = path.join(dir, 'rules-responsive.html');
+
+  try {
+    const code = await runCli(
+      [rulesOutlineBackgroundFixture, '--out', output, '--title', 'Rules responsive'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(pathToFileURL(output).href);
+    expect(await pageOverflow(page), 'rules 320 overflow').toBeLessThanOrEqual(1);
+    await expectWithinViewport(
+      page,
+      page.locator('.ruleTitle').first(),
+      'rule title at 320',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('.backgroundTitle').first(),
+      'feature background title at 320',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('section.rule .backgroundTitle').first(),
+      'rule background title at 320',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('.outlineTitle').first(),
+      'rule outline title at 320',
+    );
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await pageOverflow(page),
+      'rules 200% overflow',
+    ).toBeLessThanOrEqual(1);
+    await expectWithinViewport(
+      page,
+      page.locator('.ruleTitle').first(),
+      'rule title at 200%',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('.backgroundTitle').first(),
+      'feature background title at 200%',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('section.rule .backgroundTitle').first(),
+      'rule background title at 200%',
+    );
+    await expectWithinViewport(
+      page,
+      page.locator('.outlineTitle').first(),
+      'rule outline title at 200%',
     );
   } finally {
     await rm(dir, { recursive: true, force: true });

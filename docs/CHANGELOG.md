@@ -7,6 +7,19 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Messages rules render as sections with their keyword, name, description and
+  tags, ordered by severity without moving scenarios across rule boundaries.
+  Rule tags render once on the section; feature tags render once in the feature
+  header. Scenario rows show only their own tags, while inherited tags stay in
+  the tag filter and search. A rule section hides when a filter leaves no
+  visible scenario.
+- Messages feature and rule backgrounds render their keyword, name and
+  description once when either is present. Background steps stay in their
+  scenario step lists and are not duplicated. Legacy normalisation marks its
+  synthetic background, so legacy JSON never invents rule or background
+  structure.
+- Compatibility Kit fixtures for `rules`, `backgrounds` and
+  `rules-backgrounds`, plus local tag and rule/outline/background compositions.
 - Messages scenario outlines are grouped under one outline section with their
   examples blocks. Executed examples are numbered `#1.1`, `#1.2`, `#2.1` and
   keep their own outcome, attachments and anchor. The triage index and copied

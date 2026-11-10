@@ -5,10 +5,12 @@ import {
   buildReportModel,
   statusSeverity,
   type ReportAttachment,
+  type ReportBackground,
   type ReportFeature,
   type ReportHook,
   type ReportModel,
   type ReportOutline,
+  type ReportRule,
   type ReportRunHook,
   type ReportScenario,
   type ReportStatus,
@@ -163,7 +165,7 @@ function featureShape(
   const source = feature.sourceFile
     ? `<span class="featureSource">from ${escapeHtml(feature.sourceFile)}</span>`
     : '';
-  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(displayUri(feature.uri))}</span></span>`;
+  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(displayUri(feature.uri))}</span>${tagsMarkup(feature.tags, 'featureTags')}</span>`;
 }
 
 interface TriageEntry extends OrderedFeature {
@@ -428,10 +430,42 @@ function scenarioLabel(scenario: ReportScenario): string {
   return `${examples}${number} · ${scenario.name}`.trim();
 }
 
-function tagsMarkup(tags: string[]): string {
+function tagsMarkup(tags: string[], extraClass = ''): string {
+  const className = extraClass ? `tags ${extraClass}` : 'tags';
   return tags.length
-    ? `<span class="tags">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>`
+    ? `<span class="${className}">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</span>`
     : '';
+}
+
+function backgroundText(background: ReportBackground): string {
+  return [background.keyword, background.name, background.description].join(
+    ' ',
+  );
+}
+
+function backgroundMarkup(backgrounds: ReportBackground[]): string {
+  return backgrounds
+    .filter((background) => background.name || background.description)
+    .map((background) => {
+      const name = background.name
+        ? ` ${escapeHtml(background.name)}`
+        : '';
+      const description = background.description
+        ? `<p class="description">${escapeHtml(background.description)}</p>`
+        : '';
+      return `<section class="background" data-background><h3 class="backgroundTitle"><span class="kw">${escapeHtml(background.keyword)}:</span>${name}</h3>${description}</section>`;
+    })
+    .join('');
+}
+
+function ruleSearchText(rule: ReportRule): string {
+  return [
+    rule.keyword,
+    rule.name,
+    rule.description,
+    ...rule.tags,
+    ...rule.backgrounds.map(backgroundText),
+  ].join(' ');
 }
 
 function scenarioText(scenario: ReportScenario): string {
@@ -496,13 +530,14 @@ function renderScenario(
   featureIndex: number,
   scenarioIndex: number,
   grouped = false,
+  inRule = false,
 ): string {
   const outline = scenario.outline;
   const example =
     grouped && outline
       ? `#${outline.examplesIndex + 1}.${outline.exampleIndex + 1}`
       : '';
-  const heading = grouped ? 'h5' : 'h3';
+  const heading = grouped ? 'h5' : inRule ? 'h4' : 'h3';
   const image = scenario.attachments.find(
     (attachment) => attachment.kind === 'image' && attachment.dataUri,
   );
@@ -537,7 +572,9 @@ function renderScenario(
   const visibleName = grouped
     ? `<span class="exampleNo" aria-hidden="true">${escapeHtml(example)}</span>${screenReaderLabel}`
     : escapeHtml(scenario.name);
-  const rowTags = grouped ? '' : tagsMarkup(scenario.tags);
+  // Grouped rows keep their tags on the outline/examples sections; standalone
+  // rows show only their own tags and never repeat inherited feature/rule tags.
+  const rowTags = grouped ? '' : tagsMarkup(scenario.ownTags);
   const extraAttachments = scenario.extraAttachments.length
     ? `<div role="group" aria-label="Attachments"><p class="detailLabel">Attachments</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name)).join('')}</div>`
     : '';
@@ -611,9 +648,54 @@ interface RenderItem {
   kind: 'scenario' | 'outline';
   status: ReportStatus;
   order: number;
+  ruleId?: string;
   scenario?: ReportScenario;
   outline?: ReportOutline;
   rows?: ReportScenario[];
+}
+
+interface RuleBlock {
+  kind: 'rule';
+  status: ReportStatus;
+  order: number;
+  rule: ReportRule;
+  items: RenderItem[];
+}
+
+function renderFeatureItem(
+  item: RenderItem,
+  featureIndex: number,
+  idIndex: Map<string, number>,
+  inRule: boolean,
+): string {
+  if (item.kind === 'outline' && item.outline && item.rows) {
+    return renderOutline(item.outline, item.rows, featureIndex, idIndex);
+  }
+  if (item.scenario) {
+    return renderScenario(
+      item.scenario,
+      featureIndex,
+      idIndex.get(item.scenario.id) ?? 0,
+      false,
+      inRule,
+    );
+  }
+  return '';
+}
+
+function renderRuleBlock(
+  block: RuleBlock,
+  featureIndex: number,
+  idIndex: Map<string, number>,
+): string {
+  const rule = block.rule;
+  const name = rule.name ? ` ${escapeHtml(rule.name)}` : '';
+  const description = rule.description
+    ? `<p class="description">${escapeHtml(rule.description)}</p>`
+    : '';
+  return `<section class="rule" data-rule data-search="${escapeHtml(ruleSearchText(rule))}"><h3 class="ruleTitle"><span class="kw">${escapeHtml(rule.keyword)}:</span>${name}</h3>${tagsMarkup(rule.tags, 'ruleTags')}${description}${backgroundMarkup(rule.backgrounds)}<div class="ruleRows">${block.items
+    .map((item) => renderFeatureItem(item, featureIndex, idIndex, true))
+    .join('')}</div></section>`;
 }
 
 function renderFeature(
@@ -634,7 +716,15 @@ function renderFeature(
   const inputIndex = new Map(
     feature.scenarios.map((scenario, index) => [scenario.id, index]),
   );
-  const groups = new Map<string, { outline: ReportOutline; rows: ReportScenario[]; order: number }>();
+  const groups = new Map<
+    string,
+    {
+      outline: ReportOutline;
+      rows: ReportScenario[];
+      order: number;
+      ruleId?: string;
+    }
+  >();
   const items: RenderItem[] = [];
   for (const scenario of feature.scenarios) {
     if (scenario.outline) {
@@ -642,6 +732,7 @@ function renderFeature(
         outline: scenario.outline,
         rows: [],
         order: inputIndex.get(scenario.id) ?? 0,
+        ...(scenario.rule ? { ruleId: scenario.rule.id } : {}),
       };
       group.rows.push(scenario);
       groups.set(scenario.outline.id, group);
@@ -650,6 +741,7 @@ function renderFeature(
         kind: 'scenario',
         status: scenario.status,
         order: inputIndex.get(scenario.id) ?? 0,
+        ...(scenario.rule ? { ruleId: scenario.rule.id } : {}),
         scenario,
       });
     }
@@ -668,6 +760,7 @@ function renderFeature(
       kind: 'outline',
       status: worstStatus(group.rows),
       order: group.order,
+      ...(group.ruleId ? { ruleId: group.ruleId } : {}),
       outline: group.outline,
       rows: group.rows,
     });
@@ -676,17 +769,55 @@ function renderFeature(
     const status = compareStatus(a.status, b.status);
     return status !== 0 ? status : a.order - b.order;
   });
-  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>${description}<div class="rows">${items
+
+  const featureItems: RenderItem[] = [];
+  const ruleBlocks = new Map<
+    string,
+    { rule: ReportRule; items: RenderItem[]; order: number }
+  >();
+  for (const item of items) {
+    const rule = item.scenario?.rule ?? item.rows?.[0]?.rule;
+    if (!item.ruleId || !rule) {
+      featureItems.push(item);
+      continue;
+    }
+    const block = ruleBlocks.get(item.ruleId) ?? {
+      rule,
+      items: [],
+      order: item.order,
+    };
+    block.items.push(item);
+    block.order = Math.min(block.order, item.order);
+    ruleBlocks.set(item.ruleId, block);
+  }
+  const topItems: Array<RenderItem | RuleBlock> = [
+    ...featureItems,
+    ...[...ruleBlocks.values()].map(
+      (block): RuleBlock => ({
+        kind: 'rule',
+        status: worstStatus(
+          block.items.flatMap((item) =>
+            item.scenario ? [item.scenario] : (item.rows ?? []),
+          ),
+        ),
+        order: block.order,
+        rule: block.rule,
+        items: block.items,
+      }),
+    ),
+  ];
+  topItems.sort((a, b) => {
+    const status = compareStatus(a.status, b.status);
+    return status !== 0 ? status : a.order - b.order;
+  });
+  const backgroundSearch = escapeHtml(
+    feature.backgrounds.map(backgroundText).join(' '),
+  );
+  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature data-background-search="${backgroundSearch}" ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>${description}${backgroundMarkup(feature.backgrounds)}<div class="rows">${topItems
     .map((item) =>
-      item.kind === 'outline' && item.outline && item.rows
-        ? renderOutline(item.outline, item.rows, featureIndex, idIndex)
-        : item.scenario
-          ? renderScenario(
-              item.scenario,
-              featureIndex,
-              idIndex.get(item.scenario.id) ?? 0,
-            )
-          : '',
+      item.kind === 'rule'
+        ? renderRuleBlock(item, featureIndex, idIndex)
+        : renderFeatureItem(item, featureIndex, idIndex, false),
     )
     .join('')}</div></details>`;
 }
@@ -832,12 +963,15 @@ const SCRIPT = `<script>
   var searchOpened = [];
   var searchOpenedHooks = [];
   var scenarios = Array.prototype.slice.call(document.querySelectorAll('[data-scenario]'));
-  var highlightTargets = scenarios.concat(Array.prototype.slice.call(document.querySelectorAll('.outlineTitle, .examplesTitle')));
+  var highlightTargets = scenarios.concat(Array.prototype.slice.call(document.querySelectorAll('.outlineTitle, .examplesTitle, .ruleTitle, .backgroundTitle')));
   var features = Array.prototype.slice.call(document.querySelectorAll('[data-feature]'));
   var exampleGroups = Array.prototype.slice.call(document.querySelectorAll('[data-examples]')).map(function (group) {
     return { group: group, rows: Array.prototype.slice.call(group.querySelectorAll('[data-scenario]')) };
   });
   var outlineGroups = Array.prototype.slice.call(document.querySelectorAll('[data-outline]')).map(function (group) {
+    return { group: group, rows: Array.prototype.slice.call(group.querySelectorAll('[data-scenario]')) };
+  });
+  var ruleGroups = Array.prototype.slice.call(document.querySelectorAll('[data-rule]')).map(function (group) {
     return { group: group, rows: Array.prototype.slice.call(group.querySelectorAll('[data-scenario]')) };
   });
   var live = document.getElementById('tolkira-live');
@@ -852,7 +986,9 @@ const SCRIPT = `<script>
       var status = scenario.getAttribute('data-status');
       var outline = scenario.closest('[data-outline]');
       var examples = scenario.closest('[data-examples]');
-      var groupSearch = (outline ? ' ' + (outline.getAttribute('data-search') || '') : '') + (examples ? ' ' + (examples.getAttribute('data-search') || '') : '');
+      var rule = scenario.closest('[data-rule]');
+      var feature = scenario.closest('[data-feature]');
+      var groupSearch = (outline ? ' ' + (outline.getAttribute('data-search') || '') : '') + (examples ? ' ' + (examples.getAttribute('data-search') || '') : '') + (rule ? ' ' + (rule.getAttribute('data-search') || '') : '') + (feature ? ' ' + (feature.getAttribute('data-background-search') || '') : '');
       var text = ((scenario.getAttribute('data-search') || '') + groupSearch).toLowerCase();
       var tags = ' ' + (scenario.getAttribute('data-tags') || '') + ' ';
       var tagMatch = !tag || tags.indexOf(' ' + tag + ' ') !== -1;
@@ -871,6 +1007,10 @@ const SCRIPT = `<script>
       entry.group.hidden = !any;
     });
     outlineGroups.forEach(function (entry) {
+      var any = entry.rows.some(function (row) { return !row.hidden; });
+      entry.group.hidden = !any;
+    });
+    ruleGroups.forEach(function (entry) {
       var any = entry.rows.some(function (row) { return !row.hidden; });
       entry.group.hidden = !any;
     });

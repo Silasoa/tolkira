@@ -45,6 +45,18 @@ const allStatusesFixture = fileURLToPath(
 const emptyFixture = fileURLToPath(
   new URL('./fixtures/messages/empty.ndjson', import.meta.url),
 );
+const rulesFixture = fileURLToPath(
+  new URL('./fixtures/messages/rules.ndjson', import.meta.url),
+);
+const backgroundsFixture = fileURLToPath(
+  new URL('./fixtures/messages/backgrounds.ndjson', import.meta.url),
+);
+const rulesBackgroundsFixture = fileURLToPath(
+  new URL('./fixtures/messages/rules-backgrounds.ndjson', import.meta.url),
+);
+const tagsFixture = fileURLToPath(
+  new URL('./fixtures/messages/tags.ndjson', import.meta.url),
+);
 
 async function modelFor(file: string) {
   const content = await readFile(file, 'utf8');
@@ -629,5 +641,166 @@ describe('parity diagnostics model', () => {
         `${testCase.name} definitions`,
       ).toBe(testCase.hasDefinitions);
     }
+  });
+});
+
+describe('parity rules model', () => {
+  it('attaches rule metadata and keeps the scenario list flat', async () => {
+    const model = await messagesModelFor(rulesFixture);
+
+    expect(model.counts.scenarios.total).toBe(3);
+    expect(model.features).toHaveLength(1);
+    expect(model.features[0]?.scenarios).toHaveLength(3);
+    expect(model.features[0]?.backgrounds).toEqual([]);
+
+    const first = model.scenarios.find(
+      (scenario) => scenario.name === 'Not enough money',
+    );
+    expect(first?.rule).toEqual({
+      id: expect.any(String),
+      keyword: 'Rule',
+      name: 'A sale cannot happen if the customer does not have enough money',
+      description: '',
+      tags: [],
+      backgrounds: [],
+    });
+    expect(first?.ruleName).toBe(first?.rule?.name);
+
+    const tagged = model.scenarios.find(
+      (scenario) => scenario.name === 'No chocolates left',
+    );
+    expect(tagged?.rule?.name).toBe(
+      'a sale cannot happen if there is no stock',
+    );
+    expect(tagged?.rule?.tags).toEqual(['@some-tag']);
+    expect(tagged?.tags).toEqual(['@some-tag']);
+    expect(tagged?.ownTags).toEqual([]);
+  });
+
+  it('separates own tags from inherited pickle tags', async () => {
+    const model = await messagesModelFor(tagsFixture);
+
+    const scenario = model.scenarios.find(
+      (entry) => entry.name === 'tagged scenario',
+    );
+    expect(scenario?.ownTags).toEqual(['@scenario-tag']);
+    expect(scenario?.tags).toEqual(
+      expect.arrayContaining(['@feature-tag', '@rule-tag', '@scenario-tag']),
+    );
+
+    const inheritedOnly = model.scenarios.find(
+      (entry) => entry.name === 'Enough money',
+    );
+    expect(inheritedOnly?.ownTags).toEqual([]);
+    expect(inheritedOnly?.tags).toEqual(
+      expect.arrayContaining(['@feature-tag', '@rule-tag']),
+    );
+    expect(inheritedOnly?.tags).not.toContain('@scenario-tag');
+
+    const feature = model.features[0];
+    expect(feature?.tags).toEqual(['@feature-tag']);
+  });
+
+  it('uses examples tags as own tags for outline rows', async () => {
+    const content = await readFile(examplesTables, 'utf8');
+    const envelopes = parseMessages(content, examplesTables);
+    const scenario = envelopes
+      .find((envelope) => envelope.gherkinDocument)
+      ?.gherkinDocument?.feature?.children.find((child) => child.scenario)
+      ?.scenario;
+    expect(scenario).toBeDefined();
+    if (!scenario) return;
+    scenario.tags = [
+      { id: 'outline-tag', name: '@outline', location: { line: 1, column: 1 } },
+    ];
+    const examples = scenario.examples?.[0];
+    expect(examples).toBeDefined();
+    if (!examples) return;
+    examples.tags = [
+      { id: 'examples-tag', name: '@examples', location: { line: 1, column: 1 } },
+    ];
+    for (const envelope of envelopes) {
+      if (envelope.pickle?.astNodeIds[0] !== scenario.id) continue;
+      envelope.pickle.tags = [
+        ...(envelope.pickle.tags ?? []),
+        { name: '@outline', astNodeId: 'outline-tag' },
+        { name: '@examples', astNodeId: 'examples-tag' },
+      ];
+    }
+
+    const model = buildReportModel(envelopes);
+    const rows = model.scenarios.filter(
+      (entry) =>
+        entry.outline?.id === scenario.id && entry.outline.examplesIndex === 0,
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.ownTags.includes('@examples'))).toBe(true);
+    expect(rows.every((row) => !row.ownTags.includes('@outline'))).toBe(true);
+    expect(rows.every((row) => row.tags.includes('@outline'))).toBe(true);
+  });
+
+  it('collects feature and rule background metadata', async () => {
+    const backgrounds = await messagesModelFor(backgroundsFixture);
+    expect(backgrounds.features[0]?.backgrounds).toEqual([
+      {
+        id: expect.any(String),
+        keyword: 'Background',
+        name: '',
+        description: '',
+      },
+    ]);
+    expect(backgrounds.counts.scenarios.total).toBe(2);
+    expect(backgrounds.counts.steps.total).toBe(10);
+
+    const nested = await messagesModelFor(rulesBackgroundsFixture);
+    expect(nested.features[0]?.backgrounds).toHaveLength(1);
+    const scenarios = nested.scenarios;
+    expect(scenarios).toHaveLength(2);
+    expect(
+      scenarios.every(
+        (scenario) =>
+          scenario.rule?.backgrounds.length === 1 &&
+          scenario.rule.name === '' &&
+          scenario.rule.keyword === 'Rule',
+      ),
+    ).toBe(true);
+    expect(nested.counts.steps.total).toBe(14);
+  });
+
+  it('skips synthetic legacy backgrounds and invents no rules', async () => {
+    const model = await modelFor(happy);
+    expect(model.features[0]?.backgrounds).toEqual([]);
+    expect(model.scenarios.every((scenario) => !scenario.rule)).toBe(true);
+    expect(model.scenarios.every((scenario) => !scenario.ruleName)).toBe(true);
+    expect(
+      model.scenarios.every((scenario) => Array.isArray(scenario.ownTags)),
+    ).toBe(true);
+  });
+
+  it('keeps legacy feature and scenario tags best effort', async () => {
+    const model = await modelFor(
+      fileURLToPath(new URL('./fixtures/legacy/behave.json', import.meta.url)),
+    );
+    const scenario = model.scenarios[0];
+    expect(scenario?.ownTags).toEqual(
+      expect.arrayContaining(['@behave', '@scenario']),
+    );
+    expect(scenario?.tags).toEqual(
+      expect.arrayContaining(['@behave', '@scenario']),
+    );
+  });
+
+  it('adds no rules or backgrounds for JUnit input', async () => {
+    const content = await readFile(
+      fileURLToPath(new URL('./fixtures/junit/basic.xml', import.meta.url)),
+      'utf8',
+    );
+    const { parseJUnitXml } = await import('../src/input/junit.js');
+    const model = buildReportModel(await parseJUnitXml(content, 'basic.xml'));
+    expect(model.features[0]?.backgrounds).toEqual([]);
+    expect(model.scenarios.every((scenario) => !scenario.rule)).toBe(true);
+    expect(model.scenarios.every((scenario) => scenario.ownTags.length === 0)).toBe(
+      true,
+    );
   });
 });

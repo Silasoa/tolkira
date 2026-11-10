@@ -51,6 +51,20 @@ name, tags and description. An outline can have several.
 `#<examples>.<example>` in the report. Each row keeps its own outcome,
 attachments and anchor.
 
+**Rule** — a Gherkin grouping of scenarios and outlines under a named business
+rule. The report renders a rule section with its keyword, name, description and
+tags; scenarios stay inside their rule.
+
+**Background** — shared setup steps for a feature or rule. Cucumber compiles
+them into each pickle, so the report keeps the steps in the scenario step lists
+and renders only the background heading and description once, when present.
+
+**Own tag** — a tag written on the scenario itself, or on the examples block for
+an outline row. Scenario rows display only own tags.
+
+**Inherited tag** — a feature, rule or examples tag carried into a pickle. It
+stays available to the tag filter and search but is not repeated on every row.
+
 **Hook** — a Cucumber before/after function around a scenario or step. The
 report shows per-scenario hooks separately from steps.
 

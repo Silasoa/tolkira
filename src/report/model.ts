@@ -4,12 +4,14 @@ import {
 } from '@cucumber/messages';
 import type {
   Attachment,
+  Background,
   Envelope,
   Examples,
   Feature,
   FeatureChild,
   Hook,
   Pickle,
+  Rule,
   RuleChild,
   Scenario,
   Step,
@@ -20,6 +22,7 @@ import type {
   TestStepFinished,
 } from '@cucumber/messages';
 
+import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
 
 export type ReportStatus =
@@ -91,6 +94,22 @@ export interface ReportOutline {
   exampleIndex: number;
 }
 
+export interface ReportBackground {
+  id: string;
+  keyword: string;
+  name: string;
+  description: string;
+}
+
+export interface ReportRule {
+  id: string;
+  keyword: string;
+  name: string;
+  description: string;
+  tags: string[];
+  backgrounds: ReportBackground[];
+}
+
 export interface ReportScenario {
   id: string;
   name: string;
@@ -99,10 +118,14 @@ export interface ReportScenario {
   uri: string;
   featureName: string;
   ruleName?: string;
+  rule?: ReportRule;
   status: ReportStatus;
   durationMs: number;
   attempt: number;
   startedAt?: string;
+  /** Scenario tags from the AST; examples-block tags for outline rows. */
+  ownTags: string[];
+  /** Inherited pickle tags, kept for filtering and search. */
   tags: string[];
   outline?: ReportOutline;
   steps: ReportStep[];
@@ -118,6 +141,7 @@ export interface ReportFeature {
   uri: string;
   description: string;
   tags: string[];
+  backgrounds: ReportBackground[];
   status: ReportStatus;
   durationMs: number;
   scenarios: ReportScenario[];
@@ -376,22 +400,61 @@ function count(counts: Record<ReportStatus, number> & { total: number }, status:
 interface OutlineExample {
   uri: string;
   scenario: Scenario;
-  ruleName?: string;
   examples: Examples;
   examplesIndex: number;
   exampleIndex: number;
 }
 
+function backgroundRow(background: Background): ReportBackground | undefined {
+  if (isSyntheticBackground(background)) return undefined;
+  return {
+    id: background.id,
+    keyword: background.keyword || 'Background',
+    name: background.name ?? '',
+    description: normalizeText(background.description),
+  };
+}
+
+function backgroundsOf(
+  children: readonly (FeatureChild | RuleChild)[] | undefined,
+): ReportBackground[] {
+  const rows: ReportBackground[] = [];
+  for (const child of children ?? []) {
+    if (!child.background) continue;
+    const row = backgroundRow(child.background);
+    if (row) rows.push(row);
+  }
+  return rows;
+}
+
+function ruleMetadata(rule: Rule): ReportRule {
+  return {
+    id: rule.id,
+    keyword: rule.keyword || 'Rule',
+    name: rule.name ?? '',
+    description: normalizeText(rule.description),
+    tags: (rule.tags ?? []).map((tag) => tag.name),
+    backgrounds: backgroundsOf(rule.children ?? []),
+  };
+}
+
 function featureTree(document: Feature | undefined): Map<string, {
   scenario: Scenario;
-  ruleName?: string;
+  rule?: ReportRule;
 }> {
-  const map = new Map<string, { scenario: Scenario; ruleName?: string }>();
+  const map = new Map<string, { scenario: Scenario; rule?: ReportRule }>();
   if (!document) return map;
-  const visit = (children: readonly (FeatureChild | RuleChild)[], ruleName?: string): void => {
+  const visit = (
+    children: readonly (FeatureChild | RuleChild)[],
+    rule?: ReportRule,
+  ): void => {
     for (const child of children) {
-      if (child.scenario) map.set(child.scenario.id, { scenario: child.scenario, ruleName });
-      if ('rule' in child && child.rule) visit(child.rule.children ?? [], child.rule.name);
+      if (child.scenario) {
+        map.set(child.scenario.id, { scenario: child.scenario, ...(rule ? { rule } : {}) });
+      }
+      if ('rule' in child && child.rule) {
+        visit(child.rule.children ?? [], ruleMetadata(child.rule));
+      }
     }
   };
   visit(document.children ?? []);
@@ -404,7 +467,7 @@ function exampleRowTree(
 ): Map<string, OutlineExample> {
   const map = new Map<string, OutlineExample>();
   if (!document) return map;
-  const visit = (children: readonly (FeatureChild | RuleChild)[], ruleName?: string): void => {
+  const visit = (children: readonly (FeatureChild | RuleChild)[]): void => {
     for (const child of children) {
       if (child.scenario) {
         const scenario = child.scenario;
@@ -413,7 +476,6 @@ function exampleRowTree(
             map.set(row.id, {
               uri,
               scenario,
-              ruleName,
               examples,
               examplesIndex,
               exampleIndex,
@@ -421,7 +483,7 @@ function exampleRowTree(
           });
         });
       }
-      if ('rule' in child && child.rule) visit(child.rule.children ?? [], child.rule.name);
+      if ('rule' in child && child.rule) visit(child.rule.children ?? []);
     }
   };
   visit(document.children ?? []);
@@ -436,7 +498,7 @@ export function buildReportModel(
   const featureUris = new Map<Feature, string>();
   const featureSeen = new Set<Feature>();
   const featureOrder: Feature[] = [];
-  const scenarioTree = new Map<string, { scenario: Scenario; ruleName?: string }>();
+  const scenarioTree = new Map<string, { scenario: Scenario; rule?: ReportRule }>();
   const outlineRows = new Map<string, OutlineExample>();
   const featureByScenarioId = new Map<string, Feature>();
   const stepById = new Map<string, Step>();
@@ -710,6 +772,10 @@ export function buildReportModel(
         : undefined;
     const scenarioId = outlineExample?.scenario.id ?? astIds[0] ?? '';
     const tree = outlineExample ?? scenarioTree.get(scenarioId);
+    const astEntry = outlineExample
+      ? scenarioTree.get(outlineExample.scenario.id)
+      : scenarioTree.get(scenarioId);
+    const rule = astEntry?.rule;
     const feature =
       featureByScenarioId.get(scenarioId) ??
       features.get(pickle.uri);
@@ -746,11 +812,17 @@ export function buildReportModel(
       description: normalizeText(tree?.scenario.description),
       uri: pickle.uri,
       featureName: feature?.name ?? pickle.uri,
-      ...(tree?.ruleName ? { ruleName: tree.ruleName } : {}),
+      ...(rule ? { rule } : {}),
+      ...(rule?.name ? { ruleName: rule.name } : {}),
       status,
       durationMs: finiteDuration(duration),
       attempt: Number.isFinite(latest.attempt) ? latest.attempt : 0,
       ...(timestampIso(latest.timestamp) ? { startedAt: timestampIso(latest.timestamp) } : {}),
+      ownTags: outlineExample
+        ? (outlineExample.examples.tags ?? []).map((tag) => tag.name)
+        : tree
+          ? (tree.scenario.tags ?? []).map((tag) => tag.name)
+          : (pickle.tags ?? []).map((tag) => tag.name),
       tags: (pickle.tags ?? []).map((tag) => tag.name),
       ...(outline ? { outline } : {}),
       steps: stepRows,
@@ -804,6 +876,7 @@ export function buildReportModel(
       uri: scenarios[0]?.uri ?? '',
       description: normalizeText(feature.description),
       tags: (feature.tags ?? []).map((tag) => tag.name),
+      backgrounds: backgroundsOf(feature.children ?? []),
       status,
       durationMs: finiteDuration(
         scenarios.reduce((sum, scenario) => sum + scenario.durationMs, 0),

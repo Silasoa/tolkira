@@ -40,6 +40,35 @@ outline without examples also falls back to a flat row; this is a deliberate
 difference from the official formatter, which renders the outline with no
 examples.
 
+## Rules, backgrounds and tags
+
+Messages input carries rules and backgrounds in the Gherkin document. Tolkira
+renders a rule as a section with its keyword, name, description and tags.
+Scenarios and outlines stay inside their rule. Feature-level items and rule
+sections are ordered by severity and then by first input position; scenarios do
+not move across rule boundaries. Features without rules keep their previous
+layout.
+
+Feature tags render once in the feature header. Rule tags render once on the
+rule section. Scenario rows show only their own scenario tags; for an outline
+row that is the examples-block tag set. Feature, rule and examples tags remain
+in the pickle tag set for the tag filter, search and the JSON summary, but they
+are not repeated on every row. A rule section is hidden when a search, status
+or tag filter leaves no visible scenario below it.
+
+Feature and rule backgrounds render their keyword, name and description once
+when the name or description is non-empty. Their steps stay in the scenario
+step lists, as Cucumber compiles them into each pickle; Tolkira does not render
+a second background step list. The `backgrounds` Compatibility Kit sample has an
+anonymous background and therefore shows no background heading.
+
+Legacy JSON has no reliable rule or background structure. Its normalisation
+synthesizes a Background node for step resolution, marks it synthetic and the
+report model skips it. Legacy feature and scenario tags remain best effort.
+JUnit has neither rules nor backgrounds. The JSON summary stays version 1 and
+continues to expose only the flat scenario list and inherited `scenarios[].tags`;
+rule and background structure is HTML-only.
+
 ## Hooks
 
 Messages per-scenario hooks render separately from steps. The subtitle counts

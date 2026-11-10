@@ -47,6 +47,44 @@ const undefinedFixture = fileURLToPath(
 const ambiguousFixture = fileURLToPath(
   new URL('../fixtures/messages/ambiguous.ndjson', import.meta.url),
 );
+const rulesOutlineBackgroundFixture = fileURLToPath(
+  new URL('../fixtures/messages/rules-outline-background.ndjson', import.meta.url),
+);
+const tagsFixture = fileURLToPath(
+  new URL('../fixtures/messages/tags.ndjson', import.meta.url),
+);
+
+async function writeFailedTagsFixture(dir: string): Promise<string> {
+  const input = path.join(dir, 'failed-tags.ndjson');
+  const lines = (await readFile(tagsFixture, 'utf8'))
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => JSON.parse(line) as Record<string, any>);
+  const pickle = lines.find((line) => line.pickle?.name === 'tagged scenario')
+    ?.pickle;
+  const testCase = lines.find(
+    (line) => line.testCase?.pickleId === pickle?.id,
+  )?.testCase;
+  const started = lines.find(
+    (line) => line.testCaseStarted?.testCaseId === testCase?.id,
+  )?.testCaseStarted;
+  const step = testCase?.testSteps.find((entry: { pickleStepId?: string }) =>
+    entry.pickleStepId,
+  );
+  const finished = lines.find(
+    (line) =>
+      line.testStepFinished?.testCaseStartedId === started?.id &&
+      line.testStepFinished.testStepId === step?.id,
+  )?.testStepFinished;
+  expect(finished).toBeTruthy();
+  finished.testStepResult.status = 'FAILED';
+  await writeFile(
+    input,
+    `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+    'utf8',
+  );
+  return input;
+}
 
 function outlineNdjson(count: number): string {
   const rows = Array.from({ length: count }, (_, index) => ({
@@ -1837,6 +1875,115 @@ test('loads and searches a 1,000-row non-passed report within budget', async ({
   }
 });
 
+test('renders rules, backgrounds and outlines together', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-rules-e2e-'));
+  const output = path.join(dir, 'rules.html');
+
+  try {
+    const code = await runCli(
+      [rulesOutlineBackgroundFixture, '--out', output, '--title', 'Rules E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const rule = page.locator('section.rule[data-rule]');
+    await expect(rule).toHaveCount(1);
+    await expect(
+      rule.getByRole('heading', { name: /Outline rule/, level: 3 }),
+    ).toBeVisible();
+    await expect(rule.locator('.ruleTags')).toContainText('@rule-outline');
+    await expect(
+      page.getByRole('heading', { name: /Feature setup/, level: 3 }),
+    ).toBeVisible();
+    await expect(page.getByText('Feature background description.')).toBeVisible();
+    await expect(
+      rule.getByRole('heading', { name: /Rule setup/, level: 3 }),
+    ).toBeVisible();
+    await expect(rule.getByText('Rule background description.')).toBeVisible();
+    await expect(rule.locator('section.outline')).toHaveCount(1);
+    await expect(rule.locator('section.outline .outlineTitle')).toContainText(
+      'Eating cucumbers',
+    );
+    await expect(rule.locator('section.examples')).toHaveCount(2);
+    await expect(page.locator('section.outline')).toHaveCount(2);
+    await expect(page.locator('.exampleNo')).toHaveCount(7);
+
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    await search.fill('Rule setup');
+    await expect(rule).toBeVisible();
+    await expect(page.locator('section.outline:visible')).toHaveCount(1);
+    await expect(page.locator('details.scenario:visible')).toHaveCount(4);
+
+    await search.fill('Feature setup');
+    await expect(page.locator('section.outline:visible')).toHaveCount(2);
+    await expect(page.locator('details.scenario:visible')).toHaveCount(7);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('filters rules by search, status and tag', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-rule-filter-e2e-'));
+  const input = await writeFailedTagsFixture(dir);
+  const output = path.join(dir, 'rules-filter.html');
+
+  try {
+    const code = await runCli(
+      [input, '--out', output, '--title', 'Rule filters'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const ruleOne = page
+      .locator('section.rule')
+      .filter({ hasText: 'tagged rule' });
+    const ruleTwo = page
+      .locator('section.rule')
+      .filter({ hasText: 'no stock' });
+    await expect(ruleOne).toBeVisible();
+    await expect(ruleTwo).toBeVisible();
+
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    await search.fill('tagged rule');
+    await expect(ruleOne).toBeVisible();
+    await expect(ruleTwo).toBeHidden();
+    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+
+    await search.fill('@some-tag');
+    await expect(ruleTwo).toBeVisible();
+    await expect(ruleOne).toBeHidden();
+    await expect(page.locator('details.scenario:visible')).toHaveCount(1);
+
+    await search.fill('');
+    const tagFilter = page.locator('select[data-tag-filter]');
+    await tagFilter.selectOption('@rule-tag');
+    await expect(ruleOne).toBeVisible();
+    await expect(ruleTwo).toBeHidden();
+
+    await tagFilter.selectOption('@some-tag');
+    await expect(ruleTwo).toBeVisible();
+    await expect(ruleOne).toBeHidden();
+    await expect(page.locator('section.rule:visible')).toHaveCount(1);
+
+    await tagFilter.selectOption('');
+    const passedFilter = page.locator('button.filter[data-status="passed"]');
+    await passedFilter.click();
+    await expect(ruleOne).toBeVisible();
+    await expect(ruleTwo).toBeHidden();
+    await expect(page.locator('details.scenario:visible')).toHaveCount(1);
+    await expect(page.locator('[data-scenario-name="tagged scenario"]')).toBeVisible();
+
+    await passedFilter.click();
+    await expect(page.locator('details.scenario:visible')).toHaveCount(3);
+    await expect(ruleOne).toBeVisible();
+    await expect(ruleTwo).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test.describe('without scripting', () => {
   test.use({ javaScriptEnabled: false });
 
@@ -1873,6 +2020,41 @@ test.describe('without scripting', () => {
       await expect(page.locator(href!)).toHaveCount(1);
       await expect(page.locator('#feature-1')).toBeVisible();
       await expect(page.locator('#report-view')).toBeVisible();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('keeps rule and background headings visible', async ({ page }) => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-rule-nojs-e2e-'));
+    const output = path.join(dir, 'rules-nojs.html');
+    const requests: string[] = [];
+    page.on('request', (request) => requests.push(request.url()));
+
+    try {
+      const code = await runCli(
+        [rulesOutlineBackgroundFixture, '--out', output, '--title', 'Rules no JS'],
+        { stdout: () => undefined, stderr: () => undefined },
+      );
+      expect(code).toBe(0);
+
+      await page.goto(pathToFileURL(output).href);
+      await expect(page.locator('section.rule[data-rule]')).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: /Outline rule/, level: 3 }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: /Feature setup/, level: 3 }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: /Rule setup/, level: 3 }),
+      ).toBeVisible();
+      await expect(page.locator('section.outline').first()).toBeVisible();
+      expect(
+        requests.every(
+          (url) => url.startsWith('file:') || url.startsWith('data:'),
+        ),
+      ).toBe(true);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

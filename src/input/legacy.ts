@@ -3,6 +3,7 @@ import {
   HookType,
   TestStepResultStatus,
 } from '@cucumber/messages';
+import { markSyntheticBackground } from './background.js';
 import type {
   Attachment,
   Background,
@@ -639,6 +640,7 @@ export function parseLegacyValue(
         description: normalizeText(backgroundElement.description),
         steps: backgroundNodes,
       };
+      markSyntheticBackground(background);
       featureChildren.push({ background });
     }
 

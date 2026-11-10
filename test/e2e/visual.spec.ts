@@ -18,6 +18,13 @@ fixtures.push(
   ),
 );
 
+const rulesOutlineBackground = fileURLToPath(
+  new URL('../fixtures/messages/rules-outline-background.ndjson', import.meta.url),
+);
+const rulesBackgrounds = fileURLToPath(
+  new URL('../fixtures/messages/rules-backgrounds.ndjson', import.meta.url),
+);
+
 async function waitForImages(page: Page): Promise<void> {
   await page.evaluate(() => {
     const images = Array.from(document.images);
@@ -118,6 +125,47 @@ test('captures hook screenshots for visual review', async ({
 
     await page.locator('details.hookGroup').first().locator('summary').click();
     await capture(page, testInfo, 'hooks-expanded');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('captures rule and background screenshots for visual review', async ({
+  page,
+}, testInfo) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-visual-rules-'));
+  const output = path.join(dir, 'rules.html');
+  const backgroundsOutput = path.join(dir, 'backgrounds.html');
+
+  try {
+    const code = await runCli(
+      [rulesOutlineBackground, '--out', output, '--title', 'Tolkira rules review'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pathToFileURL(output).href);
+    await expect(
+      page.getByRole('heading', { name: /Outline rule/, level: 3 }),
+    ).toBeVisible();
+    await capture(page, testInfo, 'rules-desktop');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await capture(page, testInfo, 'rules-mobile-390');
+
+    const backgroundsCode = await runCli(
+      [rulesBackgrounds, '--out', backgroundsOutput, '--title', 'Tolkira backgrounds review'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(backgroundsCode).toBe(0);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pathToFileURL(backgroundsOutput).href);
+    await expect(
+      page.getByRole('heading', { name: /Rules with Backgrounds/, level: 2 }),
+    ).toBeVisible();
+    await capture(page, testInfo, 'backgrounds-desktop');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -22,3 +22,17 @@ attachments.
 has two matching definitions; there is no separate `ambiguous-multiple` sample.
 `all-statuses` covers passed, failed, pending, skipped, undefined and ambiguous.
 `empty` has a scenario without steps.
+
+`rules.*`, `backgrounds.*` and `rules-backgrounds.*` are copied unmodified from
+the same Compatibility Kit samples on the same date. `rules` covers two rules
+and a rule tag; `backgrounds` covers a feature background; `rules-backgrounds`
+covers a feature background and a rule background together.
+
+The Compatibility Kit has no standalone tags sample. `tags.*` is a local copy
+of `rules.*` with a feature tag, a second rule tag and a scenario tag added to
+the AST and pickle envelopes, so tag inheritance can be tested end to end.
+`rules-outline-background.*` is a local composition: the `examples-tables`
+outline is wrapped in a tagged rule with a named background, and the feature
+gets a named background and a feature tag. Both local fixtures are documented
+by their `.feature` files; only `rules-backgrounds`, `examples-tables` and the
+other listed samples are unmodified Compatibility Kit input.

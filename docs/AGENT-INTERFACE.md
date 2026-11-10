@@ -187,6 +187,11 @@ Field contract:
   outline can share the same name; the HTML report labels rows with `#1.1` and
   shows the examples block name on the examples heading and in triage and
   copy-failure text, but the summary does not expose them yet.
+- `scenarios[].tags` is the inherited pickle tag set, including feature, rule,
+  scenario and examples tags. The HTML report uses the same set for its tag
+  filter and search; it shows feature and rule tags once at their section and
+  shows only a scenario's own tags on a row. The summary does not expose rules,
+  backgrounds or the own/inherited distinction.
 - `attempt` is the latest Cucumber retry attempt for that scenario.
 - `attachments.bytes` is the decoded size, not the base64 length.
 - `steps[].message` is present only when the step result has a message. For
@@ -231,6 +236,9 @@ outside `features/`).
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave-shaped durations are
   interpreted as nanoseconds, like cucumber-js.
+- Rules and backgrounds are an HTML presentation feature. The version-1 summary
+  keeps the flat scenario list; `scenarios[].tags` remains the inherited tag
+  set. Legacy JSON and JUnit never invent rule or background structure.
 - Legacy Cucumber JSON and JUnit have no suggestion or step-definition
   envelopes. An undefined or ambiguous legacy step still shows the status lead
   in HTML, but never invented snippets or definitions; JUnit renders no
