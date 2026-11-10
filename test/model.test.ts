@@ -777,17 +777,13 @@ describe('parity rules model', () => {
     ).toBe(true);
   });
 
-  it('keeps legacy feature and scenario tags best effort', async () => {
+  it('keeps legacy scenario tags own and inherited ones on the pickle', async () => {
     const model = await modelFor(
       fileURLToPath(new URL('./fixtures/legacy/behave.json', import.meta.url)),
     );
     const scenario = model.scenarios[0];
-    expect(scenario?.ownTags).toEqual(
-      expect.arrayContaining(['@behave', '@scenario']),
-    );
-    expect(scenario?.tags).toEqual(
-      expect.arrayContaining(['@behave', '@scenario']),
-    );
+    expect(scenario?.ownTags).toEqual(['@scenario']);
+    expect(scenario?.tags).toEqual(['@behave', '@scenario']);
   });
 
   it('adds no rules or backgrounds for JUnit input', async () => {

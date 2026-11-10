@@ -648,9 +648,15 @@ export function parseLegacyValue(
       (element) => !isBackgroundElement(element),
     );
 
+    // Legacy producers repeat inherited feature tags on every element; the
+    // scenario AST node keeps only its own tags so rows do not repeat them.
+    const featureTagNames = new Set(featureTags.map((tag) => tag.name));
+
     for (const [scenarioIndex, element] of scenarios.entries()) {
       const scenarioId = nextId('scenario');
-      const scenarioTags = mapTags(element.tags, nextId);
+      const scenarioTags = mapTags(element.tags, nextId).filter(
+        (tag) => !featureTagNames.has(tag.name),
+      );
       const scenarioSteps = (element.steps ?? []).filter((step) => !isHook(step));
       const stepNodes = scenarioSteps.map((step) => mapStep(step, nextId));
       const backgroundInline =

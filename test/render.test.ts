@@ -1904,6 +1904,22 @@ describe('parity rules rendering', () => {
     expect(featureSearch).toContain('Feature setup description.');
   });
 
+  it('leaves rule and background keywords out of the search index', async () => {
+    const html = await renderMessagesFile(rulesBackgroundsFixture);
+
+    const ruleSearch =
+      html.match(
+        /<section class="rule" data-rule data-search="([^"]*)"/,
+      )?.[1] ?? '';
+    expect(ruleSearch.trim()).toBe('');
+    expect(ruleSearch.toLowerCase()).not.toContain('rule');
+
+    const featureSearch =
+      html.match(/data-background-search="([^"]*)"/)?.[1] ?? '';
+    expect(featureSearch.trim()).toBe('');
+    expect(featureSearch.toLowerCase()).not.toContain('background');
+  });
+
   it('escapes rule and background text', async () => {
     const envelopes = parseMessages(
       await readFile(rulesBackgroundsFixture, 'utf8'),

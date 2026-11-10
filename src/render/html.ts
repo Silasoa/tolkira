@@ -438,9 +438,7 @@ function tagsMarkup(tags: string[], extraClass = ''): string {
 }
 
 function backgroundText(background: ReportBackground): string {
-  return [background.keyword, background.name, background.description].join(
-    ' ',
-  );
+  return [background.name, background.description].join(' ');
 }
 
 function backgroundMarkup(backgrounds: ReportBackground[]): string {
@@ -460,7 +458,6 @@ function backgroundMarkup(backgrounds: ReportBackground[]): string {
 
 function ruleSearchText(rule: ReportRule): string {
   return [
-    rule.keyword,
     rule.name,
     rule.description,
     ...rule.tags,
