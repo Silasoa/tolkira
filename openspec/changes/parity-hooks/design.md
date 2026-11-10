@@ -1,0 +1,136 @@
+# Design
+
+## Context
+
+See `proposal.md` for motivation. `buildReportModel` currently pushes every
+`testStep.hookId` result into `ReportScenario.steps` with `keyword: "Hook"` and
+a type label. `scenario.steps.length` therefore counts hooks as steps, hook
+names are discarded, and `testRunHookStarted`/`testRunHookFinished` are parsed
+but ignored. `summarizeEnvelopes` is separate and still represents hooks as
+steps; this slice deliberately leaves that contract alone.
+
+ADR 0004 normalises legacy JSON to Messages. Legacy hooks already arrive as
+Hook envelopes and per-scenario test steps; legacy JSON has no test-run hooks.
+ADR 0005 keeps the shell server-rendered, so hook rows and the run-hooks section
+must be in the generated HTML.
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- Separate hooks from steps in the model and the HTML.
+- Preserve hook order, names, status, duration, errors and attachments.
+- Collapse passed hooks; keep non-passing hooks inline.
+- Render BeforeAll/AfterAll in a separate Hooks section.
+- Keep the JSON summary stable and legacy/JUnit behaviour best effort.
+
+**Non-Goals:**
+
+- Diagnostics and auto-expansion (G4/G5/G6), rules/backgrounds/tags (G9),
+  empty-run semantics (G7), Markdown (G8), tag expressions/URL state (G10),
+  `meta.ci` (G11), attachment polish (G12), stream adapter (G14), parameter
+  highlighting (G15), hook source-location links and summary schema changes.
+
+## Decisions
+
+### Add explicit hook types instead of reusing steps
+
+Add:
+
+- `ReportHook`: id, type label, name, status, durationMs, message, attachments.
+- `ReportRunHook`: id, type label, name, status, durationMs, message,
+  attachments.
+- `ReportScenario.hooks: ReportHook[]`.
+- `ReportModel.runHooks: ReportRunHook[]`.
+
+Remove the hook-only fields from `ReportStep`. `scenario.steps` then contains
+only ordinary steps, and `counts.steps` no longer includes hooks. The scenario
+subtitle and the feature/run bars use scenario status, not hook counts.
+
+Alternative considered: keep hooks in `steps` and filter at render time. It
+would leave every consumer (summary, counts, tests, search) with two meanings
+for `steps`. Rejected.
+
+### Collect per-scenario hooks from test steps
+
+When iterating `testCase.testSteps`, a `hookId` result goes to `hookRows`, not
+`stepRows`. Resolve `hooks.get(hookId)` for type and name, map status and
+duration as before, and map attachments from the test step. Keep test-case
+order. A failed hook still contributes to the scenario's worst status because
+the existing `rawResults` worst-status calculation includes all test-step
+results.
+
+Hook attachments are part of `scenario.attachments` for thumbnails, feature
+counts and the run summary, but are rendered inside the hook row. They are not
+added to `extraAttachments`, which remains for attachments without a step or
+hook.
+
+### Collect run hooks from start/finish envelopes
+
+Build maps for `testRunHookStarted` by id and `testRunHookFinished` by
+`testRunHookStartedId`. Resolve the Hook envelope by `hookId`; use its name and
+type. Attachments with `testRunHookStartedId` belong to that run hook. Sort rows
+by start timestamp, then input order. A start without a finish is kept with
+status `unknown`; a finish without a start is ignored. Missing Hook metadata
+falls back to a generic `Hook` label.
+
+### Render scenario hooks after the steps
+
+The scenario subtitle becomes `N steps · M hooks` when hooks exist. The steps
+list stays first. After it, a hook group renders:
+
+- non-passing hooks inline as hook rows;
+- passed hooks inside `<details class="hookGroup">` with a `N hooks` summary.
+
+A hook row shows the type/name label, status text, duration, error and
+attachments. `Before: name`, `After: name`, `BeforeStep: name` and
+`AfterStep: name` are the labels; without a name, the type alone is shown. The
+group is omitted when there are no hooks.
+
+### Render run hooks above the feature list
+
+A `Hooks` section with `data-run-hooks` renders above the feature list when
+`model.runHooks` is non-empty. Each row shows `BeforeAll`/`AfterAll` type or
+name, status, duration, error and attachments. The section is static HTML and
+works without JavaScript.
+
+### Keep search and summary contracts
+
+`scenarioText` adds hook names and messages (capped like step messages) so a
+hook failure remains findable. Run hooks are not part of the scenario search;
+they are a run-level section. The JSON summary remains computed from envelopes
+and keeps its version-1 hook-as-step representation. `docs/AGENT-INTERFACE.md`
+states the difference between the summary and the HTML.
+
+### Legacy and JUnit fallbacks
+
+Legacy hooks already normalise to Hook envelopes with a type, status, duration,
+error and attachments; they become per-scenario hook rows. Legacy has no
+test-run hooks. JUnit has no hooks. A Messages hook without a Hook envelope uses
+the generic label and still renders.
+
+## Risks / Trade-offs
+
+- **Step counts change** → HTML step counts exclude hooks; the summary stays
+  version 1. Tests and docs must state both.
+- **Attachments counted twice** → hook attachments are included in the
+  scenario aggregate but rendered only in the hook row; assert counts and no
+  duplicate rendering.
+- **Run-hook metadata is incomplete** → fallback labels and unknown status;
+  cover a missing Hook envelope.
+- **Search grows with hook errors** → cap hook messages like step messages and
+  keep the existing 20-match expansion cap.
+- **Passed hooks hidden** → the disclosure summary is keyboard operable and
+  non-passing hooks stay inline; cover keyboard and no-JS.
+- **Legacy expectations** → legacy has no run hooks and often no names; the
+  report must not invent either.
+
+## Migration Plan
+
+No schema, CLI or API change. The HTML output changes; the JSON summary keeps
+its current shape. Rollback is a revert of the slice.
+
+## Open Questions
+
+None. The summary-schema change is deliberately deferred; it is a separate
+product decision.
