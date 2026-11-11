@@ -73,6 +73,8 @@ Spec first, tests first, small vertical slices.
   reviewer; see `docs/agents/review.md`.
 - Workers never close issues, merge, archive changes or publish releases.
 - Commit and push after every completed step.
+- Never add `Co-authored-by` trailers. The usual tool address
+  (`opencode@users.noreply.github.com`) belongs to an unrelated GitHub user.
 - Long commands run in the foreground; never wait on a background command.
 - Handoff at session end or when context fills.
 - No giant swarm. The default is coordinator + one implementer + the required
