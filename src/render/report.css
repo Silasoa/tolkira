@@ -34,18 +34,18 @@
   --ansi-fg-0: #24292f;
   --ansi-fg-1: #b91c1c;
   --ansi-fg-2: #15803d;
-  --ansi-fg-3: #a16207;
+  --ansi-fg-3: #965c05;
   --ansi-fg-4: #1d4ed8;
   --ansi-fg-5: #a21caf;
   --ansi-fg-6: #0e7490;
   --ansi-fg-7: #4b5563;
-  --ansi-fg-8: #6b7280;
-  --ansi-fg-9: #dc2626;
-  --ansi-fg-10: #16a34a;
-  --ansi-fg-11: #ca8a04;
+  --ansi-fg-8: #5b6673;
+  --ansi-fg-9: #d11f1f;
+  --ansi-fg-10: #0f7d38;
+  --ansi-fg-11: #906000;
   --ansi-fg-12: #2563eb;
-  --ansi-fg-13: #c026d3;
-  --ansi-fg-14: #0891b2;
+  --ansi-fg-13: #b01ec0;
+  --ansi-fg-14: #0a7697;
   --ansi-fg-15: #111827;
 }
 * { box-sizing: border-box; }
@@ -272,7 +272,7 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .ansi-bg-8 { background-color: color-mix(in oklab, var(--ansi-fg-8) 26%, var(--paper)); } .ansi-bg-9 { background-color: color-mix(in oklab, var(--ansi-fg-9) 26%, var(--paper)); } .ansi-bg-10 { background-color: color-mix(in oklab, var(--ansi-fg-10) 26%, var(--paper)); } .ansi-bg-11 { background-color: color-mix(in oklab, var(--ansi-fg-11) 26%, var(--paper)); }
 .ansi-bg-12 { background-color: color-mix(in oklab, var(--ansi-fg-12) 26%, var(--paper)); } .ansi-bg-13 { background-color: color-mix(in oklab, var(--ansi-fg-13) 26%, var(--paper)); } .ansi-bg-14 { background-color: color-mix(in oklab, var(--ansi-fg-14) 26%, var(--paper)); } .ansi-bg-15 { background-color: color-mix(in oklab, var(--ansi-fg-15) 26%, var(--paper)); }
 .ansi-bg-only { color: var(--ink); }
-.ansi-inline-fg { color: color-mix(in oklab, var(--ansi-fg) 60%, var(--ink)); }
+.ansi-inline-fg { color: color-mix(in oklab, var(--ansi-fg) 30%, var(--ink)); }
 .ansi-inline-bg { background-color: color-mix(in oklab, var(--ansi-bg) 26%, var(--paper)); }
 .fileLink { display: inline-block; margin: 0.3125rem 0; color: var(--accent-text); font-size: 0.75rem; }
 .meta span, .path, .description, .step, .featureSource, .featureUri, .fileLink, .attachment figcaption, .attachmentText summary, .detailMeta span { overflow-wrap: anywhere; }

@@ -6,9 +6,12 @@
 
 When the Messages `meta.ci` envelope is present, the report SHALL show the CI
 name/link and the git revision, branch and tag when available. Missing fields
-SHALL be omitted. A safe http(s) GitHub remote plus revision SHALL link the
-7-character commit; otherwise the revision is plain text. Only http(s) CI URLs
-become links.
+SHALL be omitted. When the name is missing, a safe http(s) CI URL SHALL be used
+as the link label. A safe GitHub remote plus revision SHALL link the
+7-character commit; https, `ssh://`, `git+ssh://` and scp-like
+`git@github.com:owner/repo.git` remotes normalise to an https commit URL.
+Other remotes or schemes render the revision as plain text. Only http(s) CI
+URLs become links.
 
 #### Scenario: CI job and git revision
 
@@ -19,10 +22,16 @@ become links.
 
 #### Scenario: Commit link
 
-- **WHEN** `meta.ci.git.remote` is a safe GitHub URL and a revision exists
+- **WHEN** `meta.ci.git.remote` is a safe GitHub https, ssh or scp-like remote
+  and a revision exists
 - **THEN** the 7-character revision links to the commit
 - **AND** the full revision is available as a title
 - **AND** other remotes or schemes render the revision as plain text
+
+#### Scenario: CI URL without a name
+
+- **WHEN** `meta.ci` has a safe http(s) URL and no name
+- **THEN** the header and Details show the URL as the link label
 
 #### Scenario: Partial metadata
 

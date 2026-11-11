@@ -202,6 +202,19 @@ test('keeps ANSI colours readable in light and dark themes', async ({ page }) =>
       .filter({ hasText: 'session.log' });
     await log.locator('summary').click();
 
+    const ansiClasses = await log.locator('pre span').evaluateAll((nodes) =>
+      nodes.flatMap((node) => Array.from(node.classList)),
+    );
+    for (let index = 0; index < 16; index += 1) {
+      expect(ansiClasses).toContain(`ansi-fg-${index}`);
+    }
+    await expect(log.getByText('256-white')).toBeVisible();
+    expect(
+      await log
+        .locator('.ansi-inline-fg')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('style'))),
+    ).toContain('--ansi-fg:#ffffff');
+
     const minimumContrast = (): Promise<number> =>
       page.evaluate(() => {
         const canvas = document.createElement('canvas');
@@ -251,9 +264,9 @@ test('keeps ANSI colours readable in light and dark themes', async ({ page }) =>
         return Number.isFinite(minimum) ? minimum : 0;
       });
 
-    expect(await minimumContrast()).toBeGreaterThanOrEqual(3);
+    expect(await minimumContrast()).toBeGreaterThanOrEqual(4.5);
     await page.emulateMedia({ colorScheme: 'dark' });
-    expect(await minimumContrast()).toBeGreaterThanOrEqual(3);
+    expect(await minimumContrast()).toBeGreaterThanOrEqual(4.5);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

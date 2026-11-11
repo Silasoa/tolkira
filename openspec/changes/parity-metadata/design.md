@@ -29,10 +29,13 @@ Extend `ReportEnvironment` with optional CI fields: name, url, remote,
 revision, branch, tag. Read them from `meta.ci`, keeping the first non-empty
 CI block in a mixed run; legacy-synthesized meta must not erase it. Render in
 the header as a link plus short revision and in Details as metadata rows. A
-safe http(s) GitHub remote plus revision links the 7-character commit;
-otherwise the revision is plain text. Only http(s) URLs become anchors. Omit
-missing fields; escape everything; no new request. CI metadata is HTML-only;
-the summary keeps schema v2 without CI fields.
+safe GitHub remote plus revision links the 7-character commit: https URLs,
+`ssh://`, `git+ssh://` and scp-like `git@github.com:owner/repo.git` normalise
+to `https://github.com/owner/repo`; otherwise the revision is plain text. A
+safe http(s) CI URL is the fallback label when the name is missing. Only
+http(s) URLs become anchors. Omit missing fields; escape everything; no new
+request. CI metadata is HTML-only; the summary keeps schema v2 without CI
+fields.
 
 ### Attachment naming
 
@@ -46,13 +49,16 @@ the per-attachment data URI. Treat names as text, never paths.
 ### Presentation
 
 - JSON: match `^application/json` including parameters; parse and pretty-print
-  with `JSON.stringify`; invalid JSON renders escaped raw text in `<pre>`.
+  with a string-aware indenter that preserves big numbers and duplicate keys;
+  invalid JSON renders escaped raw text in `<pre>`.
 - URI-list: split lines, trim, render only http(s) as links with
   `rel="noopener noreferrer"`; `javascript:`, `data:`, `file:`, mixed-case and
   leading-whitespace cases remain escaped text; no fetch.
 - ANSI logs: parse SGR including 256/truecolour into safe `<span>` classes,
   strip OSC/non-SGR CSI, escape text, add a copy button. Above 262,144 UTF-8
-  bytes of decoded text render escaped text without colour parsing.
+  bytes of decoded text render escaped text without colour parsing. All 16
+  light-theme foregrounds meet 4.5:1 against the paper; 256/truecolour is mixed
+  toward ink so white stays readable.
 
 ### Contracts
 
