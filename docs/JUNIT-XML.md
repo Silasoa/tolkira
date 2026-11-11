@@ -60,7 +60,7 @@ one.
   Only testcase-level output is mapped; suite-level output is ignored.
 - A document with no test cases is rejected with a clear error instead of
   rendered as an empty run.
-- JUnit XML dialects differ; v0.1 handles the common Jenkins/Gradle/Maven/
+- JUnit XML dialects differ; Tolkira handles the common Jenkins/Gradle/Maven/
   pytest/Playwright shape and fails clearly otherwise.
 - The existing 100 MB total input limit applies.
 

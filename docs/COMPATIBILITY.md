@@ -7,6 +7,10 @@ parity. The shim is ESM-only and asynchronous: use Node 22 or later,
 
 ## Before and after
 
+```shell
+npm i -D tolkira
+```
+
 ```js
 // before
 const reporter = require('cucumber-html-reporter');
@@ -33,8 +37,21 @@ await generate({
 });
 ```
 
-Only the import changes, plus `await` and Node 22 or later. `theme` is ignored
-with a warning; everything else maps to Tolkira. The callback form still works:
+The options object is unchanged. The import style is not: the shim is ESM-only,
+so a CommonJS project needs a dynamic-import wrapper (or an ESM entry point):
+
+```js
+// report.cjs
+(async () => {
+  const { generate } = await import('tolkira/compat/cucumber-html-reporter');
+  await generate({
+    jsonFile: 'reports/cucumber.json',
+    output: 'reports/report.html',
+  });
+})();
+```
+
+`theme` is ignored with a warning; everything else maps to Tolkira. The callback form still works:
 
 ```js
 generate(options, (error) => {

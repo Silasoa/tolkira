@@ -259,8 +259,9 @@ outside `features/`).
 - Inputs are capped at 100 MB in total; attachments at 50 MB each and 100 MB
   total.
 - The HTML report includes a hash-based CSP and never executes attachments.
-- History, trends, retries beyond the latest attempt and JUnit/Playwright
-  adapters are not part of v0.1.
+- History, trends, retries beyond the latest attempt and a native Playwright
+  adapter are not supported. JUnit XML is a basic input mode; see
+  [`LIMITATIONS.md`](LIMITATIONS.md).
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave-shaped durations are
   interpreted as nanoseconds, like cucumber-js.
@@ -271,5 +272,5 @@ outside `features/`).
   envelopes. An undefined or ambiguous legacy step still shows the status lead
   in HTML, but never invented snippets or definitions; JUnit renders no
   diagnostics.
-- cucumber-js, Behave-shaped and Messages inputs are covered by fixtures;
-  cucumber-jvm and cucumber-ruby fixtures are follow-ups.
+- cucumber-js, Behave-shaped, cucumber-jvm, cucumber-ruby and Messages inputs
+  are covered by fixtures.

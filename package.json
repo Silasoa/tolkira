@@ -1,7 +1,7 @@
 {
   "name": "tolkira",
   "version": "0.2.0",
-  "description": "The interpreter for your test results. Self-contained HTML reports for Cucumber JSON, Messages, and beyond.",
+  "description": "Self-contained offline HTML reports for Cucumber legacy JSON, Messages and JUnit XML, with a stable JSON summary for CI and AI agents.",
   "type": "module",
   "license": "MIT",
   "author": "Tolkira contributors",
@@ -17,11 +17,20 @@
     "cucumber",
     "cucumber-json",
     "cucumber-messages",
+    "cucumber-html-reporter",
+    "multiple-cucumber-html-reporter",
+    "html-formatter",
+    "junit",
+    "junit-xml",
     "gherkin",
     "bdd",
     "html-report",
     "test-report",
     "report-generator",
+    "offline",
+    "ci",
+    "agent",
+    "llm",
     "testing"
   ],
   "engines": {
@@ -45,6 +54,7 @@
   "files": [
     "dist",
     "README.md",
+    "llms.txt",
     "DESIGN.md",
     "LICENSE",
     "SECURITY.md",
@@ -52,6 +62,7 @@
     "docs/COMPATIBILITY.md",
     "docs/CUCUMBER-COMPATIBILITY.md",
     "docs/JUNIT-XML.md",
+    "docs/LIMITATIONS.md",
     "GLOSSARY.md"
   ],
   "scripts": {

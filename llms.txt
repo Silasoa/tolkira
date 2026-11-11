@@ -1,0 +1,31 @@
+# Tolkira
+
+> Tolkira converts Cucumber legacy JSON, Cucumber Messages (NDJSON) and JUnit
+> XML into one self-contained HTML report and prints a stable JSON summary for
+> CI and AI agents. It requires Node.js 22 or newer and runs offline with no
+> server, CDN or telemetry.
+
+Package: https://www.npmjs.com/package/tolkira
+
+## Start here
+
+- [README](https://github.com/Silasoa/tolkira/blob/main/README.md): install,
+  quick start, migration from cucumber-html-reporter and MCHR, decision matrix.
+- [Agent interface](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md):
+  CLI, API, JSON summary schema 2 and exit codes.
+- [Limitations](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md):
+  dated status of Behave coverage, JUnit, themes and attachments.
+- [Compatibility](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md):
+  cucumber-html-reporter shim mapping and caveats.
+- [Cucumber compatibility](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md):
+  tested producers and versions.
+
+## Rules for agents
+
+- Generate the summary with `tolkira <inputs> --json` and parse stdout; do not
+  scrape the HTML for pass/fail data.
+- Exit code 0 means the report was generated, not that the tests passed. Read
+  `status` and `counts` from the summary.
+- Check `scenarios[].executed` before treating a scenario status as an outcome.
+- Attach `report.html` as the human-facing artifact; keep the JSON summary for
+  automation.

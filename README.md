@@ -18,16 +18,22 @@ Current release: **v0.2.0** · [npm](https://www.npmjs.com/package/tolkira) · [
 
 ## Install
 
+Tolkira requires Node.js 22 or newer.
+
 ```shell
+# CLI for one-off use
 npm install --global tolkira
 tolkira --help
 ```
 
-Or run it without a global install:
+Or add it to a project and run it from there (recommended for CI):
 
 ```shell
+npm install --save-dev tolkira
 npx tolkira --help
 ```
+
+`npx tolkira --help` also works without a local install.
 
 On Windows, `npx` can fail when the current folder contains parentheses in its
 path. Use the global install or a folder without parentheses if that happens.
@@ -52,13 +58,75 @@ tolkira test-results/ --out report.html --logo path/to/logo.png
 Tolkira accepts one or more files and directories. A directory is scanned
 recursively for supported result files. Everything is merged into one report.
 
-For CI tools and AI agents, ask for the stable JSON summary instead of scraping
-the HTML:
+## For agents and CI
+
+Install as a project dependency and write both artifacts:
 
 ```shell
-tolkira test-results/ --out report.html --json
-tolkira test-results/ --json
+npm install --save-dev tolkira
+npx tolkira test-results/ --out report.html --title "CI run" --json > summary.json
 ```
+
+GitHub Actions step:
+
+```yaml
+- name: Generate Cucumber report
+  if: always()
+  run: npx tolkira test-results/ --out report.html --title "CI run" --json > summary.json
+
+- name: Upload report
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: cucumber-report
+    path: |
+      report.html
+      summary.json
+```
+
+`--json` writes exactly one JSON document to stdout; warnings go to stderr.
+Exit code 0 means the report was generated, not that the tests passed. Read
+`status` and `counts` from the summary. Abridged real output (counts and steps
+trimmed):
+
+```json
+{
+  "schemaVersion": 2,
+  "status": "failed",
+  "counts": {
+    "scenarios": { "total": 6, "passed": 5, "failed": 1 }
+  },
+  "scenarios": [
+    {
+      "name": "Fred wants to see passing scenarios in the HTML report",
+      "uri": "features/happy.feature",
+      "status": "failed",
+      "executed": true,
+      "steps": [
+        {
+          "keyword": "When",
+          "text": "this feature runs with background",
+          "status": "failed",
+          "message": "Expected values to be strictly equal: -8 !== 0"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Paste this into an agent's instructions:
+
+```text
+Use Tolkira for Cucumber results. Run `npx tolkira <inputs> --out report.html --json`
+and parse stdout as the JSON summary; do not scrape the HTML. Exit code 0 means
+the report was generated, not that the tests passed. Read summary.status and
+summary.counts, and check scenarios[].executed before treating a status as an
+outcome. Upload report.html as the human-facing artifact.
+```
+
+See [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md)
+for the full schema and exit codes.
 
 ## What you get
 
@@ -93,7 +161,7 @@ tolkira test-results/ --json
 
 | Input | What works |
 | --- | --- |
-| **Legacy Cucumber JSON** | cucumber-js 2.3.1–13.3.0, Behave 1.3.3, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 are tested with real output. Other producers often work; the adapter follows the Cucumber legacy dialect. |
+| **Legacy Cucumber JSON** | cucumber-js 2.3.1–13.3.0, Behave 1.3.3, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 are covered by producer fixtures. Behave's real run does not yet include attachments or doc strings; see the [dated limitations table](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md). Other producers often work; the adapter follows the Cucumber legacy dialect. |
 | **Cucumber Messages (NDJSON)** | cucumber-js 11.2, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 fixtures. This is the modern, implementation-independent format. |
 | **JUnit XML** | Basic mode: suites, test cases, statuses, durations, failures, skipped cases and system output. JUnit has no Gherkin steps or screenshots; each test case is shown as one synthetic step. |
 
@@ -124,6 +192,18 @@ can produce one file. Tolkira's difference is the combination - both Cucumber
 generations, JUnit as cheap breadth, an agent-readable summary, and no server,
 CDN or telemetry.
 
+### How it compares
+
+Last checked 2026-11-11 against the current package docs. Trade-offs are
+deliberate; pick the tool that fits the job.
+
+| Tool | Offline | Legacy JSON | Messages | JUnit | JSON summary | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
+| [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | Saved JSON (`saveCollectedJSON`) | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, i18n and a report folder. |
+| [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
+| **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Versioned summary (`--json`)** | **Branding, dark mode; no theme gallery** | **ESM only** | **22+** | **Active** | **You need one offline file from legacy JSON and/or Messages, plus a stable summary for CI and agents.** |
+
 The visual comparison uses the report setup from
 [Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
 Seed-Test, you are welcome to take a look; the comparison notes and screenshots
@@ -131,13 +211,33 @@ are in [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/
 
 ## Migrating from cucumber-html-reporter
 
-The old options object is accepted as-is; only the import changes.
+Install Tolkira next to the old reporter and keep the existing JSON output:
+
+```shell
+npm i -D tolkira
+```
+
+Node.js 22 or newer is required. The compatibility shim is ESM-only.
+
+**Before — CommonJS with cucumber-html-reporter:**
 
 ```js
-// before
+// report.js
 const reporter = require('cucumber-html-reporter');
 
-// after
+reporter.generate({
+  theme: 'bootstrap',
+  jsonFile: 'reports/cucumber.json',
+  output: 'reports/report.html',
+  brandTitle: 'Checkout acceptance',
+  metadata: { Browser: 'Chrome', Environment: 'Staging' },
+});
+```
+
+**After — ESM with Tolkira:**
+
+```js
+// report.mjs
 import { generate } from 'tolkira/compat/cucumber-html-reporter';
 
 await generate({
@@ -148,11 +248,44 @@ await generate({
 });
 ```
 
-The shim is experimental. Themes, charts, external screenshots and browser
-launch are not reproduced; they warn and use Tolkira's defaults. It consumes
-the same input JSON, never the old rendered HTML. See
-[`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) for the full mapping and
-caveats.
+**If the project must stay CommonJS**, Tolkira cannot be `require`d. Use a
+dynamic import inside an async wrapper:
+
+```js
+// report.cjs
+(async () => {
+  const { generate } = await import('tolkira/compat/cucumber-html-reporter');
+  await generate({
+    jsonFile: 'reports/cucumber.json',
+    output: 'reports/report.html',
+  });
+})();
+```
+
+The options object is compatible; the import style is not. `theme` is ignored
+with a warning. Themes, charts, external screenshots and browser launch are not
+reproduced. The shim consumes the same input JSON, never the old rendered HTML.
+See [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md)
+for the full mapping and caveats.
+
+### From multiple-cucumber-html-reporter
+
+There is no MCHR shim; use the core CLI. The common mapping:
+
+```shell
+# MCHR config: jsonDir + reportPath + reportName
+mchr
+
+# Tolkira
+npx tolkira path/to/jsonDir --out reports/index.html --title "My report"
+```
+
+Map `jsonDir` to the input directory, `reportPath`/`reportName` to `--out`,
+`metadata` to repeated `--meta key=value`, and `brandLogo` to `--logo`.
+Dashboard, history, trends, i18n, email reports and the multi-file folder report
+are not reproduced. See
+[`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md#multiple-cucumber-html-reporter)
+for the mapping.
 
 ## Privacy and limits
 
@@ -166,10 +299,17 @@ caveats.
 - One report is one file. External attachments for very large media are a
   future option.
 
+See [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md)
+for the dated limitations table (last verified 2026-11-11), including the
+remaining Behave real-run gap.
+
 ## Documentation
 
+- [`llms.txt`](https://github.com/Silasoa/tolkira/blob/main/llms.txt) — short entry point for AI agents.
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema, CLI
   contract and exit codes.
+- [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
+  (last verified 2026-11-11).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested
   Cucumber producers and versions.
 - [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and

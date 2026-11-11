@@ -6,6 +6,9 @@
 `test/messages-producers.test.ts`). Each fixture is a two-scenario feature: one
 passes, one fails with `Error: boom`.
 
+The dated cross-format limitations table is
+[`docs/LIMITATIONS.md`](LIMITATIONS.md) (last verified 2026-11-11).
+
 ## Legacy JSON
 
 | Producer | Tested | Notes |
