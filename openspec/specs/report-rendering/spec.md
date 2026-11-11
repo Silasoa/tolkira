@@ -248,12 +248,9 @@ pending, skipped, unknown. Input order SHALL be preserved within equal status.
 
 When at least one executed scenario is not passed, the Report view SHALL render
 a "Needs attention" index above the feature list. It SHALL list one row per
-feature that has at least one executed, non-passing scenario, with its worst
-executed status, its executed non-passing scenario counts and up to three links
-to its executed non-passing scenarios. Where a failed executed scenario has a
-message, the row SHALL also show the failing step and the first line of the
-message, truncated to 120 characters. It SHALL NOT render when every executed
-scenario passed, including when the run has no executed scenarios.
+feature with executed non-passing scenarios, with the worst executed status,
+counts and up to three links. It SHALL NOT render when every executed scenario
+passed or none executed.
 
 #### Scenario: Index lists non-passing features
 
@@ -825,14 +822,11 @@ report SHALL remain a single offline file with no new network request.
 
 ### Requirement: Preserve the summary and fallback contracts
 
-The JSON summary SHALL use schema version 2. Hooks SHALL remain entries in
-`scenarios[].steps` with `keyword: "Hook"`, and an optional hook `name` is
-added additively. Each scenario SHALL carry `executed`; a scenario whose
-selected test case started with zero raw test-step results SHALL have
-`executed: false` and `status: "unknown"` and SHALL NOT be counted in
-`counts.scenarios`, while remaining in `scenarios`. A failed test-run hook
-SHALL make the summary status failed. The HTML report SHALL separate hooks and
-label its step counts as excluding them.
+The JSON summary SHALL use schema version 2. Hooks remain `steps` entries with
+`keyword: "Hook"` and an optional name. Each scenario SHALL carry `executed`;
+unexecuted scenarios SHALL have `executed: false`, `status: "unknown"` and
+SHALL NOT count in `counts.scenarios`. A failed test-run hook SHALL make the
+summary `failed`.
 
 #### Scenario: Summary stays version 1
 
@@ -1094,13 +1088,11 @@ SHALL NOT be rendered.
 
 ### Requirement: Preserve counts, search and summary
 
-Grouping by rule SHALL change presentation only. Counts, triage membership,
-status matrix and the JSON summary SHALL keep using the flat list of executed
-scenarios, while search and tag filtering SHALL keep using all scenario rows.
-Unexecuted scenarios SHALL remain visible and searchable but SHALL NOT
-contribute to counts, triage membership or status matrix cells. Search SHALL
-additionally index rule and background names and descriptions; a matching rule
-or background keeps its descendant scenarios visible.
+Grouping by rule SHALL change presentation only. Counts, triage and the matrix
+SHALL use executed scenarios; search and tag filtering SHALL use all rows.
+Unexecuted rows stay visible and searchable but SHALL NOT count. Search SHALL
+index rule/background names and descriptions; a matching rule keeps its
+descendants visible.
 
 #### Scenario: Counts unchanged
 
