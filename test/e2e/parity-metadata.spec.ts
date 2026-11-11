@@ -118,8 +118,15 @@ test('shows CI metadata and rich attachments without requests', async ({
     );
     expect(new Set(colors).size).toBeGreaterThan(1);
 
-    await log.getByRole('button', { name: /copy/i }).click();
-    await expect(log.getByRole('button', { name: /copied/i })).toBeVisible();
+    const copyLog = log.getByRole('button', {
+      name: 'Copy log session.log',
+    });
+    await expect(copyLog).toBeVisible();
+    await copyLog.click();
+    await expect(copyLog).toHaveText('Copied');
+    await expect(page.locator('#tolkira-copy-live')).toHaveText(
+      'Log copied to clipboard.',
+    );
     const copied = await page.evaluate(
       () =>
         (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ??
@@ -137,6 +144,12 @@ test('shows CI metadata and rich attachments without requests', async ({
     ).toBeUndefined();
 
     await page.getByRole('tab', { name: 'Details' }).click();
+    await expect(page.locator('#tolkira-copy-live')).toBeAttached();
+    expect(
+      await page
+        .locator('#tolkira-copy-live')
+        .evaluate((element) => Boolean(element.closest('[hidden]'))),
+    ).toBe(false);
     const analysis = page.locator('#analysis-view');
     await expect(analysis.locator('dt').filter({ hasText: /^CI$/ })).toBeVisible();
     await expect(
@@ -174,6 +187,73 @@ test('falls back above the ANSI byte boundary', async ({ page }) => {
     await expect(limit.locator('pre span').first()).toBeVisible();
     expect(await over.locator('pre span').count()).toBe(0);
     await expect(over.locator('pre')).toContainText('xxxx');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps ANSI colours readable in light and dark themes', async ({ page }) => {
+  const { dir, output } = await writeReport([presentation], 'ANSI contrast');
+
+  try {
+    await page.goto(pathToFileURL(output).href);
+    const log = page
+      .locator('details.attachmentText')
+      .filter({ hasText: 'session.log' });
+    await log.locator('summary').click();
+
+    const minimumContrast = (): Promise<number> =>
+      page.evaluate(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        const context = canvas.getContext('2d');
+        if (!context) return 0;
+        const rgba = (value: string): [number, number, number, number] => {
+          context.clearRect(0, 0, 1, 1);
+          context.fillStyle = '#010203';
+          context.fillStyle = value;
+          context.fillRect(0, 0, 1, 1);
+          const data = context.getImageData(0, 0, 1, 1).data;
+          return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0, data[3] ?? 0];
+        };
+        const luminance = (color: [number, number, number, number]): number => {
+          const channel = (value: number): number => {
+            const normalized = value / 255;
+            return normalized <= 0.03928
+              ? normalized / 12.92
+              : Math.pow((normalized + 0.055) / 1.055, 2.4);
+          };
+          return (
+            0.2126 * channel(color[0]) +
+            0.7152 * channel(color[1]) +
+            0.0722 * channel(color[2])
+          );
+        };
+        const backgroundOf = (element: Element): string => {
+          let node: Element | null = element;
+          while (node) {
+            const color = getComputedStyle(node).backgroundColor;
+            if (rgba(color)[3] > 0) return color;
+            node = node.parentElement;
+          }
+          return getComputedStyle(document.body).backgroundColor;
+        };
+        let minimum = Number.POSITIVE_INFINITY;
+        document.querySelectorAll('pre.ansiLog span').forEach((span) => {
+          const foreground = luminance(rgba(getComputedStyle(span).color));
+          const background = luminance(rgba(backgroundOf(span)));
+          const ratio =
+            (Math.max(foreground, background) + 0.05) /
+            (Math.min(foreground, background) + 0.05);
+          minimum = Math.min(minimum, ratio);
+        });
+        return Number.isFinite(minimum) ? minimum : 0;
+      });
+
+    expect(await minimumContrast()).toBeGreaterThanOrEqual(3);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    expect(await minimumContrast()).toBeGreaterThanOrEqual(3);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -220,6 +300,9 @@ test.describe('without scripting', () => {
       await expect(log).toContainText('ERROR');
       await expect(log).toContainText('256-colour');
       await expect(log).toContainText('truecolour');
+      await expect(
+        log.getByRole('button', { name: /copy log/i }),
+      ).toHaveCount(0);
 
       expect(
         requests.every(

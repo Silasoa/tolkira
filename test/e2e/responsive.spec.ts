@@ -20,6 +20,12 @@ const allStatusesFixture = fileURLToPath(
 const rulesOutlineBackgroundFixture = fileURLToPath(
   new URL('../fixtures/messages/rules-outline-background.ndjson', import.meta.url),
 );
+const ciFullFixture = fileURLToPath(
+  new URL('../fixtures/messages/ci-full.ndjson', import.meta.url),
+);
+const presentationFixture = fileURLToPath(
+  new URL('../fixtures/messages/attachments-presentation.ndjson', import.meta.url),
+);
 
 const viewports = [
   { width: 320, height: 700 },
@@ -259,6 +265,61 @@ test('keeps a long source name inside 320px', async ({ page }) => {
     const box = await sourceName.boundingBox();
     expect(box, 'long source name has a box').not.toBeNull();
     expect(box!.width).toBeLessThanOrEqual(320);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps CI metadata, JSON and ANSI logs inside 320px and 200% zoom', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-metadata-responsive-'));
+  const output = path.join(dir, 'metadata-responsive.html');
+
+  try {
+    const code = await runCli(
+      [
+        ciFullFixture,
+        presentationFixture,
+        '--out',
+        output,
+        '--title',
+        'Metadata responsive',
+      ],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(pathToFileURL(output).href);
+    expect(
+      await pageOverflow(page),
+      'metadata 320 overflow',
+    ).toBeLessThanOrEqual(1);
+
+    const ci = page.locator('#report-view .ci');
+    await expectWithinViewport(page, ci, 'CI metadata at 320');
+    const payload = page
+      .locator('details.attachmentText')
+      .filter({ hasText: 'payload.json' });
+    const log = page
+      .locator('details.attachmentText')
+      .filter({ hasText: 'session.log' });
+    await payload.locator('summary').click();
+    await log.locator('summary').click();
+    await expectWithinViewport(page, payload.locator('pre'), 'JSON at 320');
+    await expectWithinViewport(page, log.locator('pre'), 'ANSI log at 320');
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await pageOverflow(page),
+      'metadata 200% overflow',
+    ).toBeLessThanOrEqual(1);
+    await expectWithinViewport(page, ci, 'CI metadata at 200%');
+    await expectWithinViewport(page, payload.locator('pre'), 'JSON at 200%');
+    await expectWithinViewport(page, log.locator('pre'), 'ANSI log at 200%');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

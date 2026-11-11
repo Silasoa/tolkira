@@ -1,3 +1,4 @@
+import { AttachmentContentEncoding } from '@cucumber/messages';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -154,11 +155,14 @@ describe('parity metadata model', () => {
       'attachment',
       '..\\secrets\\report.html',
       'screenshot.png',
+      'attachment.txt',
+      'attachment.log',
+      '"><svg onload=alert(1)>.txt',
     ]);
     expect(
       second.scenarios[0]?.attachments.map((attachment) => attachment.fileName),
     ).toEqual(attachments.map((attachment) => attachment.fileName));
-    expect(first.counts.attachments).toBe(7);
+    expect(first.counts.attachments).toBe(10);
   });
 
   it('keeps a parameterised known media type extension', async () => {
@@ -194,6 +198,30 @@ describe('parity metadata model', () => {
 
     expect(pathLike?.fileName).toBe('..\\secrets\\report.html');
     expect(named?.fileName).toBe('screenshot.png');
+  });
+
+  it('maps URI-list and Cucumber log media types to deterministic extensions', async () => {
+    const model = await messagesModelFor('attachments-naming.ndjson');
+    const attachments = model.scenarios[0]?.attachments ?? [];
+
+    expect(
+      attachments.find((attachment) => attachment.mediaType === 'text/uri-list')
+        ?.fileName,
+    ).toBe('attachment.txt');
+    expect(
+      attachments.find(
+        (attachment) => attachment.mediaType === 'text/x.cucumber.log+plain',
+      )?.fileName,
+    ).toBe('attachment.log');
+  });
+
+  it('renders hostile attachment names as escaped text', async () => {
+    const html = await renderMessages('attachments-naming.ndjson');
+
+    expect(html).toContain('&quot;&gt;&lt;svg onload=alert(1)&gt;.txt');
+    expect(html).not.toContain('<svg onload=alert(1)>');
+    expect(html).toContain('..\\secrets\\report.html');
+    expect(html).not.toContain('href="..\\secrets');
   });
 
   it('names legacy attachments with the shared fallback', async () => {
@@ -279,23 +307,73 @@ describe('parity metadata rendering', () => {
     );
   });
 
-  it('renders a non-GitHub or non-http remote revision as plain text', async () => {
+  it('links the GitHub commit for scp-like and ssh:// remotes', async () => {
     const file = messageFixture('ci-full.ndjson');
     for (const remote of [
-      'https://gitlab.com/acme/tolkira',
       'git@github.com:acme/tolkira.git',
+      'ssh://git@github.com/acme/tolkira.git',
+      'ssh://git@github.com:22/acme/tolkira.git',
     ]) {
       const envelopes = parseMessages(await readFile(file, 'utf8'), file);
       const ci = envelopes.find((envelope) => envelope.meta?.ci)?.meta?.ci;
       expect(ci?.git).toBeDefined();
-      if (!ci?.git) return;
+      if (!ci?.git) continue;
+      ci.git.remote = remote;
+
+      const html = await renderHtml(envelopes, { title: 'Parity metadata' });
+      expect(reportHeader(html)).toMatch(
+        new RegExp(`href="${CI_REMOTE}/commit/${FULL_REVISION}"`),
+      );
+      expect(reportHeader(html)).toContain(
+        `title="${FULL_REVISION}"`,
+      );
+    }
+  });
+
+  it('uses the SSH GitHub fixture for the commit link', async () => {
+    const html = await renderMessages('ci-ssh.ndjson');
+
+    expect(reportHeader(html)).toContain('SSH CI');
+    expect(reportHeader(html)).toMatch(
+      new RegExp(`href="${CI_REMOTE}/commit/${FULL_REVISION}"`),
+    );
+  });
+
+  it('renders a non-GitHub or hostile remote revision as plain text', async () => {
+    const file = messageFixture('ci-full.ndjson');
+    for (const remote of [
+      'https://gitlab.com/acme/tolkira',
+      'https://github.com/acme/tolkira/tree/main',
+      'javascript:alert(1)',
+      'file:///etc/passwd',
+      'ssh://git@evil.example/acme/tolkira.git',
+    ]) {
+      const envelopes = parseMessages(await readFile(file, 'utf8'), file);
+      const ci = envelopes.find((envelope) => envelope.meta?.ci)?.meta?.ci;
+      expect(ci?.git).toBeDefined();
+      if (!ci?.git) continue;
       ci.git.remote = remote;
 
       const html = await renderHtml(envelopes, { title: 'Parity metadata' });
       expect(reportHeader(html)).toContain(SHORT_REVISION);
-      expect(html).not.toContain(`${remote}/commit/${FULL_REVISION}`);
       expect(html).not.toContain(`/commit/${FULL_REVISION}`);
     }
+  });
+
+  it('links the CI URL when the CI name is missing', async () => {
+    const html = await renderMessages('ci-url-only.ndjson');
+    const header = reportHeader(html);
+    const details = analysisView(html);
+
+    expect(header).toMatch(
+      new RegExp(
+        `<a (?=[^>]*href="https://ci\\.example\\.com/runs/7")[^>]*>https://ci\\.example\\.com/runs/7</a>`,
+      ),
+    );
+    expect(details).toMatch(
+      /<dt>CI<\/dt><dd><a [^>]*href="https:\/\/ci\.example\.com\/runs\/7"[^>]*>https:\/\/ci\.example\.com\/runs\/7<\/a><\/dd>/,
+    );
+    expect(header).toContain(SHORT_REVISION);
   });
 
   it('omits empty CI fields instead of placeholders', async () => {
@@ -327,6 +405,7 @@ describe('parity metadata rendering', () => {
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).not.toContain('<img src=x');
+    expect(html).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/);
   });
 
   it('pretty-prints and escapes JSON attachments', async () => {
@@ -339,6 +418,44 @@ describe('parity metadata rendering', () => {
       '&lt;script&gt;window.__tolkiraXss=1&lt;/script&gt;',
     );
     expect(block).not.toContain('<script>window.__tolkiraXss=1</script>');
+  });
+
+  it('preserves big numbers and duplicate keys when pretty-printing JSON', async () => {
+    const html = await renderMessages('attachments-presentation.ndjson');
+    const block = attachmentBlock(html, 'precision.json', 'malformed.json');
+
+    expect(block).toContain('&quot;big&quot;: 12345678901234567890');
+    expect((block.match(/&quot;dup&quot;/g) ?? []).length).toBe(2);
+    expect(block).toMatch(/\n\s{4}&quot;ok&quot;/);
+  });
+
+  it('renders JSON above 262,144 bytes as escaped raw text', async () => {
+    const file = messageFixture('attachments-presentation.ndjson');
+    const envelopes = parseMessages(await readFile(file, 'utf8'), file);
+    const startedId = envelopes.find(
+      (envelope) => envelope.testCaseStarted,
+    )?.testCaseStarted?.id;
+    const testStepId = envelopes.find((envelope) => envelope.testCase)?.testCase
+      ?.testSteps[0]?.id;
+    expect(startedId).toBeDefined();
+    expect(testStepId).toBeDefined();
+    if (!startedId || !testStepId) return;
+    envelopes.push({
+      attachment: {
+        body: `{"padding":"${'a'.repeat(262150)}"}`,
+        contentEncoding: AttachmentContentEncoding.IDENTITY,
+        fileName: 'oversized.json',
+        mediaType: 'application/json',
+        testCaseStartedId: startedId,
+        testStepId,
+      },
+    });
+
+    const html = await renderHtml(envelopes, { title: 'Large JSON' });
+    const block = attachmentBlock(html, 'oversized.json', '</details>');
+
+    expect(block).toContain('{&quot;padding&quot;:&quot;aaaa');
+    expect(block).not.toContain('\n  &quot;padding&quot;');
   });
 
   it('falls back to escaped raw text for malformed JSON', async () => {
@@ -381,6 +498,8 @@ describe('parity metadata rendering', () => {
     }
     expect(block).toContain('&lt;script&gt;alert(3)&lt;/script&gt;');
     expect(block).not.toContain('<script>alert(3)</script>');
+    expect(block).toContain('comments only');
+    expect(block).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/);
   });
 
   it('renders ANSI SGR, 256 and truecolour safely with a copy action', async () => {
@@ -399,7 +518,15 @@ describe('parity metadata rendering', () => {
     expect(block).not.toContain('<script>window.__tolkiraXss=1</script>');
     expect(block).not.toContain('owned');
     expect(block).not.toContain('2J');
-    expect(block).toMatch(/<button[^>]*>[^<]*[Cc]opy/);
+    expect(block).toContain('bright red');
+    expect(block).toContain('background only');
+    expect(block).toContain('bidi hidden');
+    expect(block).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/);
+    expect(block).toContain('ansi-fg-9');
+    expect(block).toContain('ansi-bg-only');
+    expect(block).toMatch(
+      /<button[^>]*aria-label="Copy log session\.log"[^>]*hidden[^>]*>[^<]*[Cc]opy/,
+    );
   });
 
   it('falls back to escaped text above 262,144 UTF-8 bytes', async () => {
@@ -415,6 +542,37 @@ describe('parity metadata rendering', () => {
     expect((limitBlock.match(/<span class="[^"]*ansi/g) ?? []).length).toBeGreaterThan(0);
     expect((overBlock.match(/<span class="[^"]*ansi/g) ?? []).length).toBe(0);
     expect(overBlock.includes('x'.repeat(64))).toBe(true);
+  });
+
+  it('keeps HTML counts aligned with the summary baseline', async () => {
+    const file = messageFixture('hooks.ndjson');
+    const envelopes = parseMessages(await readFile(file, 'utf8'), file);
+    const model = buildReportModel(envelopes);
+    const summary = await summarizeReport(file);
+    const html = await renderHtml(envelopes, { title: 'Counts', summary });
+
+    expect(model.counts.scenarios).toEqual(summary.counts.scenarios);
+    expect(model.counts.steps.total).toBe(
+      summary.counts.steps.total - model.counts.hooks.total,
+    );
+    expect(analysisView(html)).toContain(
+      `<dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd>`,
+    );
+    expect(analysisView(html)).toContain(
+      `<dt>Hooks</dt><dd>${model.counts.hooks.total}</dd>`,
+    );
+
+    const presentationFile = messageFixture('attachments-presentation.ndjson');
+    const presentation = buildReportModel(
+      parseMessages(
+        await readFile(presentationFile, 'utf8'),
+        presentationFile,
+      ),
+    );
+    const presentationSummary = await summarizeReport(presentationFile);
+    expect(presentation.counts.attachments).toBe(
+      presentationSummary.attachments.total,
+    );
   });
 
   it('makes no network request when the report opens', async () => {

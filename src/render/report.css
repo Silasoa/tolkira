@@ -31,6 +31,22 @@
   --radius: 10px;
   --radius-control: 6px;
   --shadow: none;
+  --ansi-fg-0: #24292f;
+  --ansi-fg-1: #b91c1c;
+  --ansi-fg-2: #15803d;
+  --ansi-fg-3: #a16207;
+  --ansi-fg-4: #1d4ed8;
+  --ansi-fg-5: #a21caf;
+  --ansi-fg-6: #0e7490;
+  --ansi-fg-7: #4b5563;
+  --ansi-fg-8: #6b7280;
+  --ansi-fg-9: #dc2626;
+  --ansi-fg-10: #16a34a;
+  --ansi-fg-11: #ca8a04;
+  --ansi-fg-12: #2563eb;
+  --ansi-fg-13: #c026d3;
+  --ansi-fg-14: #0891b2;
+  --ansi-fg-15: #111827;
 }
 * { box-sizing: border-box; }
 html { background: var(--paper); scroll-padding-top: 4.5rem; scrollbar-gutter: stable; }
@@ -247,14 +263,17 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .ansi-dim { opacity: 0.65; }
 .ansi-italic { font-style: italic; }
 .ansi-underline { text-decoration: underline; }
-.ansi-fg-0 { color: #000000; } .ansi-fg-1 { color: #cd3131; } .ansi-fg-2 { color: #0dbc79; } .ansi-fg-3 { color: #e5e510; }
-.ansi-fg-4 { color: #2472c8; } .ansi-fg-5 { color: #bc3fbc; } .ansi-fg-6 { color: #11a8cd; } .ansi-fg-7 { color: #e5e5e5; }
-.ansi-fg-8 { color: #666666; } .ansi-fg-9 { color: #f14c4c; } .ansi-fg-10 { color: #23d18b; } .ansi-fg-11 { color: #f5f543; }
-.ansi-fg-12 { color: #3b8eea; } .ansi-fg-13 { color: #d670d6; } .ansi-fg-14 { color: #29b8db; } .ansi-fg-15 { color: #ffffff; }
-.ansi-bg-0 { background-color: #000000; } .ansi-bg-1 { background-color: #cd3131; } .ansi-bg-2 { background-color: #0dbc79; } .ansi-bg-3 { background-color: #e5e510; }
-.ansi-bg-4 { background-color: #2472c8; } .ansi-bg-5 { background-color: #bc3fbc; } .ansi-bg-6 { background-color: #11a8cd; } .ansi-bg-7 { background-color: #e5e5e5; }
-.ansi-bg-8 { background-color: #666666; } .ansi-bg-9 { background-color: #f14c4c; } .ansi-bg-10 { background-color: #23d18b; } .ansi-bg-11 { background-color: #f5f543; }
-.ansi-bg-12 { background-color: #3b8eea; } .ansi-bg-13 { background-color: #d670d6; } .ansi-bg-14 { background-color: #29b8db; } .ansi-bg-15 { background-color: #ffffff; }
+.ansi-fg-0 { color: var(--ansi-fg-0); } .ansi-fg-1 { color: var(--ansi-fg-1); } .ansi-fg-2 { color: var(--ansi-fg-2); } .ansi-fg-3 { color: var(--ansi-fg-3); }
+.ansi-fg-4 { color: var(--ansi-fg-4); } .ansi-fg-5 { color: var(--ansi-fg-5); } .ansi-fg-6 { color: var(--ansi-fg-6); } .ansi-fg-7 { color: var(--ansi-fg-7); }
+.ansi-fg-8 { color: var(--ansi-fg-8); } .ansi-fg-9 { color: var(--ansi-fg-9); } .ansi-fg-10 { color: var(--ansi-fg-10); } .ansi-fg-11 { color: var(--ansi-fg-11); }
+.ansi-fg-12 { color: var(--ansi-fg-12); } .ansi-fg-13 { color: var(--ansi-fg-13); } .ansi-fg-14 { color: var(--ansi-fg-14); } .ansi-fg-15 { color: var(--ansi-fg-15); }
+.ansi-bg-0 { background-color: color-mix(in oklab, var(--ansi-fg-0) 26%, var(--paper)); } .ansi-bg-1 { background-color: color-mix(in oklab, var(--ansi-fg-1) 26%, var(--paper)); } .ansi-bg-2 { background-color: color-mix(in oklab, var(--ansi-fg-2) 26%, var(--paper)); } .ansi-bg-3 { background-color: color-mix(in oklab, var(--ansi-fg-3) 26%, var(--paper)); }
+.ansi-bg-4 { background-color: color-mix(in oklab, var(--ansi-fg-4) 26%, var(--paper)); } .ansi-bg-5 { background-color: color-mix(in oklab, var(--ansi-fg-5) 26%, var(--paper)); } .ansi-bg-6 { background-color: color-mix(in oklab, var(--ansi-fg-6) 26%, var(--paper)); } .ansi-bg-7 { background-color: color-mix(in oklab, var(--ansi-fg-7) 26%, var(--paper)); }
+.ansi-bg-8 { background-color: color-mix(in oklab, var(--ansi-fg-8) 26%, var(--paper)); } .ansi-bg-9 { background-color: color-mix(in oklab, var(--ansi-fg-9) 26%, var(--paper)); } .ansi-bg-10 { background-color: color-mix(in oklab, var(--ansi-fg-10) 26%, var(--paper)); } .ansi-bg-11 { background-color: color-mix(in oklab, var(--ansi-fg-11) 26%, var(--paper)); }
+.ansi-bg-12 { background-color: color-mix(in oklab, var(--ansi-fg-12) 26%, var(--paper)); } .ansi-bg-13 { background-color: color-mix(in oklab, var(--ansi-fg-13) 26%, var(--paper)); } .ansi-bg-14 { background-color: color-mix(in oklab, var(--ansi-fg-14) 26%, var(--paper)); } .ansi-bg-15 { background-color: color-mix(in oklab, var(--ansi-fg-15) 26%, var(--paper)); }
+.ansi-bg-only { color: var(--ink); }
+.ansi-inline-fg { color: color-mix(in oklab, var(--ansi-fg) 60%, var(--ink)); }
+.ansi-inline-bg { background-color: color-mix(in oklab, var(--ansi-bg) 26%, var(--paper)); }
 .fileLink { display: inline-block; margin: 0.3125rem 0; color: var(--accent-text); font-size: 0.75rem; }
 .meta span, .path, .description, .step, .featureSource, .featureUri, .fileLink, .attachment figcaption, .attachmentText summary, .detailMeta span { overflow-wrap: anywhere; }
 .detailMeta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 0.75rem; color: var(--muted); font-size: 0.6875rem; font-variant-numeric: tabular-nums; }
@@ -379,5 +398,21 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
     --skipped-soft: oklch(21% 0.009 60);
     --unknown: oklch(71% 0.012 85);
     --unknown-soft: oklch(21% 0.009 60);
+    --ansi-fg-0: #9ca3af;
+    --ansi-fg-1: #f87171;
+    --ansi-fg-2: #86efac;
+    --ansi-fg-3: #fde047;
+    --ansi-fg-4: #93c5fd;
+    --ansi-fg-5: #f0abfc;
+    --ansi-fg-6: #67e8f9;
+    --ansi-fg-7: #e5e7eb;
+    --ansi-fg-8: #9ca3af;
+    --ansi-fg-9: #fca5a5;
+    --ansi-fg-10: #4ade80;
+    --ansi-fg-11: #facc15;
+    --ansi-fg-12: #60a5fa;
+    --ansi-fg-13: #e879f9;
+    --ansi-fg-14: #22d3ee;
+    --ansi-fg-15: #ffffff;
   }
 }

@@ -7,20 +7,22 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
-- Messages `meta.ci` renders the CI name and http(s) job link, plus the git
-  revision, branch and tag when present. A safe http(s) GitHub remote links the
-  7-character commit to the full revision; other remotes and schemes keep the
-  short revision as plain text. The first non-empty CI block wins in a mixed
-  run, and legacy-synthesized meta cannot erase it. CI metadata is HTML-only and
-  the summary stays schema version 2.
+- Messages `meta.ci` renders the CI name (or the URL when the name is absent)
+  and http(s) job link, plus the git revision, branch and tag when present. A
+  safe http(s), scp-like or `ssh://` GitHub remote links the 7-character commit
+  to the full revision; other remotes and schemes keep the short revision as
+  plain text. The first non-empty CI block wins in a mixed run, and
+  legacy-synthesized meta cannot erase it. CI metadata is HTML-only and the
+  summary stays schema version 2.
 - Unnamed attachments use a deterministic `attachment.<ext>` fallback across
   Messages and legacy JSON. Known parameterised media types keep their
   extension; unknown types become `attachment`. JSON attachments are
-  pretty-printed and escaped, `text/uri-list` entries link only for http(s),
-  and `text/x.cucumber.log+plain` logs render safe SGR, 256-colour and
-  truecolour output with a copy action. Logs above 262,144 UTF-8 bytes fall
-  back to escaped text without colour parsing; non-SGR control sequences are
-  stripped.
+  pretty-printed and escaped without losing big numbers or duplicate keys,
+  `text/uri-list` entries link only for http(s), and
+  `text/x.cucumber.log+plain` logs render theme-aware SGR, 256-colour and
+  truecolour output with a copy action. JSON and logs above 262,144 UTF-8
+  bytes fall back to escaped text without parsing; non-SGR control sequences
+  and bidi controls are stripped.
 - Messages rules render as sections with their keyword, name, description and
   tags, ordered by severity without moving scenarios across rule boundaries.
   Rule tags render once on the section; feature tags render once in the feature

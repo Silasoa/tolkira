@@ -2,13 +2,13 @@
 
 ## 1. TDD-Red
 
-- [ ] 1.1 Add fixtures for `meta.ci` (full/partial), unnamed/JSON/URI-list/ANSI
+- [x] 1.1 Add fixtures for `meta.ci` (full/partial), unnamed/JSON/URI-list/ANSI
   attachments and malicious control sequences.
-- [ ] 1.2 Write failing model tests for CI metadata and deterministic
+- [x] 1.2 Write failing model tests for CI metadata and deterministic
   attachment names.
-- [ ] 1.3 Write failing render/browser tests for CI link/short revision,
+- [x] 1.3 Write failing render/browser tests for CI link/short revision,
   JSON, URI-list, ANSI colours/copy, missing fields and offline/no-JS.
-- [ ] 1.4 Cover ISTQB edge classes: no/partial CI, mixed-input CI retention,
+- [x] 1.4 Cover ISTQB edge classes: no/partial CI, mixed-input CI retention,
   GitHub commit link, unsafe CI URL, unknown/parameterised media type, legacy
   attachment naming, path-like file name, invalid/mixed-case URI schemes,
   malformed JSON, SGR/256/truecolour, non-SGR control sequences and the

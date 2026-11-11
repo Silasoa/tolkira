@@ -224,8 +224,10 @@ Field contract:
   `attachment.<ext>` fallback in HTML; unknown media types use `attachment`.
 - CI metadata from Messages `meta.ci` is HTML-only. It renders in the report
   header and Details, but no CI field appears in the summary and
-  `schemaVersion` stays 2. Legacy JSON and JUnit never invent CI metadata; use
-  the `metadata` option for a legacy path.
+  `schemaVersion` stays 2. When `ci.name` is missing, the http(s) `ci.url` is
+  the link text. In a mixed input the first non-empty CI block wins, and
+  meta synthesized by the legacy adapter cannot erase it. Legacy JSON and
+  JUnit never invent CI metadata; use the `metadata` option for a legacy path.
 
 ## Migrating to schema version 2
 

@@ -22,6 +22,8 @@ import type {
 
 import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
+import { stripBidiControls } from '../text.js';
+import { MEDIA_EXTENSIONS, normalizedMediaType } from './attachment.js';
 import { type ReportStatus, worstExecutedStatus } from './status.js';
 
 export type { ReportStatus } from './status.js';
@@ -239,7 +241,7 @@ function productLabel(
 }
 
 function nonEmpty(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
+  const trimmed = stripBidiControls(value ?? '').trim();
   return trimmed ? trimmed : undefined;
 }
 
@@ -289,25 +291,6 @@ function hookLabel(type: string | undefined): string {
     default:
       return 'Hook';
   }
-}
-
-const MEDIA_EXTENSIONS: Record<string, string> = {
-  'application/json': 'json',
-  'application/octet-stream': 'bin',
-  'image/gif': 'gif',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/svg+xml': 'svg',
-  'image/webp': 'webp',
-  'text/csv': 'csv',
-  'text/html': 'html',
-  'text/plain': 'txt',
-  'video/mp4': 'mp4',
-  'video/webm': 'webm',
-};
-
-function normalizedMediaType(mediaType: string): string {
-  return mediaType.split(';')[0]?.trim().toLowerCase() ?? '';
 }
 
 function attachmentFileName(fileName: string | undefined, mediaType: string): string {

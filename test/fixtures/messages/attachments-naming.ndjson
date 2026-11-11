@@ -12,6 +12,9 @@
 {"attachment":{"body":"opaque","mediaType":"application/vnd.acme.widget","testCaseStartedId":"naming-started","testStepId":"naming-test-step","timestamp":{"seconds":1,"nanos":2000000}}}
 {"attachment":{"body":"<script>window.__tolkiraXss=1</script>","fileName":"..\\secrets\\report.html","mediaType":"text/html","testCaseStartedId":"naming-started","testStepId":"naming-test-step","timestamp":{"seconds":1,"nanos":2000000}}}
 {"attachment":{"body":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==","contentEncoding":"BASE64","fileName":"screenshot.png","mediaType":"image/png","testCaseStartedId":"naming-started","testStepId":"naming-test-step","timestamp":{"seconds":1,"nanos":2000000}}}
+{"attachment":{"body":"https://example.com/one\n","mediaType":"text/uri-list","testCaseStartedId":"naming-started","testStepId":"naming-test-step","timestamp":{"seconds":1,"nanos":2000000}}}
+{"attachment":{"body":"log line\n","mediaType":"text/x.cucumber.log+plain","testCaseStartedId":"naming-started","testStepId":"naming-test-step","timestamp":{"seconds":1,"nanos":2000000}}}
+{"attachment":{"body":"hostile name","fileName":"\"><svg onload=alert(1)>.txt","mediaType":"text/plain","testCaseStartedId":"naming-started","testStepId":"naming-test-step","timestamp":{"seconds":1,"nanos":2000000}}}
 {"testStepFinished":{"testCaseStartedId":"naming-started","testStepId":"naming-test-step","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1000000}},"timestamp":{"seconds":1,"nanos":3000000}}}
 {"testCaseFinished":{"testCaseStartedId":"naming-started","timestamp":{"seconds":1,"nanos":4000000},"willBeRetried":false}}
 {"testRunFinished":{"testRunStartedId":"naming-run","timestamp":{"seconds":1,"nanos":5000000},"success":true}}

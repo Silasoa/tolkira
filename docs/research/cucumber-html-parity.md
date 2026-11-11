@@ -18,8 +18,8 @@ It is **not yet a drop-in replacement for a Messages run**. The material gaps
 are Gherkin source fidelity (scenario outlines/examples, rules and tags), hooks
 (especially test-run hooks), failure diagnostics for undefined and ambiguous
 steps, and the treatment of scenarios that never executed. Markdown
-descriptions, tag-expression search, CI metadata and attachment presentation
-are second-tier differences.
+descriptions and tag-expression search remain second-tier differences; CI
+metadata and attachment presentation now match.
 
 The legacy reporter comparison is mostly an option-mapping question, already
 covered by `docs/COMPATIBILITY.md`; Tolkira does not need to reproduce its
@@ -90,9 +90,9 @@ Legend: **Match** = equivalent for the user; **Exceeds** = Tolkira does more;
 | --- | --- | --- | --- | --- |
 | Input formats | Cucumber Messages only (NDJSON stream) | Legacy Cucumber JSON only | Legacy JSON, Messages (`.jsonl`/`.ndjson`), JUnit XML; auto-detected; directories and multiple inputs | **Exceeds** |
 | Entry points | ESM `CucumberHtmlStream` Transform; Java/Ruby/.NET wrappers; no CLI since v19 | CommonJS `generate(options, callback?)`; no CLI | CLI, ESM API (`generateReport`, `renderReport`, `summarizeReport`), compat shim | **Exceeds**, except no stream adapter |
-| Attachments | Inline base64 and external `attachment.url`; image, video, log, text, `text/uri-list`, JSON, binary; image/video collapsed in `<details>`; download button | Inline images or external screenshot files; text/JSON/binary; no video/audio special handling | Inline only; image (lightbox), video, audio, text, binary; 50 MB each / 100 MB total; rejects remote URLs | **Partial / Deliberate** |
-| Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else `attachment-<n>.<ext>` | **Different, low impact** |
-| Metadata | `meta.implementation/runtime/os`; `meta.ci` job link and git revision/branch/tag | Arbitrary `metadata` key/value; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; `meta` producer/runtime/OS/CPU/protocol; no `meta.ci` | **Partial** |
+| Attachments | Inline base64 and external `attachment.url`; image, video, log, text, `text/uri-list`, JSON, binary; image/video collapsed in `<details>`; download button | Inline images or external screenshot files; text/JSON/binary; no video/audio special handling | Inline only; image (lightbox), video, audio, text, binary; JSON, URI-list and ANSI logs rendered; 50 MB each / 100 MB total; rejects remote URLs | **Match, except external URLs** |
+| Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else deterministic `attachment.<ext>`, else `attachment` | **Match** |
+| Metadata | `meta.implementation/runtime/os`; `meta.ci` job link and git revision/branch/tag | Arbitrary `metadata` key/value; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; `meta` producer/runtime/OS/CPU/protocol; `meta.ci` job link and git revision/branch/tag | **Match** |
 | Search | Full-text Gherkin index; text or tag expression; 500 ms debounce; URL query state. The index covers feature/scenario/rule/background names and descriptions and steps, but not examples block names, examples table values, substituted pickle names, errors or attachments | None | Substring over scenario/feature/URI/keyword/description/tags/steps incl. error messages; single-tag dropdown; no URL state | **Partial** |
 | Status filters | Checkboxes that hide statuses; counts; only shown when more than one status exists | None | Toggle buttons per status with counts | **Match** |
 | Status counts | Scenario counts by worst final status; pie chart; pass rate | Feature and scenario counts; pass/fail/pending/undefined/ambiguous/skipped/rerun; pie chart | Feature, scenario and step counts; pass rate; attachments; duration | **Exceeds** |
@@ -137,8 +137,8 @@ dependency/architecture.
 | G8 | Markdown descriptions | Missing | M with a small dependency, L without | No | Render a safe GFM subset (headings, emphasis, code, links, lists, tables, blockquotes) with HTML escaped; keep the existing remote-image stripping. A dependency needs a written reason. |
 | G9 | Rules, background headings and feature/rule tags | Partial | M | No | Build rule nodes in the model; render Rule heading/description/tags and Background heading/description; attach scenarios to their rule; include tags in search. |
 | G10 | Search tag expressions and URL state | Partial | M | No | Use `@cucumber/tag-expressions` (official Cucumber package) when the query looks like a tag expression; sync `?query=` and `?hide=` with `URLSearchParams`; keep the tag dropdown as a shortcut. |
-| G11 | CI/git metadata from `meta.ci` | Missing | S | No | Read `meta.ci.name/url` and `meta.ci.git.revision/branch/tag`; render a CI link and short commit in the header/details. |
-| G12 | Attachment presentation polish | Partial | S | No | Match the `attachment.<ext>` fallback where safe; pretty-print JSON attachments; render `text/uri-list` as links; render `text/x.cucumber.log+plain` with ANSI colours and a copy button; keep the lightbox for images. |
+| G11 | CI/git metadata from `meta.ci` | Match | — | No | Implemented: reads `meta.ci.name/url` and `meta.ci.git.revision/branch/tag`, renders a CI link (URL when the name is absent) and a short commit for https, scp-like and `ssh://` GitHub remotes. |
+| G12 | Attachment presentation polish | Match | — | No | Implemented: deterministic `attachment.<ext>` fallback, pretty JSON, `text/uri-list` links, ANSI logs with copy, and the image lightbox. |
 | G13 | External attachments / split assets | Deliberate difference | L | Yes | Do not copy. Keep rejecting remote URLs. A later opt-in split-assets mode is a separate product decision, not parity. |
 | G14 | `CucumberHtmlStream`-shaped adapter | Missing, optional | S | No | A Transform that collects envelopes and calls `renderHtml` on flush. Only needed if teams want to swap the formatter inside a Cucumber implementation without a post-run script. |
 | G15 | Parameter highlighting in steps | Missing, optional | S | No | Use `testStep.stepMatchArgumentsLists` and `parameterType` names to wrap matched fragments. Cosmetic; not needed for triage. |
@@ -169,9 +169,9 @@ dependency/architecture.
    Markdown. This is a content-fidelity gap, not a triage blocker.
 7. **G10 tag-expression search and URL state.** Useful for tag-heavy suites and
    shareable links. The existing dropdown remains a valid shortcut.
-8. **G11 CI/git metadata.** Small, high-signal addition for CI users.
-9. **G12 attachment polish.** JSON prettifying, URI-list links and consistent
-   names; the current image lightbox is a deliberate difference, not a gap.
+G11 (CI/git metadata) and G12 (attachment polish) shipped in the metadata
+parity slice and no longer need separate work. The image lightbox remains a
+deliberate difference, not a gap.
 
 ### Optional / later
 
@@ -340,16 +340,15 @@ Official:
 
 Tolkira:
 
-- fallback name `attachment-<n>.<ext>`;
+- fallback name `attachment.<ext>` or `attachment`;
 - images inline with a lightbox, video/audio players;
-- text attachments in a `<details>` block, JSON not prettified;
-- URI lists shown as text;
+- text attachments in a `<details>` block; JSON pretty-printed; URI lists
+  linked for http(s); ANSI logs rendered with a copy action;
 - binary as a data-URI download link;
 - remote URLs rejected with an error.
 
-The image lightbox is a deliberate difference, not a parity requirement. The
-naming and text/JSON handling are small gaps; external URLs are a deliberate
-offline boundary.
+The image lightbox is a deliberate difference, not a parity requirement.
+External URLs are a deliberate offline boundary.
 
 ### Keyboard and no-JavaScript
 
@@ -396,8 +395,8 @@ browser check:
 5. **Rules and tags (G9).** Add rule nodes, background headings and
    feature/rule tags. Acceptance: `rules.ndjson`, `rules-backgrounds.ndjson`,
    `backgrounds.ndjson`.
-6. **Second tier (G8, G10, G11, G12).** Markdown, tag expressions/URL state,
-   `meta.ci`, attachment polish. Each can ship independently.
+6. **Second tier (G8, G10).** Markdown descriptions and tag
+   expressions/URL state. G11 and G12 already shipped.
 
 Use the compatibility kit as an external acceptance corpus. It is MIT-licensed
 and already covers the edge cases that matter; copying a small subset into

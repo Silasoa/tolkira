@@ -1,5 +1,7 @@
+import { stripBidiControls } from '../text.js';
+
 export function escapeHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>"']/g, (character) => {
+  return stripBidiControls(String(value ?? '')).replace(/[&<>"']/g, (character) => {
     switch (character) {
       case '&':
         return '&amp;';

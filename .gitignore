@@ -18,3 +18,4 @@ Thumbs.db
 .idea/
 .vscode/
 docs/ui-loop/
+test/fixtures/messages/*.official.html

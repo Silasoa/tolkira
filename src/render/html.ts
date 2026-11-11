@@ -2,6 +2,10 @@ import { createHash } from 'node:crypto';
 import type { Envelope } from '@cucumber/messages';
 import { sanitizeEnvelopes } from '../input/sanitize.js';
 import {
+  MAX_TEXT_ATTACHMENT_BYTES,
+  normalizedMediaType,
+} from '../report/attachment.js';
+import {
   buildReportModel,
   type ReportAttachment,
   type ReportBackground,
@@ -21,6 +25,7 @@ import {
 } from '../report/status.js';
 import type { ReportSummary } from '../summary.js';
 import { summarizeEnvelopes, displayUri } from '../summary.js';
+import { stripBidiControls } from '../text.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { renderAnsiLog } from './ansi.js';
 import { escapeHtml } from './escape.js';
@@ -323,7 +328,7 @@ function countPills(model: ReportModel): string {
 }
 
 function safeHttpUrl(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
+  const trimmed = stripBidiControls(value ?? '').trim();
   if (!trimmed) return undefined;
   try {
     const url = new URL(trimmed);
@@ -335,22 +340,46 @@ function safeHttpUrl(value: string | undefined): string | undefined {
   }
 }
 
+function githubRepoPath(url: URL): string | undefined {
+  if (url.hostname.toLowerCase() !== 'github.com') return undefined;
+  const path = url.pathname.replace(/\/+$/, '').replace(/\.git$/i, '');
+  return /^\/[^/]+\/[^/]+$/.test(path) ? path : undefined;
+}
+
+// Accepts https, ssh:// and scp-like GitHub remotes; everything else is plain.
+function githubBaseUrl(remote: string | undefined): string | undefined {
+  const value = stripBidiControls(remote ?? '').trim();
+  if (!value) return undefined;
+  const direct = safeHttpUrl(value);
+  if (direct) {
+    const url = new URL(direct);
+    const path = githubRepoPath(url);
+    return path ? `${url.origin}${path}` : undefined;
+  }
+  const scp = /^(?:[^@\s/:]+@)?github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(
+    value,
+  );
+  if (scp) return `https://github.com/${scp[1]}/${scp[2]}`;
+  if (!/^(?:ssh|git\+ssh):\/\//i.test(value)) return undefined;
+  try {
+    const path = githubRepoPath(new URL(value));
+    return path ? `https://github.com${path}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function shortRevision(revision: string): string {
-  return revision.slice(0, 7);
+  return stripBidiControls(revision).slice(0, 7);
 }
 
 function githubCommitUrl(
   ci: NonNullable<ReportModel['environment']>['ci'],
 ): string | undefined {
   if (!ci?.remote || !ci.revision) return undefined;
-  const remote = safeHttpUrl(ci.remote);
-  if (!remote) return undefined;
-  const url = new URL(remote);
-  if (url.hostname !== 'github.com') return undefined;
-  const base = `${url.origin}${url.pathname
-    .replace(/\/+$/, '')
-    .replace(/\.git$/i, '')}`;
-  return `${base}/commit/${encodeURIComponent(ci.revision)}`;
+  const base = githubBaseUrl(ci.remote);
+  if (!base) return undefined;
+  return `${base}/commit/${encodeURIComponent(stripBidiControls(ci.revision))}`;
 }
 
 function revisionMarkup(
@@ -366,19 +395,21 @@ function revisionMarkup(
 function ciNameMarkup(
   ci: NonNullable<ReportModel['environment']>['ci'],
 ): string {
-  if (!ci?.name) return '';
-  const href = safeHttpUrl(ci.url);
+  const href = safeHttpUrl(ci?.url);
+  const label = ci?.name || href;
+  if (!label) return '';
   return href
-    ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(ci.name)}</a>`
-    : escapeHtml(ci.name);
+    ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`
+    : escapeHtml(label);
 }
 
 function ciHeaderMarkup(
   ci: NonNullable<ReportModel['environment']>['ci'],
 ): string {
   if (!ci) return '';
+  const name = ciNameMarkup(ci);
   const rows = [
-    ci.name ? `<span class="ci"><b>CI</b> ${ciNameMarkup(ci)}</span>` : '',
+    name ? `<span class="ci"><b>CI</b> ${name}</span>` : '',
     ci.revision
       ? `<span><b>Revision</b> ${revisionMarkup(ci)}</span>`
       : '',
@@ -394,8 +425,9 @@ function ciDetailRows(
   ci: NonNullable<ReportModel['environment']>['ci'],
 ): string {
   if (!ci) return '';
+  const name = ciNameMarkup(ci);
   return [
-    ci.name ? `<dt>CI</dt><dd>${ciNameMarkup(ci)}</dd>` : '',
+    name ? `<dt>CI</dt><dd>${name}</dd>` : '',
     ci.revision
       ? `<dt>Revision</dt><dd>${revisionMarkup(ci)}</dd>`
       : '',
@@ -404,16 +436,93 @@ function ciDetailRows(
   ].join('');
 }
 
-function normalizedMediaType(mediaType: string): string {
-  return mediaType.split(';')[0]?.trim().toLowerCase() ?? '';
+interface JsonFrame {
+  opener: '{' | '[';
+  hasItems: boolean;
+}
+
+// Formats valid JSON without re-serialising parsed values, so big numbers and
+// duplicate keys survive unchanged.
+function prettyJson(text: string): string | undefined {
+  try {
+    JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+  const out: string[] = [];
+  const stack: JsonFrame[] = [];
+  let inString = false;
+  let escaped = false;
+  const openItem = (): void => {
+    const top = stack[stack.length - 1];
+    if (top && !top.hasItems) {
+      out.push('\n', '  '.repeat(stack.length));
+      top.hasItems = true;
+    }
+  };
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index] as string;
+    if (inString) {
+      out.push(character);
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') {
+      openItem();
+      out.push(character);
+      inString = true;
+      continue;
+    }
+    if (character === '{' || character === '[') {
+      openItem();
+      out.push(character);
+      stack.push({ opener: character, hasItems: false });
+      continue;
+    }
+    if (character === '}' || character === ']') {
+      const frame = stack.pop();
+      if (!frame) return undefined;
+      if (
+        (frame.opener === '{' && character !== '}') ||
+        (frame.opener === '[' && character !== ']')
+      ) {
+        return undefined;
+      }
+      if (frame.hasItems) out.push('\n', '  '.repeat(stack.length));
+      out.push(character);
+      continue;
+    }
+    if (character === ',') {
+      out.push(',', '\n', '  '.repeat(stack.length));
+      continue;
+    }
+    if (character === ':') {
+      out.push(': ');
+      continue;
+    }
+    if (
+      character === ' ' ||
+      character === '\n' ||
+      character === '\r' ||
+      character === '\t'
+    ) {
+      continue;
+    }
+    let end = index;
+    while (end < text.length && !/[\s,\]}:]/.test(text[end] as string)) {
+      end += 1;
+    }
+    openItem();
+    out.push(text.slice(index, end));
+    index = end - 1;
+  }
+  return stack.length === 0 && !inString ? out.join('') : undefined;
 }
 
 function jsonBody(text: string): string {
-  try {
-    return JSON.stringify(JSON.parse(text), null, 2) ?? text;
-  } catch {
-    return text;
-  }
+  return prettyJson(text) ?? text;
 }
 
 function uriListBody(text: string): string {
@@ -433,13 +542,17 @@ function textAttachmentBody(attachment: ReportAttachment): string {
   const text = attachment.text ?? '';
   const mediaType = normalizedMediaType(attachment.mediaType);
   if (mediaType.startsWith('application/json')) {
-    return `<pre>${escapeHtml(jsonBody(text))}</pre>`;
+    const body =
+      Buffer.byteLength(text, 'utf8') > MAX_TEXT_ATTACHMENT_BYTES
+        ? text
+        : jsonBody(text);
+    return `<pre>${escapeHtml(body)}</pre>`;
   }
   if (mediaType === 'text/uri-list') {
     return `<pre>${uriListBody(text)}</pre>`;
   }
   if (mediaType === 'text/x.cucumber.log+plain') {
-    return `<div class="logTools"><button class="copyLog" type="button" data-copy-log>Copy log</button></div><pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
+    return `<div class="logTools"><button class="copyLog" type="button" data-copy-log aria-label="Copy log ${escapeHtml(attachment.fileName)}" hidden>Copy log</button></div><pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
   }
   return `<pre>${escapeHtml(text)}</pre>`;
 }
@@ -1023,7 +1136,7 @@ function renderReportView(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
     )
-    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="sr" id="tolkira-copy-live" aria-live="polite"></p><p class="searchNote" id="tolkira-search-note" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div>${runHooks}<div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
+    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="tolkira-search-note" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div>${runHooks}<div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
 }
 
 function renderAnalysisView(
@@ -1348,44 +1461,31 @@ const SCRIPT = `<script>
     }
     return lines.join('\\n');
   }
-  Array.prototype.slice.call(document.querySelectorAll('[data-copy-failure]')).forEach(function (button) {
+  function setupCopyButton(button, label, textFor, copiedMessage, failedMessage) {
     var labelTimer = null;
     button.addEventListener('click', function () {
       button.focus();
-      writeClipboard(failureText(button), function (ok) {
+      writeClipboard(textFor(button), function (ok) {
         if (labelTimer) clearTimeout(labelTimer);
         button.textContent = ok ? 'Copied' : 'Copy failed';
-        if (copyLive) {
-          copyLive.textContent = ok
-            ? 'Failure details copied to clipboard.'
-            : 'Could not copy failure details.';
-        }
+        if (copyLive) copyLive.textContent = ok ? copiedMessage : failedMessage;
         labelTimer = setTimeout(function () {
-          button.textContent = 'Copy failure';
+          button.textContent = label;
           if (copyLive) copyLive.textContent = '';
         }, 2000);
       });
     });
+  }
+  Array.prototype.slice.call(document.querySelectorAll('[data-copy-failure]')).forEach(function (button) {
+    setupCopyButton(button, 'Copy failure', failureText, 'Failure details copied to clipboard.', 'Could not copy failure details.');
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-copy-log]')).forEach(function (button) {
-    var labelTimer = null;
-    button.addEventListener('click', function () {
-      var details = button.closest('details');
+    button.hidden = false;
+    setupCopyButton(button, 'Copy log', function (target) {
+      var details = target.closest('details');
       var pre = details ? details.querySelector('pre') : null;
-      writeClipboard(pre ? pre.textContent : '', function (ok) {
-        if (labelTimer) clearTimeout(labelTimer);
-        button.textContent = ok ? 'Copied' : 'Copy failed';
-        if (copyLive) {
-          copyLive.textContent = ok
-            ? 'Log copied to clipboard.'
-            : 'Could not copy the log.';
-        }
-        labelTimer = setTimeout(function () {
-          button.textContent = 'Copy log';
-          if (copyLive) copyLive.textContent = '';
-        }, 2000);
-      });
-    });
+      return pre ? pre.textContent : '';
+    }, 'Log copied to clipboard.', 'Could not copy the log.');
   });
   var lightbox = document.getElementById('tolkira-lightbox');
   if (lightbox) {
@@ -1475,7 +1575,7 @@ export async function renderHtml(
   const accent = isValidAccent(options.accent)
     ? `<style>:root{--accent:${options.accent}}</style>`
     : '';
-  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}<dialog class="lightbox" id="tolkira-lightbox" aria-label="Full-size attachment"><button class="lightboxClose" type="button" data-lightbox-close>Close</button><img alt=""></dialog>${SCRIPT}`;
+  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header><p class="sr" id="tolkira-copy-live" aria-live="polite"></p>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}<dialog class="lightbox" id="tolkira-lightbox" aria-label="Full-size attachment"><button class="lightboxClose" type="button" data-lightbox-close>Close</button><img alt=""></dialog>${SCRIPT}`;
   const hashes = inlineScriptHashes(body);
   return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(hashes)}\n<style>${REPORT_CSS}${accent}</style>\n</head>\n<body>${body}</body>\n</html>`;
 }

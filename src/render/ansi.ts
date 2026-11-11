@@ -1,6 +1,5 @@
+import { MAX_TEXT_ATTACHMENT_BYTES } from '../report/attachment.js';
 import { escapeHtml } from './escape.js';
-
-const MAX_ANSI_BYTES = 262_144;
 
 interface AnsiStyle {
   fgClass?: string;
@@ -13,34 +12,15 @@ interface AnsiStyle {
   underline?: boolean;
 }
 
-const STANDARD_COLORS = [
-  '#000000',
-  '#cd3131',
-  '#0dbc79',
-  '#e5e510',
-  '#2472c8',
-  '#bc3fbc',
-  '#11a8cd',
-  '#e5e5e5',
-  '#666666',
-  '#f14c4c',
-  '#23d18b',
-  '#f5f543',
-  '#3b8eea',
-  '#d670d6',
-  '#29b8db',
-  '#ffffff',
-];
-
-function xtermColor(index: number): string {
-  if (index < 16) return STANDARD_COLORS[index] ?? STANDARD_COLORS[0];
+function xtermColor(value: number): string {
+  const index = Math.max(16, Math.min(255, Math.floor(value)));
   if (index < 232) {
-    const value = index - 16;
+    const offset = index - 16;
     const component = (step: number): string =>
       (step === 0 ? 0 : 55 + step * 40).toString(16).padStart(2, '0');
-    return `#${component(Math.floor(value / 36))}${component(
-      Math.floor((value % 36) / 6),
-    )}${component(value % 6)}`;
+    return `#${component(Math.floor(offset / 36))}${component(
+      Math.floor((offset % 36) / 6),
+    )}${component(offset % 6)}`;
   }
   const grey = 8 + (index - 232) * 10;
   const hex = Math.min(255, grey).toString(16).padStart(2, '0');
@@ -51,6 +31,31 @@ function rgbColor(red: number, green: number, blue: number): string {
   const channel = (value: number): string =>
     Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0');
   return `#${channel(red)}${channel(green)}${channel(blue)}`;
+}
+
+function applyIndexedColor(
+  style: AnsiStyle,
+  foreground: boolean,
+  value: number,
+): void {
+  if (value < 16) {
+    if (foreground) {
+      style.fgClass = `ansi-fg-${value}`;
+      delete style.fgColor;
+    } else {
+      style.bgClass = `ansi-bg-${value}`;
+      delete style.bgColor;
+    }
+    return;
+  }
+  const color = xtermColor(value);
+  if (foreground) {
+    style.fgColor = color;
+    delete style.fgClass;
+  } else {
+    style.bgColor = color;
+    delete style.bgClass;
+  }
 }
 
 function applySgr(style: AnsiStyle, raw: string): void {
@@ -106,14 +111,7 @@ function applySgr(style: AnsiStyle, raw: string): void {
       if (mode === 5 && index + 2 < parts.length) {
         const color = Number(parts[index + 2]);
         if (Number.isFinite(color)) {
-          const value = xtermColor(color);
-          if (foreground) {
-            style.fgColor = value;
-            delete style.fgClass;
-          } else {
-            style.bgColor = value;
-            delete style.bgClass;
-          }
+          applyIndexedColor(style, foreground, color);
         }
         index += 2;
       } else if (mode === 2 && index + 4 < parts.length) {
@@ -153,13 +151,22 @@ function spanMarkup(style: AnsiStyle): string {
   const classes = ['ansi'];
   if (style.fgClass) classes.push(style.fgClass);
   if (style.bgClass) classes.push(style.bgClass);
+  if ((style.bgClass || style.bgColor) && !(style.fgClass || style.fgColor)) {
+    classes.push('ansi-bg-only');
+  }
   if (style.bold) classes.push('ansi-bold');
   if (style.dim) classes.push('ansi-dim');
   if (style.italic) classes.push('ansi-italic');
   if (style.underline) classes.push('ansi-underline');
   const css: string[] = [];
-  if (style.fgColor) css.push(`color:${style.fgColor}`);
-  if (style.bgColor) css.push(`background-color:${style.bgColor}`);
+  if (style.fgColor) {
+    classes.push('ansi-inline-fg');
+    css.push(`--ansi-fg:${style.fgColor}`);
+  }
+  if (style.bgColor) {
+    classes.push('ansi-inline-bg');
+    css.push(`--ansi-bg:${style.bgColor}`);
+  }
   const attributes = css.length ? ` style="${css.join(';')}"` : '';
   return `<span class="${classes.join(' ')}"${attributes}>`;
 }
@@ -271,5 +278,8 @@ function ansiToHtml(text: string, colorize: boolean): string {
 
 /** Renders Cucumber ANSI logs as escaped HTML with safe SGR colours only. */
 export function renderAnsiLog(text: string): string {
-  return ansiToHtml(text, Buffer.byteLength(text, 'utf8') <= MAX_ANSI_BYTES);
+  return ansiToHtml(
+    text,
+    Buffer.byteLength(text, 'utf8') <= MAX_TEXT_ATTACHMENT_BYTES,
+  );
 }
