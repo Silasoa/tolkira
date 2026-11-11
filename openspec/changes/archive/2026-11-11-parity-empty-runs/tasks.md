@@ -60,9 +60,9 @@
   statement and executed-only count surfaces), `docs/CUCUMBER-COMPATIBILITY.md`
   (auto-expansion and version-1 summary shape) and `GLOSSARY.md` with the
   executed/unexecuted vocabulary and the legacy zero-step behaviour.
-- [ ] 3.3 Run the full reviewer set (SCR, CR, DAR, SEC, UXR, PCA, CMP) and the
+- [x] 3.3 Run the full reviewer set (SCR, CR, DAR, SEC, UXR, PCA, CMP) and the
   STR structure/test-health and MKT market/drop-in reviews.
-- [ ] 3.4 Fix every blocker; re-run the gate.
+- [x] 3.4 Fix every blocker; re-run the gate.
 
 ## Workflow follow-up
 

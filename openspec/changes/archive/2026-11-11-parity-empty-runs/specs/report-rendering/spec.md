@@ -4,13 +4,11 @@
 
 ### Requirement: Mark executed and unexecuted scenarios
 
-The model SHALL expose `executed` on every scenario row. A scenario SHALL be
-executed when its selected test case has at least one raw test-step result,
-including a hook result, and unexecuted when that test case started with zero
-results. The selected test case SHALL be the latest started attempt by
-`attempt`, then timestamp. A never-started pickle or outline example SHALL NOT
-produce a row. An unexecuted row SHALL keep `status: "unknown"` and render
-without an outcome, and SHALL expose “Not executed” to assistive technology.
+The model SHALL expose `executed` on every scenario row. A scenario is executed
+when its selected test case has at least one raw test-step result, including a
+hook result; otherwise it is unexecuted and renders without an outcome. The
+selected case is the latest started attempt; never-started pickles do not
+produce a row.
 
 #### Scenario: Scenario with no step results
 
@@ -51,14 +49,11 @@ without an outcome, and SHALL expose “Not executed” to assistive technology.
 
 ### Requirement: Handle empty features and runs
 
-A feature's status SHALL be the worst status among its executed scenarios, or
-`unknown` when it has none. A feature whose scenarios are all unexecuted SHALL
-remain visible and SHALL open by default; its unexecuted rows SHALL show no
-outcome and stay collapsed. The header health block SHALL show the executed
-passed/total count as `<passed> / <total>` with an assistive “passed” label, so
-a run with no executed scenario shows `0 / 0` and `0 %`; the run meta SHALL label
-its scenario total as executed scenarios. An empty run SHALL render no “Needs
-attention” index.
+A feature's status SHALL be the worst status among executed scenarios, or
+`unknown` when none executed. Its unexecuted rows stay visible without an
+outcome. The header SHALL show the executed passed/total count, including
+`0 / 0` for an empty run, and an empty run SHALL render no "Needs attention"
+index.
 
 #### Scenario: All-unexecuted feature
 
@@ -547,6 +542,14 @@ selected test case started with zero raw test-step results SHALL have
 `counts.scenarios`, while remaining in `scenarios`. A failed test-run hook
 SHALL make the summary status failed. The HTML report SHALL separate hooks and
 label its step counts as excluding them.
+
+#### Scenario: Summary stays version 1
+
+- **WHEN** a version-1 consumer reads the summary
+- **THEN** it must check `schemaVersion` and reject version 2 instead of
+  silently misreading the executed-only counts
+- **AND** the hook entry shape itself keeps `keyword: "Hook"` and an optional
+  name
 
 #### Scenario: Hook entry shape is retained
 
