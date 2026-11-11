@@ -752,7 +752,7 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Happy HTML reporting' }),
     ).toBeVisible();
-    await expect(page.getByText('attachment-1.png')).toBeVisible();
+    await expect(page.getByText('attachment.png')).toBeVisible();
     const hookGroup = page.locator('details.hookGroup').first();
     await expect(hookGroup).toBeVisible();
     await hookGroup.locator('summary').click();
@@ -762,9 +762,9 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'Collapse all' }).click();
-    await expect(page.getByText('attachment-1.png')).toBeHidden();
+    await expect(page.getByText('attachment.png')).toBeHidden();
     await page.getByRole('button', { name: 'Expand all' }).click();
-    await expect(page.getByText('attachment-1.png')).toBeVisible();
+    await expect(page.getByText('attachment.png')).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -788,7 +788,7 @@ test('does not execute HTML attachments', async ({ page }) => {
 
     await page.goto(pathToFileURL(output).href);
     await page.getByRole('button', { name: 'Expand all' }).click();
-    const attachment = page.getByText(/attachment-1\.html/).first();
+    const attachment = page.getByText(/attachment\.html/).first();
     await expect(attachment).toBeVisible();
     await attachment.click();
 

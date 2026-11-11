@@ -130,7 +130,7 @@ describe('legacy JSON adapter', () => {
     const html = await renderReport(screenshot, { title: 'Legacy image' });
 
     expect(html).toContain('image/png');
-    expect(html).toContain('attachment-1.png');
+    expect(html).toContain('attachment.png');
   });
 
   it('preserves pending, undefined and skipped statuses', async () => {
@@ -265,7 +265,7 @@ describe('legacy JSON adapter', () => {
     const html = await renderReport(behave, { title: 'Behave' });
     expect(html).toContain('a background step');
     expect(html).toContain('image/png');
-    expect(html).toContain('attachment-1.png');
+    expect(html).toContain('attachment.png');
   });
 
   it('normalises real Behave seconds to milliseconds', async () => {

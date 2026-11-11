@@ -153,7 +153,7 @@ describe('report model', () => {
       .flatMap((scenario) => scenario.attachments)
       .find((entry) => entry.kind === 'image');
 
-    expect(attachment?.fileName).toBe('attachment-1.png');
+    expect(attachment?.fileName).toBe('attachment.png');
     expect(attachment?.dataUri).toMatch(/^data:image\/png;base64,/);
     expect(attachment?.bytes).toBeGreaterThan(0);
   });

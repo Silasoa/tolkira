@@ -1,0 +1,10 @@
+{"meta":{"protocolVersion":"27.0.2","implementation":{"name":"cucumber-js","version":"11.2.0"},"runtime":{"name":"node.js","version":"22.0.0"},"os":{"name":"linux","version":"6.8"},"cpu":{"name":"x64"},"ci":{"name":"Local CI"}}}
+{"source":{"data":"Feature: Partial CI metadata\n\n  Scenario: CI without a URL\n    Given the CI block is partial\n","uri":"features/ci-partial.feature","mediaType":"text/x.cucumber.gherkin+plain"}}
+{"gherkinDocument":{"uri":"features/ci-partial.feature","comments":[],"feature":{"tags":[],"location":{"line":1,"column":1},"language":"en","keyword":"Feature","name":"Partial CI metadata","description":"","children":[{"scenario":{"id":"ci-partial-scenario","tags":[],"location":{"line":3,"column":3},"keyword":"Scenario","name":"CI without a URL","description":"","steps":[{"id":"ci-partial-step","location":{"line":4,"column":5},"keyword":"Given ","keywordType":"Context","text":"the CI block is partial"}],"examples":[]}}]}}}
+{"pickle":{"id":"ci-partial-pickle","uri":"features/ci-partial.feature","astNodeIds":["ci-partial-scenario"],"tags":[],"name":"CI without a URL","language":"en","steps":[{"id":"ci-partial-pickle-step","text":"the CI block is partial","type":"Context","astNodeIds":["ci-partial-step"]}]}}
+{"testRunStarted":{"id":"ci-partial-run","timestamp":{"seconds":1,"nanos":0}}}
+{"testCase":{"id":"ci-partial-test-case","pickleId":"ci-partial-pickle","testRunStartedId":"ci-partial-run","testSteps":[{"id":"ci-partial-test-step","pickleStepId":"ci-partial-pickle-step"}]}}
+{"testCaseStarted":{"id":"ci-partial-started","testCaseId":"ci-partial-test-case","attempt":0,"timestamp":{"seconds":1,"nanos":1000000}}}
+{"testStepFinished":{"testCaseStartedId":"ci-partial-started","testStepId":"ci-partial-test-step","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1000000}},"timestamp":{"seconds":1,"nanos":2000000}}}
+{"testCaseFinished":{"testCaseStartedId":"ci-partial-started","timestamp":{"seconds":1,"nanos":3000000},"willBeRetried":false}}
+{"testRunFinished":{"testRunStartedId":"ci-partial-run","timestamp":{"seconds":1,"nanos":4000000},"success":true}}

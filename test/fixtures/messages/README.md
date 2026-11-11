@@ -39,6 +39,21 @@ started attempt that emitted an attachment but no result, and an outline with
 one started blank example beside one never-started example. The `.feature`
 files document the Gherkin source.
 
+`ci-full.ndjson`, `ci-partial.ndjson`, `ci-unsafe.ndjson` and `ci-mixed.ndjson`
+are local compositions for `meta.ci` coverage: a full GitHub Actions block, a
+name-only block, a hostile block with a `javascript:` URL and non-http remote,
+and a run with a first full block, an empty block and a later full block. The
+first non-empty block must win.
+
+`attachments-naming.ndjson`, `attachments-presentation.ndjson` and
+`attachments-large.ndjson` are local compositions for attachment polish.
+Naming covers unnamed known, parameterised, unknown, named and path-like media
+types. Presentation covers pretty and malformed JSON, a mixed URI list and an
+ANSI log with SGR, 256-colour, truecolour, OSC, non-SGR CSI and HTML.
+`attachments-large.ndjson` holds one ANSI log at exactly 262,144 UTF-8 bytes
+and one at 262,145 bytes; the second must fall back to escaped text. Matching
+`.feature` files document the Gherkin source.
+
 The Compatibility Kit has no standalone tags sample. `tags.*` is a local copy
 of `rules.*` with a feature tag, a second rule tag and a scenario tag added to
 the AST and pickle envelopes, so tag inheritance can be tested end to end.
