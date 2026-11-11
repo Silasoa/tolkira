@@ -28,8 +28,10 @@ passes, one fails with `Error: boom`.
 
 Messages input carries the Gherkin document, so Tolkira groups executed
 examples under one outline section and numbers them `#1.1`, `#1.2`, `#2.1`.
-Unexecuted rows and examples blocks are omitted, matching the official
-formatter. Outline and examples tags, descriptions and keywords come from the
+Examples blocks and rows whose test case never started are omitted, matching the
+official formatter. A row whose selected test case started with zero raw
+results stays visible as an unexecuted row with its original numbering and no
+outcome. Outline and examples tags, descriptions and keywords come from the
 AST; the substituted values remain visible in the steps. Outlines are ordered
 failed-first like the rest of the report; examples inside an outline keep their
 Gherkin order and numbering.
@@ -66,7 +68,7 @@ anonymous background and therefore shows no background heading.
 Legacy JSON has no reliable rule or background structure. Its normalisation
 synthesizes a Background node for step resolution, marks it synthetic and the
 report model skips it. Legacy feature and scenario tags remain best effort.
-JUnit has neither rules nor backgrounds. The JSON summary stays version 1 and
+JUnit has neither rules nor backgrounds. The JSON summary stays version 2 and
 continues to expose only the flat scenario list and inherited `scenarios[].tags`;
 rule and background structure is HTML-only.
 
@@ -82,7 +84,7 @@ The section is omitted when empty, while the official formatter shows an empty
 section.
 
 Legacy JSON has per-scenario before/after hooks but no test-run hooks. JUnit has
-no hooks. The JSON summary keeps its version-1 shape: hooks stay in
+no hooks. The JSON summary stays version 2: hooks stay in
 `scenarios[].steps` with `keyword: "Hook"`, plus an optional `name`. Summary
 step counts include hooks; the HTML counts steps and hooks separately.
 
@@ -108,15 +110,23 @@ two matching definitions; there is no separate `ambiguous-multiple` sample.
 
 ## Auto-expansion
 
-The report opens every feature and scenario whose status is not `passed`,
-including undefined, ambiguous, pending, skipped and unknown. Passed scenarios
-stay collapsed unless they carry an image. This applies to Messages, legacy JSON
-and JUnit input because it is a status rule, not an input-format rule. Text
-search still opens at most 20 rows, counting only rows it newly opens.
+The report opens every feature with an executed scenario whose status is not
+`passed`, including undefined, ambiguous, pending, skipped and unknown. Passed
+scenarios stay collapsed unless they carry an image. A feature whose scenarios
+are all unexecuted opens, and a feature with unexecuted rows opens so those rows
+stay visible; the unexecuted rows themselves stay collapsed and show no
+outcome. This applies to Messages, legacy JSON and JUnit input because it is a
+status rule, not an input-format rule. Text search still opens at most 20 rows,
+counting only rows it newly opens.
 
-The JSON summary keeps its version-1 shape. Undefined summary steps may carry
+The JSON summary stays version 2. Undefined summary steps may carry
 `suggestions`; ambiguous summary steps may carry `definitions`. The fields are
-optional and additive, so `schemaVersion` does not change.
+optional and additive, so `schemaVersion` does not change. Scenario counts
+cover executed scenarios only; an unexecuted scenario keeps `status:
+"unknown"` with `executed: false` and `counts.scenarios.total` can be smaller
+than `scenarios.length`. A legacy scenario with no steps and no hooks is
+unexecuted, so its scenario total drops by one compared with version 1 while
+legacy steps without a result remain executed.
 
 ## Breaking changes that matter
 

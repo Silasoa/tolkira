@@ -22,7 +22,7 @@ import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stepResultMessage } from './result-message.js';
 
-export const SUMMARY_SCHEMA_VERSION = 1;
+export const SUMMARY_SCHEMA_VERSION = 2;
 
 export type SummaryStatus =
   | 'passed'
@@ -60,6 +60,8 @@ export interface SummaryScenario {
   uri: string;
   feature: string;
   status: SummaryStatus;
+  /** True when the selected test case reported at least one raw result. */
+  executed: boolean;
   durationMs: number;
   attempt: number;
   tags: string[];
@@ -248,7 +250,6 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   const results = new Map<string, TestStepFinished[]>();
   const attachments = new Map<string, Attachment[]>();
   const attachmentList: Attachment[] = [];
-  const finishedIds = new Set<string>();
   const scenarioFeatures = new Map<string, Feature>();
   const suggestions = new Map<string, Array<{ language?: string; code: string }>>();
   const stepDefinitions = new Map<string, { pattern: string; source?: string }>();
@@ -282,9 +283,6 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         startedByTestCase.get(envelope.testCaseStarted.testCaseId) ?? [];
       list.push(envelope.testCaseStarted);
       startedByTestCase.set(envelope.testCaseStarted.testCaseId, list);
-    }
-    if (envelope.testCaseFinished) {
-      finishedIds.add(envelope.testCaseFinished.testCaseStartedId);
     }
     if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
     if (envelope.testRunHookStarted) {
@@ -363,14 +361,8 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     const candidates = testCases.flatMap(
       (testCase) => startedByTestCase.get(testCase.id) ?? [],
     );
-    const finishedCandidates = candidates.filter((candidate) =>
-      finishedIds.has(candidate.id),
-    );
-    const pool = finishedCandidates.length
-      ? finishedCandidates
-      : candidates.filter((candidate) => (results.get(candidate.id)?.length ?? 0) > 0);
     let latest: TestCaseStarted | undefined;
-    for (const candidate of pool) {
+    for (const candidate of candidates) {
       if (!latest) {
         latest = candidate;
         continue;
@@ -400,7 +392,9 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     const testCases = testCasesByPickle.get(pickle.id) ?? [];
     const testSteps = testCases.flatMap((testCase) => testCase.testSteps);
     const started = latestByPickle.get(pickle.id);
-    const finished = started ? (results.get(started.id) ?? []) : [];
+    // Never-started pickles stay pruned from entries and counts.
+    if (!started) continue;
+    const finished = results.get(started.id) ?? [];
     const resultByStep = new Map(
       finished.map((entry) => [entry.testStepId, entry.testStepResult]),
     );
@@ -464,12 +458,15 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     }
 
     const status = scenarioStatus(finished.map((entry) => entry.testStepResult));
+    const executed = finished.length > 0;
     const scenarioDuration = steps.reduce((sum, step) => sum + step.durationMs, 0);
     const scenarioAttachments = started ? (attachments.get(started.id) ?? []) : [];
     for (const attachment of scenarioAttachments) countedAttachments.add(attachment);
 
-    countStatus(scenarioCounts, status);
-    for (const step of steps) countStatus(stepCounts, step.status);
+    if (executed) {
+      countStatus(scenarioCounts, status);
+      for (const step of steps) countStatus(stepCounts, step.status);
+    }
     totalDuration += scenarioDuration;
 
     scenarios.push({
@@ -477,6 +474,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
       uri: displayUri(pickle.uri ?? ''),
       feature: tree.featureName,
       status,
+      executed,
       durationMs: finiteDuration(scenarioDuration),
       attempt: started?.attempt ?? 0,
       tags: (pickle.tags ?? []).map((tag) => tag.name),
@@ -500,10 +498,11 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     0,
   );
 
+  const executedScenarios = scenarios.filter((scenario) => scenario.executed);
   const scenarioOverall =
-    scenarios.length === 0
+    executedScenarios.length === 0
       ? 'unknown'
-      : scenarios.reduce(
+      : executedScenarios.reduce(
           (worst, scenario) =>
             statusOrdinal(scenario.status) > statusOrdinal(worst)
               ? scenario.status
@@ -511,7 +510,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           'unknown' as SummaryStatus,
         );
   const overall =
-    scenarios.length === 0
+    executedScenarios.length === 0
       ? runHookStatus === 'failed'
         ? 'failed'
         : 'unknown'

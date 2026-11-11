@@ -51,6 +51,16 @@ name, tags and description. An outline can have several.
 `#<examples>.<example>` in the report. Each row keeps its own outcome,
 attachments and anchor.
 
+**Executed scenario** — a scenario whose selected test case reported at least
+one raw step result, including a hook result. Only executed scenarios appear in
+scenario counts, percentages, bars, triage and the Details matrix.
+
+**Unexecuted scenario** — a scenario whose selected test case started but
+reported no raw step result, including a started-but-unfinished case. It stays
+visible without an outcome, keeps `status: "unknown"` and `executed: false` in
+the summary, and leaves every count surface. A never-started pickle produces no
+row at all.
+
 **Rule** — a Gherkin grouping of scenarios and outlines under a named business
 rule. The report renders a rule section with its keyword, name, description and
 tags; scenarios stay inside their rule.
@@ -83,9 +93,12 @@ envelope, shown escaped inside an undefined step.
 **Step definition match** — a `stepDefinition` pattern and its `uri:line`
 source reference, shown inside an ambiguous step.
 
-**Auto-expansion** — the report opens features and scenarios whose status is
-not `passed` by default. Passed scenarios stay collapsed unless they carry an
-image; text search still opens at most 20 rows.
+**Auto-expansion** — the report opens features and executed scenarios whose
+status is not `passed` by default. Passed scenarios stay collapsed unless they
+carry an image; unexecuted rows stay collapsed and show no outcome. A feature
+whose scenarios are all unexecuted — or that contains an unexecuted row — opens
+so the row stays visible without an outcome. Text search still opens at most 20
+rows.
 
 **Provenance** — the input file a feature came from. Tolkira only uses it when
 the feature URI belongs to exactly one input; shared or missing provenance

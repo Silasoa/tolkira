@@ -540,8 +540,8 @@ describe('parity diagnostics model', () => {
 
     const emptyModel = await messagesModelFor(emptyFixture);
     expect(emptyModel.counts.scenarios).toMatchObject({
-      total: 1,
-      unknown: 1,
+      total: 0,
+      unknown: 0,
     });
     expect(emptyModel.counts.steps.total).toBe(0);
   });

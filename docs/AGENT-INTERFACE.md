@@ -68,11 +68,11 @@ The CLI validates logo bytes and rejects unsupported types or a size over
 2 MB. The API only accepts a `data:image/...;base64,...` logo; anything else is
 omitted.
 
-## Summary schema, version 1
+## Summary schema, version 2
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "failed",
   "durationMs": 12.4,
   "counts": {
@@ -108,6 +108,7 @@ omitted.
       "uri": "features/screenshot.feature",
       "feature": "Screenshot attachment",
       "status": "failed",
+      "executed": true,
       "durationMs": 10,
       "attempt": 0,
       "tags": ["@failing"],
@@ -171,15 +172,21 @@ Undefined and ambiguous Messages steps add optional diagnostic fields:
 
 Field contract:
 
-- `schemaVersion` is `1`. A breaking change increments it.
+- `schemaVersion` is `2`. A breaking change increments it.
 - `status` is one of `passed`, `failed`, `skipped`, `pending`, `undefined`,
   `ambiguous`, `unknown`.
-- `status` is the worst scenario status, or `failed` when a test-run hook
-  fails. A scenario is the worst step status, using the standard Cucumber
-  severity order.
+- `status` is the worst executed scenario status, or `failed` when a test-run
+  hook fails. A scenario is the worst step status, using the standard Cucumber
+  severity order. When nothing executed, the run status is `unknown` unless a
+  test-run hook failed.
 - `counts.features` is the number of distinct Gherkin documents.
-- `counts.scenarios` and `counts.steps` always contain every status key, even
-  when the value is `0`. `total` is the sum.
+- `counts.scenarios` counts executed scenarios only, so `total` can be smaller
+  than `scenarios.length`. `counts.scenarios` and `counts.steps` always contain
+  every status key, even when the value is `0`. `total` is the sum.
+- `scenarios[].executed` is `true` when the selected test case reported at
+  least one raw step result, including a hook result. An unexecuted scenario
+  keeps `status: "unknown"` and `executed: false`; it is not counted in
+  `counts.scenarios`. A pickle that never started has no entry at all.
 - `durationMs` is a number of milliseconds and includes scenario and test-run
   hook time. `steps[].durationMs` is rounded to three decimals.
 - `scenarios` is sorted by `uri`, then `name`, so output is stable across runs.
@@ -194,7 +201,8 @@ Field contract:
   heading, and examples tags on the examples heading. Example rows repeat
   neither scenario nor examples tags. The summary does not expose rules,
   backgrounds or the own/inherited distinction.
-- `attempt` is the latest Cucumber retry attempt for that scenario.
+- `attempt` is the latest started Cucumber attempt for that scenario, even when
+  that attempt reported no result. An earlier retried attempt is ignored.
 - `attachments.bytes` is the decoded size, not the base64 length.
 - `steps[].message` is present only when the step result has a message. For
   hooks, `keyword` is `"Hook"`, `text` is the hook type and `name` is present
@@ -206,10 +214,25 @@ Field contract:
   to implement. `steps[].definitions` is present only for an ambiguous Messages
   step with `stepDefinition` envelopes. Each entry has the `pattern` and an
   optional `source` in `uri:line` form with absolute paths reduced to a
-  relative form. Both fields are additive, so `schemaVersion` stays 1;
+  relative form. Both fields are additive, so `schemaVersion` stays 2;
   a passed step never carries them.
 - Attachment file names are not part of the summary. `scenarios[].attachments`
   is a count; open the HTML report to see the image or file.
+
+## Migrating to schema version 2
+
+Version 2 adds `executed` to every scenario and changes scenario counts to
+cover executed scenarios only:
+
+- `counts.scenarios.total` can be smaller than `scenarios.length`; use the
+  counts for aggregate decisions.
+- An unexecuted scenario has `status: "unknown"` and `executed: false`. That
+  `unknown` is not a failure signal.
+- Filter on `executed` (or use `counts.scenarios`) before treating a
+  scenario's `status` as an outcome. A legacy Cucumber JSON scenario with no
+  steps and no hooks is now unexecuted, so its scenario total drops by one
+  compared with version 1.
+- Never-started pickles remain absent from `scenarios` and the counts.
 
 The summary does not expose absolute input paths: absolute `uri` values are
 reduced to a relative form (`features/...`, or the last path segments for files
@@ -219,8 +242,8 @@ outside `features/`).
 
 1. Run the tests and keep the raw Cucumber JSON or Messages.
 2. Run `tolkira <inputs> --out report.html --json`.
-3. Parse stdout once. Use `status`, `counts` and `scenarios[].steps[].message`
-   for diagnosis.
+3. Parse stdout once. Filter on `executed` (or use `counts`) and use `status`,
+   counts and `scenarios[].steps[].message` for diagnosis.
 4. If you need screenshots or the full Gherkin view, open `report.html`; do not
    scrape it for pass/fail data.
 5. Attach or upload the HTML report as the human-facing artifact.
@@ -238,7 +261,7 @@ outside `features/`).
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave-shaped durations are
   interpreted as nanoseconds, like cucumber-js.
-- Rules and backgrounds are an HTML presentation feature. The version-1 summary
+- Rules and backgrounds are an HTML presentation feature. The version-2 summary
   keeps the flat scenario list; `scenarios[].tags` remains the inherited tag
   set. Legacy JSON and JUnit never invent rule or background structure.
 - Legacy Cucumber JSON and JUnit have no suggestion or step-definition

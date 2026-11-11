@@ -1005,7 +1005,7 @@ describe('triage overview', () => {
     );
     expect(names).toEqual(['Mixed feature', 'Passed feature']);
     expect(html).toContain('1 of 2 passed · 1 unknown');
-    expect(html).toContain('1 of 3 scenarios needs attention.');
+    expect(html).toContain('1 of 3 scenarios need attention.');
     expect(html).toContain('<span class="triageStatus unknown">Unknown</span>');
     const sources = html.slice(
       html.indexOf('class="sources"'),
@@ -2006,7 +2006,7 @@ describe('parity rules rendering', () => {
     const summary = summarizeEnvelopes(envelopes);
     const html = await renderHtml(envelopes, { title: 'Rules integration' });
 
-    expect(summary.schemaVersion).toBe(1);
+    expect(summary.schemaVersion).toBe(2);
     expect(model.counts.scenarios).toEqual(summary.counts.scenarios);
     expect(model.counts.steps).toEqual(summary.counts.steps);
     expect(model.counts.features).toBe(summary.counts.features);
@@ -2044,7 +2044,11 @@ describe('empty-run rendering', () => {
     const html = await renderReport(emptyFixture, { title: 'Empty run' });
 
     expect(html).toContain('0 / 0');
-    expect(html).not.toContain('0 of 0 passed');
+    const header = html.slice(
+      html.indexOf('<header class="runHead">'),
+      html.indexOf('</header>'),
+    );
+    expect(header).not.toContain('0 of 0 passed');
     expect(html).toContain('<strong>0%</strong>');
     expect(html).not.toContain('Needs attention');
 

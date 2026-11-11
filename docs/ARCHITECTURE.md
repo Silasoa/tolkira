@@ -71,7 +71,9 @@ and is covered by real producer fixtures.
 - Default Report tab: title, run metadata, pass-rate health panel, search,
   status filters, exception-first feature and scenario order, a triage index, a
   source strip for multi-file runs with unambiguous provenance, feature
-  counts/proportion bars, fixed thumbnail gutter and scenario details. Below
+  counts/proportion bars, fixed thumbnail gutter and scenario details. Every
+  scenario count, percentage, bar, triage entry and matrix cell covers executed
+  scenarios only; unexecuted rows stay visible without an outcome. Below
   560 px the triage collapses and the source strip hides.
 - Details tab: feature-by-status matrix, status distribution, environment and
   the agent summary.
@@ -86,10 +88,10 @@ and is covered by real producer fixtures.
 ### `src/summary`
 
 - Builds a renderer-independent, stable JSON summary from Messages.
-- Reports overall status, scenario/step counts, durations, attachments and
-  per-scenario step results with failure messages.
+- Reports overall status, executed scenario/step counts, durations, attachments
+  and per-scenario step results with failure messages.
 - Exposed as `summarizeReport` and through the CLI `--json` flag.
-- Schema version 1 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
+- Schema version 2 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
   bump the version.
 
 ### `src/cli`

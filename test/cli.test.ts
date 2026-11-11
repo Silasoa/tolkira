@@ -119,7 +119,7 @@ describe('CLI', () => {
       status: string;
       counts: { scenarios: { total: number; passed: number } };
     };
-    expect(summary.schemaVersion).toBe(1);
+    expect(summary.schemaVersion).toBe(2);
     expect(summary.status).toBe('passed');
     expect(summary.counts.scenarios).toMatchObject({ total: 6, passed: 6 });
   });

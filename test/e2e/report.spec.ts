@@ -2011,8 +2011,17 @@ test('renders an empty run without outcomes or triage', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Empty Scenarios' }),
     ).toBeVisible();
-    await expect(page.getByText('0 / 0', { exact: true })).toBeVisible();
-    await expect(page.getByText('0 of 0 passed')).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .getByText('0 / 0', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .locator('.healthTop')
+        .getByText('0 of 0 passed'),
+    ).toHaveCount(0);
     await expect(page.locator('details.feature')).toHaveAttribute('open', '');
     await expect(
       page.getByRole('navigation', { name: 'Needs attention' }),
@@ -2042,7 +2051,11 @@ test('keeps a blank row searchable in a mixed run', async ({ page }) => {
     expect(code).toBe(0);
 
     await page.goto(pathToFileURL(output).href);
-    await expect(page.getByText('1 / 1', { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .getByText('1 / 1', { exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole('navigation', { name: 'Needs attention' }),
     ).toHaveCount(0);
@@ -2081,8 +2094,11 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
     expect(code).toBe(0);
 
     await page.goto(pathToFileURL(output).href);
-    await expect(page.getByText('1 / 2', { exact: true })).toBeVisible();
-    await expect(page.getByText('50%', { exact: true })).toBeVisible();
+    const report = page.getByRole('tabpanel', { name: 'Report' });
+    await expect(
+      report.getByText('1 / 2', { exact: true }),
+    ).toBeVisible();
+    await expect(report.getByText('50%', { exact: true })).toBeVisible();
     await expect(page.getByText('1 of 2 passed · 1 failed')).toBeVisible();
     await expect(page.locator('button.filter[data-status="unknown"]')).toHaveCount(
       0,
@@ -2116,7 +2132,11 @@ test('renders the empty state when there are no scenarios', async ({ page }) => 
     expect(code).toBe(0);
 
     await page.goto(pathToFileURL(output).href);
-    await expect(page.getByText('0 / 0', { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .getByText('0 / 0', { exact: true }),
+    ).toBeVisible();
     await expect(page.getByText('No scenarios in this report.')).toBeVisible();
     await expect(page.locator('details.feature')).toHaveCount(0);
     await expect(
@@ -2142,7 +2162,11 @@ test.describe('without scripting', () => {
       expect(code).toBe(0);
       await page.goto(pathToFileURL(output).href);
 
-      await expect(page.getByText('0 / 0', { exact: true })).toBeVisible();
+      await expect(
+        page
+          .getByRole('tabpanel', { name: 'Report' })
+          .getByText('0 / 0', { exact: true }),
+      ).toBeVisible();
       await expect(
         page.getByRole('heading', { name: 'Empty Scenarios' }),
       ).toBeVisible();

@@ -61,7 +61,7 @@ describe('machine-readable summary', () => {
   it('summarizes a Messages report', async () => {
     const summary = await summarizeReport(messages);
 
-    expect(summary.schemaVersion).toBe(1);
+    expect(summary.schemaVersion).toBe(2);
     expect(summary.status).toBe('failed');
     expect(summary.counts.scenarios).toMatchObject({
       total: 2,
@@ -235,13 +235,13 @@ describe('machine-readable summary', () => {
     runHook.result.status = TestStepResultStatus.FAILED;
 
     const summary = summarizeEnvelopes(envelopes);
-    expect(summary.schemaVersion).toBe(1);
+    expect(summary.schemaVersion).toBe(2);
     expect(summary.status).toBe('failed');
   });
 
   it('exposes step diagnostics without changing the schema version', async () => {
     const undefinedSummary = await summarizeReport(undefinedFixture);
-    expect(undefinedSummary.schemaVersion).toBe(1);
+    expect(undefinedSummary.schemaVersion).toBe(2);
     const list = undefinedSummary.scenarios.find(
       (scenario) => scenario.name === 'Snippets reflect parameter types',
     );
@@ -263,7 +263,7 @@ describe('machine-readable summary', () => {
     expect(passed?.definitions).toBeUndefined();
 
     const ambiguousSummary = await summarizeReport(ambiguousFixture);
-    expect(ambiguousSummary.schemaVersion).toBe(1);
+    expect(ambiguousSummary.schemaVersion).toBe(2);
     expect(ambiguousSummary.scenarios[0]?.steps[0]?.definitions).toEqual([
       {
         pattern: '^a (.*?) with (.*?)$',

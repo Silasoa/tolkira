@@ -120,6 +120,8 @@ export interface ReportScenario {
   ruleName?: string;
   rule?: ReportRule;
   status: ReportStatus;
+  /** True when the selected test case reported at least one raw result. */
+  executed: boolean;
   durationMs: number;
   attempt: number;
   startedAt?: string;
@@ -513,7 +515,6 @@ export function buildReportModel(
   const runHookAttachments = new Map<string, Attachment[]>();
   const suggestions = new Map<string, Array<{ language?: string; code: string }>>();
   const stepDefinitions = new Map<string, { pattern: string; source?: string }>();
-  const finishedStarted = new Set<string>();
   const attachmentCache = new Map<Attachment, ReportAttachment>();
   let attachmentIndex = 0;
   let startedAt: string | undefined;
@@ -586,7 +587,6 @@ export function buildReportModel(
     if (envelope.pickle) pickles.set(envelope.pickle.id, envelope.pickle);
     if (envelope.testCase) testCases.set(envelope.testCase.id, envelope.testCase);
     if (envelope.testCaseStarted) started.set(envelope.testCaseStarted.id, envelope.testCaseStarted);
-    if (envelope.testCaseFinished) finishedStarted.add(envelope.testCaseFinished.testCaseStartedId);
     if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
     if (envelope.testRunHookStarted) {
       runHookStarts.set(envelope.testRunHookStarted.id, envelope.testRunHookStarted);
@@ -667,11 +667,9 @@ export function buildReportModel(
     const candidates = testCasesForPickle.flatMap(
       (testCase) => startedByTestCase.get(testCase.id) ?? [],
     );
-    const finished = candidates.filter((candidate) => finishedStarted.has(candidate.id));
-    const pool = finished.length
-      ? finished
-      : candidates.filter((candidate) => (results.get(candidate.id)?.length ?? 0) > 0);
-    const latest = pool.reduce<TestCaseStarted | undefined>((current, candidate) => {
+    // The latest started attempt wins, even when it reported nothing: an
+    // earlier retried attempt must not mask a later unexecuted one.
+    const latest = candidates.reduce<TestCaseStarted | undefined>((current, candidate) => {
       if (!current) return candidate;
       if (candidate.attempt > current.attempt) return candidate;
       if (candidate.attempt < current.attempt) return current;
@@ -753,7 +751,8 @@ export function buildReportModel(
     }
 
     const rawResults = (results.get(latest.id) ?? []).map((entry) => entry.testStepResult);
-    const status = rawResults.length
+    const executed = rawResults.length > 0;
+    const status = executed
       ? statusOf(getWorstTestStepResult(rawResults).status)
       : 'unknown';
     const duration = [...stepRows, ...hookRows].reduce(
@@ -815,6 +814,7 @@ export function buildReportModel(
       ...(rule ? { rule } : {}),
       ...(rule?.name ? { ruleName: rule.name } : {}),
       status,
+      executed,
       durationMs: finiteDuration(duration),
       attempt: Number.isFinite(latest.attempt) ? latest.attempt : 0,
       ...(timestampIso(latest.timestamp) ? { startedAt: timestampIso(latest.timestamp) } : {}),
@@ -831,9 +831,11 @@ export function buildReportModel(
       extraAttachments,
     };
     scenarioRows.push(row);
-    count(scenarioCounts, status);
-    for (const step of stepRows) count(stepCounts, step.status);
-    for (const hook of hookRows) count(hookCounts, hook.status);
+    if (executed) {
+      count(scenarioCounts, status);
+      for (const step of stepRows) count(stepCounts, step.status);
+      for (const hook of hookRows) count(hookCounts, hook.status);
+    }
     if (feature) {
       const list = featureScenarios.get(feature) ?? [];
       list.push(row);
@@ -852,14 +854,18 @@ export function buildReportModel(
   for (const feature of orderedFeatures) {
     const scenarios = featureScenarios.get(feature) ?? [];
     if (scenarios.length === 0) continue;
-    const status = scenarios.some((scenario) => scenario.status !== 'passed')
-      ? scenarios.reduce<ReportStatus>((worst, scenario) => {
-          if (scenario.status === 'passed') return worst;
-          return statusSeverity(scenario.status) > statusSeverity(worst)
-            ? scenario.status
-            : worst;
-        }, 'unknown')
-      : 'passed';
+    const executedScenarios = scenarios.filter((scenario) => scenario.executed);
+    const status: ReportStatus =
+      executedScenarios.length === 0
+        ? 'unknown'
+        : executedScenarios.some((scenario) => scenario.status !== 'passed')
+          ? executedScenarios.reduce<ReportStatus>((worst, scenario) => {
+              if (scenario.status === 'passed') return worst;
+              return statusSeverity(scenario.status) > statusSeverity(worst)
+                ? scenario.status
+                : worst;
+            }, 'unknown')
+          : 'passed';
     const featureUri = featureUris.get(feature) ?? scenarios[0]?.uri ?? '';
     const sourceFiles = new Set<string | undefined>([
       ...scenarios.map((scenario) => provenance?.get(scenario.uri)),

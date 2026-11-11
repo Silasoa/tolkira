@@ -124,6 +124,10 @@ function countStatuses(
   return counts;
 }
 
+function executedOnly(scenarios: ReportScenario[]): ReportScenario[] {
+  return scenarios.filter((scenario) => scenario.executed);
+}
+
 function barWidth(count: number, total: number): number {
   return total === 0 ? 0 : Math.round((count / total) * 1000) / 10;
 }
@@ -131,7 +135,7 @@ function barWidth(count: number, total: number): number {
 function attentionCounts(scenarios: ReportScenario[]): string {
   const counts = new Map<ReportStatus, number>();
   for (const scenario of scenarios) {
-    if (scenario.status === 'passed') continue;
+    if (!scenario.executed || scenario.status === 'passed') continue;
     counts.set(scenario.status, (counts.get(scenario.status) ?? 0) + 1);
   }
   return [...counts.entries()]
@@ -141,9 +145,10 @@ function attentionCounts(scenarios: ReportScenario[]): string {
 }
 
 function featureBar(scenarios: ReportScenario[]): string {
-  const total = scenarios.length;
+  const executed = executedOnly(scenarios);
+  const total = executed.length;
   if (total === 0) return '';
-  const counts = countStatuses(scenarios);
+  const counts = countStatuses(executed);
   const segments = ALL_STATUSES.filter((status) => counts[status])
     .map(
       (status) =>
@@ -157,11 +162,12 @@ function featureShape(
   feature: ReportFeature,
   scenarios: ReportScenario[],
 ): string {
-  const passed = scenarios.filter(
+  const executed = executedOnly(scenarios);
+  const passed = executed.filter(
     (scenario) => scenario.status === 'passed',
   ).length;
-  const attention = attentionCounts(scenarios);
-  const counts = `${passed} of ${scenarios.length} passed${attention ? ` · ${attention}` : ''}`;
+  const attention = attentionCounts(executed);
+  const counts = `${passed} of ${executed.length} passed${attention ? ` · ${attention}` : ''}`;
   const source = feature.sourceFile
     ? `<span class="featureSource">from ${escapeHtml(feature.sourceFile)}</span>`
     : '';
@@ -177,7 +183,7 @@ function renderTriageRow({
   scenarios,
   index,
 }: TriageEntry): string {
-  const failing = scenarios.filter(
+  const failing = executedOnly(scenarios).filter(
     (scenario) => scenario.status !== 'passed',
   );
   const links = failing
@@ -191,7 +197,7 @@ function renderTriageRow({
     failing.length > TRIAGE_SCENARIO_LIMIT
       ? `<li class="triageMore">+${failing.length - TRIAGE_SCENARIO_LIMIT} more in the report</li>`
       : '';
-  const failed = scenarios.find((scenario) => scenario.status === 'failed');
+  const failed = failing.find((scenario) => scenario.status === 'failed');
   const failedStep = failed?.steps.find(
     (step) => step.status === 'failed' && step.message,
   );
@@ -214,20 +220,24 @@ function renderTriage(features: OrderedFeature[]): string {
   const attention = features
     .map((entry, index) => ({ ...entry, index }))
     .filter(({ scenarios }) =>
-      scenarios.some((scenario) => scenario.status !== 'passed'),
+      scenarios.some(
+        (scenario) => scenario.executed && scenario.status !== 'passed',
+      ),
     );
   if (attention.length === 0) return '';
 
   const shown = attention.slice(0, 5);
   const rest = attention.slice(5, TRIAGE_FEATURE_LIMIT);
   const total = features.reduce(
-    (sum, entry) => sum + entry.scenarios.length,
+    (sum, entry) => sum + executedOnly(entry.scenarios).length,
     0,
   );
   const need = attention.reduce(
     (sum, entry) =>
       sum +
-      entry.scenarios.filter((scenario) => scenario.status !== 'passed').length,
+      entry.scenarios.filter(
+        (scenario) => scenario.executed && scenario.status !== 'passed',
+      ).length,
     0,
   );
   const rows = shown.map(renderTriageRow).join('');
@@ -238,7 +248,7 @@ function renderTriage(features: OrderedFeature[]): string {
     attention.length > TRIAGE_FEATURE_LIMIT
       ? `<p class="triageMore">${attention.length - TRIAGE_FEATURE_LIMIT} more feature${attention.length - TRIAGE_FEATURE_LIMIT === 1 ? '' : 's'} below.</p>`
       : '';
-  const lead = `${need} of ${total} scenario${total === 1 ? '' : 's'} ${need === 1 ? 'needs' : 'need'} attention.`;
+  const lead = `${need} of ${total} scenario${total === 1 ? '' : 's'} ${total === 1 ? 'needs' : 'need'} attention.`;
   return `<details class="triageBox" data-triage open><summary class="triageSummary"><span class="triageTitle">Needs attention</span><span class="triageSummaryLead">${lead}</span><span class="chev" aria-hidden="true"></span></summary><nav class="triage" aria-label="Needs attention"><h2 id="triage-heading">Needs attention</h2><p class="triageLead">${lead}</p><ol class="triageList">${rows}</ol>${restBlock}${remainder}</nav></details>`;
 }
 
@@ -254,13 +264,18 @@ function renderSourceStrip(model: ReportModel): string {
   });
   if (groups.size < 2) return '';
 
-  const entries = [...groups.entries()].map(([file, group]) => ({
-    file,
-    features: group.features.length,
-    scenarios: group.features.flatMap((feature) => feature.scenarios),
-    status: bySeverity(group.features)[0]?.status ?? 'unknown',
-    order: group.order,
-  }));
+  const entries = [...groups.entries()].map(([file, group]) => {
+    const scenarios = executedOnly(
+      group.features.flatMap((feature) => feature.scenarios),
+    );
+    return {
+      file,
+      features: group.features.length,
+      scenarios,
+      status: scenarios.length === 0 ? 'unknown' : worstStatus(scenarios),
+      order: group.order,
+    };
+  });
   entries.sort((a, b) => {
     const status = compareStatus(a.status, b.status);
     return status !== 0 ? status : a.order - b.order;
@@ -513,13 +528,18 @@ function scenarioText(scenario: ReportScenario): string {
 }
 
 function worstStatus(scenarios: ReportScenario[]): ReportStatus {
-  return scenarios.reduce<ReportStatus>(
-    (worst, scenario) =>
-      statusSeverity(scenario.status) > statusSeverity(worst)
-        ? scenario.status
-        : worst,
-    'unknown',
-  );
+  const executed = executedOnly(scenarios);
+  if (executed.length === 0) return 'unknown';
+  let worst: ReportStatus = 'unknown';
+  let hasNonPassed = false;
+  for (const scenario of executed) {
+    if (scenario.status === 'passed') continue;
+    hasNonPassed = true;
+    if (statusSeverity(scenario.status) > statusSeverity(worst)) {
+      worst = scenario.status;
+    }
+  }
+  return hasNonPassed ? worst : 'passed';
 }
 
 function renderScenario(
@@ -539,7 +559,8 @@ function renderScenario(
     (attachment) => attachment.kind === 'image' && attachment.dataUri,
   );
   const open =
-    scenario.status !== 'passed' || (!grouped && Boolean(image));
+    scenario.executed &&
+    (scenario.status !== 'passed' || (!grouped && Boolean(image)));
   const passedHooks = scenario.hooks.filter(
     (hook) => hook.status === 'passed',
   );
@@ -586,7 +607,13 @@ function renderScenario(
     grouped && outline
       ? `<span>Scenario: ${escapeHtml(scenario.name)}</span>`
       : '';
-  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario data-status="${scenario.status}" data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton"><span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span><span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps and hooks">${inlineItems}</ol>${passedHooksGroup}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  const statusCell = scenario.executed
+    ? `<span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span>`
+    : '<span class="statusCell"></span>';
+  const statusData = scenario.executed
+    ? ` data-status="${scenario.status}"`
+    : '';
+  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario${statusData} data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps and hooks">${inlineItems}</ol>${passedHooksGroup}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
 function renderExamples(
@@ -699,11 +726,15 @@ function renderFeature(
   { feature, scenarios }: OrderedFeature,
   featureIndex: number,
 ): string {
-  const open = scenarios.some(
-    (scenario) =>
-      scenario.status !== 'passed' ||
-      scenario.attachments.some((attachment) => attachment.kind === 'image'),
-  );
+  const executed = executedOnly(scenarios);
+  const open =
+    executed.length === 0 ||
+    scenarios.some((scenario) => !scenario.executed) ||
+    executed.some(
+      (scenario) =>
+        scenario.status !== 'passed' ||
+        scenario.attachments.some((attachment) => attachment.kind === 'image'),
+    );
   const description = feature.description
     ? `<p class="description">${escapeHtml(feature.description)}</p>`
     : '';
@@ -832,14 +863,15 @@ function renderFeatureMatrix(model: ReportModel): string {
     .join('')}<th>Duration</th></tr>`;
   const rows = model.features
     .map((feature) => {
-      const counts = countStatuses(feature.scenarios);
+      const executed = executedOnly(feature.scenarios);
+      const counts = countStatuses(executed);
       const cells = statuses
         .map((status) => {
           const count = counts[status] ?? 0;
           return `<td class="num${count === 0 ? ' zero' : ''}">${count}</td>`;
         })
         .join('');
-      return `<tr><th scope="row"><span class="matrixName">${escapeHtml(feature.name)}</span><span class="matrixUri">${escapeHtml(displayUri(feature.uri))}</span></th><td class="num">${feature.scenarios.length}</td>${cells}<td class="num">${durationLabel(feature.durationMs)}</td></tr>`;
+      return `<tr><th scope="row"><span class="matrixName">${escapeHtml(feature.name)}</span><span class="matrixUri">${escapeHtml(displayUri(feature.uri))}</span></th><td class="num">${executed.length}</td>${cells}<td class="num">${durationLabel(feature.durationMs)}</td></tr>`;
     })
     .join('');
   return `<table class="featureTable"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
@@ -875,7 +907,7 @@ function renderReportView(
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
     : '';
-  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} of ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
+  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} / ${total}</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
     .map(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
@@ -920,7 +952,7 @@ function renderAnalysisView(
       : '',
   ].join('');
   const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
-  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} of ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
+  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} / ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,

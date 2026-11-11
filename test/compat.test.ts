@@ -32,7 +32,7 @@ describe('cucumber-html-reporter compat', () => {
 
     expect(html).toContain('class="hook"');
     expect(html).toContain('Before');
-    expect(result.summary.schemaVersion).toBe(1);
+    expect(result.summary.schemaVersion).toBe(2);
     expect(result.summary.counts.steps.total).toBe(30);
   });
 
