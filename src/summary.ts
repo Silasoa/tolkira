@@ -1,7 +1,4 @@
-import {
-  getWorstTestStepResult,
-  TestStepResultStatus,
-} from '@cucumber/messages';
+import { getWorstTestStepResult } from '@cucumber/messages';
 import type {
   Attachment,
   Duration,
@@ -21,17 +18,11 @@ import type {
 import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stepResultMessage } from './result-message.js';
+import { type ReportStatus, statusSeverity, worstExecutedStatus } from './report/status.js';
 
 export const SUMMARY_SCHEMA_VERSION = 2;
 
-export type SummaryStatus =
-  | 'passed'
-  | 'failed'
-  | 'skipped'
-  | 'pending'
-  | 'undefined'
-  | 'ambiguous'
-  | 'unknown';
+export type SummaryStatus = ReportStatus;
 
 export interface StatusCounts {
   total: number;
@@ -84,16 +75,6 @@ export interface ReportSummary {
   };
   scenarios: SummaryScenario[];
 }
-
-const STATUS_ORDER: TestStepResultStatus[] = [
-  TestStepResultStatus.UNKNOWN,
-  TestStepResultStatus.PASSED,
-  TestStepResultStatus.SKIPPED,
-  TestStepResultStatus.PENDING,
-  TestStepResultStatus.UNDEFINED,
-  TestStepResultStatus.AMBIGUOUS,
-  TestStepResultStatus.FAILED,
-];
 
 const VALID_STATUSES = new Set<SummaryStatus>([
   'passed',
@@ -171,10 +152,6 @@ function finiteDuration(value: number): number {
 function scenarioStatus(results: TestStepResult[]): SummaryStatus {
   if (results.length === 0) return 'unknown';
   return toStatus(getWorstTestStepResult(results).status);
-}
-
-function statusOrdinal(status: SummaryStatus): number {
-  return STATUS_ORDER.indexOf(status.toUpperCase() as TestStepResultStatus);
 }
 
 export function displayUri(uri: string): string {
@@ -460,7 +437,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     const status = scenarioStatus(finished.map((entry) => entry.testStepResult));
     const executed = finished.length > 0;
     const scenarioDuration = steps.reduce((sum, step) => sum + step.durationMs, 0);
-    const scenarioAttachments = started ? (attachments.get(started.id) ?? []) : [];
+    const scenarioAttachments = executed ? (attachments.get(started.id) ?? []) : [];
     for (const attachment of scenarioAttachments) countedAttachments.add(attachment);
 
     if (executed) {
@@ -499,22 +476,13 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   );
 
   const executedScenarios = scenarios.filter((scenario) => scenario.executed);
-  const scenarioOverall =
-    executedScenarios.length === 0
-      ? 'unknown'
-      : executedScenarios.reduce(
-          (worst, scenario) =>
-            statusOrdinal(scenario.status) > statusOrdinal(worst)
-              ? scenario.status
-              : worst,
-          'unknown' as SummaryStatus,
-        );
+  const scenarioOverall = worstExecutedStatus(executedScenarios);
   const overall =
     executedScenarios.length === 0
       ? runHookStatus === 'failed'
         ? 'failed'
         : 'unknown'
-      : statusOrdinal(runHookStatus) > statusOrdinal(scenarioOverall)
+      : statusSeverity(runHookStatus) > statusSeverity(scenarioOverall)
         ? runHookStatus
         : scenarioOverall;
 

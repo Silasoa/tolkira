@@ -3,7 +3,6 @@ import type { Envelope } from '@cucumber/messages';
 import { sanitizeEnvelopes } from '../input/sanitize.js';
 import {
   buildReportModel,
-  statusSeverity,
   type ReportAttachment,
   type ReportBackground,
   type ReportFeature,
@@ -13,9 +12,13 @@ import {
   type ReportRule,
   type ReportRunHook,
   type ReportScenario,
-  type ReportStatus,
   type ReportStep,
 } from '../report/model.js';
+import {
+  type ReportStatus,
+  statusSeverity,
+  worstExecutedStatus,
+} from '../report/status.js';
 import type { ReportSummary } from '../summary.js';
 import { summarizeEnvelopes, displayUri } from '../summary.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
@@ -272,7 +275,7 @@ function renderSourceStrip(model: ReportModel): string {
       file,
       features: group.features.length,
       scenarios,
-      status: scenarios.length === 0 ? 'unknown' : worstStatus(scenarios),
+      status: worstExecutedStatus(scenarios),
       order: group.order,
     };
   });
@@ -527,21 +530,6 @@ function scenarioText(scenario: ReportScenario): string {
   ].join(' ');
 }
 
-function worstStatus(scenarios: ReportScenario[]): ReportStatus {
-  const executed = executedOnly(scenarios);
-  if (executed.length === 0) return 'unknown';
-  let worst: ReportStatus = 'unknown';
-  let hasNonPassed = false;
-  for (const scenario of executed) {
-    if (scenario.status === 'passed') continue;
-    hasNonPassed = true;
-    if (statusSeverity(scenario.status) > statusSeverity(worst)) {
-      worst = scenario.status;
-    }
-  }
-  return hasNonPassed ? worst : 'passed';
-}
-
 function renderScenario(
   scenario: ReportScenario,
   featureIndex: number,
@@ -609,7 +597,7 @@ function renderScenario(
       : '';
   const statusCell = scenario.executed
     ? `<span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span>`
-    : '<span class="statusCell"></span>';
+    : '<span class="statusCell"><span class="sr">Not executed</span></span>';
   const statusData = scenario.executed
     ? ` data-status="${scenario.status}"`
     : '';
@@ -729,7 +717,6 @@ function renderFeature(
   const executed = executedOnly(scenarios);
   const open =
     executed.length === 0 ||
-    scenarios.some((scenario) => !scenario.executed) ||
     executed.some(
       (scenario) =>
         scenario.status !== 'passed' ||
@@ -786,7 +773,7 @@ function renderFeature(
     });
     items.push({
       kind: 'outline',
-      status: worstStatus(group.rows),
+      status: worstExecutedStatus(group.rows),
       order: group.order,
       ...(group.ruleId ? { ruleId: group.ruleId } : {}),
       outline: group.outline,
@@ -823,7 +810,7 @@ function renderFeature(
     ...[...ruleBlocks.values()].map(
       (block): RuleBlock => ({
         kind: 'rule',
-        status: worstStatus(
+        status: worstExecutedStatus(
           block.items.flatMap((item) =>
             item.scenario ? [item.scenario] : (item.rows ?? []),
           ),
@@ -907,7 +894,7 @@ function renderReportView(
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
     : '';
-  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} scenarios</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span>${passed} / ${total}</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
+  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} executed scenario${model.counts.scenarios.total === 1 ? '' : 's'}</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${total}</span><span class="sr">${passed} / ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
     .map(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
@@ -952,7 +939,7 @@ function renderAnalysisView(
       : '',
   ].join('');
   const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
-  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} / ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>All scenarios in the run.</p><div class="legend">${displayStatuses(model)
+  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} / ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Executed scenarios only. Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>Executed scenarios only.</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,

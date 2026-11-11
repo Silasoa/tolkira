@@ -84,6 +84,15 @@ const emptyHookOnlyFixture = fileURLToPath(
 const emptyRetryFixture = fileURLToPath(
   new URL('./fixtures/messages/empty-retry.ndjson', import.meta.url),
 );
+const emptyOutlineMixedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-outline-mixed.ndjson', import.meta.url),
+);
+const emptyUnexecutedAttachmentFixture = fileURLToPath(
+  new URL(
+    './fixtures/messages/empty-unexecuted-attachment.ndjson',
+    import.meta.url,
+  ),
+);
 
 async function renderMessagesFile(file: string): Promise<string> {
   const content = await readFile(file, 'utf8');
@@ -523,7 +532,8 @@ describe('messages rendering', () => {
     expect(html).toContain('data-view="report"');
     expect(html).toContain('data-view="analysis"');
     expect(html).toContain('1 feature');
-    expect(html).toContain('2 scenarios');
+    expect(html).toContain('2 executed scenarios');
+    expect(html).toContain('Executed scenarios only.');
     expect(html).toContain('>1</b> passed');
     expect(html).toContain('>1</b> failed');
     expect(html).toContain('1 attachment');
@@ -2046,9 +2056,16 @@ describe('empty-run rendering', () => {
     expect(html).toContain('0 / 0');
     const header = html.slice(
       html.indexOf('<header class="runHead">'),
-      html.indexOf('</header>'),
+      html.indexOf(
+        '</header>',
+        html.indexOf('<header class="runHead">'),
+      ),
     );
     expect(header).not.toContain('0 of 0 passed');
+    expect(header).toContain(
+      '<span aria-hidden="true">0 / 0</span><span class="sr">0 / 0 passed</span>',
+    );
+    expect(html).toContain('<span>0 executed scenarios</span>');
     expect(html).toContain('<strong>0%</strong>');
     expect(html).not.toContain('Needs attention');
 
@@ -2073,6 +2090,7 @@ describe('empty-run rendering', () => {
     );
     expect(rowSummary).not.toContain('statusText');
     expect(rowSummary).not.toContain('Unknown');
+    expect(rowSummary).toContain('<span class="sr">Not executed</span>');
   });
 
   it('renders 0 / 0 and the empty state when the run has no scenario rows', async () => {
@@ -2091,6 +2109,7 @@ describe('empty-run rendering', () => {
     expect(html).toContain('1 / 1');
     expect(html).not.toContain('1 of 2 passed');
     expect(html).toContain('<strong>100%</strong>');
+    expect(html).toContain('<span>1 executed scenario</span>');
     expect(html).not.toContain('Needs attention');
 
     const list = featureList(html);
@@ -2099,17 +2118,23 @@ describe('empty-run rendering', () => {
     expect(list).toContain('Blank started scenario');
     expect(list).not.toContain('Never started scenario');
 
+    const featureTag = html.slice(
+      html.indexOf('data-feature'),
+      html.indexOf('>', html.indexOf('data-feature')),
+    );
+    expect(featureTag).not.toContain(' open');
+
     const rowTag = scenarioOpeningTag(html, 'Blank started scenario');
     expect(rowTag).not.toContain('data-status');
     expect(rowTag).not.toContain(' open');
     expect(rowTag).toContain('data-search=');
     expect(rowTag).toContain('data-uri="samples/empty-mixed/empty-mixed.feature"');
-    expect(
-      html.slice(
-        html.indexOf(rowTag),
-        html.indexOf('</summary>', html.indexOf(rowTag)),
-      ),
-    ).not.toContain('statusText');
+    const rowSummary = html.slice(
+      html.indexOf(rowTag),
+      html.indexOf('</summary>', html.indexOf(rowTag)),
+    );
+    expect(rowSummary).not.toContain('statusText');
+    expect(rowSummary).toContain('<span class="sr">Not executed</span>');
   });
 
   it('counts only executed rows in the header, feature row, triage and bar', async () => {
@@ -2223,5 +2248,35 @@ describe('empty-run rendering', () => {
     expect(rowTag).not.toContain('data-status');
     expect(rowTag).not.toContain(' open');
     expect(html.slice(html.indexOf(rowTag))).toContain('Attempt: 2');
+  });
+
+  it('renders a started outline example and prunes the never-started one', async () => {
+    const html = await renderReport(emptyOutlineMixedFixture, {
+      title: 'Outline mixed',
+    });
+
+    expect(html).toContain('Examples:</span> Mixed examples');
+    expect(html.match(/<section class="examples" data-examples/g) ?? []).toHaveLength(1);
+    const rowTag = scenarioOpeningTag(html, 'Eat 1 cucumbers');
+    expect(rowTag).toContain('data-example="#1.1"');
+    expect(rowTag).not.toContain('data-status');
+    expect(rowTag).not.toContain(' open');
+    const rowSummary = html.slice(
+      html.indexOf(rowTag),
+      html.indexOf('</summary>', html.indexOf(rowTag)),
+    );
+    expect(rowSummary).toContain('class="exampleNo" aria-hidden="true">#1.1');
+    expect(rowSummary).not.toContain('statusText');
+    expect(rowSummary).toContain('<span class="sr">Not executed</span>');
+    expect(html).not.toContain('Eat 2 cucumbers');
+  });
+
+  it('renders no attachment for an unexecuted scenario', async () => {
+    const html = await renderReport(emptyUnexecutedAttachmentFixture, {
+      title: 'Unexecuted attachment',
+    });
+
+    expect(html).not.toContain('note.txt');
+    expect(html).not.toContain(' class="attachment"');
   });
 });

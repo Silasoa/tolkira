@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
+import { worstExecutedStatus } from '../src/report/status.js';
 
 const happy = fileURLToPath(
   new URL('./fixtures/legacy/happy.json', import.meta.url),
@@ -68,6 +69,15 @@ const emptyHookOnlyFixture = fileURLToPath(
 );
 const emptyRetryFixture = fileURLToPath(
   new URL('./fixtures/messages/empty-retry.ndjson', import.meta.url),
+);
+const emptyUnexecutedAttachmentFixture = fileURLToPath(
+  new URL(
+    './fixtures/messages/empty-unexecuted-attachment.ndjson',
+    import.meta.url,
+  ),
+);
+const emptyOutlineMixedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-outline-mixed.ndjson', import.meta.url),
 );
 const legacyEmptyFixture = fileURLToPath(
   new URL('./fixtures/legacy/empty.json', import.meta.url),
@@ -911,6 +921,37 @@ describe('empty-run model', () => {
     expect(model.counts.scenarios.total).toBe(0);
   });
 
+  it('drops attachments from an unexecuted scenario', async () => {
+    const model = await messagesModelFor(emptyUnexecutedAttachmentFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      name: 'Unexecuted with an attachment',
+      executed: false,
+      attachments: [],
+      extraAttachments: [],
+    });
+    expect(model.counts.attachments).toBe(0);
+    expect(model.counts.attachmentBytes).toBe(0);
+  });
+
+  it('keeps only the started example of a mixed outline', async () => {
+    const model = await messagesModelFor(emptyOutlineMixedFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      name: 'Eat 1 cucumbers',
+      executed: false,
+      status: 'unknown',
+    });
+    expect(model.scenarios[0]?.outline).toMatchObject({
+      examplesName: 'Mixed examples',
+      examplesIndex: 0,
+      exampleIndex: 0,
+    });
+    expect(model.features[0]?.scenarios).toHaveLength(1);
+  });
+
   it('keeps an all-unexecuted feature visible with status unknown', async () => {
     const model = await messagesModelFor(emptyAllUnexecutedFixture);
 
@@ -941,6 +982,24 @@ describe('empty-run model', () => {
     });
     expect(model.features[0]?.status).toBe('failed');
   });
+
+  it.each<[string, string, string]>([
+    ['empty-mixed.ndjson', emptyMixedFixture, 'passed'],
+    ['empty-statuses.ndjson', emptyStatusesFixture, 'failed'],
+    ['empty-all-unexecuted.ndjson', emptyAllUnexecutedFixture, 'unknown'],
+    ['empty-unfinished.ndjson', emptyUnfinishedFixture, 'unknown'],
+    ['empty-hook-only.ndjson', emptyHookOnlyFixture, 'failed'],
+    ['empty-retry.ndjson', emptyRetryFixture, 'unknown'],
+    ['empty-outline-mixed.ndjson', emptyOutlineMixedFixture, 'unknown'],
+    ['empty-none.ndjson', emptyNoneFixture, 'unknown'],
+  ])(
+    'derives the executed worst status for %s',
+    async (_name, fixture, expected) => {
+      const model = await messagesModelFor(fixture);
+
+      expect(worstExecutedStatus(model.scenarios)).toBe(expected);
+    },
+  );
 
   it('produces no rows or counts when the run has no scenarios', async () => {
     const model = await messagesModelFor(emptyNoneFixture);

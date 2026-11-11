@@ -41,9 +41,9 @@ Keep a Changelog and the project uses semantic versioning.
 - Executed features and scenarios whose status is not `passed` (undefined,
   ambiguous, pending, skipped, unknown) open by default. Passed scenarios stay
   collapsed unless they carry an image. Unexecuted rows stay collapsed and show
-  no outcome; a feature with unexecuted rows opens so they remain visible. The
-  search cap still opens at most 20 rows, now counting only rows the search
-  newly opens.
+  no outcome; an all-unexecuted feature opens, while a mixed feature opens only
+  for an executed non-passed or image scenario. The search cap still opens at
+  most 20 rows, now counting only rows the search newly opens.
 - The JSON summary gains optional `suggestions` and `definitions` fields on
   summary steps for undefined and ambiguous Messages steps. The fields are
   additive on top of the version-2 summary.
@@ -60,9 +60,11 @@ Keep a Changelog and the project uses semantic versioning.
   whose selected test case started with zero raw step results, including a
   started-but-unfinished case, renders as an unexecuted row without an outcome
   and leaves the header, feature row and bar, triage index, source strip and
-  Details matrix. Never-started pickles stay pruned. An all-unexecuted feature
-  gets status `unknown`, stays visible and opens while its rows stay collapsed.
-  The header reports executed `passed / total`, so an empty run shows `0 / 0`.
+  Details matrix. Attachments emitted for an unexecuted attempt are dropped from
+  the HTML and summary counts. Never-started pickles stay pruned. An
+  all-unexecuted feature gets status `unknown`, stays visible and opens while
+  its rows stay collapsed. The header reports executed `passed / total`, so an
+  empty run shows `0 / 0`.
 - **Breaking:** the JSON summary schema is version 2. Every scenario carries
   `executed`; scenario counts cover executed scenarios only, so
   `counts.scenarios.total` can be smaller than `scenarios.length`. Unexecuted

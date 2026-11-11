@@ -2022,6 +2022,12 @@ test('renders an empty run without outcomes or triage', async ({ page }) => {
         .locator('.healthTop')
         .getByText('0 of 0 passed'),
     ).toHaveCount(0);
+    await expect(
+      page.getByRole('tabpanel', { name: 'Report' }).locator('.healthTop .sr'),
+    ).toHaveText('0 / 0 passed');
+    await expect(
+      page.getByRole('tabpanel', { name: 'Report' }).getByText('0 executed scenarios'),
+    ).toBeVisible();
     await expect(page.locator('details.feature')).toHaveAttribute('open', '');
     await expect(
       page.getByRole('navigation', { name: 'Needs attention' }),
@@ -2033,6 +2039,7 @@ test('renders an empty run without outcomes or triage', async ({ page }) => {
     expect(await row.getAttribute('data-status')).toBeNull();
     await expect(row).not.toHaveAttribute('open', '');
     await expect(row.locator('.statusText')).toHaveCount(0);
+    await expect(row.locator('.statusCell .sr')).toHaveText('Not executed');
     await expect(row).not.toContainText('Unknown');
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -2057,15 +2064,24 @@ test('keeps a blank row searchable in a mixed run', async ({ page }) => {
         .getByText('1 / 1', { exact: true }),
     ).toBeVisible();
     await expect(
+      page.getByRole('tabpanel', { name: 'Report' }).getByText('1 executed scenario'),
+    ).toBeVisible();
+    const feature = page.locator('details.feature');
+    await expect(feature).not.toHaveAttribute('open', '');
+    await expect(
       page.getByRole('navigation', { name: 'Needs attention' }),
     ).toHaveCount(0);
 
     const blank = page.locator('[data-scenario-name="Blank started scenario"]');
     const passed = page.locator('[data-scenario-name="Passed scenario"]');
+    await expect(blank).toBeHidden();
+    await expect(passed).toBeHidden();
+    await page.locator('details.feature > summary').click();
     await expect(blank).toBeVisible();
     await expect(blank).not.toHaveAttribute('open', '');
     expect(await blank.getAttribute('data-status')).toBeNull();
     await expect(blank.locator('.statusText')).toHaveCount(0);
+    await expect(blank.locator('.statusCell .sr')).toHaveText('Not executed');
 
     const search = page.getByRole('searchbox', { name: /Search/ });
     await search.fill('Blank started');
@@ -2099,6 +2115,7 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
       report.getByText('1 / 2', { exact: true }),
     ).toBeVisible();
     await expect(report.getByText('50%', { exact: true })).toBeVisible();
+    await expect(report.getByText('2 executed scenarios')).toBeVisible();
     await expect(page.getByText('1 of 2 passed · 1 failed')).toBeVisible();
     await expect(page.locator('button.filter[data-status="unknown"]')).toHaveCount(
       0,
@@ -2115,6 +2132,7 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
     );
     await expect(blank).toBeVisible();
     await expect(blank.locator('.statusText')).toHaveCount(0);
+    await expect(blank.locator('.statusCell .sr')).toHaveText('Not executed');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -2138,6 +2156,9 @@ test('renders the empty state when there are no scenarios', async ({ page }) => 
         .getByText('0 / 0', { exact: true }),
     ).toBeVisible();
     await expect(page.getByText('No scenarios in this report.')).toBeVisible();
+    await expect(
+      page.getByRole('tabpanel', { name: 'Report' }).getByText('0 executed scenarios'),
+    ).toBeVisible();
     await expect(page.locator('details.feature')).toHaveCount(0);
     await expect(
       page.getByRole('navigation', { name: 'Needs attention' }),
@@ -2174,6 +2195,7 @@ test.describe('without scripting', () => {
       const row = page.locator('[data-scenario-name="Blank Scenario"]');
       await expect(row).toBeVisible();
       await expect(row.locator('.statusText')).toHaveCount(0);
+      await expect(row.locator('.statusCell .sr')).toHaveText('Not executed');
       await expect(
         page.getByRole('navigation', { name: 'Needs attention' }),
       ).toHaveCount(0);

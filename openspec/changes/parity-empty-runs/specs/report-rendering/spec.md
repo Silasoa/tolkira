@@ -10,7 +10,7 @@ including a hook result, and unexecuted when that test case started with zero
 results. The selected test case SHALL be the latest started attempt by
 `attempt`, then timestamp. A never-started pickle or outline example SHALL NOT
 produce a row. An unexecuted row SHALL keep `status: "unknown"` and render
-without an outcome.
+without an outcome, and SHALL expose “Not executed” to assistive technology.
 
 #### Scenario: Scenario with no step results
 
@@ -55,8 +55,10 @@ A feature's status SHALL be the worst status among its executed scenarios, or
 `unknown` when it has none. A feature whose scenarios are all unexecuted SHALL
 remain visible and SHALL open by default; its unexecuted rows SHALL show no
 outcome and stay collapsed. The header health block SHALL show the executed
-passed/total count as `<passed> / <total>`, so a run with no executed scenario
-shows `0 / 0` and `0 %`. An empty run SHALL render no “Needs attention” index.
+passed/total count as `<passed> / <total>` with an assistive “passed” label, so
+a run with no executed scenario shows `0 / 0` and `0 %`; the run meta SHALL label
+its scenario total as executed scenarios. An empty run SHALL render no “Needs
+attention” index.
 
 #### Scenario: All-unexecuted feature
 
@@ -355,7 +357,8 @@ The Details view SHALL present one row per feature with the total executed
 scenario count, one count column per status present among executed scenarios in
 the run, and the duration. Status columns SHALL be ordered worst first. Zero
 counts SHALL be rendered as a muted zero, not an empty cell. Unexecuted
-scenarios SHALL NOT contribute to a row's total or cells.
+scenarios SHALL NOT contribute to a row's total or cells, and the matrix SHALL
+carry the caption “Executed scenarios only.”
 
 #### Scenario: Mixed run
 
@@ -545,11 +548,10 @@ selected test case started with zero raw test-step results SHALL have
 SHALL make the summary status failed. The HTML report SHALL separate hooks and
 label its step counts as excluding them.
 
-#### Scenario: Summary stays version 1
+#### Scenario: Hook entry shape is retained
 
-- **WHEN** a Messages run with hooks is summarised
-- **THEN** the version-1 hook entry shape is retained: hook entries keep
-  `keyword: "Hook"` and a named hook carries its name
+- **WHEN** a version-2 Messages run with hooks is summarised
+- **THEN** hook entries keep `keyword: "Hook"` and a named hook carries its name
 - **AND** the HTML report still separates hooks from steps
 
 #### Scenario: Summary is version 2

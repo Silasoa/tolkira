@@ -1,7 +1,4 @@
-import {
-  getWorstTestStepResult,
-  TestStepResultStatus,
-} from '@cucumber/messages';
+import { getWorstTestStepResult } from '@cucumber/messages';
 import type {
   Attachment,
   Background,
@@ -24,15 +21,9 @@ import type {
 
 import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
+import { type ReportStatus, worstExecutedStatus } from './status.js';
 
-export type ReportStatus =
-  | 'passed'
-  | 'failed'
-  | 'skipped'
-  | 'pending'
-  | 'undefined'
-  | 'ambiguous'
-  | 'unknown';
+export type { ReportStatus } from './status.js';
 
 export interface ReportAttachment {
   fileName: string;
@@ -179,21 +170,6 @@ export interface ReportModel {
   scenarios: ReportScenario[];
   runHooks: ReportRunHook[];
   runAttachments: ReportAttachment[];
-}
-
-const STATUS_ORDER: TestStepResultStatus[] = [
-  TestStepResultStatus.UNKNOWN,
-  TestStepResultStatus.PASSED,
-  TestStepResultStatus.SKIPPED,
-  TestStepResultStatus.PENDING,
-  TestStepResultStatus.UNDEFINED,
-  TestStepResultStatus.AMBIGUOUS,
-  TestStepResultStatus.FAILED,
-];
-
-/** Raw Cucumber ordinal; the report comparator forces passed last. */
-export function statusSeverity(status: ReportStatus): number {
-  return STATUS_ORDER.indexOf(status.toUpperCase() as TestStepResultStatus);
 }
 
 const VALID_STATUS = new Set<ReportStatus>([
@@ -685,7 +661,13 @@ export function buildReportModel(
     const testCase = testCases.get(latest.testCaseId);
     if (!testCase) continue;
     const pickleSteps = new Map(pickle.steps.map((step) => [step.id, step]));
-    const startedAttachments = attachments.get(latest.id) ?? [];
+    const rawResults = (results.get(latest.id) ?? []).map(
+      (entry) => entry.testStepResult,
+    );
+    const executed = rawResults.length > 0;
+    // An unexecuted attempt contributes no attachment, even when the runner
+    // emitted an attachment envelope for it.
+    const startedAttachments = executed ? (attachments.get(latest.id) ?? []) : [];
     const resultsByStep = new Map(
       (results.get(latest.id) ?? []).map((entry) => [entry.testStepId, entry.testStepResult]),
     );
@@ -750,8 +732,6 @@ export function buildReportModel(
       }
     }
 
-    const rawResults = (results.get(latest.id) ?? []).map((entry) => entry.testStepResult);
-    const executed = rawResults.length > 0;
     const status = executed
       ? statusOf(getWorstTestStepResult(rawResults).status)
       : 'unknown';
@@ -854,18 +834,7 @@ export function buildReportModel(
   for (const feature of orderedFeatures) {
     const scenarios = featureScenarios.get(feature) ?? [];
     if (scenarios.length === 0) continue;
-    const executedScenarios = scenarios.filter((scenario) => scenario.executed);
-    const status: ReportStatus =
-      executedScenarios.length === 0
-        ? 'unknown'
-        : executedScenarios.some((scenario) => scenario.status !== 'passed')
-          ? executedScenarios.reduce<ReportStatus>((worst, scenario) => {
-              if (scenario.status === 'passed') return worst;
-              return statusSeverity(scenario.status) > statusSeverity(worst)
-                ? scenario.status
-                : worst;
-            }, 'unknown')
-          : 'passed';
+    const status = worstExecutedStatus(scenarios);
     const featureUri = featureUris.get(feature) ?? scenarios[0]?.uri ?? '';
     const sourceFiles = new Set<string | undefined>([
       ...scenarios.map((scenario) => provenance?.get(scenario.uri)),

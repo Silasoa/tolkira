@@ -179,7 +179,9 @@ Field contract:
   hook fails. A scenario is the worst step status, using the standard Cucumber
   severity order. When nothing executed, the run status is `unknown` unless a
   test-run hook failed.
-- `counts.features` is the number of distinct Gherkin documents.
+- `counts.features` is the number of features with at least one scenario row,
+  executed or unexecuted, matching the HTML feature list. A document whose
+  pickles never started contributes no row and is not counted.
 - `counts.scenarios` counts executed scenarios only, so `total` can be smaller
   than `scenarios.length`. `counts.scenarios` and `counts.steps` always contain
   every status key, even when the value is `0`. `total` is the sum.
@@ -217,7 +219,8 @@ Field contract:
   relative form. Both fields are additive, so `schemaVersion` stays 2;
   a passed step never carries them.
 - Attachment file names are not part of the summary. `scenarios[].attachments`
-  is a count; open the HTML report to see the image or file.
+  is a count and is 0 for an unexecuted scenario; open the HTML report to see
+  the image or file.
 
 ## Migrating to schema version 2
 

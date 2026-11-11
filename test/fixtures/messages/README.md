@@ -29,12 +29,15 @@ and a rule tag; `backgrounds` covers a feature background; `rules-backgrounds`
 covers a feature background and a rule background together.
 
 `empty-none.*`, `empty-mixed.*`, `empty-statuses.*`, `empty-all-unexecuted.*`,
-`empty-unfinished.*`, `empty-hook-only.*` and `empty-retry.*` are local
+`empty-unfinished.*`, `empty-hook-only.*`, `empty-retry.*`,
+`empty-unexecuted-attachment.*` and `empty-outline-mixed.*` are local
 compositions for unexecuted-row behaviour. They cover a feature without
 scenarios, one passed plus one started-but-blank row, a passed/failed/blank
 feature, an all-blank feature, a started test case without results or a finish
-envelope, a hook-only result, and a retry whose latest attempt has no result.
-The `.feature` files document the Gherkin source.
+envelope, a hook-only result, a retry whose latest attempt has no result, a
+started attempt that emitted an attachment but no result, and an outline with
+one started blank example beside one never-started example. The `.feature`
+files document the Gherkin source.
 
 The Compatibility Kit has no standalone tags sample. `tags.*` is a local copy
 of `rules.*` with a feature tag, a second rule tag and a scenario tag added to

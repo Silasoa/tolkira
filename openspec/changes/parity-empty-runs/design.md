@@ -83,7 +83,8 @@ A feature's status is the worst status among its executed scenarios; a feature
 with no executed scenarios is `unknown`. Mixed features derive their status and
 bar from executed rows only. `unknown`/other non-passed executed scenarios open
 by default. An all-unexecuted feature opens, but its unexecuted rows stay
-collapsed and show no outcome, so the page is not flooded with blank rows.
+collapsed and show no outcome, so the page is not flooded with blank rows. A
+mixed feature does not open just because it contains an unexecuted row.
 
 ### Count surfaces
 
@@ -112,9 +113,12 @@ Add `executed: boolean` to `SummaryScenario`; bump `SUMMARY_SCHEMA_VERSION` to
 `executed: false`, but do not increment `counts.scenarios`. The overall
 `status` is the worst executed scenario status, or `failed` when a test-run hook
 failed, or `unknown` when nothing executed. `counts.steps` and step entries keep
-their meaning (hooks remain `keyword: "Hook"`). `counts.features` keeps counting
-distinct Gherkin documents, including features that only contain unexecuted
-scenarios, matching the HTML feature list. Attachment counts are unchanged.
+their meaning (hooks remain `keyword: "Hook"`). `counts.features` counts
+features with at least one scenario row, including features that only contain
+unexecuted scenarios, matching the HTML feature list; a document whose pickles
+never started contributes no row and is not counted. Attachment counts cover
+executed scenarios only: an attachment emitted for an unexecuted attempt is
+dropped.
 Never-started pickles stay out of `scenarios` and all counts.
 
 ### Legacy and JUnit

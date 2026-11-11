@@ -113,11 +113,12 @@ two matching definitions; there is no separate `ambiguous-multiple` sample.
 The report opens every feature with an executed scenario whose status is not
 `passed`, including undefined, ambiguous, pending, skipped and unknown. Passed
 scenarios stay collapsed unless they carry an image. A feature whose scenarios
-are all unexecuted opens, and a feature with unexecuted rows opens so those rows
-stay visible; the unexecuted rows themselves stay collapsed and show no
-outcome. This applies to Messages, legacy JSON and JUnit input because it is a
-status rule, not an input-format rule. Text search still opens at most 20 rows,
-counting only rows it newly opens.
+are all unexecuted opens; a mixed feature opens only for an executed non-passed
+or image scenario, not merely because it contains an unexecuted row. The
+unexecuted rows themselves stay collapsed and show no outcome. This applies to
+Messages, legacy JSON and JUnit input because it is a status rule, not an
+input-format rule. Text search still opens at most 20 rows, counting only rows
+it newly opens.
 
 The JSON summary stays version 2. Undefined summary steps may carry
 `suggestions`; ambiguous summary steps may carry `definitions`. The fields are

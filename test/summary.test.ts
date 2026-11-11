@@ -44,6 +44,15 @@ const emptyHookOnlyFixture = fileURLToPath(
 const emptyRetryFixture = fileURLToPath(
   new URL('./fixtures/messages/empty-retry.ndjson', import.meta.url),
 );
+const emptyNoneFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-none.ndjson', import.meta.url),
+);
+const emptyUnexecutedAttachmentFixture = fileURLToPath(
+  new URL(
+    './fixtures/messages/empty-unexecuted-attachment.ndjson',
+    import.meta.url,
+  ),
+);
 const legacyEmptyFixture = fileURLToPath(
   new URL('./fixtures/legacy/empty.json', import.meta.url),
 );
@@ -457,6 +466,32 @@ describe('empty-run summary', () => {
         status: 'unknown',
       }),
     ]);
+    expect(summary.counts.scenarios.total).toBe(0);
+  });
+
+  it('drops attachments from an unexecuted scenario', async () => {
+    const summary = await summarizeReport(emptyUnexecutedAttachmentFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('unknown');
+    expect(summary.scenarios).toEqual([
+      expect.objectContaining({
+        name: 'Unexecuted with an attachment',
+        executed: false,
+        status: 'unknown',
+        attachments: 0,
+      }),
+    ]);
+    expect(summary.attachments).toEqual({ total: 0, bytes: 0 });
+  });
+
+  it('reports no feature or scenario counts for a feature without rows', async () => {
+    const summary = await summarizeReport(emptyNoneFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('unknown');
+    expect(summary.scenarios).toEqual([]);
+    expect(summary.counts.features).toBe(0);
     expect(summary.counts.scenarios.total).toBe(0);
   });
 
