@@ -38,8 +38,9 @@ become links.
 ### Requirement: Improve attachment naming
 
 Attachment names SHALL use the Cucumber file name when present, otherwise a
-deterministic `attachment.<extension>` fallback for the media type across all
-inputs. Unknown or parameterised media types normalise to `attachment`.
+deterministic `attachment.<extension>` fallback across all inputs. Known
+parameterised media types strip parameters and keep their extension; unknown
+types normalise to `attachment`.
 
 #### Scenario: Named attachment
 
@@ -66,9 +67,14 @@ The report SHALL make no request when opened.
 
 #### Scenario: Unknown media type
 
-- **WHEN** an unnamed attachment has an unknown or parameterised media type
+- **WHEN** an unnamed attachment has an unknown media type
 - **THEN** its name is `attachment`
 - **AND** the name is deterministic
+
+#### Scenario: Parameterised media type
+
+- **WHEN** an unnamed attachment is `application/json; charset=utf-8`
+- **THEN** its name is `attachment.json`
 
 #### Scenario: JSON attachment
 
@@ -85,8 +91,8 @@ The report SHALL make no request when opened.
 #### Scenario: URI list
 
 - **WHEN** an attachment is `text/uri-list`
-- **THEN** each URI is rendered as a link
-- **AND** only safe http(s) links are clickable
+- **THEN** http(s) URIs render as links with `rel="noopener noreferrer"`
+- **AND** all other schemes render as escaped text
 - **AND** the report itself makes no request
 
 ### Requirement: Render Cucumber ANSI logs safely
@@ -110,7 +116,7 @@ or escaped, and large logs SHALL fall back to escaped text above 256 KB.
 
 #### Scenario: Large log
 
-- **WHEN** an ANSI log exceeds 256 KB
+- **WHEN** an ANSI log exceeds 262,144 UTF-8 bytes
 - **THEN** it renders as escaped text without colour parsing
 - **AND** the report still renders
 
@@ -129,8 +135,15 @@ keep excluding hooks; comparisons use the documented baseline.
 #### Scenario: Counts unchanged
 
 - **WHEN** a report with CI metadata and polished attachments is rendered
-- **THEN** its counts match the summary
-- **AND** the summary schema version is unchanged
+- **THEN** scenario/attachment counts match the summary baseline
+- **AND** HTML step counts keep excluding hooks
+- **AND** the summary schema version is 2
+
+#### Scenario: CI metadata is HTML-only
+
+- **WHEN** a Messages report with `meta.ci` is summarised with `--json`
+- **THEN** no CI field appears in the summary
+- **AND** `schemaVersion` stays 2
 
 #### Scenario: Offline
 
