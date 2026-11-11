@@ -8,9 +8,10 @@
   attachment names.
 - [ ] 1.3 Write failing render/browser tests for CI link/short revision,
   JSON, URI-list, ANSI colours/copy, missing fields and offline/no-JS.
-- [ ] 1.4 Cover ISTQB edge classes: no CI, partial CI, unknown media type,
-  path-like file name, invalid URI scheme, malformed JSON, non-SGR control
-  sequences.
+- [ ] 1.4 Cover ISTQB edge classes: no/partial CI, GitHub commit link, unsafe
+  CI URL, unknown/parameterised media type, legacy attachment naming,
+  path-like file name, invalid/mixed-case URI schemes, malformed JSON,
+  SGR/256/truecolour, non-SGR control sequences and the 256 KB fallback.
 
 ## 2. Implementer
 
@@ -20,7 +21,8 @@
   tests.
 - [ ] 2.3 Implement JSON pretty-print, URI-list links and safe ANSI log
   rendering with copy; verify render/browser tests.
-- [ ] 2.4 Keep counts/summary unchanged and offline; verify integration tests.
+- [ ] 2.4 Keep scenario/attachment counts and summary unchanged; verify the
+  documented HTML-step (excl. hooks) vs summary baseline and offline tests.
 - [ ] 2.5 Run `npm run check` and `npm run test:e2e`; verify the gate.
 
 ## 3. Documentation and review

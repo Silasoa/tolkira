@@ -25,25 +25,32 @@ ANSI logs are escaped plain text.
 
 ### CI metadata
 
-Extend `ReportEnvironment` with optional CI fields: name, url, revision,
-branch, tag. Read them from `meta.ci`. Render in the header as a link plus
-short revision and in Details as metadata rows. Omit missing fields; escape
+Extend `ReportEnvironment` with optional CI fields: name, url, remote,
+revision, branch, tag. Read them from `meta.ci`. Render in the header as a link
+plus short revision and in Details as metadata rows. A safe http(s) GitHub
+remote plus revision links the 7-character commit; otherwise the revision is
+plain text. Only http(s) URLs become anchors. Omit missing fields; escape
 everything; no new request.
 
 ### Attachment naming
 
-Use `fileName` when present. Otherwise derive a deterministic extension from
-the media type and name it `attachment.<ext>`; fall back to `attachment`.
-Keep the existing per-attachment data URI. Treat names as text, never paths.
+Centralise naming in `toAttachment` for Messages and legacy input. Use
+`fileName` when present. Otherwise normalise the media type (lowercase, strip
+parameters), derive a deterministic extension, and name it `attachment.<ext>`;
+unknown types use `attachment`. Stop pre-naming legacy attachments
+`attachment-<n>.<ext>`. Keep the per-attachment data URI. Treat names as text,
+never paths.
 
 ### Presentation
 
-- JSON: parse and pretty-print with `JSON.stringify`, escape in `<pre>`.
-- URI-list: split lines, render http(s) as links with `rel="noopener
-  noreferrer"`, show other schemes as text; no fetch.
-- ANSI logs: parse SGR sequences into safe `<span>` classes, strip other
-  control sequences, escape text, add a copy button that copies the readable
-  text.
+- JSON: match `^application/json` including parameters; parse and pretty-print
+  with `JSON.stringify`; invalid JSON renders escaped raw text in `<pre>`.
+- URI-list: split lines, trim, render only http(s) as links with
+  `rel="noopener noreferrer"`; `javascript:`, `data:`, `file:`, mixed-case and
+  leading-whitespace cases remain escaped text; no fetch.
+- ANSI logs: parse SGR including 256/truecolour into safe `<span>` classes,
+  strip OSC/non-SGR CSI, escape text, add a copy button. Above 256 KB render
+  escaped text without colour parsing.
 
 ### Contracts
 

@@ -6,7 +6,9 @@
 
 When the Messages `meta.ci` envelope is present, the report SHALL show the CI
 name/link and the git revision, branch and tag when available. Missing fields
-SHALL be omitted.
+SHALL be omitted. A safe http(s) GitHub remote plus revision SHALL link the
+7-character commit; otherwise the revision is plain text. Only http(s) CI URLs
+become links.
 
 #### Scenario: CI job and git revision
 
@@ -14,6 +16,13 @@ SHALL be omitted.
 - **THEN** the header and Details show the CI name as a link
 - **AND** the short revision is visible
 - **AND** branch and tag are shown when present
+
+#### Scenario: Commit link
+
+- **WHEN** `meta.ci.git.remote` is a safe GitHub URL and a revision exists
+- **THEN** the 7-character revision links to the commit
+- **AND** the full revision is available as a title
+- **AND** other remotes or schemes render the revision as plain text
 
 #### Scenario: Partial metadata
 
@@ -29,7 +38,8 @@ SHALL be omitted.
 ### Requirement: Improve attachment naming
 
 Attachment names SHALL use the Cucumber file name when present, otherwise a
-deterministic `attachment.<extension>` fallback for the media type.
+deterministic `attachment.<extension>` fallback for the media type across all
+inputs. Unknown or parameterised media types normalise to `attachment`.
 
 #### Scenario: Named attachment
 
@@ -49,15 +59,28 @@ deterministic `attachment.<extension>` fallback for the media type.
 
 ### Requirement: Render JSON and URI-list attachments
 
-JSON attachments SHALL be pretty-printed and escaped. `text/uri-list`
-attachments SHALL render as links without making a network request when the
-report is opened.
+`application/json` attachments (including media-type parameters) SHALL be
+pretty-printed and escaped; invalid JSON SHALL fall back to escaped raw text.
+Only http(s) `text/uri-list` entries become links; other schemes remain text.
+The report SHALL make no request when opened.
+
+#### Scenario: Unknown media type
+
+- **WHEN** an unnamed attachment has an unknown or parameterised media type
+- **THEN** its name is `attachment`
+- **AND** the name is deterministic
 
 #### Scenario: JSON attachment
 
 - **WHEN** an attachment is `application/json`
 - **THEN** the body is pretty-printed in a code block
 - **AND** HTML inside the JSON is escaped
+
+#### Scenario: Malformed JSON
+
+- **WHEN** a JSON attachment cannot be parsed
+- **THEN** its raw text is shown escaped
+- **AND** the report still renders
 
 #### Scenario: URI list
 
@@ -68,8 +91,9 @@ report is opened.
 
 ### Requirement: Render Cucumber ANSI logs safely
 
-`text/x.cucumber.log+plain` attachments SHALL render ANSI colours with a copy
-action, and SHALL NOT execute terminal control sequences.
+`text/x.cucumber.log+plain` attachments SHALL render SGR colours (including
+256/truecolour) with a copy action. Non-SGR control sequences SHALL be stripped
+or escaped, and large logs SHALL fall back to escaped text above 256 KB.
 
 #### Scenario: ANSI log
 
@@ -77,6 +101,18 @@ action, and SHALL NOT execute terminal control sequences.
 - **THEN** the text renders with colours
 - **AND** the raw escape sequences are not shown as markup
 - **AND** a copy action copies the readable text
+
+#### Scenario: Unsafe URI or CI URL
+
+- **WHEN** a URI-list entry or CI URL uses a non-http(s) scheme
+- **THEN** it renders as escaped text, not a link
+- **AND** mixed case and leading whitespace are handled safely
+
+#### Scenario: Large log
+
+- **WHEN** an ANSI log exceeds 256 KB
+- **THEN** it renders as escaped text without colour parsing
+- **AND** the report still renders
 
 #### Scenario: Malicious control sequence
 
@@ -86,8 +122,9 @@ action, and SHALL NOT execute terminal control sequences.
 
 ### Requirement: Keep the offline and count contracts
 
-CI metadata and attachment polish SHALL NOT change scenario, step or
-attachment counts, the JSON summary schema, or the no-network baseline.
+CI metadata and attachment polish SHALL NOT change scenario or attachment
+counts, the JSON summary schema, or the no-network baseline. HTML step counts
+keep excluding hooks; comparisons use the documented baseline.
 
 #### Scenario: Counts unchanged
 
