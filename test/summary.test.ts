@@ -29,6 +29,33 @@ const ambiguousFixture = fileURLToPath(
 const unhappyLegacy = fileURLToPath(
   new URL('./fixtures/legacy/unhappy.json', import.meta.url),
 );
+const emptyMixedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-mixed.ndjson', import.meta.url),
+);
+const emptyAllUnexecutedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-all-unexecuted.ndjson', import.meta.url),
+);
+const emptyUnfinishedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-unfinished.ndjson', import.meta.url),
+);
+const emptyHookOnlyFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-hook-only.ndjson', import.meta.url),
+);
+const emptyRetryFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-retry.ndjson', import.meta.url),
+);
+const legacyEmptyFixture = fileURLToPath(
+  new URL('./fixtures/legacy/empty.json', import.meta.url),
+);
+const legacyMissingResultFixture = fileURLToPath(
+  new URL('./fixtures/legacy/missing-result.json', import.meta.url),
+);
+const legacyScreenshotFixture = fileURLToPath(
+  new URL('./fixtures/legacy/screenshot.json', import.meta.url),
+);
+const junitFixture = fileURLToPath(
+  new URL('./fixtures/junit/basic.xml', import.meta.url),
+);
 
 describe('machine-readable summary', () => {
   it('summarizes a Messages report', async () => {
@@ -328,5 +355,180 @@ describe('machine-readable summary', () => {
         .flatMap((scenario) => scenario.steps)
         .some((step) => step.keyword === 'Hook' && step.name === 'seed database'),
     ).toBe(true);
+  });
+});
+
+describe('empty-run summary', () => {
+  it('uses schema version 2 and excludes unexecuted scenarios from counts', async () => {
+    const summary = await summarizeReport(emptyMixedFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('passed');
+    expect(summary.scenarios).toHaveLength(2);
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 1,
+      passed: 1,
+      unknown: 0,
+    });
+    expect(summary.counts.scenarios.total).toBeLessThan(
+      summary.scenarios.length,
+    );
+    expect(summary.counts.features).toBe(1);
+
+    const blank = summary.scenarios.find(
+      (scenario) => scenario.name === 'Blank started scenario',
+    );
+    expect(blank).toMatchObject({
+      executed: false,
+      status: 'unknown',
+      steps: [],
+      attachments: 0,
+    });
+    const passed = summary.scenarios.find(
+      (scenario) => scenario.name === 'Passed scenario',
+    );
+    expect(passed).toMatchObject({ executed: true, status: 'passed' });
+    expect(
+      summary.scenarios.some(
+        (scenario) => scenario.name === 'Never started scenario',
+      ),
+    ).toBe(false);
+  });
+
+  it('reports an all-unexecuted run as unknown with zero counted scenarios', async () => {
+    const summary = await summarizeReport(emptyAllUnexecutedFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('unknown');
+    expect(summary.counts.scenarios.total).toBe(0);
+    expect(summary.counts.scenarios.unknown).toBe(0);
+    expect(summary.scenarios).toHaveLength(2);
+    expect(summary.scenarios.every((scenario) => scenario.executed === false)).toBe(
+      true,
+    );
+    expect(summary.counts.features).toBe(1);
+  });
+
+  it('keeps a started-but-unfinished scenario in the summary', async () => {
+    const summary = await summarizeReport(emptyUnfinishedFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('unknown');
+    expect(summary.scenarios).toEqual([
+      expect.objectContaining({
+        name: 'Unfinished scenario',
+        executed: false,
+        status: 'unknown',
+      }),
+    ]);
+    expect(summary.counts.scenarios.total).toBe(0);
+  });
+
+  it('counts a hook-only result as executed', async () => {
+    const summary = await summarizeReport(emptyHookOnlyFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('failed');
+    expect(summary.scenarios).toEqual([
+      expect.objectContaining({
+        name: 'Hook-only scenario',
+        executed: true,
+        status: 'failed',
+      }),
+    ]);
+    expect(summary.counts.scenarios).toMatchObject({ total: 1, failed: 1 });
+    expect(summary.counts.steps).toMatchObject({ total: 1, failed: 1 });
+    expect(summary.scenarios[0]?.steps[0]).toMatchObject({
+      keyword: 'Hook',
+      status: 'failed',
+    });
+  });
+
+  it('uses the latest unexecuted retry attempt', async () => {
+    const summary = await summarizeReport(emptyRetryFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('unknown');
+    expect(summary.scenarios).toEqual([
+      expect.objectContaining({
+        name: 'Retried scenario',
+        attempt: 1,
+        executed: false,
+        status: 'unknown',
+      }),
+    ]);
+    expect(summary.counts.scenarios.total).toBe(0);
+  });
+
+  it('keeps step and attachment totals for executed content', async () => {
+    const summary = await summarizeReport(messages);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.scenarios.every((scenario) => scenario.executed === true)).toBe(
+      true,
+    );
+    expect(summary.counts.steps.total).toBe(
+      summary.scenarios.reduce(
+        (sum, scenario) => sum + scenario.steps.length,
+        0,
+      ),
+    );
+    expect(summary.attachments.total).toBe(1);
+    expect(summary.attachments.bytes).toBeGreaterThan(0);
+  });
+
+  it('treats a legacy zero-step scenario as unexecuted', async () => {
+    const summary = await summarizeReport(legacyEmptyFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.status).toBe('unknown');
+    expect(summary.counts.scenarios.total).toBe(0);
+    expect(summary.counts.scenarios.unknown).toBe(0);
+    expect(summary.scenarios).toEqual([
+      expect.objectContaining({
+        name: 'Legacy blank scenario',
+        executed: false,
+        status: 'unknown',
+        steps: [],
+      }),
+    ]);
+  });
+
+  it('keeps JUnit test cases executed', async () => {
+    const summary = await summarizeReport(junitFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.scenarios.length).toBeGreaterThan(0);
+    expect(summary.scenarios.every((scenario) => scenario.executed === true)).toBe(
+      true,
+    );
+    expect(summary.counts.scenarios.total).toBe(summary.scenarios.length);
+  });
+
+  it('keeps a legacy step without a result executed and unknown', async () => {
+    const summary = await summarizeReport(legacyMissingResultFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.counts.scenarios).toMatchObject({ total: 1, unknown: 1 });
+    expect(summary.scenarios).toEqual([
+      expect.objectContaining({
+        name: 'Legacy unknown scenario',
+        executed: true,
+        status: 'unknown',
+      }),
+    ]);
+    expect(summary.scenarios[0]?.steps).toHaveLength(1);
+  });
+
+  it('keeps legacy attachments executed and counted once', async () => {
+    const summary = await summarizeReport(legacyScreenshotFixture);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(summary.scenarios.length).toBeGreaterThan(0);
+    expect(summary.scenarios.every((scenario) => scenario.executed === true)).toBe(
+      true,
+    );
+    expect(summary.counts.scenarios.total).toBe(summary.scenarios.length);
+    expect(summary.attachments.total).toBeGreaterThan(0);
   });
 });

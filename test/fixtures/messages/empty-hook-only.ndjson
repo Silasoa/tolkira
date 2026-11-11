@@ -1,0 +1,9 @@
+{"gherkinDocument":{"feature":{"tags":[],"location":{"line":1,"column":1},"language":"en","keyword":"Feature","name":"Hook only","description":"Only a hook result was reported for the scenario.","children":[{"scenario":{"id":"hook-scenario","tags":[],"location":{"line":4,"column":3},"keyword":"Scenario","name":"Hook-only scenario","description":"","steps":[{"id":"hook-step","location":{"line":5,"column":5},"keyword":"Given ","keywordType":"Context","text":"a step that never reports"}],"examples":[]}}]},"comments":[],"uri":"samples/empty-hook-only/empty-hook-only.feature"}}
+{"pickle":{"id":"hook-pickle","uri":"samples/empty-hook-only/empty-hook-only.feature","location":{"line":4,"column":3},"astNodeIds":["hook-scenario"],"tags":[],"name":"Hook-only scenario","language":"en","steps":[{"id":"hook-pickle-step","text":"a step that never reports","type":"Context","astNodeIds":["hook-step"]}]}}
+{"hook":{"id":"hook-definition","type":"BEFORE_TEST_CASE","sourceReference":{"uri":"samples/empty-hook-only/empty-hook-only.ts","location":{"line":3}}}}
+{"testRunStarted":{"id":"hook-run","timestamp":{"seconds":0,"nanos":0}}}
+{"testCase":{"id":"hook-test-case","pickleId":"hook-pickle","testSteps":[{"id":"hook-test-step","hookId":"hook-definition"},{"id":"hook-test-pickle-step","pickleStepId":"hook-pickle-step"}]}}
+{"testCaseStarted":{"id":"hook-started","testCaseId":"hook-test-case","timestamp":{"seconds":0,"nanos":1000000},"attempt":0}}
+{"testStepFinished":{"testCaseStartedId":"hook-started","testStepId":"hook-test-step","testStepResult":{"message":"before hook failed","status":"FAILED","duration":{"seconds":0,"nanos":1000000}},"timestamp":{"seconds":0,"nanos":2000000}}}
+{"testCaseFinished":{"testCaseStartedId":"hook-started","timestamp":{"seconds":0,"nanos":3000000},"willBeRetried":false}}
+{"testRunFinished":{"testRunStartedId":"hook-run","timestamp":{"seconds":0,"nanos":4000000},"success":false}}

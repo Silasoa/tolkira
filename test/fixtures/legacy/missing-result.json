@@ -1,0 +1,19 @@
+[
+  {
+    "uri": "features/legacy-missing-result.feature",
+    "name": "Legacy unknown feature",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "Legacy unknown scenario",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a step without a result"
+          }
+        ]
+      }
+    ]
+  }
+]

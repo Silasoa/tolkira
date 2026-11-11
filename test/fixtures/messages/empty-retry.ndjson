@@ -1,0 +1,10 @@
+{"gherkinDocument":{"feature":{"tags":[],"location":{"line":1,"column":1},"language":"en","keyword":"Feature","name":"Retried scenario","description":"The first attempt passed, the later attempt reported no result.","children":[{"scenario":{"id":"retry-scenario","tags":[],"location":{"line":4,"column":3},"keyword":"Scenario","name":"Retried scenario","description":"","steps":[{"id":"retry-step","location":{"line":5,"column":5},"keyword":"Given ","keywordType":"Context","text":"a retried step"}],"examples":[]}}]},"comments":[],"uri":"samples/empty-retry/empty-retry.feature"}}
+{"pickle":{"id":"retry-pickle","uri":"samples/empty-retry/empty-retry.feature","location":{"line":4,"column":3},"astNodeIds":["retry-scenario"],"tags":[],"name":"Retried scenario","language":"en","steps":[{"id":"retry-pickle-step","text":"a retried step","type":"Context","astNodeIds":["retry-step"]}]}}
+{"testRunStarted":{"id":"retry-run","timestamp":{"seconds":0,"nanos":0}}}
+{"testCase":{"id":"retry-test-case","pickleId":"retry-pickle","testSteps":[{"id":"retry-test-step","pickleStepId":"retry-pickle-step"}]}}
+{"testCaseStarted":{"id":"retry-started-first","testCaseId":"retry-test-case","timestamp":{"seconds":0,"nanos":1000000},"attempt":0}}
+{"testStepFinished":{"testCaseStartedId":"retry-started-first","testStepId":"retry-test-step","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1000000}},"timestamp":{"seconds":0,"nanos":2000000}}}
+{"testCaseFinished":{"testCaseStartedId":"retry-started-first","timestamp":{"seconds":0,"nanos":3000000},"willBeRetried":true}}
+{"testCaseStarted":{"id":"retry-started-second","testCaseId":"retry-test-case","timestamp":{"seconds":0,"nanos":10000000},"attempt":1}}
+{"testCaseFinished":{"testCaseStartedId":"retry-started-second","timestamp":{"seconds":0,"nanos":11000000},"willBeRetried":false}}
+{"testRunFinished":{"testRunStartedId":"retry-run","timestamp":{"seconds":0,"nanos":12000000},"success":true}}

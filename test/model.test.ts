@@ -48,6 +48,36 @@ const allStatusesFixture = fileURLToPath(
 const emptyFixture = fileURLToPath(
   new URL('./fixtures/messages/empty.ndjson', import.meta.url),
 );
+const emptyNoneFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-none.ndjson', import.meta.url),
+);
+const emptyMixedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-mixed.ndjson', import.meta.url),
+);
+const emptyStatusesFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-statuses.ndjson', import.meta.url),
+);
+const emptyAllUnexecutedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-all-unexecuted.ndjson', import.meta.url),
+);
+const emptyUnfinishedFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-unfinished.ndjson', import.meta.url),
+);
+const emptyHookOnlyFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-hook-only.ndjson', import.meta.url),
+);
+const emptyRetryFixture = fileURLToPath(
+  new URL('./fixtures/messages/empty-retry.ndjson', import.meta.url),
+);
+const legacyEmptyFixture = fileURLToPath(
+  new URL('./fixtures/legacy/empty.json', import.meta.url),
+);
+const legacyMissingResultFixture = fileURLToPath(
+  new URL('./fixtures/legacy/missing-result.json', import.meta.url),
+);
+const legacyScreenshotFixture = fileURLToPath(
+  new URL('./fixtures/legacy/screenshot.json', import.meta.url),
+);
 const rulesFixture = fileURLToPath(
   new URL('./fixtures/messages/rules.ndjson', import.meta.url),
 );
@@ -799,5 +829,182 @@ describe('parity rules model', () => {
     expect(model.scenarios.every((scenario) => scenario.ownTags.length === 0)).toBe(
       true,
     );
+  });
+});
+
+describe('empty-run model', () => {
+  it('marks the CCK blank scenario unexecuted and leaves the counts', async () => {
+    const model = await messagesModelFor(emptyFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      name: 'Blank Scenario',
+      executed: false,
+      status: 'unknown',
+      steps: [],
+    });
+    expect(model.counts.scenarios.total).toBe(0);
+    expect(model.counts.scenarios.unknown).toBe(0);
+    expect(model.counts.features).toBe(1);
+    expect(model.features[0]?.status).toBe('unknown');
+    expect(model.features[0]?.scenarios).toHaveLength(1);
+  });
+
+  it('keeps a started-but-unfinished scenario as an unexecuted row', async () => {
+    const model = await messagesModelFor(emptyUnfinishedFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      name: 'Unfinished scenario',
+      executed: false,
+      status: 'unknown',
+    });
+    expect(model.counts.scenarios.total).toBe(0);
+    expect(model.features[0]?.status).toBe('unknown');
+  });
+
+  it('excludes unexecuted rows from a mixed feature and prunes never-started pickles', async () => {
+    const model = await messagesModelFor(emptyMixedFixture);
+
+    expect(model.scenarios.map((scenario) => scenario.name)).toEqual([
+      'Passed scenario',
+      'Blank started scenario',
+    ]);
+    expect(model.scenarios.map((scenario) => scenario.executed)).toEqual([
+      true,
+      false,
+    ]);
+    expect(model.scenarios[1]?.status).toBe('unknown');
+    expect(model.counts.scenarios).toMatchObject({
+      total: 1,
+      passed: 1,
+      unknown: 0,
+    });
+    expect(model.features[0]?.status).toBe('passed');
+  });
+
+  it('counts a hook-only result as executed and failed', async () => {
+    const model = await messagesModelFor(emptyHookOnlyFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      executed: true,
+      status: 'failed',
+      steps: [],
+    });
+    expect(model.scenarios[0]?.hooks).toHaveLength(1);
+    expect(model.scenarios[0]?.hooks[0]?.status).toBe('failed');
+    expect(model.counts.scenarios).toMatchObject({ total: 1, failed: 1 });
+    expect(model.counts.steps.total).toBe(0);
+    expect(model.counts.hooks.total).toBe(1);
+  });
+
+  it('selects the latest started attempt even when it has no result', async () => {
+    const model = await messagesModelFor(emptyRetryFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      attempt: 1,
+      executed: false,
+      status: 'unknown',
+    });
+    expect(model.counts.scenarios.total).toBe(0);
+  });
+
+  it('keeps an all-unexecuted feature visible with status unknown', async () => {
+    const model = await messagesModelFor(emptyAllUnexecutedFixture);
+
+    expect(model.scenarios).toHaveLength(2);
+    expect(model.scenarios.every((scenario) => scenario.executed === false)).toBe(
+      true,
+    );
+    expect(model.counts.scenarios.total).toBe(0);
+    expect(model.counts.scenarios.unknown).toBe(0);
+    expect(model.features).toHaveLength(1);
+    expect(model.features[0]?.status).toBe('unknown');
+    expect(model.features[0]?.scenarios).toHaveLength(2);
+  });
+
+  it('derives a mixed feature status from executed rows only', async () => {
+    const model = await messagesModelFor(emptyStatusesFixture);
+
+    expect(model.scenarios.map((scenario) => scenario.name)).toEqual([
+      'Passed scenario',
+      'Failed scenario',
+      'Blank unexecuted scenario',
+    ]);
+    expect(model.counts.scenarios).toMatchObject({
+      total: 2,
+      passed: 1,
+      failed: 1,
+      unknown: 0,
+    });
+    expect(model.features[0]?.status).toBe('failed');
+  });
+
+  it('produces no rows or counts when the run has no scenarios', async () => {
+    const model = await messagesModelFor(emptyNoneFixture);
+
+    expect(model.scenarios).toEqual([]);
+    expect(model.features).toEqual([]);
+    expect(model.counts.features).toBe(0);
+    expect(model.counts.scenarios.total).toBe(0);
+  });
+
+  it('treats a legacy zero-step scenario as unexecuted', async () => {
+    const model = await modelFor(legacyEmptyFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      name: 'Legacy blank scenario',
+      executed: false,
+      status: 'unknown',
+    });
+    expect(model.counts.scenarios.total).toBe(0);
+    expect(model.counts.scenarios.unknown).toBe(0);
+  });
+
+  it('keeps a legacy step without a result executed and unknown', async () => {
+    const model = await modelFor(legacyMissingResultFixture);
+
+    expect(model.scenarios).toHaveLength(1);
+    expect(model.scenarios[0]).toMatchObject({
+      name: 'Legacy unknown scenario',
+      executed: true,
+      status: 'unknown',
+    });
+    expect(model.scenarios[0]?.steps).toHaveLength(1);
+    expect(model.counts.scenarios).toMatchObject({ total: 1, unknown: 1 });
+  });
+
+  it('keeps legacy attachments executed and counted once', async () => {
+    const model = await modelFor(legacyScreenshotFixture);
+
+    expect(model.scenarios.length).toBeGreaterThan(0);
+    expect(model.scenarios.every((scenario) => scenario.executed === true)).toBe(
+      true,
+    );
+    expect(model.counts.scenarios.total).toBe(model.scenarios.length);
+    expect(model.counts.attachments).toBe(
+      model.scenarios.reduce(
+        (sum, scenario) => sum + scenario.attachments.length,
+        0,
+      ),
+    );
+  });
+
+  it('keeps JUnit test cases executed', async () => {
+    const content = await readFile(
+      fileURLToPath(new URL('./fixtures/junit/basic.xml', import.meta.url)),
+      'utf8',
+    );
+    const { parseJUnitXml } = await import('../src/input/junit.js');
+    const model = buildReportModel(await parseJUnitXml(content, 'basic.xml'));
+
+    expect(model.scenarios.length).toBeGreaterThan(0);
+    expect(model.scenarios.every((scenario) => scenario.executed === true)).toBe(
+      true,
+    );
+    expect(model.counts.scenarios.total).toBe(model.scenarios.length);
   });
 });

@@ -1,0 +1,11 @@
+{"gherkinDocument":{"feature":{"tags":[],"location":{"line":1,"column":1},"language":"en","keyword":"Feature","name":"All unexecuted","description":"Every scenario started but reported no result.","children":[{"scenario":{"id":"blank-scenario-one","tags":[],"location":{"line":4,"column":3},"keyword":"Scenario","name":"Blank one","description":"","steps":[],"examples":[]}},{"scenario":{"id":"blank-scenario-two","tags":[],"location":{"line":6,"column":3},"keyword":"Scenario","name":"Blank two","description":"","steps":[],"examples":[]}}]},"comments":[],"uri":"samples/empty-all-unexecuted/empty-all-unexecuted.feature"}}
+{"pickle":{"id":"blank-pickle-one","uri":"samples/empty-all-unexecuted/empty-all-unexecuted.feature","location":{"line":4,"column":3},"astNodeIds":["blank-scenario-one"],"tags":[],"name":"Blank one","language":"en","steps":[]}}
+{"pickle":{"id":"blank-pickle-two","uri":"samples/empty-all-unexecuted/empty-all-unexecuted.feature","location":{"line":6,"column":3},"astNodeIds":["blank-scenario-two"],"tags":[],"name":"Blank two","language":"en","steps":[]}}
+{"testRunStarted":{"id":"blank-run","timestamp":{"seconds":0,"nanos":0}}}
+{"testCase":{"id":"blank-test-case-one","pickleId":"blank-pickle-one","testSteps":[]}}
+{"testCase":{"id":"blank-test-case-two","pickleId":"blank-pickle-two","testSteps":[]}}
+{"testCaseStarted":{"id":"blank-started-one","testCaseId":"blank-test-case-one","timestamp":{"seconds":0,"nanos":1000000},"attempt":0}}
+{"testCaseFinished":{"testCaseStartedId":"blank-started-one","timestamp":{"seconds":0,"nanos":2000000},"willBeRetried":false}}
+{"testCaseStarted":{"id":"blank-started-two","testCaseId":"blank-test-case-two","timestamp":{"seconds":0,"nanos":3000000},"attempt":0}}
+{"testCaseFinished":{"testCaseStartedId":"blank-started-two","timestamp":{"seconds":0,"nanos":4000000},"willBeRetried":false}}
+{"testRunFinished":{"testRunStartedId":"blank-run","timestamp":{"seconds":0,"nanos":5000000},"success":true}}

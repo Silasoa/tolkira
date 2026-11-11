@@ -53,6 +53,18 @@ const rulesOutlineBackgroundFixture = fileURLToPath(
 const tagsFixture = fileURLToPath(
   new URL('../fixtures/messages/tags.ndjson', import.meta.url),
 );
+const emptyFixture = fileURLToPath(
+  new URL('../fixtures/messages/empty.ndjson', import.meta.url),
+);
+const emptyNoneFixture = fileURLToPath(
+  new URL('../fixtures/messages/empty-none.ndjson', import.meta.url),
+);
+const emptyMixedFixture = fileURLToPath(
+  new URL('../fixtures/messages/empty-mixed.ndjson', import.meta.url),
+);
+const emptyStatusesFixture = fileURLToPath(
+  new URL('../fixtures/messages/empty-statuses.ndjson', import.meta.url),
+);
 
 async function writeFailedTagsFixture(dir: string): Promise<string> {
   const input = path.join(dir, 'failed-tags.ndjson');
@@ -1984,8 +1996,167 @@ test('filters rules by search, status and tag', async ({ page }) => {
   }
 });
 
+test('renders an empty run without outcomes or triage', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-e2e-'));
+  const output = path.join(dir, 'empty.html');
+
+  try {
+    const code = await runCli(
+      [emptyFixture, '--out', output, '--title', 'Empty run'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(
+      page.getByRole('heading', { name: 'Empty Scenarios' }),
+    ).toBeVisible();
+    await expect(page.getByText('0 / 0', { exact: true })).toBeVisible();
+    await expect(page.getByText('0 of 0 passed')).toHaveCount(0);
+    await expect(page.locator('details.feature')).toHaveAttribute('open', '');
+    await expect(
+      page.getByRole('navigation', { name: 'Needs attention' }),
+    ).toHaveCount(0);
+    await expect(page.locator('button.filter')).toHaveCount(0);
+
+    const row = page.locator('[data-scenario-name="Blank Scenario"]');
+    await expect(row).toBeVisible();
+    expect(await row.getAttribute('data-status')).toBeNull();
+    await expect(row).not.toHaveAttribute('open', '');
+    await expect(row.locator('.statusText')).toHaveCount(0);
+    await expect(row).not.toContainText('Unknown');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('keeps a blank row searchable in a mixed run', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-mixed-e2e-'));
+  const output = path.join(dir, 'empty-mixed.html');
+
+  try {
+    const code = await runCli(
+      [emptyMixedFixture, '--out', output, '--title', 'Mixed run'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(page.getByText('1 / 1', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('navigation', { name: 'Needs attention' }),
+    ).toHaveCount(0);
+
+    const blank = page.locator('[data-scenario-name="Blank started scenario"]');
+    const passed = page.locator('[data-scenario-name="Passed scenario"]');
+    await expect(blank).toBeVisible();
+    await expect(blank).not.toHaveAttribute('open', '');
+    expect(await blank.getAttribute('data-status')).toBeNull();
+    await expect(blank.locator('.statusText')).toHaveCount(0);
+
+    const search = page.getByRole('searchbox', { name: /Search/ });
+    await search.fill('Blank started');
+    await expect(blank).toBeVisible();
+    await expect(blank).toHaveAttribute('open', '');
+    await expect(passed).toBeHidden();
+    await expect(blank.locator('.statusText')).toHaveCount(0);
+
+    await search.fill('Passed scenario');
+    await expect(blank).toBeHidden();
+    await expect(passed).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('counts only executed scenarios in a mixed-status run', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-statuses-e2e-'));
+  const output = path.join(dir, 'empty-statuses.html');
+
+  try {
+    const code = await runCli(
+      [emptyStatusesFixture, '--out', output, '--title', 'Mixed statuses'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(page.getByText('1 / 2', { exact: true })).toBeVisible();
+    await expect(page.getByText('50%', { exact: true })).toBeVisible();
+    await expect(page.getByText('1 of 2 passed · 1 failed')).toBeVisible();
+    await expect(page.locator('button.filter[data-status="unknown"]')).toHaveCount(
+      0,
+    );
+
+    const triage = page.getByRole('navigation', { name: 'Needs attention' });
+    await expect(triage).toBeVisible();
+    await expect(triage).toContainText('1 of 2 scenarios need attention.');
+    await expect(triage).toContainText('Failed scenario');
+    await expect(triage).not.toContainText('Blank unexecuted scenario');
+
+    const blank = page.locator(
+      '[data-scenario-name="Blank unexecuted scenario"]',
+    );
+    await expect(blank).toBeVisible();
+    await expect(blank.locator('.statusText')).toHaveCount(0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('renders the empty state when there are no scenarios', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-none-e2e-'));
+  const output = path.join(dir, 'empty-none.html');
+
+  try {
+    const code = await runCli(
+      [emptyNoneFixture, '--out', output, '--title', 'No scenarios'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(page.getByText('0 / 0', { exact: true })).toBeVisible();
+    await expect(page.getByText('No scenarios in this report.')).toBeVisible();
+    await expect(page.locator('details.feature')).toHaveCount(0);
+    await expect(
+      page.getByRole('navigation', { name: 'Needs attention' }),
+    ).toHaveCount(0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test.describe('without scripting', () => {
   test.use({ javaScriptEnabled: false });
+
+  test('keeps an empty run readable', async ({ page }) => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-nojs-e2e-'));
+    const output = path.join(dir, 'empty-nojs.html');
+
+    try {
+      const code = await runCli(
+        [emptyFixture, '--out', output, '--title', 'Empty no JS'],
+        { stdout: () => undefined, stderr: () => undefined },
+      );
+      expect(code).toBe(0);
+      await page.goto(pathToFileURL(output).href);
+
+      await expect(page.getByText('0 / 0', { exact: true })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: 'Empty Scenarios' }),
+      ).toBeVisible();
+      await expect(page.locator('details.feature')).toHaveAttribute('open', '');
+      const row = page.locator('[data-scenario-name="Blank Scenario"]');
+      await expect(row).toBeVisible();
+      await expect(row.locator('.statusText')).toHaveCount(0);
+      await expect(
+        page.getByRole('navigation', { name: 'Needs attention' }),
+      ).toHaveCount(0);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 
   test('keeps hook disclosures readable', async ({ page }) => {
     const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hook-nojs-e2e-'));

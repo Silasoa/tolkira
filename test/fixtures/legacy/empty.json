@@ -1,0 +1,14 @@
+[
+  {
+    "uri": "features/legacy-empty.feature",
+    "name": "Legacy empty feature",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "Legacy blank scenario",
+        "steps": []
+      }
+    ]
+  }
+]
