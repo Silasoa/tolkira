@@ -4,14 +4,11 @@
 
 ### Requirement: Show CI metadata from Messages
 
-When the Messages `meta.ci` envelope is present, the report SHALL show the CI
-name/link and the git revision, branch and tag when available. Missing fields
-SHALL be omitted. When the name is missing, a safe http(s) CI URL SHALL be used
-as the link label. A safe GitHub remote plus revision SHALL link the
-7-character commit; https, `ssh://`, `git+ssh://` and scp-like
-`git@github.com:owner/repo.git` remotes normalise to an https commit URL.
-Other remotes or schemes render the revision as plain text. Only http(s) CI
-URLs become links.
+When `meta.ci` is present, the report SHALL show the CI name/link and git
+revision, branch and tag when available. Missing fields are omitted; a URL
+without a name uses the URL as label. Safe GitHub https/ssh/scp remotes link
+the 7-character commit; other schemes stay plain text. Only http(s) CI URLs
+become links.
 
 #### Scenario: CI job and git revision
 
