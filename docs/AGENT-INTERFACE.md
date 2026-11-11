@@ -220,7 +220,12 @@ Field contract:
   a passed step never carries them.
 - Attachment file names are not part of the summary. `scenarios[].attachments`
   is a count and is 0 for an unexecuted scenario; open the HTML report to see
-  the image or file.
+  the image or file. Unnamed attachments use a deterministic
+  `attachment.<ext>` fallback in HTML; unknown media types use `attachment`.
+- CI metadata from Messages `meta.ci` is HTML-only. It renders in the report
+  header and Details, but no CI field appears in the summary and
+  `schemaVersion` stays 2. Legacy JSON and JUnit never invent CI metadata; use
+  the `metadata` option for a legacy path.
 
 ## Migrating to schema version 2
 

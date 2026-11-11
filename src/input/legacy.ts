@@ -529,19 +529,6 @@ function resultOf(legacyStep: LegacyStep, scale = 1): TestStepResult {
   return result;
 }
 
-const MIME_EXTENSIONS: Record<string, string> = {
-  'application/json': 'json',
-  'application/octet-stream': 'bin',
-  'image/gif': 'gif',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/svg+xml': 'svg',
-  'text/html': 'html',
-  'text/plain': 'txt',
-  'video/mp4': 'mp4',
-  'video/webm': 'webm',
-};
-
 function isLikelyBase64(value: string): boolean {
   const compact = value.replace(/\s/g, '');
   return (
@@ -549,14 +536,6 @@ function isLikelyBase64(value: string): boolean {
     compact.length % 4 === 0 &&
     /^[A-Za-z0-9+/]*={0,2}$/.test(compact)
   );
-}
-
-function attachmentFileName(mediaType: string, index: number): string {
-  const extension =
-    MIME_EXTENSIONS[mediaType.toLowerCase()] ??
-    mediaType.split('/')[1]?.split(';')[0]?.trim() ??
-    'bin';
-  return `attachment-${index + 1}.${extension}`;
 }
 
 export function parseLegacyJson(
@@ -590,7 +569,6 @@ export function parseLegacyValue(
   const runId = nextId('run');
   const envelopes: Envelope[] = [];
   const statuses: TestStepResultStatus[] = [];
-  let attachmentCounter = 0;
 
   const meta: Meta = {
     protocolVersion: '',
@@ -827,7 +805,6 @@ export function parseLegacyValue(
               ? AttachmentContentEncoding.BASE64
               : AttachmentContentEncoding.IDENTITY,
             mediaType,
-            fileName: attachmentFileName(mediaType, attachmentCounter++),
             testCaseStartedId,
             testStepId: plan.testStep.id,
             timestamp: finishedAt,

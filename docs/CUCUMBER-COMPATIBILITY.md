@@ -91,6 +91,31 @@ no hooks. The JSON summary stays version 2: hooks stay in
 `scenarios[].steps` with `keyword: "Hook"`, plus an optional `name`. Summary
 step counts include hooks; the HTML counts steps and hooks separately.
 
+## CI metadata and attachments
+
+Messages input can carry `meta.ci`. Tolkira reads the CI name and URL, the git
+remote, revision, branch and tag, and shows them in the report header and
+Details. Missing fields are omitted; only http(s) values become links. A safe
+http(s) GitHub remote plus a revision links the 7-character commit to the full
+revision and keeps the full value in the link title; other remotes and schemes
+show the revision as plain text. In a mixed run the first non-empty CI block
+wins, and meta synthesized by the legacy adapter cannot erase it. CI metadata is
+Messages-only; legacy Cucumber JSON has no CI envelope, so pass CI values
+through the `metadata` option instead. The JSON summary never includes CI
+fields and stays schema version 2.
+
+Attachment names use the Cucumber `fileName` when present. Unnamed attachments
+fall back to a deterministic `attachment.<ext>` name in Messages and legacy
+JSON; known parameterised media types strip parameters and keep their
+extension, while unknown types become `attachment`. Names are text, never
+filesystem paths. `application/json` attachments are pretty-printed with
+escaped raw text as the malformed fallback. `text/uri-list` entries become
+links only for http(s); other schemes and protocol-relative values stay
+escaped text. `text/x.cucumber.log+plain` logs render safe SGR, 256-colour and
+truecolour spans plus a copy action; non-SGR control sequences are stripped and
+logs above 262,144 UTF-8 bytes render as escaped text without colour parsing.
+Attachment counts and the offline single-file contract are unchanged.
+
 ## Step diagnostics
 
 Messages input carries `suggestion` and `stepDefinition` envelopes. For an

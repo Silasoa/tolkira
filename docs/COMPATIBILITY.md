@@ -78,6 +78,11 @@ generate(options, (error) => {
 `jsonFile` wins when both `jsonFile` and `jsonDir` are set. If both are missing,
 generation fails with a usage error.
 
+The shim consumes legacy Cucumber JSON, which has no Messages `meta.ci`
+envelope. CI job and git details therefore do not appear automatically; pass
+them as `metadata` entries (for example `CI`, `Build`, `Commit` and `Branch`).
+The core Messages path reads `meta.ci` and renders it in HTML only.
+
 ## What is not reproduced
 
 - **Themes and charts.** The old Bootstrap, hierarchy and Foundation themes are

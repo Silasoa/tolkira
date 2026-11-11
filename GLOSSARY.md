@@ -15,6 +15,18 @@ used by official Cucumber implementations.
 **Attachment** — a binary or text artefact attached to a test step, scenario or
 hook. Screenshots are attachments.
 
+**Attachment fallback name** — the deterministic `attachment.<ext>` name used
+when an attachment has no Cucumber `fileName`. Known parameterised media types
+keep their extension; unknown types use `attachment`.
+
+**CI metadata** — the optional Messages `meta.ci` block: CI name and URL plus
+git remote, revision, branch and tag. It renders in the HTML header and Details
+and never in the JSON summary.
+
+**ANSI log** — a `text/x.cucumber.log+plain` attachment. Tolkira renders its SGR
+colours, including 256-colour and truecolour, strips other control sequences and
+offers a copy action.
+
 **Embedding** — the legacy JSON representation of an attachment (`embeddings[]`).
 
 **Adapter** — code that turns an input format into Cucumber Messages.

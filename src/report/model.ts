@@ -2,6 +2,7 @@ import { getWorstTestStepResult } from '@cucumber/messages';
 import type {
   Attachment,
   Background,
+  Ci,
   Envelope,
   Examples,
   Feature,
@@ -151,12 +152,22 @@ export interface ReportCounts {
   attachmentBytes: number;
 }
 
+export interface ReportCi {
+  name?: string;
+  url?: string;
+  remote?: string;
+  revision?: string;
+  branch?: string;
+  tag?: string;
+}
+
 export interface ReportEnvironment {
   producer?: string;
   runtime?: string;
   os?: string;
   cpu?: string;
   protocol?: string;
+  ci?: ReportCi;
 }
 
 export interface ReportModel {
@@ -227,6 +238,31 @@ function productLabel(
   return label || undefined;
 }
 
+function nonEmpty(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function ciFromMeta(ci: Ci | undefined): ReportCi | undefined {
+  if (!ci) return undefined;
+  const git = ci.git;
+  const name = nonEmpty(ci.name);
+  const url = nonEmpty(ci.url);
+  const remote = nonEmpty(git?.remote);
+  const revision = nonEmpty(git?.revision);
+  const branch = nonEmpty(git?.branch);
+  const tag = nonEmpty(git?.tag);
+  const result: ReportCi = {
+    ...(name ? { name } : {}),
+    ...(url ? { url } : {}),
+    ...(remote ? { remote } : {}),
+    ...(revision ? { revision } : {}),
+    ...(branch ? { branch } : {}),
+    ...(tag ? { tag } : {}),
+  };
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
 const ANSI_PATTERN = new RegExp(
   `${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`,
   'g',
@@ -255,45 +291,47 @@ function hookLabel(type: string | undefined): string {
   }
 }
 
-function extensionFor(mediaType: string): string {
-  const map: Record<string, string> = {
-    'application/json': 'json',
-    'application/octet-stream': 'bin',
-    'image/gif': 'gif',
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/svg+xml': 'svg',
-    'text/html': 'html',
-    'text/plain': 'txt',
-    'video/mp4': 'mp4',
-    'video/webm': 'webm',
-  };
-  return map[mediaType.toLowerCase()] ?? mediaType.split('/')[1]?.split(';')[0] ?? 'bin';
+const MEDIA_EXTENSIONS: Record<string, string> = {
+  'application/json': 'json',
+  'application/octet-stream': 'bin',
+  'image/gif': 'gif',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/svg+xml': 'svg',
+  'image/webp': 'webp',
+  'text/csv': 'csv',
+  'text/html': 'html',
+  'text/plain': 'txt',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+};
+
+function normalizedMediaType(mediaType: string): string {
+  return mediaType.split(';')[0]?.trim().toLowerCase() ?? '';
+}
+
+function attachmentFileName(fileName: string | undefined, mediaType: string): string {
+  if (fileName) return fileName;
+  const extension = MEDIA_EXTENSIONS[normalizedMediaType(mediaType)];
+  return extension ? `attachment.${extension}` : 'attachment';
 }
 
 function attachmentKind(mediaType: string): ReportAttachment['kind'] {
-  if (mediaType.startsWith('image/')) return 'image';
-  if (mediaType.startsWith('video/')) return 'video';
-  if (mediaType.startsWith('audio/')) return 'audio';
-  if (
-    mediaType.startsWith('text/') ||
-    mediaType === 'application/json' ||
-    mediaType.includes('json')
-  ) {
+  const base = normalizedMediaType(mediaType);
+  if (base.startsWith('image/')) return 'image';
+  if (base.startsWith('video/')) return 'video';
+  if (base.startsWith('audio/')) return 'audio';
+  if (base.startsWith('text/') || base.includes('json')) {
     return 'text';
   }
   return 'binary';
 }
 
-function toAttachment(
-  attachment: Attachment,
-  index: number,
-): ReportAttachment {
+function toAttachment(attachment: Attachment): ReportAttachment {
   const body = attachment.body ?? '';
   const mediaType = attachment.mediaType || 'application/octet-stream';
   const kind = attachmentKind(mediaType);
-  const fileName =
-    attachment.fileName || `attachment-${index + 1}.${extensionFor(mediaType)}`;
+  const fileName = attachmentFileName(attachment.fileName, mediaType);
   const isBase64 = attachment.contentEncoding === 'BASE64';
   const bytes = isBase64
     ? Math.max(0, Math.floor((body.length * 3) / 4) - (body.endsWith('==') ? 2 : body.endsWith('=') ? 1 : 0))
@@ -492,7 +530,6 @@ export function buildReportModel(
   const suggestions = new Map<string, Array<{ language?: string; code: string }>>();
   const stepDefinitions = new Map<string, { pattern: string; source?: string }>();
   const attachmentCache = new Map<Attachment, ReportAttachment>();
-  let attachmentIndex = 0;
   let startedAt: string | undefined;
   let finishedAt: string | undefined;
   let source = 'Cucumber';
@@ -502,7 +539,7 @@ export function buildReportModel(
     list.map((attachment) => {
       const cached = attachmentCache.get(attachment);
       if (cached) return cached;
-      const mapped = toAttachment(attachment, attachmentIndex++);
+      const mapped = toAttachment(attachment);
       attachmentCache.set(attachment, mapped);
       return mapped;
     });
@@ -511,6 +548,9 @@ export function buildReportModel(
     if (envelope.meta) {
       const { implementation, runtime, os, cpu, protocolVersion } = envelope.meta;
       source = productLabel(implementation) ?? 'Cucumber';
+      // The first non-empty CI block wins; later or legacy-synthesized meta
+      // must not erase it.
+      const ci = environment?.ci ?? ciFromMeta(envelope.meta.ci);
       const next: ReportEnvironment = {
         ...(implementation && productLabel(implementation)
           ? { producer: productLabel(implementation) }
@@ -519,6 +559,7 @@ export function buildReportModel(
         ...(os && productLabel(os) ? { os: productLabel(os) } : {}),
         ...(cpu && productLabel(cpu) ? { cpu: productLabel(cpu) } : {}),
         ...(protocolVersion ? { protocol: protocolVersion } : {}),
+        ...(ci ? { ci } : {}),
       };
       if (Object.keys(next).length > 0) environment = next;
     }

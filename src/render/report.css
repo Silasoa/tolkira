@@ -239,6 +239,22 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .attachmentText { margin: 0.5rem 0; border: 1px solid var(--line); border-radius: 6px; padding: 0.4375rem 0.5625rem; background: var(--surface-2); }
 .attachmentText summary { cursor: pointer; color: var(--accent-text); font-size: 0.75rem; }
 .attachmentText pre { margin: 0.5rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 0.6875rem/1.45 var(--font-mono); color: var(--ink); }
+.logTools { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
+.copyLog { min-height: 1.75rem; padding: 0 0.5625rem; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--paper); color: var(--ink-2); font-size: 0.6875rem; }
+.copyLog:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.ansi { white-space: pre-wrap; }
+.ansi-bold { font-weight: 700; }
+.ansi-dim { opacity: 0.65; }
+.ansi-italic { font-style: italic; }
+.ansi-underline { text-decoration: underline; }
+.ansi-fg-0 { color: #000000; } .ansi-fg-1 { color: #cd3131; } .ansi-fg-2 { color: #0dbc79; } .ansi-fg-3 { color: #e5e510; }
+.ansi-fg-4 { color: #2472c8; } .ansi-fg-5 { color: #bc3fbc; } .ansi-fg-6 { color: #11a8cd; } .ansi-fg-7 { color: #e5e5e5; }
+.ansi-fg-8 { color: #666666; } .ansi-fg-9 { color: #f14c4c; } .ansi-fg-10 { color: #23d18b; } .ansi-fg-11 { color: #f5f543; }
+.ansi-fg-12 { color: #3b8eea; } .ansi-fg-13 { color: #d670d6; } .ansi-fg-14 { color: #29b8db; } .ansi-fg-15 { color: #ffffff; }
+.ansi-bg-0 { background-color: #000000; } .ansi-bg-1 { background-color: #cd3131; } .ansi-bg-2 { background-color: #0dbc79; } .ansi-bg-3 { background-color: #e5e510; }
+.ansi-bg-4 { background-color: #2472c8; } .ansi-bg-5 { background-color: #bc3fbc; } .ansi-bg-6 { background-color: #11a8cd; } .ansi-bg-7 { background-color: #e5e5e5; }
+.ansi-bg-8 { background-color: #666666; } .ansi-bg-9 { background-color: #f14c4c; } .ansi-bg-10 { background-color: #23d18b; } .ansi-bg-11 { background-color: #f5f543; }
+.ansi-bg-12 { background-color: #3b8eea; } .ansi-bg-13 { background-color: #d670d6; } .ansi-bg-14 { background-color: #29b8db; } .ansi-bg-15 { background-color: #ffffff; }
 .fileLink { display: inline-block; margin: 0.3125rem 0; color: var(--accent-text); font-size: 0.75rem; }
 .meta span, .path, .description, .step, .featureSource, .featureUri, .fileLink, .attachment figcaption, .attachmentText summary, .detailMeta span { overflow-wrap: anywhere; }
 .detailMeta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 0.75rem; color: var(--muted); font-size: 0.6875rem; font-variant-numeric: tabular-nums; }

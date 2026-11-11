@@ -22,6 +22,7 @@ import {
 import type { ReportSummary } from '../summary.js';
 import { summarizeEnvelopes, displayUri } from '../summary.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
+import { renderAnsiLog } from './ansi.js';
 import { escapeHtml } from './escape.js';
 import { REPORT_CSS } from './styles.js';
 
@@ -321,6 +322,128 @@ function countPills(model: ReportModel): string {
     .join('')}</div>`;
 }
 
+function safeHttpUrl(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === 'http:' || url.protocol === 'https:'
+      ? url.href
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function shortRevision(revision: string): string {
+  return revision.slice(0, 7);
+}
+
+function githubCommitUrl(
+  ci: NonNullable<ReportModel['environment']>['ci'],
+): string | undefined {
+  if (!ci?.remote || !ci.revision) return undefined;
+  const remote = safeHttpUrl(ci.remote);
+  if (!remote) return undefined;
+  const url = new URL(remote);
+  if (url.hostname !== 'github.com') return undefined;
+  const base = `${url.origin}${url.pathname
+    .replace(/\/+$/, '')
+    .replace(/\.git$/i, '')}`;
+  return `${base}/commit/${encodeURIComponent(ci.revision)}`;
+}
+
+function revisionMarkup(
+  ci: NonNullable<ReportModel['environment']>['ci'],
+): string {
+  if (!ci?.revision) return '';
+  const short = escapeHtml(shortRevision(ci.revision));
+  const commit = githubCommitUrl(ci);
+  if (!commit) return short;
+  return `<a href="${escapeHtml(commit)}" title="${escapeHtml(ci.revision)}" rel="noopener noreferrer">${short}</a>`;
+}
+
+function ciNameMarkup(
+  ci: NonNullable<ReportModel['environment']>['ci'],
+): string {
+  if (!ci?.name) return '';
+  const href = safeHttpUrl(ci.url);
+  return href
+    ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(ci.name)}</a>`
+    : escapeHtml(ci.name);
+}
+
+function ciHeaderMarkup(
+  ci: NonNullable<ReportModel['environment']>['ci'],
+): string {
+  if (!ci) return '';
+  const rows = [
+    ci.name ? `<span class="ci"><b>CI</b> ${ciNameMarkup(ci)}</span>` : '',
+    ci.revision
+      ? `<span><b>Revision</b> ${revisionMarkup(ci)}</span>`
+      : '',
+    ci.branch
+      ? `<span><b>Branch</b> <span>${escapeHtml(ci.branch)}</span></span>`
+      : '',
+    ci.tag ? `<span><b>Tag</b> <span>${escapeHtml(ci.tag)}</span></span>` : '',
+  ].filter(Boolean);
+  return rows.join('');
+}
+
+function ciDetailRows(
+  ci: NonNullable<ReportModel['environment']>['ci'],
+): string {
+  if (!ci) return '';
+  return [
+    ci.name ? `<dt>CI</dt><dd>${ciNameMarkup(ci)}</dd>` : '',
+    ci.revision
+      ? `<dt>Revision</dt><dd>${revisionMarkup(ci)}</dd>`
+      : '',
+    ci.branch ? `<dt>Branch</dt><dd>${escapeHtml(ci.branch)}</dd>` : '',
+    ci.tag ? `<dt>Tag</dt><dd>${escapeHtml(ci.tag)}</dd>` : '',
+  ].join('');
+}
+
+function normalizedMediaType(mediaType: string): string {
+  return mediaType.split(';')[0]?.trim().toLowerCase() ?? '';
+}
+
+function jsonBody(text: string): string {
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2) ?? text;
+  } catch {
+    return text;
+  }
+}
+
+function uriListBody(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .map((line) => {
+      const label = line.trim();
+      const href = safeHttpUrl(label);
+      return href
+        ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`
+        : escapeHtml(line);
+    })
+    .join('\n');
+}
+
+function textAttachmentBody(attachment: ReportAttachment): string {
+  const text = attachment.text ?? '';
+  const mediaType = normalizedMediaType(attachment.mediaType);
+  if (mediaType.startsWith('application/json')) {
+    return `<pre>${escapeHtml(jsonBody(text))}</pre>`;
+  }
+  if (mediaType === 'text/uri-list') {
+    return `<pre>${uriListBody(text)}</pre>`;
+  }
+  if (mediaType === 'text/x.cucumber.log+plain') {
+    return `<div class="logTools"><button class="copyLog" type="button" data-copy-log>Copy log</button></div><pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
+  }
+  return `<pre>${escapeHtml(text)}</pre>`;
+}
+
 function renderAttachment(
   attachment: ReportAttachment,
   context?: string,
@@ -340,7 +463,7 @@ function renderAttachment(
     return `<figure class="attachment"><audio controls src="${escapeHtml(attachment.dataUri)}"></audio><figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'text' && attachment.text !== undefined) {
-    return `<details class="attachmentText"><summary>${name} (${media})</summary><pre>${escapeHtml(attachment.text)}</pre></details>`;
+    return `<details class="attachmentText"><summary>${name} (${media})</summary>${textAttachmentBody(attachment)}</details>`;
   }
   if (attachment.dataUri) {
     return `<a class="fileLink" href="${escapeHtml(attachment.dataUri)}" download="${name}">${name} (${media}, ${attachment.bytes} bytes)</a>`;
@@ -882,6 +1005,7 @@ function renderReportView(
   const passed = model.counts.scenarios.passed;
   const percent = total === 0 ? 0 : Math.round((passed / total) * 1000) / 10;
   const meta = metadataLine(options.metadata);
+  const ci = ciHeaderMarkup(model.environment?.ci);
   const date = dateLabel(model.startedAt);
   const ordered = orderFeatures(model.features);
   const features = ordered
@@ -894,7 +1018,7 @@ function renderReportView(
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
     : '';
-  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} executed scenario${model.counts.scenarios.total === 1 ? '' : 's'}</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${total}</span><span class="sr">${passed} / ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
+  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} executed scenario${model.counts.scenarios.total === 1 ? '' : 's'}</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${total}</span><span class="sr">${passed} / ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
     .map(
       (status) =>
         `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
@@ -937,6 +1061,7 @@ function renderAnalysisView(
     model.environment?.protocol
       ? `<dt>Protocol</dt><dd>${escapeHtml(model.environment.protocol)}</dd>`
       : '',
+    ciDetailRows(model.environment?.ci),
   ].join('');
   const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
   return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} / ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Executed scenarios only. Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>Executed scenarios only.</p><div class="legend">${displayStatuses(model)
@@ -1237,6 +1362,26 @@ const SCRIPT = `<script>
         }
         labelTimer = setTimeout(function () {
           button.textContent = 'Copy failure';
+          if (copyLive) copyLive.textContent = '';
+        }, 2000);
+      });
+    });
+  });
+  Array.prototype.slice.call(document.querySelectorAll('[data-copy-log]')).forEach(function (button) {
+    var labelTimer = null;
+    button.addEventListener('click', function () {
+      var details = button.closest('details');
+      var pre = details ? details.querySelector('pre') : null;
+      writeClipboard(pre ? pre.textContent : '', function (ok) {
+        if (labelTimer) clearTimeout(labelTimer);
+        button.textContent = ok ? 'Copied' : 'Copy failed';
+        if (copyLive) {
+          copyLive.textContent = ok
+            ? 'Log copied to clipboard.'
+            : 'Could not copy the log.';
+        }
+        labelTimer = setTimeout(function () {
+          button.textContent = 'Copy log';
           if (copyLive) copyLive.textContent = '';
         }, 2000);
       });
