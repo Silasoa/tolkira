@@ -2,13 +2,13 @@
 
 ## 1. TDD-Red
 
-- [ ] 1.1 Add a CJS fixture/test that requires the compat subpath, awaits
+- [x] 1.1 Add a CJS fixture/test that requires the compat subpath, awaits
   `generate` on a legacy report and asserts the HTML plus summary shape.
-- [ ] 1.2 Add callback-form, rejected-option/report-write error and
+- [x] 1.2 Add callback-form, rejected-option/report-write error and
   `default`-undefined tests.
-- [ ] 1.3 Add a test that requiring the package root fails with
+- [x] 1.3 Add a test that requiring the package root fails with
   `ERR_PACKAGE_PATH_NOT_EXPORTED` and no root default exists.
-- [ ] 1.4 Add a `.cts` NodeNext type fixture for the require path.
+- [x] 1.4 Add a `.cts` NodeNext type fixture for the require path.
 
 ## 2. Implementer
 
