@@ -21,9 +21,12 @@ interfaces yet.
 
 ## Explore (Worth exploring)
 
-- **Typed DOM contract.** User-selected candidate. Define shared data-attribute
-  names and a typed client boundary between `html.ts` and `report-client.js`;
-  test the contract at one seam. Design in progress.
+- **Typed DOM contract.** User-selected. Design brief recommends a browser-safe
+  `dom-contract.ts` with `encodeScenario`/`decodeScenario` (not a constants
+  bag), covering data attributes, IDs and text hooks. Run slices 1+3 first:
+  convert the client to TS/direct imports, then a Node round-trip test plus pure
+  visibility decisions. Promote to Strong only if the 16,000-byte bundle does
+  not grow (current headroom 854 B). `data-status` is overloaded; resolve it.
 - **`html.ts` view seams.** Keep exploring, but first reflow the four 4–8 KB
   single-line template returns; then re-judge a split. The split alone is
   relocation, not depth, unless view ownership becomes real.
