@@ -30,8 +30,8 @@
 
 - [x] 3.1 Update `docs/CHANGELOG.md`, `docs/AGENT-INTERFACE.md`,
   `docs/CUCUMBER-COMPATIBILITY.md`, `docs/JUNIT-XML.md` and `README.md`.
-- [ ] 3.2 Hand the spec and diff to the coordinator for review; fix findings.
-- [ ] 3.3 Re-run the gate. Do not archive, tag or publish.
+- [x] 3.2 Hand the spec and diff to the coordinator for review; fix findings.
+- [x] 3.3 Re-run the gate. Do not archive, tag or publish.
 
 ## Gate record
 
