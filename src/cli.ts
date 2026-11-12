@@ -4,8 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { generateReport, summarizeReport, version } from './index.js';
-import { collectReportFiles } from './input/files.js';
-import { writeAtomic } from './output.js';
+import { outputOverwritesInput, writeAtomic } from './output.js';
 import { ACCENT_PATTERN } from './validation.js';
 
 const DEFAULT_MAX_SIZE_MB = 10;
@@ -131,35 +130,6 @@ async function readLogo(file: string): Promise<string> {
     throw new Error(`Logo content does not match the "${extension}" extension.`);
   }
   return `data:${mime};base64,${data.toString('base64')}`;
-}
-
-async function outputOverwritesInput(
-  inputs: string[],
-  output: string,
-  logo?: string,
-): Promise<boolean> {
-  const outputPath = path.resolve(output);
-  const outputInfo = await stat(outputPath).catch(() => undefined);
-  if (!outputInfo?.isFile()) return false;
-  const outputReal = realpathSync(outputPath);
-
-  if (logo) {
-    const logoInfo = await stat(logo).catch(() => undefined);
-    if (logoInfo?.isFile() && realpathSync(logo) === outputReal) return true;
-  }
-
-  for (const input of inputs) {
-    const inputInfo = await stat(input).catch(() => undefined);
-    if (!inputInfo) continue;
-    if (inputInfo.isFile() && realpathSync(input) === outputReal) return true;
-    if (inputInfo.isDirectory()) {
-      const directory = realpathSync(input);
-      for (const file of await collectReportFiles(directory)) {
-        if (realpathSync(file) === outputReal) return true;
-      }
-    }
-  }
-  return false;
 }
 
 export async function runCli(

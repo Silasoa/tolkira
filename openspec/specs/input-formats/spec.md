@@ -161,11 +161,12 @@ with a clear file-specific error for malformed XML.
 - **WHEN** a JUnit file is not well-formed XML
 - **THEN** generation fails with an error that names the file
 
-#### Scenario: DTD entities and processing instructions
+#### Scenario: DTD and entity declarations
 
-- **WHEN** the document declares an internal DTD entity or contains a
-  processing instruction with ampersands
-- **THEN** the document is accepted and the entity is not treated as invalid
+- **WHEN** the document declares a `<!DOCTYPE>` or `<!ENTITY>` in any case
+- **THEN** generation fails with an error that names the file and the rejected
+  declaration
+- **AND** processing instructions with ampersands are still accepted
 
 #### Scenario: Mixed input
 

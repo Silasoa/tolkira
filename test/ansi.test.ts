@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderAnsiLog } from '../src/render/ansi.js';
+import { renderAnsiLog, stripAnsi } from '../src/render/ansi.js';
 
 function spanCount(html: string): number {
   return (html.match(/<span /g) ?? []).length;
@@ -79,6 +79,15 @@ describe('renderAnsiLog', () => {
     ).toBe('link');
   });
 
+  it('strips OSC-52, DCS, APC and two-byte escapes from logs', () => {
+    const html = renderAnsiLog(
+      '\u001b]52;c;cHduZWQ=\u0007clip\u001bPdcs payload\u001b\\\u001b_apc payload\u001b\\\u001b(Btwo-byte',
+    );
+
+    expect(html).toBe('cliptwo-byte');
+    expect(html).not.toContain('payload');
+  });
+
   it('strips C0 and C1 controls but keeps newlines and tabs', () => {
     const html = renderAnsiLog(
       '\u0000\u0001\u0007\u007f\u0085\u009ftext\nnext\ttab',
@@ -111,5 +120,26 @@ describe('renderAnsiLog', () => {
     expect(spanCount(atLimit)).toBe(1);
     expect(spanCount(overLimit)).toBe(0);
     expect(overLimit).toBe('x'.repeat(262140));
+  });
+});
+
+describe('stripAnsi', () => {
+  it('removes every escape family and keeps the visible text', () => {
+    const text =
+      '\u001b]8;;https://example.com/\u001b\\visible' +
+      '\u001b]8;;\u001b\\' +
+      '\u001b]52;c;cHduZWQ=\u0007clip' +
+      '\u001bPdcs payload\u001b\\' +
+      '\u001b_apc payload\u001b\\' +
+      '\u001b(Btwo-byte' +
+      '\u001b[31mred\u001b[0m';
+
+    expect(stripAnsi(text)).toBe('visiblecliptwo-bytered');
+  });
+
+  it('drops unterminated OSC, DCS and APC payloads', () => {
+    expect(stripAnsi('kept\u001b]52;c;payload')).toBe('kept');
+    expect(stripAnsi('kept\u001bPpayload')).toBe('kept');
+    expect(stripAnsi('kept\u001b_payload')).toBe('kept');
   });
 });

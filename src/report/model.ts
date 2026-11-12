@@ -21,9 +21,10 @@ import type {
 } from '@cucumber/messages';
 
 import { isSyntheticBackground } from '../input/background.js';
+import { stripAnsi } from '../render/ansi.js';
 import { stepResultMessage } from '../result-message.js';
 import { stripBidiControls } from '../text.js';
-import { MEDIA_EXTENSIONS, normalizedMediaType } from './attachment.js';
+import { MEDIA_EXTENSIONS, normalizedMediaType, safeMediaType } from './attachment.js';
 import { type ReportStatus, worstExecutedStatus } from './status.js';
 
 export type { ReportStatus } from './status.js';
@@ -266,15 +267,6 @@ function ciFromMeta(ci: Ci | undefined): ReportCi | undefined {
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
-const ANSI_PATTERN = new RegExp(
-  `${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`,
-  'g',
-);
-
-function stripAnsi(value: string): string {
-  return value.replace(ANSI_PATTERN, '');
-}
-
 function hookLabel(type: string | undefined): string {
   switch (type) {
     case 'BEFORE_TEST_CASE':
@@ -313,7 +305,7 @@ function attachmentKind(mediaType: string): ReportAttachment['kind'] {
 
 function toAttachment(attachment: Attachment): ReportAttachment {
   const body = attachment.body ?? '';
-  const mediaType = attachment.mediaType || 'application/octet-stream';
+  const mediaType = safeMediaType(attachment.mediaType || 'application/octet-stream');
   const kind = attachmentKind(mediaType);
   const fileName = attachmentFileName(attachment.fileName, mediaType);
   const isBase64 = attachment.contentEncoding === 'BASE64';

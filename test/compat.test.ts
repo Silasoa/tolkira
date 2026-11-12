@@ -1,4 +1,12 @@
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -104,6 +112,52 @@ describe('cucumber-html-reporter compat', () => {
     await expect(readFile(output, 'utf8')).resolves.toContain(
       'Happy HTML reporting',
     );
+  });
+
+  it('refuses to overwrite the jsonFile input', async () => {
+    const dir = await tempDir();
+    const input = path.join(dir, 'same.json');
+    await copyFile(legacy, input);
+    const before = await readFile(input, 'utf8');
+
+    await expect(generate({ jsonFile: input, output: input })).rejects.toThrow(
+      'must not overwrite an input file',
+    );
+    await expect(readFile(input, 'utf8')).resolves.toBe(before);
+  });
+
+  it('refuses to overwrite a file inside jsonDir', async () => {
+    const dir = await tempDir();
+    const input = path.join(dir, 'report.json');
+    await copyFile(legacy, input);
+    const before = await readFile(input, 'utf8');
+
+    await expect(generate({ jsonDir: dir, output: input })).rejects.toThrow(
+      'must not overwrite an input file',
+    );
+    await expect(readFile(input, 'utf8')).resolves.toBe(before);
+  });
+
+  it('skips a JSON file above the size cap before reading it', async () => {
+    const dir = await tempDir();
+    await copyFile(legacy, path.join(dir, 'happy.json'));
+    const huge = path.join(dir, 'huge.json');
+    const handle = await open(huge, 'w');
+    await handle.truncate(100 * 1024 * 1024 + 1);
+    await handle.close();
+
+    const result = await generate({
+      jsonDir: dir,
+      output: path.join(dir, 'report.html'),
+      ignoreBadJsonFile: true,
+    });
+
+    expect(result.warnings.some((line) => line.includes('huge.json'))).toBe(
+      true,
+    );
+    await expect(
+      readFile(path.join(dir, 'report.html'), 'utf8'),
+    ).resolves.toContain('Happy HTML reporting');
   });
 
   it('keeps the callback signature', async () => {

@@ -59,11 +59,7 @@ function isXmlChar(code: number): boolean {
   );
 }
 
-function checkEntityReferences(
-  fragment: string,
-  source: string,
-  allowedNames: ReadonlySet<string>,
-): void {
+function checkEntityReferences(fragment: string, source: string): void {
   const entityPattern = /&([^;]{1,32});/g;
   let match: RegExpExecArray | null;
 
@@ -74,8 +70,7 @@ function checkEntityReferences(
       entity === 'lt' ||
       entity === 'gt' ||
       entity === 'quot' ||
-      entity === 'apos' ||
-      allowedNames.has(entity)
+      entity === 'apos'
     ) {
       continue;
     }
@@ -96,8 +91,6 @@ function checkEntityReferences(
 }
 
 function assertValidEntities(content: string, source: string): void {
-  const allowedNames = new Set<string>();
-
   const scanTag = (start: number): number => {
     let index = start + 1;
     let quote = '';
@@ -107,11 +100,7 @@ function assertValidEntities(content: string, source: string): void {
       const char = content[index];
       if (quote) {
         if (char === quote) {
-          checkEntityReferences(
-            content.slice(valueStart, index),
-            source,
-            allowedNames,
-          );
+          checkEntityReferences(content.slice(valueStart, index), source);
           quote = '';
         }
       } else if (char === '"' || char === "'") {
@@ -126,50 +115,15 @@ function assertValidEntities(content: string, source: string): void {
     return index;
   };
 
-  const scanDoctype = (start: number): number => {
-    let index = start + '<!DOCTYPE'.length;
-    let quote = '';
-    let depth = 0;
-
-    while (index < content.length) {
-      const char = content[index];
-      if (quote) {
-        if (char === quote) quote = '';
-      } else if (char === '"' || char === "'") {
-        quote = char;
-      } else if (char === '[') {
-        depth += 1;
-      } else if (char === ']') {
-        depth -= 1;
-      } else if (char === '>' && depth <= 0) {
-        const doctype = content.slice(start, index + 1);
-        for (const entity of doctype.matchAll(
-          /<!ENTITY\s+([A-Za-z_:][\w.:-]*)/g,
-        )) {
-          const name = entity[1];
-          if (name) allowedNames.add(name);
-        }
-        return index + 1;
-      }
-      index += 1;
-    }
-
-    return index;
-  };
-
   let index = 0;
   while (index < content.length) {
     const start = content.indexOf('<', index);
     if (start === -1) {
-      checkEntityReferences(content.slice(index), source, allowedNames);
+      checkEntityReferences(content.slice(index), source);
       return;
     }
     if (start > index) {
-      checkEntityReferences(
-        content.slice(index, start),
-        source,
-        allowedNames,
-      );
+      checkEntityReferences(content.slice(index, start), source);
     }
 
     if (content.startsWith('<!--', start)) {
@@ -181,8 +135,6 @@ function assertValidEntities(content: string, source: string): void {
     } else if (content.startsWith('<?', start)) {
       const end = content.indexOf('?>', start + 2);
       index = end === -1 ? content.length : end + 2;
-    } else if (content.startsWith('<!DOCTYPE', start)) {
-      index = scanDoctype(start);
     } else if (content.startsWith('<!', start)) {
       const end = content.indexOf('>', start + 2);
       index = end === -1 ? content.length : end + 1;
@@ -312,6 +264,13 @@ export async function parseJUnitXml(
   options: { idPrefix?: string } = {},
 ): Promise<Envelope[]> {
   const { XMLParser, XMLValidator } = await import('fast-xml-parser');
+
+  const forbidden = /<!(DOCTYPE|ENTITY)\b/i.exec(content);
+  if (forbidden) {
+    throw new Error(
+      `Invalid JUnit XML in ${source}: <!${forbidden[1]!.toUpperCase()}> declarations are not supported.`,
+    );
+  }
 
   assertValidEntities(content, source);
 

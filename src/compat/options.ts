@@ -1,7 +1,8 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { ReportSummary } from '../summary.js';
 import { collectReportFiles } from '../input/files.js';
+import { MAX_TOTAL_INPUT_BYTES } from '../input/load.js';
 
 export interface CompatResult {
   output: string;
@@ -63,6 +64,20 @@ export function warnIgnoredOptions(
       `${key}: ${IGNORED_OPTIONS[key] ?? 'not supported by Tolkira; ignored'}`,
     );
   }
+}
+
+/** The configured input root: jsonFile wins over jsonDir, as in resolveInputs. */
+export function inputRoot(
+  options: CucumberHtmlReporterOptions,
+): string | undefined {
+  const jsonFile =
+    typeof options.jsonFile === 'string' && options.jsonFile.trim()
+      ? options.jsonFile.trim()
+      : undefined;
+  if (jsonFile) return jsonFile;
+  return typeof options.jsonDir === 'string' && options.jsonDir.trim()
+    ? options.jsonDir.trim()
+    : undefined;
 }
 
 export function requireOutput(options: CucumberHtmlReporterOptions): string {
@@ -140,6 +155,11 @@ export async function resolveInputs(
 
   const valid: string[] = [];
   for (const file of files) {
+    const info = await stat(file);
+    if (info.size > MAX_TOTAL_INPUT_BYTES) {
+      warnings.push(`skipped oversized JSON file ${file}: over 100 MB`);
+      continue;
+    }
     try {
       const parsed: unknown = JSON.parse(await readFile(file, 'utf8'));
       if (!Array.isArray(parsed)) throw new Error('not a feature array');

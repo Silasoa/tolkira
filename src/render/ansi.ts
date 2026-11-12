@@ -183,6 +183,77 @@ function csiEnd(text: string, start: number): number {
   return index < text.length ? index + 1 : index;
 }
 
+interface EscapeScan {
+  /** Index just past the escape sequence. */
+  end: number;
+  /** SGR parameters when the sequence is a Select Graphic Rendition. */
+  sgr?: string;
+}
+
+// Scans one escape sequence starting at ESC. Handles CSI, OSC, DCS, APC, PM,
+// SOS (all terminated by ST) and two-byte designators with intermediates.
+function scanEscape(text: string, start: number): EscapeScan {
+  let index = start + 1;
+  if (index >= text.length) return { end: index };
+  const introducer = text[index] as string;
+
+  if (introducer === '[') {
+    const end = csiEnd(text, index);
+    const final = end > index + 1 ? text[end - 1] : '';
+    return final === 'm'
+      ? { end, sgr: text.slice(index + 1, end - 1) }
+      : { end };
+  }
+
+  if (
+    introducer === ']' ||
+    introducer === 'P' ||
+    introducer === '_' ||
+    introducer === '^' ||
+    introducer === 'X'
+  ) {
+    let end = index + 1;
+    while (end < text.length) {
+      if (introducer === ']' && text[end] === '\u0007') return { end: end + 1 };
+      if (text[end] === '\u001b' && text[end + 1] === '\\') {
+        return { end: end + 2 };
+      }
+      end += 1;
+    }
+    return { end: text.length };
+  }
+
+  let end = index;
+  while (
+    end < text.length &&
+    text.charCodeAt(end) >= 0x20 &&
+    text.charCodeAt(end) <= 0x2f
+  ) {
+    end += 1;
+  }
+  if (
+    end < text.length &&
+    text.charCodeAt(end) >= 0x30 &&
+    text.charCodeAt(end) <= 0x7e
+  ) {
+    end += 1;
+  }
+  return { end };
+}
+
+/** Removes ANSI escape sequences, including OSC, DCS, APC and two-byte escapes. */
+export function stripAnsi(text: string): string {
+  let output = '';
+  for (let index = 0; index < text.length; index += 1) {
+    if (text.charCodeAt(index) === 0x1b) {
+      index = scanEscape(text, index).end - 1;
+      continue;
+    }
+    output += text[index];
+  }
+  return output;
+}
+
 function ansiToHtml(text: string, colorize: boolean): string {
   let output = '';
   let buffer = '';
@@ -212,53 +283,13 @@ function ansiToHtml(text: string, colorize: boolean): string {
     const character = text[index] ?? '';
     const code = text.charCodeAt(index);
     if (character === '\u001b') {
-      const next = text[index + 1];
-      if (next === '[') {
-        const end = csiEnd(text, index + 1);
-        const final = end > index + 2 ? text[end - 1] : '';
-        if (final === 'm') {
-          const params = text.slice(index + 2, end - 1);
-          flush();
-          if (colorize) applySgr(style, params);
-          openSpan();
-        }
-        index = end - 1;
-        continue;
+      const scan = scanEscape(text, index);
+      if (scan.sgr !== undefined) {
+        flush();
+        if (colorize) applySgr(style, scan.sgr);
+        openSpan();
       }
-      if (next === ']') {
-        let end = index + 2;
-        while (
-          end < text.length &&
-          text[end] !== '\u0007' &&
-          !(text[end] === '\u001b' && text[end + 1] === '\\')
-        ) {
-          end += 1;
-        }
-        index =
-          text[end] === '\u0007'
-            ? end
-            : text[end] === '\u001b'
-              ? end + 1
-              : end - 1;
-        continue;
-      }
-      // Strip other escape sequences, including two-byte charset designators.
-      let end = index + 1;
-      while (
-        end < text.length &&
-        text.charCodeAt(end) >= 0x20 &&
-        text.charCodeAt(end) <= 0x2f
-      ) {
-        end += 1;
-      }
-      if (
-        end < text.length &&
-        text.charCodeAt(end) >= 0x30 &&
-        text.charCodeAt(end) <= 0x7e
-      ) {
-        end += 1;
-      }
-      index = end - 1;
+      index = scan.end - 1;
       continue;
     }
     if (

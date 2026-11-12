@@ -8,7 +8,7 @@ import { looksLikeJUnit, parseJUnitXml } from './junit.js';
 import { isEnvelopeLike, parseMessages } from './messages.js';
 
 const MESSAGES_EXTENSIONS = new Set(['.jsonl', '.ndjson']);
-const MAX_TOTAL_INPUT_BYTES = 100 * 1024 * 1024;
+export const MAX_TOTAL_INPUT_BYTES = 100 * 1024 * 1024;
 
 type JsonObject = Record<string, unknown>;
 

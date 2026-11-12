@@ -17,6 +17,7 @@ import type {
 } from '@cucumber/messages';
 import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
+import { stripAnsi } from './render/ansi.js';
 import { stepResultMessage } from './result-message.js';
 import { type ReportStatus, statusSeverity, worstExecutedStatus } from './report/status.js';
 
@@ -415,7 +416,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           text: pickleStep?.text ?? '',
           status,
           durationMs: durationMs(result.duration),
-          ...(message ? { message } : {}),
+          ...(message ? { message: stripAnsi(message) } : {}),
           ...(stepSuggestions.length > 0
             ? { suggestions: stepSuggestions }
             : {}),
@@ -429,7 +430,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           ...(hook?.name ? { name: hook.name } : {}),
           status: toStatus(result.status),
           durationMs: durationMs(result.duration),
-          ...(message ? { message } : {}),
+          ...(message ? { message: stripAnsi(message) } : {}),
         });
       }
     }

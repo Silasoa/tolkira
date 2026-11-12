@@ -1427,9 +1427,11 @@ become links.
 ### Requirement: Improve attachment naming
 
 Attachment names SHALL use the Cucumber file name when present, otherwise a
-deterministic `attachment.<extension>` fallback across all inputs. Known
-parameterised media types strip parameters and keep their extension; unknown
-types normalise to `attachment`.
+deterministic `attachment.<extension>` fallback across all inputs. Media types
+SHALL be normalised and checked against the renderer allowlist; known
+parameterised media types strip parameters and keep their extension, while
+unknown, XML, XHTML or comma-joined types become `application/octet-stream`
+before any name or data URI is built.
 
 #### Scenario: Named attachment
 
@@ -1447,6 +1449,14 @@ types normalise to `attachment`.
 - **WHEN** a file name contains path separators or traversal text
 - **THEN** it is shown as text, not used as a filesystem path
 
+#### Scenario: Unknown or forged media type
+
+- **WHEN** an attachment declares `application/vnd.acme.widget`,
+  `application/xhtml+xml`, `application/xml` or a comma-joined type
+- **THEN** its media type is `application/octet-stream`
+- **AND** its name is `attachment.bin` when unnamed
+- **AND** the raw value never appears in a data URI
+
 ### Requirement: Render JSON and URI-list attachments
 
 `application/json` attachments (including media-type parameters) SHALL be
@@ -1457,7 +1467,8 @@ The report SHALL make no request when opened.
 #### Scenario: Unknown media type
 
 - **WHEN** an unnamed attachment has an unknown media type
-- **THEN** its name is `attachment`
+- **THEN** its name is `attachment.bin`
+- **AND** its media type is `application/octet-stream`
 - **AND** the name is deterministic
 
 #### Scenario: Parameterised media type
@@ -1514,6 +1525,14 @@ or escaped, and large logs SHALL fall back to escaped text above 256 KB.
 - **WHEN** a log contains non-SGR control sequences or HTML
 - **THEN** they are stripped or escaped
 - **AND** no script runs
+
+#### Scenario: Escape sequences in messages
+
+- **WHEN** a step, hook, run-hook or summary message contains OSC-8, OSC-52,
+  DCS, APC, CSI or two-byte escape sequences
+- **THEN** the sequences are removed before the text reaches HTML, the JSON
+  summary or the clipboard
+- **AND** the visible message text is preserved
 
 ### Requirement: Keep the offline and count contracts
 

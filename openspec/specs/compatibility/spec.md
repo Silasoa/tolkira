@@ -30,13 +30,20 @@ and writes a Tolkira HTML report.
 ### Requirement: Map inputs and output
 
 The shim SHALL accept `jsonFile` or `jsonDir` for input and `output` for the
-report path. It SHALL scan `jsonDir` recursively and SHALL create missing
-output parent directories.
+report path. It SHALL scan `jsonDir` recursively, SHALL create missing output
+parent directories, and SHALL refuse to write over `jsonFile` or any file it
+would read from `jsonDir`.
 
 #### Scenario: Directory input
 
 - **WHEN** `jsonDir` contains reports in nested subdirectories
 - **THEN** the report includes all supported files
+
+#### Scenario: Output would overwrite an input
+
+- **WHEN** `output` resolves to `jsonFile` or to a report file inside `jsonDir`
+- **THEN** generation fails with an error
+- **AND** the input file is left unchanged
 
 #### Scenario: Missing output directory
 
@@ -70,6 +77,13 @@ The shim SHALL support `ignoreBadJsonFile` for directory inputs.
   `ignoreBadJsonFile` is true
 - **THEN** the valid reports are rendered
 - **AND** the malformed file is reported in a warning
+
+#### Scenario: Oversized file in a directory
+
+- **WHEN** `jsonDir` contains a file above the 100 MB input cap and
+  `ignoreBadJsonFile` is true
+- **THEN** the shim checks the file size before reading it
+- **AND** the file is skipped with a warning while valid reports are rendered
 
 ### Requirement: Do not transform legacy HTML
 

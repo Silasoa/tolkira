@@ -597,6 +597,85 @@ test('copies failure details', async ({ page }) => {
   }
 });
 
+test('copies failure details without terminal escape sequences', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-copy-ansi-e2e-'));
+  const input = path.join(dir, 'ansi.ndjson');
+  const output = path.join(dir, 'ansi.html');
+  const esc = '\u001b';
+  const hostile =
+    `${esc}]8;;https://evil.example/${esc}\\link${esc}]8;;${esc}\\` +
+    `${esc}]52;c;cHduZWQ=\u0007clip` +
+    `${esc}Pdcs payload${esc}\\` +
+    `${esc}_apc payload${esc}\\` +
+    `${esc}(Btwo-byte`;
+
+  await page.addInitScript(() => {
+    (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied =
+            text;
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+
+  try {
+    const lines = (await readFile(fixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    const failed = lines.find(
+      (line) =>
+        line.testStepFinished?.testStepResult?.status === 'FAILED',
+    );
+    if (!failed) throw new Error('fixture has no failed test step');
+    failed.testStepFinished.testStepResult.message = hostile;
+    failed.testStepFinished.testStepResult.exception = {
+      type: 'Error',
+      message: hostile,
+    };
+    await writeFile(
+      input,
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+
+    const code = await runCli([input, '--out', output, '--title', 'ANSI copy'], {
+      stdout: () => undefined,
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const copy = page.locator(
+      'details[data-scenario][data-status="failed"] [data-copy-failure]',
+    );
+    await expect(copy).toBeVisible();
+    await copy.click();
+    await expect(copy).toHaveText('Copied');
+
+    const copied = await page.evaluate(
+      () =>
+        (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ??
+        '',
+    );
+    expect(copied).toContain('linkcliptwo-byte');
+    expect(copied).not.toContain(esc);
+    expect(copied).not.toContain(']52;');
+    expect(copied).not.toContain(']8;;');
+    expect(copied).not.toContain('dcs payload');
+    expect(copied).not.toContain('apc payload');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('reports a failed clipboard copy', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-copy-fail-e2e-'));
   const output = path.join(dir, 'copy-fail.html');

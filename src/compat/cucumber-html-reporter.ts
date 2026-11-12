@@ -1,7 +1,8 @@
 import { generateReport } from '../index.js';
-import { writeAtomic } from '../output.js';
+import { outputOverwritesInput, writeAtomic } from '../output.js';
 import {
   flattenMetadata,
+  inputRoot,
   mapTitle,
   requireOutput,
   resolveInputs,
@@ -17,6 +18,10 @@ async function run(
   const warnings: string[] = [];
   const output = requireOutput(options);
   warnIgnoredOptions(options, warnings);
+  const root = inputRoot(options);
+  if (root && (await outputOverwritesInput([root], output))) {
+    throw new Error('compat: output must not overwrite an input file');
+  }
   const inputs = await resolveInputs(options, warnings);
   const title = mapTitle(options, warnings);
   const metadata = flattenMetadata(options.metadata, warnings);

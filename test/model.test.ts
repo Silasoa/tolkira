@@ -158,6 +158,58 @@ describe('report model', () => {
     expect(attachment?.bytes).toBeGreaterThan(0);
   });
 
+  it('normalises and allowlists attachment media types', async () => {
+    const lines = (await readFile(messages, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const started = lines.find((line) => line.testCaseStarted)?.testCaseStarted as
+      | { id: string }
+      | undefined;
+    expect(started).toBeDefined();
+
+    const mediaTypes = [
+      'application/xhtml+xml',
+      'application/xml',
+      'image/png, text/html',
+      'application/json; charset=utf-8',
+      'image/png; charset=utf-8',
+      'text/html',
+    ];
+    for (const mediaType of mediaTypes) {
+      lines.push({
+        attachment: {
+          body: 'cGF5bG9hZA==',
+          contentEncoding: 'BASE64',
+          mediaType,
+          testCaseStartedId: started?.id,
+        },
+      });
+    }
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'media-types.ndjson',
+    );
+    const model = buildReportModel(envelopes);
+    const extra = model.scenarios[0]?.extraAttachments ?? [];
+
+    expect(extra.map((attachment) => attachment.mediaType)).toEqual([
+      'application/octet-stream',
+      'application/octet-stream',
+      'application/octet-stream',
+      'application/json',
+      'image/png',
+      'text/html',
+    ]);
+    expect(extra[0]?.dataUri).toMatch(/^data:application\/octet-stream;/);
+    expect(extra[1]?.dataUri).toMatch(/^data:application\/octet-stream;/);
+    expect(extra[2]?.dataUri).toMatch(/^data:application\/octet-stream;/);
+    expect(extra[0]?.dataUri).not.toContain('xhtml');
+    expect(extra[1]?.dataUri).not.toContain('xml');
+    expect(extra[2]?.dataUri).not.toContain('text/html');
+  });
+
   it('uses the latest finished attempt for a scenario', async () => {
     const model = await modelFor(happy);
     expect(model.scenarios.every((scenario) => scenario.attempt === 0)).toBe(true);

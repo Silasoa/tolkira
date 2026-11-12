@@ -152,7 +152,7 @@ describe('parity metadata model', () => {
       'attachment.png',
       'attachment.json',
       'attachment.txt',
-      'attachment',
+      'attachment.bin',
       '..\\secrets\\report.html',
       'screenshot.png',
       'attachment.txt',
@@ -165,26 +165,27 @@ describe('parity metadata model', () => {
     expect(first.counts.attachments).toBe(10);
   });
 
-  it('keeps a parameterised known media type extension', async () => {
+  it('normalises parameterised media types before naming files', async () => {
     const model = await messagesModelFor('attachments-naming.ndjson');
     const json = model.scenarios[0]?.attachments.find(
-      (attachment) => attachment.mediaType === 'application/json; charset=utf-8',
+      (attachment) => attachment.mediaType === 'application/json',
     );
     const text = model.scenarios[0]?.attachments.find(
-      (attachment) => attachment.mediaType === 'Text/Plain; charset=UTF-8',
+      (attachment) => attachment.mediaType === 'text/plain',
     );
 
     expect(json?.fileName).toBe('attachment.json');
     expect(text?.fileName).toBe('attachment.txt');
   });
 
-  it('normalises unknown and mixed-case media types to attachment', async () => {
+  it('maps unknown and mixed-case media types to octet-stream', async () => {
     const model = await messagesModelFor('attachments-naming.ndjson');
     const unknown = model.scenarios[0]?.attachments.find(
-      (attachment) => attachment.mediaType === 'application/vnd.acme.widget',
+      (attachment) => attachment.mediaType === 'application/octet-stream',
     );
 
-    expect(unknown?.fileName).toBe('attachment');
+    expect(unknown?.fileName).toBe('attachment.bin');
+    expect(unknown?.dataUri).toBeUndefined();
   });
 
   it('treats names as text and never rewrites named files', async () => {

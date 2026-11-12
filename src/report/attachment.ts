@@ -21,3 +21,15 @@ export const MEDIA_EXTENSIONS: Record<string, string> = {
 export function normalizedMediaType(mediaType: string): string {
   return mediaType.split(';')[0]?.trim().toLowerCase() ?? '';
 }
+
+const SAFE_MEDIA_TYPES = new Set(Object.keys(MEDIA_EXTENSIONS));
+
+/**
+ * Normalises a declared media type and drops everything outside the report's
+ * renderer list. Unknown or forged types (XHTML, XML, comma-joined values)
+ * become application/octet-stream so they can never reach a data URI verbatim.
+ */
+export function safeMediaType(mediaType: string): string {
+  const base = normalizedMediaType(mediaType || '');
+  return SAFE_MEDIA_TYPES.has(base) ? base : 'application/octet-stream';
+}

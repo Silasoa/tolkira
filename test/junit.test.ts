@@ -276,13 +276,19 @@ describe('JUnit XML input', () => {
     expect(summary.scenarios[0]?.steps[0]?.message).toBe('B');
   });
 
-  it('accepts DTD entities and processing instructions', async () => {
+  it('rejects DTD and entity declarations', async () => {
     const dir = await tempDir();
     const dtd = path.join(dir, 'dtd.xml');
+    const entity = path.join(dir, 'entity.xml');
     const pi = path.join(dir, 'pi.xml');
     await writeFile(
       dtd,
       '<?xml version="1.0"?><!DOCTYPE testsuites [<!ENTITY custom "value">]><testsuites><testsuite name="dtd"><testcase name="custom"><failure>&custom;</failure></testcase></testsuite></testsuites>',
+      'utf8',
+    );
+    await writeFile(
+      entity,
+      '<!ENTITY custom "value"><testsuites><testsuite name="entity"><testcase name="passes"/></testsuite></testsuites>',
       'utf8',
     );
     await writeFile(
@@ -291,11 +297,12 @@ describe('JUnit XML input', () => {
       'utf8',
     );
 
-    const dtdSummary = await summarizeReport(dtd);
-    expect(dtdSummary.counts.scenarios).toMatchObject({
-      total: 1,
-      failed: 1,
-    });
+    await expect(renderReport(dtd, { title: 'DTD' })).rejects.toThrow(
+      /Invalid JUnit XML in .*dtd\.xml: <!DOCTYPE> declarations are not supported\./,
+    );
+    await expect(renderReport(entity, { title: 'Entity' })).rejects.toThrow(
+      /Invalid JUnit XML in .*entity\.xml: <!ENTITY> declarations are not supported\./,
+    );
 
     const piSummary = await summarizeReport(pi);
     expect(piSummary.counts.scenarios).toMatchObject({
