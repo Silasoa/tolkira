@@ -290,8 +290,19 @@ describe('compat package build', () => {
         | Array<{ filename?: string }>
         | { filename?: string };
       const packed = Array.isArray(parsed) ? parsed[0] : parsed;
-      expect(packed?.filename).toBeTruthy();
-      if (!packed?.filename) return;
+      if (!packed?.filename) {
+        // npm stage publish runs the lifecycle with pack disabled; fall back to
+        // the built files that the publish step ships.
+        for (const file of [
+          'dist/index.js',
+          'dist/compat/cucumber-html-reporter.js',
+          'dist/compat/cucumber-html-reporter.cjs',
+          'dist/compat/cucumber-html-reporter.d.cts',
+        ]) {
+          expect(existsSync(path.join(repoRoot, file))).toBe(true);
+        }
+        return;
+      }
 
       const { stdout: listing } = await execCommand(
         `tar -tf "${path.join(packDir, packed.filename)}"`,
