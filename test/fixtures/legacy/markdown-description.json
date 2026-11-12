@@ -1,0 +1,22 @@
+[
+  {
+    "uri": "features/markdown.feature",
+    "name": "Legacy markdown",
+    "description": "# Legacy heading\n\nA **bold** line and a [link](https://example.com/legacy).\n\n![legacy image](https://example.com/legacy.png)",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "Legacy scenario",
+        "description": "## Scenario markdown\n\n- one\n- two",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a passing step",
+            "result": { "status": "passed", "duration": 1 }
+          }
+        ]
+      }
+    ]
+  }
+]

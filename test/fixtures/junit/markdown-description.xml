@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="markdown">
+  <testsuite name="JUnit markdown" tests="1" failures="0" time="0.001"
+    description="# JUnit heading&#10;&#10;A **bold** line with [link](https://example.com/junit).">
+    <testcase name="markdown test case" classname="markdown.Case" time="0.001"
+      description="# JUnit scenario&#10;&#10;- one&#10;- two">
+      <system-out><![CDATA[![remote](https://example.com/junit.png) and <script>alert(1)</script>]]></system-out>
+    </testcase>
+  </testsuite>
+</testsuites>

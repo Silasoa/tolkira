@@ -2,17 +2,17 @@
 
 ## 1. TDD-Red
 
-- [ ] 1.1 Add Markdown fixtures for headings/lists/tables/blockquotes/links,
+- [x] 1.1 Add Markdown fixtures for headings/lists/tables/blockquotes/links,
   raw HTML, inline/reference/linked images, legacy and JUnit descriptions.
-- [ ] 1.2 Write failing render/security tests for the safe GFM subset, block
+- [x] 1.2 Write failing render/security tests for the safe GFM subset, block
   container, heading levels, link policy and image-as-alt.
-- [ ] 1.3 Add browser tests for `@a and not @b`, mixed text, invalid
+- [x] 1.3 Add browser tests for `@a and not @b`, mixed text, invalid
   expressions, combined filters, 20-newly-opened cap, URL restore controls,
   repeated lowercase `hide`, hash preservation, `file://` failure and no-JS.
-- [ ] 1.4 Cover ISTQB edge classes: empty description, plain text, nested
+- [x] 1.4 Cover ISTQB edge classes: empty description, plain text, nested
   emphasis, malformed Markdown, `javascript:`/`data:` links, images, invalid
   tag syntax, empty URL params and repeated `hide`.
-- [ ] 1.5 Measure and record the packed size delta of `markdown-it` and the
+- [x] 1.5 Measure and record the packed size delta of `markdown-it` and the
   search bundle.
 
 ## 2. Implementer

@@ -157,10 +157,14 @@ describe('scenario outlines', () => {
     expect(html).not.toContain('onmouseover="alert(1)"');
     expect(html).toContain('&quot; onmouseover=&quot;alert(1)');
     expect(
-      html.match(/<p class="description">&lt;script&gt;outline&lt;\/script&gt;<\/p>/g),
+      html.match(
+        /<div class="description">\s*<p>&lt;script&gt;outline&lt;\/script&gt;<\/p>\s*<\/div>/g,
+      ),
     ).toHaveLength(1);
     expect(
-      html.match(/<p class="description">&lt;script&gt;examples&lt;\/script&gt;<\/p>/g),
+      html.match(
+        /<div class="description">\s*<p>&lt;script&gt;examples&lt;\/script&gt;<\/p>\s*<\/div>/g,
+      ),
     ).toHaveLength(1);
     expect(html.match(/class="tag">@outline-x/g)).toHaveLength(1);
     expect(html.match(/class="tag">@examples-x/g)).toHaveLength(1);

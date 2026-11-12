@@ -47,6 +47,11 @@ full block, an empty block and a later full block, an scp-like GitHub SSH
 remote, and a URL-only block without a name. The first non-empty block must
 win.
 
+`markdown-descriptions.*` is a local composition for safe GFM rendering. Its
+feature, rule, background, scenario, outline and examples descriptions cover
+headings, lists, tables, blockquotes, links, raw HTML and inline, reference and
+linked images. The `.feature` file documents the Gherkin source.
+
 `attachments-naming.ndjson`, `attachments-presentation.ndjson` and
 `attachments-large.ndjson` are local compositions for attachment polish.
 Naming covers unnamed known, parameterised, unknown, named, path-like, hostile,

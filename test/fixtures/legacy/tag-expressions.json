@@ -1,0 +1,73 @@
+[
+  {
+    "uri": "features/tag-expressions-1.feature",
+    "name": "Alpha feature",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "alpha one",
+        "tags": ["@a"],
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a passing step",
+            "result": { "status": "passed", "duration": 1 }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "gamma three",
+        "tags": ["@a", "@b"],
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a passing step",
+            "result": { "status": "passed", "duration": 1 }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "uri": "features/tag-expressions-2.feature",
+    "name": "Beta feature",
+    "elements": [
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "beta two",
+        "tags": ["@b"],
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a failing step",
+            "result": {
+              "status": "failed",
+              "duration": 1,
+              "error_message": "expected beta"
+            }
+          }
+        ]
+      },
+      {
+        "keyword": "Scenario",
+        "type": "scenario",
+        "name": "delta four",
+        "steps": [
+          {
+            "keyword": "Given ",
+            "name": "a failing step",
+            "result": {
+              "status": "failed",
+              "duration": 1,
+              "error_message": "expected delta"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
