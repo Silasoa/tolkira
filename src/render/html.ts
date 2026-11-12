@@ -29,6 +29,8 @@ import { stripBidiControls } from '../text.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { renderAnsiLog } from './ansi.js';
 import { escapeHtml } from './escape.js';
+import { renderDescription } from './markdown.js';
+import { SEARCH_BUNDLE } from './search-bundle.js';
 import { REPORT_CSS } from './styles.js';
 
 export interface RenderOptions {
@@ -702,9 +704,7 @@ function backgroundMarkup(backgrounds: ReportBackground[]): string {
       const name = background.name
         ? ` ${escapeHtml(background.name)}`
         : '';
-      const description = background.description
-        ? `<p class="description">${escapeHtml(background.description)}</p>`
-        : '';
+      const description = renderDescription(background.description);
       return `<section class="background" data-background><h3 class="backgroundTitle"><span class="kw">${escapeHtml(background.keyword)}:</span>${name}</h3>${description}</section>`;
     })
     .join('');
@@ -803,10 +803,7 @@ function renderScenario(
   const passedHooksGroup = passedHooks.length
     ? `<details class="hookGroup"><summary>${passedHooks.length} hook${passedHooks.length === 1 ? '' : 's'}</summary><ul class="hooks" aria-label="Passed hooks">${passedHooks.map((hook) => renderHook(hook, scenario.name)).join('')}</ul></details>`
     : '';
-  const description =
-    !grouped && scenario.description
-      ? `<p class="description">${escapeHtml(scenario.description)}</p>`
-      : '';
+  const description = grouped ? '' : renderDescription(scenario.description);
   const screenReaderLabel =
     grouped && outline
       ? `<span class="sr">${escapeHtml(`${scenario.name}, Scenario Outline ${outline.name}${outline.examplesName ? `, Examples ${outline.examplesName}` : ''}, example ${example}`)}</span>`
@@ -846,9 +843,7 @@ function renderExamples(
   featureIndex: number,
   idIndex: Map<string, number>,
 ): string {
-  const description = outline.examplesDescription
-    ? `<p class="description">${escapeHtml(outline.examplesDescription)}</p>`
-    : '';
+  const description = renderDescription(outline.examplesDescription);
   const title = outline.examplesName
     ? `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span> ${escapeHtml(outline.examplesName)}`
     : `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span>`;
@@ -886,9 +881,7 @@ function renderOutline(
       renderExamples(block.outline, block.rows, featureIndex, idIndex),
     )
     .join('');
-  const description = outline.description
-    ? `<p class="description">${escapeHtml(outline.description)}</p>`
-    : '';
+  const description = renderDescription(outline.description);
   return `<section class="outline" data-outline data-search="${escapeHtml(outline.description)}">${tagsMarkup(outline.tags)}<h3 class="outlineTitle"><span class="kw">${escapeHtml(outline.keyword)}:</span> ${escapeHtml(outline.name)}</h3>${description}${exampleBlocks}</section>`;
 }
 
@@ -938,9 +931,7 @@ function renderRuleBlock(
 ): string {
   const rule = block.rule;
   const name = rule.name ? ` ${escapeHtml(rule.name)}` : '';
-  const description = rule.description
-    ? `<p class="description">${escapeHtml(rule.description)}</p>`
-    : '';
+  const description = renderDescription(rule.description);
   return `<section class="rule" data-rule data-search="${escapeHtml(ruleSearchText(rule))}"><h3 class="ruleTitle"><span class="kw">${escapeHtml(rule.keyword)}:</span>${name}</h3>${tagsMarkup(rule.tags, 'ruleTags')}${description}${backgroundMarkup(rule.backgrounds)}<div class="ruleRows">${block.items
     .map((item) => renderFeatureItem(item, featureIndex, idIndex, true))
     .join('')}</div></section>`;
@@ -958,9 +949,7 @@ function renderFeature(
         scenario.status !== 'passed' ||
         scenario.attachments.some((attachment) => attachment.kind === 'image'),
     );
-  const description = feature.description
-    ? `<p class="description">${escapeHtml(feature.description)}</p>`
-    : '';
+  const description = renderDescription(feature.description);
   // Triage and row anchors share this severity order; grouping only changes
   // the display order, never the ids.
   const idIndex = new Map(scenarios.map((scenario, index) => [scenario.id, index]));
@@ -1216,6 +1205,7 @@ const SCRIPT = `<script>
   var state = { query: '', hidden: new Set(), tag: '' };
   var searchOpened = [];
   var searchOpenedHooks = [];
+  var hiddenOpen = new WeakMap();
   var scenarios = Array.prototype.slice.call(document.querySelectorAll('[data-scenario]'));
   var highlightTargets = scenarios.concat(Array.prototype.slice.call(document.querySelectorAll('.outlineTitle, .examplesTitle, .ruleTitle, .backgroundTitle')));
   var features = Array.prototype.slice.call(document.querySelectorAll('[data-feature]'));
@@ -1235,6 +1225,9 @@ const SCRIPT = `<script>
   function apply() {
     var query = state.query.toLowerCase();
     var tag = state.tag;
+    var expression = typeof TolkiraSearch !== 'undefined'
+      ? TolkiraSearch.compileTagExpression(state.query)
+      : undefined;
     var visible = 0;
     scenarios.forEach(function (scenario) {
       var status = scenario.getAttribute('data-status');
@@ -1246,7 +1239,18 @@ const SCRIPT = `<script>
       var text = ((scenario.getAttribute('data-search') || '') + groupSearch).toLowerCase();
       var tags = ' ' + (scenario.getAttribute('data-tags') || '') + ' ';
       var tagMatch = !tag || tags.indexOf(' ' + tag + ' ') !== -1;
-      var match = !state.hidden.has(status) && tagMatch && (!query || text.indexOf(query) !== -1);
+      var expressionMatch = !expression || expression((scenario.getAttribute('data-tags') || '').split(' ').filter(Boolean));
+      var textMatch = Boolean(expression) || !query || text.indexOf(query) !== -1;
+      var match = !state.hidden.has(status) && tagMatch && expressionMatch && textMatch;
+      if (!match) {
+        if (!scenario.hidden) {
+          hiddenOpen.set(scenario, scenario.open && searchOpened.indexOf(scenario) === -1);
+        }
+        scenario.open = false;
+      } else if (scenario.hidden && hiddenOpen.has(scenario)) {
+        scenario.open = hiddenOpen.get(scenario);
+        hiddenOpen.delete(scenario);
+      }
       scenario.hidden = !match;
       if (match) visible += 1;
     });
@@ -1355,14 +1359,67 @@ const SCRIPT = `<script>
     }
   }
   var search = document.querySelector('[data-search]');
+  var tagFilter = document.querySelector('[data-tag-filter]');
+  function syncUrl() {
+    try {
+      var params = new URLSearchParams(location.search);
+      if (state.query) params.set('query', state.query);
+      else params.delete('query');
+      params.delete('hide');
+      state.hidden.forEach(function (status) { params.append('hide', status); });
+      if (state.tag) params.set('tag', state.tag);
+      else params.delete('tag');
+      var searchString = params.toString();
+      var next = location.pathname + (searchString ? '?' + searchString : '') + location.hash;
+      if (typeof history.replaceState === 'function') history.replaceState(null, '', next);
+    } catch (error) {}
+  }
+  function restoreUrlState() {
+    var params;
+    try {
+      params = new URLSearchParams(location.search);
+    } catch (error) {
+      return;
+    }
+    var query = params.get('query');
+    if (query) {
+      state.query = query;
+      if (search) search.value = query;
+    }
+    var statusButtons = Array.prototype.slice.call(document.querySelectorAll('button.filter[data-status]'));
+    var knownStatuses = {};
+    statusButtons.forEach(function (button) { knownStatuses[button.getAttribute('data-status')] = true; });
+    params.getAll('hide').forEach(function (status) {
+      if (status && knownStatuses[status]) state.hidden.add(status);
+    });
+    statusButtons.forEach(function (button) {
+      button.setAttribute('aria-pressed', state.hidden.has(button.getAttribute('data-status')) ? 'false' : 'true');
+    });
+    var tag = params.get('tag');
+    if (tag && tagFilter) {
+      var hasTag = Array.prototype.some.call(tagFilter.options, function (option) { return option.value === tag; });
+      if (hasTag) {
+        state.tag = tag;
+        tagFilter.value = tag;
+      }
+    }
+    if (state.query || state.hidden.size || state.tag) apply();
+  }
   if (search) search.addEventListener('input', function () {
     state.query = search.value;
     apply();
+    syncUrl();
   });
-  var tagFilter = document.querySelector('[data-tag-filter]');
   if (tagFilter) tagFilter.addEventListener('change', function () {
+    // shortcut: an active tag expression pins the tag shortcut; clear the
+    // search first to release it, upgrade if the filter becomes independent.
+    if (!tagFilter.value && state.tag && typeof TolkiraSearch !== 'undefined' && TolkiraSearch.compileTagExpression(state.query)) {
+      tagFilter.value = state.tag;
+      return;
+    }
     state.tag = tagFilter.value;
     apply();
+    syncUrl();
   });
   Array.prototype.slice.call(document.querySelectorAll('button.filter[data-status]')).forEach(function (button) {
     button.addEventListener('click', function () {
@@ -1371,6 +1428,7 @@ const SCRIPT = `<script>
       if (active) { state.hidden.add(status); button.setAttribute('aria-pressed', 'false'); }
       else { state.hidden.delete(status); button.setAttribute('aria-pressed', 'true'); }
       apply();
+      syncUrl();
     });
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-expand]')).forEach(function (button) {
@@ -1542,6 +1600,7 @@ const SCRIPT = `<script>
   if (compact.addEventListener) compact.addEventListener('change', syncCompact);
   syncCompact();
   window.addEventListener('hashchange', revealHash);
+  restoreUrlState();
   showView('report');
   revealHash();
 })();
@@ -1575,7 +1634,8 @@ export async function renderHtml(
   const accent = isValidAccent(options.accent)
     ? `<style>:root{--accent:${options.accent}}</style>`
     : '';
-  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header><p class="sr" id="tolkira-copy-live" aria-live="polite"></p>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}<dialog class="lightbox" id="tolkira-lightbox" aria-label="Full-size attachment"><button class="lightboxClose" type="button" data-lightbox-close>Close</button><img alt=""></dialog>${SCRIPT}`;
+  const searchScript = `<script>${SEARCH_BUNDLE.replace(/<\/script/gi, '<\\/script')}</script>`;
+  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header><p class="sr" id="tolkira-copy-live" aria-live="polite"></p>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}<dialog class="lightbox" id="tolkira-lightbox" aria-label="Full-size attachment"><button class="lightboxClose" type="button" data-lightbox-close>Close</button><img alt=""></dialog>${searchScript}${SCRIPT}`;
   const hashes = inlineScriptHashes(body);
   return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(hashes)}\n<style>${REPORT_CSS}${accent}</style>\n</head>\n<body>${body}</body>\n</html>`;
 }

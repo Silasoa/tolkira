@@ -140,6 +140,41 @@ The `undefined`, `undefined-multiple`, `ambiguous`, `all-statuses` and `empty`
 Compatibility Kit samples are checked in as fixtures. `ambiguous` already has
 two matching definitions; there is no separate `ambiguous-multiple` sample.
 
+## Markdown descriptions
+
+Feature, rule, background, scenario, outline and examples descriptions render a
+safe GFM subset: headings, emphasis, inline and fenced code, http(s)/mailto
+links, ordered and unordered lists, tables and blockquotes. Raw HTML is escaped
+and never executed. Links carry `rel="noopener noreferrer nofollow"`; relative,
+`javascript:`, `data:` and `file:` targets stay plain text. Images, including
+reference-style and linked images, render as alt text only, so the report makes
+no network request and no image becomes an anchor. Description headings never
+emit `h1`, `h2`, `h5` or `h6`; tables sit in the focusable scroll region.
+
+The same renderer covers Messages, legacy JSON and JUnit. JUnit has no standard
+description field; Tolkira reads the non-standard `description` attributes on
+`<testsuite>` and `<testcase>` when present and otherwise keeps plain names.
+Descriptions remain HTML-only and do not change the JSON summary.
+
+## Search and URL state
+
+The search box accepts the official Cucumber tag-expression grammar when the
+whole query is tag-shaped: `@a and not @b`, `not @a`, parentheses and escaped
+tag characters. Text mixed with tags and invalid expressions fall back to the
+existing substring search, with no error. Status filters and the tag dropdown
+combine with a valid expression using AND, and the final visible set still opens
+at most 20 newly expanded rows. While a tag expression is active, the tag
+dropdown stays pinned to its selected tag; clear the search first to release
+the shortcut before clearing the dropdown.
+
+The report stores `query`, every repeated lowercase `hide` value and `tag` in
+the URL, restores them on load and synchronises the search input, status
+buttons and tag select. Updates use `replaceState` and preserve the hash and
+unrelated parameters. Empty, unknown and uppercase parameters are ignored.
+When `replaceState` is unavailable or throws (for example on `file://`),
+filtering keeps working. URL state and tag expressions are progressive
+enhancements; the static report stays readable without JavaScript.
+
 ## Auto-expansion
 
 The report opens every feature with an executed scenario whose status is not
@@ -149,8 +184,8 @@ are all unexecuted opens; a mixed feature opens only for an executed non-passed
 or image scenario, not merely because it contains an unexecuted row. The
 unexecuted rows themselves stay collapsed and show no outcome. This applies to
 Messages, legacy JSON and JUnit input because it is a status rule, not an
-input-format rule. Text search still opens at most 20 rows, counting only rows
-it newly opens.
+input-format rule. Text search and a valid tag expression still open at most 20
+rows, counting only rows they newly open.
 
 The JSON summary stays version 2. Undefined summary steps may carry
 `suggestions`; ambiguous summary steps may carry `definitions`. The fields are

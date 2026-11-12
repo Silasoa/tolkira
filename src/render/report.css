@@ -214,7 +214,24 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .stepsHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 0.75rem; }
 .copyFailure { min-height: 1.75rem; padding: 0 0.5625rem; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--paper); color: var(--ink-2); font-size: 0.6875rem; }
 .copyFailure:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
-.description { margin: 0.625rem 0 0; color: var(--muted); font-size: 0.875rem; line-height: 1.55; white-space: pre-line; }
+.description { margin: 0.625rem 0 0; color: var(--muted); font-size: 0.875rem; line-height: 1.55; }
+.description > :first-child { margin-top: 0; }
+.description > :last-child { margin-bottom: 0; }
+.description p { margin: 0.5rem 0 0; }
+.description h3, .description h4 { margin: 0.75rem 0 0.25rem; color: var(--ink); line-height: 1.35; font-weight: 600; }
+.description h3 { font-size: 1rem; }
+.description h4 { font-size: 0.9375rem; }
+.description ul, .description ol { margin: 0.5rem 0 0; padding-left: 1.25rem; }
+.description li + li { margin-top: 0.125rem; }
+.description blockquote { margin: 0.5rem 0 0; padding: 0.125rem 0 0.125rem 0.75rem; border-left: 2px solid var(--line-strong); }
+.description code { padding: 0.05rem 0.25rem; border-radius: 4px; background: var(--surface-3); color: var(--ink-2); font: 0.8125em/1.4 var(--font-mono); }
+.description pre { margin: 0.5rem 0 0; padding: 0.5rem 0.625rem; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-3); overflow-x: auto; }
+.description pre code { padding: 0; background: transparent; }
+.description a { color: var(--accent-text); }
+.description .tableWrap { margin-top: 0.5rem; }
+.description table { border-collapse: collapse; background: var(--surface-2); font-size: 0.8125rem; }
+.description th, .description td { border: 1px solid var(--line); padding: 0.25rem 0.5rem; text-align: left; }
+.description th { color: var(--muted); font-weight: 600; background: var(--surface-3); }
 .steps { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .step { display: grid; grid-template-columns: 0.875rem minmax(0, 1fr) auto; gap: 0.5rem; padding: 0.4375rem 0; border-bottom: 1px solid var(--line); font-size: 0.8125rem; }
 .step:last-child { border-bottom: 0; }

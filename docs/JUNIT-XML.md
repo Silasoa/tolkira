@@ -23,7 +23,9 @@ tolkira reports/junit.xml reports/cucumber.json --out report.html
 | JUnit XML | Report |
 | --- | --- |
 | `<testsuite name="...">` | feature; `name` falls back to `classname` or `JUnit suite N` |
+| `<testsuite description="...">` | feature description, rendered as safe Markdown |
 | `<testcase name="...">` | scenario with one synthetic step |
+| `<testcase description="...">` | scenario description, rendered as safe Markdown |
 | `<failure>` / `<error>` | failed; `message` and text become the step error |
 | `<skipped>` | skipped |
 | no status child | passed |
@@ -56,6 +58,11 @@ one.
 
 - No screenshots, videos, traces or arbitrary attachments.
 - No Gherkin steps, doc strings or data tables.
+- `description` is not a standard JUnit XML attribute. Tolkira reads it on
+  `<testsuite>` and `<testcase>` as a best-effort feature/scenario description
+  when a producer writes it; dialects without it keep plain names. The text is
+  rendered as the same safe Markdown as Cucumber descriptions and never enters
+  the JSON summary.
 - `system-out`/`system-err` are text only; HTML is escaped and never executed.
   Only testcase-level output is mapped; suite-level output is ignored.
 - A document with no test cases is rejected with a clear error instead of

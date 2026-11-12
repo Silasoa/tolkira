@@ -81,6 +81,18 @@ tags; scenarios stay inside their rule.
 them into each pickle, so the report keeps the steps in the scenario step lists
 and renders only the background heading and description once, when present.
 
+**Description** — free-text Markdown under a feature, rule, background,
+scenario, outline or examples block. The report renders a safe GFM subset in a
+block container; images become alt text and raw HTML stays escaped.
+
+**Tag expression** — the official Cucumber boolean tag query (`@a and not @b`,
+`or`, `not`, parentheses, escaped tags). The search box uses it only when the
+whole query is tag-shaped; mixed text and tags fall back to substring search.
+
+**URL state** — the shareable `?query=`, repeated lowercase `?hide=` and `?tag=`
+parameters. The report restores them and updates them with `replaceState`
+without adding history entries.
+
 **Own tag** — a tag written on the scenario itself; for an outline row, the
 examples-block tags. A standalone scenario row shows its own tags. Outline
 scenario tags appear on the outline heading and examples tags on the examples
@@ -109,7 +121,8 @@ source reference, shown inside an ambiguous step.
 status is not `passed` by default. Passed scenarios stay collapsed unless they
 carry an image; unexecuted rows stay collapsed and show no outcome. A feature
 whose scenarios are all unexecuted opens; a mixed feature does not open just
-because it contains an unexecuted row. Text search still opens at most 20 rows.
+because it contains an unexecuted row. Text search and a valid tag expression
+still open at most 20 rows.
 
 **Provenance** — the input file a feature came from. Tolkira only uses it when
 the feature URI belongs to exactly one input; shared or missing provenance

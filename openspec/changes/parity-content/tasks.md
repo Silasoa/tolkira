@@ -17,17 +17,17 @@
 
 ## 2. Implementer
 
-- [ ] 2.1 Add `markdown-it` and the safe renderer; verify 1.2 green.
-- [ ] 2.2 Implement the tag-expression parser with substring fallback and cap;
+- [x] 2.1 Add `markdown-it` and the safe renderer; verify 1.2 green.
+- [x] 2.2 Implement the tag-expression parser with substring fallback and cap;
   verify 1.3 green.
-- [ ] 2.3 Implement URL state (`query`, repeated `hide`, `tag`) with
+- [x] 2.3 Implement URL state (`query`, repeated `hide`, `tag`) with
   `replaceState`/`popstate`.
-- [ ] 2.4 Keep counts/summary unchanged; run `npm run check` and
+- [x] 2.4 Keep counts/summary unchanged; run `npm run check` and
   `npm run test:e2e`.
 
 ## 3. Documentation and review
 
-- [ ] 3.1 Update `docs/CHANGELOG.md`, `docs/CUCUMBER-COMPATIBILITY.md`,
+- [x] 3.1 Update `docs/CHANGELOG.md`, `docs/CUCUMBER-COMPATIBILITY.md`,
   `docs/AGENT-INTERFACE.md` and `GLOSSARY.md`.
 - [ ] 3.2 Run SCR, CR, DAR, SEC, UXR, PCA, CMP, STR and MKT; fix every blocker.
 - [ ] 3.3 Re-run the gate and archive after user approval.

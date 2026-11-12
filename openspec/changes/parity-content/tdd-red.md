@@ -15,23 +15,19 @@
   synchronizes the search input, status buttons and tag select, and leaves
   unrelated parameters and the hash untouched.
 
-## Blocker: JUnit descriptions
+## Resolved: JUnit descriptions
 
-JUnit XML has no standard description field. The fixture
-`test/fixtures/junit/markdown-description.xml` uses `description` attributes on
-`<testsuite>` and `<testcase>`; the Red test expects those to become the
-feature and scenario descriptions. The current JUnit adapter drops them. The
-coordinator must either approve that mapping (and the small adapter change) or
-scope JUnit descriptions out and amend the spec. The task list and spec say
-JUnit supplies descriptions, so the Red test asserts it.
+JUnit XML has no standard description field. The coordinator approved the
+best-effort mapping: `description` attributes on `<testsuite>` and `<testcase>`
+become feature and scenario descriptions. The adapter reads them and
+`docs/JUNIT-XML.md` documents the non-standard attribute.
 
-## Image sanitizer conflict
+## Resolved: image sanitizer conflict
 
-`src/input/sanitize.ts` currently strips remote Markdown image syntax before
-rendering. That leaves reference images as literal `![alt][ref]` text and can
-turn a linked image into a normal anchor. The new custom image renderer must
-emit alt text only for inline, reference and linked images; the sanitizer and
-renderer need one owner for images so no image falls through to a link.
+The Markdown image renderer owns inline, reference and linked images and emits
+alt text only. `src/input/sanitize.ts` still neutralises remote image
+destinations, but keeps the image syntax and alt text for the renderer; linked
+images lose the anchor instead of falling through as links.
 
 ## Size baseline
 

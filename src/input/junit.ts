@@ -242,6 +242,7 @@ function elementFromTestcase(testcase: XmlNode, index: number): XmlNode {
   const status = hasFailure ? 'failed' : skipped ? 'skipped' : 'passed';
   const name =
     stringOf(testcase.name) || stringOf(testcase.classname) || `Test ${index + 1}`;
+  const description = stringOf(testcase.description);
 
   const result: XmlNode = {
     status,
@@ -276,6 +277,7 @@ function elementFromTestcase(testcase: XmlNode, index: number): XmlNode {
     type: 'scenario',
     keyword: 'Scenario',
     name,
+    description,
     line: 1,
     tags: [],
     steps: [step],
@@ -289,6 +291,7 @@ function featureFromSuite(suite: XmlNode, source: string, index: number): XmlNod
   return {
     keyword: 'Feature',
     name,
+    description: stringOf(suite.description),
     uri: source,
     line: 1,
     tags: [],

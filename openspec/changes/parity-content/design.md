@@ -26,15 +26,23 @@ only. The report is server-rendered with one inline script.
 Add `markdown-it` as a server-side dependency with `html: false`,
 `linkify: false`, `typographer: false`, `breaks: true`. Replace the `<p
 class="description">` wrappers with block `<div class="description">` and
-remove `white-space: pre-line`; cap heading levels and let tables scroll.
+remove `white-space: pre-line`; cap headings (level 1 renders as `h3`, levels
+2-6 as `h4`) and let tables scroll in the existing `.tableWrap` region.
 Validate link targets against http(s)/mailto with
-`rel="noopener noreferrer nofollow"`. Use a custom image renderer that emits
-alt text only; do not let images fall through to links. Feature/rule/
-background/scenario/examples descriptions all use one helper.
+`rel="noopener noreferrer nofollow"`. The Markdown image renderer owns inline,
+reference and linked images and emits alt text only. The sanitizer may still
+neutralise remote image destinations, but no image path falls through to an
+anchor. Feature/rule/background/scenario/examples descriptions all use one
+helper.
+
+JUnit has no standard description field. Best effort: read the non-standard
+`description` attributes on `<testsuite>` and `<testcase>` as feature and
+scenario descriptions. The mapping is documented in `docs/JUNIT-XML.md`; other
+JUnit dialects without the attribute keep plain names.
 
 Written reason: a safe GFM renderer is not worth hand-rolling; `markdown-it`
-is small, maintained and server-side. Measure the packed size delta and record
-it in the change.
+is small, maintained and server-side. The delivered packed size delta is
+recorded in `size.md`.
 
 ### Tag-expression parser in the inline script
 
@@ -43,8 +51,10 @@ Use the official `@cucumber/tag-expressions` package. A small
 bundles it into an IIFE injected before the main inline script. Treat the whole
 query as an expression only when it is tag-shaped; mixed text/tags stay text.
 Invalid expressions fall back to substring search. Status filters and the tag
-dropdown combine with a valid expression using AND. The 20-newly-opened cap
-applies to the final visible set.
+dropdown combine with a valid expression using AND. While an expression is
+active, the tag dropdown stays pinned to its selected tag; clearing the search
+releases the shortcut. The 20-newly-opened cap applies to the final visible
+set.
 
 ### URL state
 

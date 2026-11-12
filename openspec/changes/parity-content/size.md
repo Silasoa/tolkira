@@ -51,5 +51,28 @@ node_modules\.bin\esbuild <temp>\search-entry.mjs --bundle --platform=browser `
   --format=iife --global-name=TolkiraSearch --minify --outfile=<temp>\search.min.js
 ```
 
-Record the delivered report size delta and dependency version here after the
-implementer runs the same commands.
+## Delivered
+
+Measured 2026-11-12 after implementation with Node.js 26.13.0, esbuild 0.28.2,
+`markdown-it` 15.0.3 and `@cucumber/tag-expressions` 11.0.1. The packed and
+unpacked package sizes match the baseline above.
+
+| Bundle | Minified | Gzip |
+| --- | ---: | ---: |
+| Tag-expression evaluator IIFE (platform `browser`) | 3,566 B | 1,348 B |
+
+`renderReport` from the built `dist/index.js`, title `Size baseline`:
+
+| Fixture | HTML | Gzip | Inline scripts |
+| --- | ---: | ---: | ---: |
+| `test/fixtures/messages/empty.ndjson` | 68,211 B | 15,565 B | 22,564 B |
+| `test/fixtures/messages/markdown-descriptions.ndjson` | 78,877 B | 16,732 B | 22,564 B |
+| `test/fixtures/legacy/tag-expressions.json` | 74,094 B | 16,044 B | 22,564 B |
+
+Delta against the baseline: +7,911 B / +2,311 B gzip for the empty report,
++8,925 B / +2,592 B gzip with Markdown descriptions and +7,899 B / +2,304 B gzip
+for tag expressions. The delta is larger than the early 3.3 KB estimate because
+the main inline script now also carries URL restore, serialisation, control
+sync and tag-expression wiring (about 2.9 KB unminified source); the IIFE is
+3.6 KB minified / 1.3 KB gzip. `markdown-it` stays server-side and adds no
+report runtime.

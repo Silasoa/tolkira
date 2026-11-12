@@ -6,7 +6,8 @@
 
 The report SHALL render feature, rule, background, scenario and examples
 descriptions as a safe GFM subset inside a block container: headings, emphasis,
-code, links, lists, tables and blockquotes. Raw HTML SHALL NOT be rendered and
+code, links, lists, tables and blockquotes. Description heading level 1 SHALL
+render as `h3` and levels 2-6 as `h4`. Raw HTML SHALL NOT be rendered and
 images SHALL be omitted without becoming links.
 
 #### Scenario: Markdown description
@@ -33,6 +34,8 @@ images SHALL be omitted without becoming links.
 
 - **WHEN** legacy JSON or JUnit supplies a description
 - **THEN** the same safe Markdown rendering applies
+- **AND** JUnit uses its non-standard `description` attributes on `<testsuite>`
+  and `<testcase>` as a best-effort feature and scenario description
 - **AND** no external asset is loaded
 
 ### Requirement: Support tag-expression search

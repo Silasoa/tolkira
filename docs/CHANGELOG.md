@@ -7,6 +7,25 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Feature, rule, background, scenario and examples descriptions render a safe
+  GFM subset through `markdown-it`: headings, emphasis, code, links, lists,
+  tables and blockquotes. Raw HTML stays escaped, links are limited to
+  http(s)/mailto with `rel="noopener noreferrer nofollow"`, and images render
+  as alt text only without a network request. Descriptions use a block
+  container, headings stay within the report hierarchy (`h3`/`h4`), and tables
+  use the focusable scroll region. JUnit `description` attributes are read as
+  best-effort feature and scenario descriptions.
+- Search accepts official Cucumber tag expressions (`and`, `or`, `not`,
+  parentheses and escaped tags) through `@cucumber/tag-expressions`. A valid
+  tag-shaped query filters by tags; mixed text/tags and invalid expressions fall
+  back to substring search. Status filters and the tag dropdown combine with a
+  valid expression using AND, and the 20-newly-opened cap applies to the final
+  visible set.
+- Search and filters persist in `?query=`, repeated lowercase `?hide=` and
+  `?tag=`. A report restores them on load, synchronises the search box, status
+  buttons and tag select, and updates the URL with `replaceState` while
+  preserving the hash and unrelated parameters. `file://` and blocked
+  `replaceState` keep filtering functional.
 - `require('tolkira/compat/cucumber-html-reporter')` now works from CommonJS.
   A tracked `.cts` wrapper emits `.cjs` plus `.d.cts` declarations, dynamically
   imports the ESM shim and forwards `generate(options, callback?)` without a
