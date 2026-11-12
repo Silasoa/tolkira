@@ -38,9 +38,13 @@ await generate({
 });
 ```
 
-The options object is unchanged. ESM projects import the shim; CommonJS
+The option names are unchanged. ESM projects import the shim; CommonJS
 projects require it. The wrapper is async, so await the promise (or use the
 callback) before reading the report. The core package and CLI remain ESM-only.
+
+**Version note:** the CommonJS `require` path is new in Tolkira 0.3.0. The
+published 0.2.0 package exposes only the ESM `import` path.
+
 A CommonJS project can require the shim directly:
 
 ```js
@@ -69,6 +73,11 @@ generate(options, (error) => {
   if (error) console.error(error);
 });
 ```
+
+Callback caveat: callback-only code can ignore the returned promise. Tolkira
+marks that ignored promise handled so it does not crash the process; awaiting
+the same call still throws. The callback receives an `Error` object, not the
+legacy string. If the callback itself throws, handle that error yourself.
 
 ## Mapping
 
@@ -112,9 +121,12 @@ The core Messages path reads `meta.ci` and renders it in HTML only.
 
 Seed-Test 2.0's dev/AI integration branch is ESM. Use
 `import { generate } from 'tolkira/compat/cucumber-html-reporter'` and await
-the call before reading the HTML. Seed-Test 1.x is CommonJS and can require the
-same subpath, then await `generate` or use its callback. The core package stays
-ESM-only.
+the call before reading the HTML. The old default import becomes the named
+`generate`, and the `reporter.Options` type becomes
+`CucumberHtmlReporterOptions`. Seed-Test 1.x is CommonJS and can require the
+same subpath, then await `generate` or use its callback; its current
+`reporter.generate(options)` call without `await` must change too. The core
+package stays ESM-only.
 Seed-Test's group mode also expects a sidecar at `output + '.json'`; Tolkira
 does not write that file.
 

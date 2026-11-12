@@ -217,8 +217,10 @@ Install Tolkira next to the old reporter and keep the existing JSON output:
 npm i -D tolkira
 ```
 
-Node.js 22 or newer is required. The core and CLI are ESM-only; the
-compatibility subpath also loads from CommonJS through an async wrapper.
+Node.js 22 or newer is required. Node 20 is end-of-life and unsupported;
+upgrading to Node 22+ is the migration cost for both the ESM and CommonJS
+paths. The core and CLI are ESM-only; the compatibility subpath also loads
+from CommonJS through an async wrapper.
 
 **Before — CommonJS with cucumber-html-reporter:**
 
@@ -272,10 +274,31 @@ main().catch((error) => {
 The wrapper is only for the compatibility subpath; the core package, CLI and
 other exports remain ESM-only. There is no default export.
 
-The options object is compatible; only the import style changes. `theme` is
-ignored with a warning. Themes, charts, external screenshots and browser launch
-are not reproduced. The shim consumes the same input JSON, never the old
-rendered HTML.
+**Version note:** the CommonJS `require` path is new in Tolkira 0.3.0. The
+published 0.2.0 package exposes only the ESM `import` path; use the ESM form
+there, or install a 0.3.0 tarball from the repository until it is released.
+
+The options object is mostly compatible, but the call contract is not. Only
+the import style changing is not the whole story:
+
+| Behaviour | `cucumber-html-reporter` | Tolkira compat shim |
+| --- | --- | --- |
+| Input | `jsonFile` falls back to `output + '.json'` when omitted | `jsonFile` or `jsonDir` is required; there is no implicit fallback |
+| Return value | Sync `true` on success without a callback, `undefined` with one; `undefined` for a bad report | Always a `Promise<CompatResult>` with `output`, `warnings` and `summary`; await every call |
+| Errors | The callback receives a string; without a callback a failure can be silent | The promise rejects with an `Error`, and the callback receives the same `Error` |
+| Callback | `callback()` on success, `callback(string)` on failure | `callback(error?)`; the promise still rejects |
+| `jsonDir` | Recursively merges features by `uri`, dedupes them and writes an `output + '.json'` sidecar | Scans recursively but passes the files as separate inputs; writes no sidecar and does not dedupe |
+| Output timing | The HTML is written synchronously before `generate` returns | The HTML is complete only when the promise resolves |
+| Export | `require('cucumber-html-reporter').generate` | Named `generate`; no default export |
+
+**Callback caveat:** callback-only code can ignore the returned promise.
+Tolkira marks that ignored promise handled so it does not crash the process;
+awaiting the same call still throws. Errors are `Error` objects, not the
+legacy strings. If the callback itself throws, handle that error yourself.
+
+`theme` is ignored with a warning. Themes, charts, external screenshots and
+browser launch are not reproduced. The shim consumes the same input JSON,
+never the old rendered HTML.
 See [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md)
 for the full mapping and caveats.
 

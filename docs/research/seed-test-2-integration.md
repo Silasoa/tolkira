@@ -4,8 +4,8 @@
 **Target:** Seed-Test branch `AI-integration-prototype`, commit
 `ce2cad890bfda23f49cb9b2c47182f49df846f20` (2026-11-02), backend version
 2.0.0.
-**Tolkira:** 0.1.2, compat entry point
-`tolkira/compat/cucumber-html-reporter`.
+**Tolkira:** 0.1.2 probe; 0.3.0 adds the CommonJS wrapper. **Updated:**
+2026-11-12 for the CJS wrapper and the current Seed-Test call shapes.
 **Method:** source inspection of the branch, a `npm pack` install in a temporary
 project, probes on Node 22.23.4, 24.22.2 and 26.13.0, and a TypeScript compile
 with Seed-Test's `NodeNext` settings (TypeScript 6.0.3). No Seed-Test or Tolkira
@@ -37,9 +37,22 @@ On this branch:
 
 ## 2. Exact import and call shape
 
-Tolkira's compat entry point has a named export and is asynchronous. It is
-ESM-only; there is no default export and no CommonJS `require` condition in the
-package `exports` map.
+Tolkira's compat entry point has a named export and is asynchronous. The
+primary path is an ESM import; there is no default export. Tolkira 0.3.0 adds a
+CommonJS `require` condition through an async wrapper, but Seed-Test 2.0 is
+ESM, so the named import below is the right shape.
+
+The current Seed-Test call shapes need three changes:
+
+- Seed-Test 1.8.1 is CommonJS and calls `reporter.generate(options)` without
+  `await`, then reads the HTML. Migrate to
+  `const { generate } = require('tolkira/compat/cucumber-html-reporter')` and
+  await the call (0.3.0 or later).
+- Seed-Test 2.0 uses a default import from `cucumber-html-reporter` and calls
+  `reporter.generate(options)` without `await`. Import the named `generate`
+  and await it before reading the HTML.
+- The `reporter.Options` type becomes `CucumberHtmlReporterOptions`; there is
+  no `Options` alias.
 
 ```ts
 import {
@@ -310,8 +323,10 @@ Seed-Test's backend settings are already correct for Tolkira:
 
 Things to watch:
 
-- Tolkira's `exports` map has only `import` and `types` conditions. Do not use
-  `require('tolkira/...')`; it will fail.
+- Tolkira 0.3.0's `exports` map adds a `require` condition for the compat
+  subpath only. The package root and CLI still have no `require` condition.
+  Published 0.2.0 has no `require` condition at all, so the CommonJS wrapper is
+  unreleased until 0.3.0.
 - `verbatimModuleSyntax` is not enabled in Seed-Test. Type-only imports are
   erased normally. If it is enabled later, keep `import type` for
   `CucumberHtmlReporterOptions`.
@@ -560,9 +575,11 @@ What was not run:
 1. **Async call shape.** `generate` returns a promise. Every
    `generateHtmlReport` call must be awaited. Without it, Seed-Test reads the
    HTML before it exists and returns a 500.
-2. **ESM named import and types.** `cucumber-html-reporter`'s default import and
-   `reporter.Options` type must be replaced. Tolkira has no default export and
-   no CommonJS entry point.
+2. **Named import, type rename and await.** `cucumber-html-reporter`'s default
+   import and `reporter.Options` type must be replaced with the named
+   `generate` and `CucumberHtmlReporterOptions`, and every call must be
+   awaited. Tolkira has no default export. A CommonJS wrapper exists for the
+   compat subpath from 0.3.0, but Seed-Test 2.0 is ESM and does not need it.
 
 **Major**
 

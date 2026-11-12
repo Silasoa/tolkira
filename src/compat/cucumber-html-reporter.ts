@@ -42,6 +42,9 @@ export function generate(
       (error: unknown) =>
         callback(error instanceof Error ? error : new Error(String(error))),
     );
+    // Callback-only callers ignore the returned promise; keep its rejection
+    // handled without changing what awaiting callers see.
+    promise.catch(() => undefined);
   }
   return promise;
 }

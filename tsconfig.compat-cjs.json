@@ -4,9 +4,9 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": false,
-    "outDir": "dist",
+    "outDir": ".tmp/compat-cjs",
     "rootDir": "src"
   },
   "include": ["src/compat/cucumber-html-reporter.cts"],
-  "exclude": ["node_modules", "dist", "test"]
+  "exclude": ["node_modules", "dist", ".tmp", "test"]
 }

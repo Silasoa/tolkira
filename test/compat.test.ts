@@ -131,7 +131,8 @@ describe('cucumber-html-reporter compat', () => {
     const output = path.join(dir, 'missing.html');
 
     await new Promise<void>((resolve, reject) => {
-      const promise = generate({ output }, (error) => {
+      // Intentionally ignore the returned promise: the callback owns errors.
+      generate({ output }, (error) => {
         try {
           expect(error).toBeInstanceOf(Error);
           resolve();
@@ -139,7 +140,6 @@ describe('cucumber-html-reporter compat', () => {
           reject(assertion);
         }
       });
-      void promise.catch(() => undefined);
     });
   });
 

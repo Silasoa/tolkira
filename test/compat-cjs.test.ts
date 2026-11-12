@@ -1,15 +1,19 @@
-import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { exec as execShell, execFile } from 'node:child_process';
+import { existsSync, statSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 // Harness assumption: `npm run build` has produced dist/ before this file runs.
 // `check` must build before the unit tests so the CJS fixture resolves the
 // package through its published exports (tasks.md 2.3).
 const fixture = fileURLToPath(
   new URL('./fixtures/cjs/compat-fixture.cjs', import.meta.url),
+);
+const esmFixture = fileURLToPath(
+  new URL('./fixtures/esm/compat-fixture.mjs', import.meta.url),
 );
 const tsc = fileURLToPath(
   new URL('../node_modules/typescript/bin/tsc', import.meta.url),
@@ -21,6 +25,13 @@ const legacy = fileURLToPath(
   new URL('./fixtures/legacy/happy.json', import.meta.url),
 );
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+const distIndex = path.join(repoRoot, 'dist', 'index.js');
+const distShim = path.join(
+  repoRoot,
+  'dist',
+  'compat',
+  'cucumber-html-reporter.js',
+);
 
 interface FixtureError {
   name?: string;
@@ -49,9 +60,18 @@ interface FixturePayload {
   loaded?: boolean;
   outputIsDirectory?: boolean;
   entries?: string[];
+  shape?: { generate: string; hasDefault: boolean };
 }
 
 const tempDirs: string[] = [];
+
+beforeAll(() => {
+  if (!existsSync(distIndex)) {
+    throw new Error(
+      'dist/ is missing; run `npm run build` before `npm test`',
+    );
+  }
+});
 
 afterEach(async () => {
   await Promise.all(
@@ -73,6 +93,24 @@ function exec(
     execFile(
       process.execPath,
       [script, ...args],
+      { cwd: repoRoot, encoding: 'utf8' },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(new Error(`${error.message}\n${stderr}`));
+          return;
+        }
+        resolve({ stdout, stderr });
+      },
+    );
+  });
+}
+
+function execCommand(
+  command: string,
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execShell(
+      command,
       { cwd: repoRoot, encoding: 'utf8' },
       (error, stdout, stderr) => {
         if (error) {
@@ -144,6 +182,24 @@ describe('compat subpath from CommonJS', () => {
     });
   });
 
+  it('does not raise an unhandled rejection for callback-only errors', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'callback-only.html');
+
+    const { stdout, stderr } = await exec(fixture, [
+      'callback-only-error',
+      legacy,
+      output,
+    ]);
+    const payload = JSON.parse(stdout) as FixturePayload;
+
+    expect(payload.callbacks).toBe(1);
+    expect(payload.callbackError?.message).toBe(
+      'compat: jsonFile or jsonDir is required',
+    );
+    expect(stderr).not.toMatch(/unhandled/i);
+  });
+
   it('rejects a report that cannot be written and leaves no partial file', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'report.html');
@@ -189,5 +245,56 @@ describe('compat subpath from CommonJS', () => {
       );
 
     expect(resolved).toContain('cucumber-html-reporter.d.cts');
+  });
+});
+
+describe('compat subpath from ESM', () => {
+  it('loads through the package self-reference', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'esm.html');
+
+    const { stdout } = await exec(esmFixture, [legacy, output]);
+    const payload = JSON.parse(stdout) as FixturePayload;
+
+    expect(payload.shape).toEqual({ generate: 'function', hasDefault: false });
+    expect(payload.result?.output).toBe(output);
+    expect(payload.result?.summary.schemaVersion).toBe(2);
+    expect(payload.result?.summary.counts.steps.total).toBe(30);
+    expect(payload.html).toContain('Happy HTML reporting');
+  });
+});
+
+describe('compat package build', () => {
+  it('keeps the esbuild bundles in dist', async () => {
+    expect(statSync(distIndex).size).toBeGreaterThan(50_000);
+    expect(statSync(distShim).size).toBeGreaterThan(3_000);
+
+    const indexSource = await readFile(distIndex, 'utf8');
+    expect(indexSource).not.toContain("from './summary.js'");
+    expect(indexSource).not.toContain('from "./summary.js"');
+    expect(indexSource).not.toContain("from './input/load.js'");
+    expect(indexSource).not.toContain('from "./input/load.js"');
+
+    const shimSource = await readFile(distShim, 'utf8');
+    expect(shimSource).not.toContain("from './options.js'");
+    expect(shimSource).not.toContain('from "./options.js"');
+  });
+
+  it('packs the CJS wrapper, declarations and bundles', async () => {
+    const { stdout } = await execCommand('npm pack --dry-run --json');
+    const [packed] = JSON.parse(stdout) as Array<{
+      files: Array<{ path: string }>;
+    }>;
+    const files = packed.files.map((file) => file.path);
+
+    expect(files).toEqual(
+      expect.arrayContaining([
+        'dist/index.js',
+        'dist/compat/cucumber-html-reporter.js',
+        'dist/compat/cucumber-html-reporter.cjs',
+        'dist/compat/cucumber-html-reporter.d.cts',
+      ]),
+    );
+    expect(files.some((file) => file.startsWith('src/'))).toBe(false);
   });
 });

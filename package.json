@@ -74,6 +74,7 @@
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && npm run styles && node esbuild.mjs && tsc -p tsconfig.build.json && tsc -p tsconfig.compat-cjs.json",
+    "postbuild": "node scripts/copy-compat-cjs.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "test": "npm run styles && vitest run",

@@ -77,9 +77,11 @@ Gaps:
 2. **Output parent creation.** Old reporters create the output directory.
    Tolkira's `writeAtomic` assumes the parent exists. The shim must `mkdir -p`.
 
-Differences: Tolkira is ESM and Node ≥ 22; `chr` is CommonJS with no
-engine floor. Tolkira caps inputs at 100 MB and attachments at 50 MB each /
-100 MB total, and always inlines attachments; split assets are a later item.
+Differences: Tolkira's core is ESM and Node ≥ 22; `chr` is CommonJS with no
+engine floor. From 0.3.0 the compat subpath also has a CommonJS `require`
+wrapper; the core and CLI stay ESM-only. Tolkira caps inputs at 100 MB and
+attachments at 50 MB each / 100 MB total, and always inlines attachments;
+split assets are a later item.
 
 ## 3. Proposed shim
 
@@ -88,7 +90,7 @@ embedded Bootstrap/jQuery/chart state; parsing it is lossy, fragile and would
 force Tolkira to clone old themes. The shim consumes the same **input JSON and
 options object** and renders with Tolkira.
 
-**Node helpers** (only the import changes):
+**Node helpers** (the import and call shape change):
 
 ```js
 // before
@@ -111,8 +113,11 @@ await generate(options);
 ```
 
 `generate` for the `chr` helper keeps the old `(options, callback?)` signature
-and calls the callback with an error on failure. The mchr helper stays async.
-Both expose `{ summary, warnings }`.
+and calls the callback with an error on failure. It is async: `await
+generate(options)` returns `{ output, warnings, summary }`, the option type is
+`CucumberHtmlReporterOptions`, and callers must read the HTML only after the
+promise settles. In 0.3.0 a CommonJS `require` of this compat subpath is
+available; 0.2.0 only has the ESM import. The core stays ESM-only.
 
 **CLI** for config-driven runs:
 
@@ -173,7 +178,7 @@ page, not only in release notes.
 | Inline-only attachments enlarge reports; size caps can reject runs the old reporter accepted. | High | Warn on external-media options; document caps; split assets later. |
 | mchr produces a multi-page site; the shim produces only `index.html`. | Medium | Write `<reportPath>/index.html`; warn that deep links and `assets/` are gone. |
 | `jsonDir` recursion and `ignoreBadJsonFile` semantics differ. | Medium | Shim expands directories and filters bad files; test nested/malformed fixtures. |
-| Old `chr` scripts are CommonJS; Tolkira is ESM. `require('tolkira/compat/...')` needs Node 22.12+. | Medium | Document the import change; ship a CJS wrapper only on demand. An npm alias would pollute Tolkira's root API; not recommended. |
+| Old `chr` scripts are CommonJS and synchronous; Tolkira is async and Node ≥ 22. The compat `require` path exists from 0.3.0, not in 0.2.0. | Medium | Document the named import/require, the `await` and the Node 22 requirement; ship the wrapper for the compat subpath only. |
 | Tolkira validates statuses/shapes more strictly; old `chr` maps unknown statuses to skipped. | Medium | Keep validation; report file/field; add quirk fixtures. |
 | Users may expect the old merged `output + '.json'` file. | Low | Warn; defer `--save-json`. |
 
