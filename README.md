@@ -6,7 +6,7 @@ Tolkira turns test results into a single HTML file you can open offline, attach
 to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
 stay inside the file. There is no server, no CDN and no telemetry.
 
-Current release: **v0.2.0** · [npm](https://www.npmjs.com/package/tolkira) · [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
+Current release: **v0.3.0** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.
 > The maintainer sets the product direction and approves releases. Most code,
@@ -295,11 +295,6 @@ main().catch((error) => {
 
 The wrapper is only for the compatibility subpath; the core package, CLI and
 other exports remain ESM-only. There is no default export.
-
-**Version note (unreleased):** the CommonJS `require` path is new in Tolkira
-0.3.0, which is not published yet. The published 0.2.0 package exposes only the
-ESM `import` path; use the ESM form there, or install a 0.3.0 tarball from the
-repository once that release is available.
 
 The options object is mostly compatible, but the call contract is not. Only
 the import style changing is not the whole story:

@@ -42,10 +42,6 @@ The option names are unchanged. ESM projects import the shim; CommonJS
 projects require it. The wrapper is async, so await the promise (or use the
 callback) before reading the report. The core package and CLI remain ESM-only.
 
-**Version note (unreleased):** the CommonJS `require` path is new in Tolkira
-0.3.0, which is not published yet. The published 0.2.0 package exposes only the
-ESM `import` path.
-
 A CommonJS project can require the shim directly:
 
 ```js
