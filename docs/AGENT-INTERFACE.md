@@ -68,6 +68,32 @@ The CLI validates logo bytes and rejects unsupported types or a size over
 2 MB. The API only accepts a `data:image/...;base64,...` logo; anything else is
 omitted.
 
+### Messages stream
+
+`CucumberHtmlStream` is a Node `Transform` for callers that already hold
+Cucumber Messages envelopes:
+
+```ts
+import { Readable } from 'node:stream';
+import { CucumberHtmlStream } from 'tolkira';
+
+const html = await new Promise<string>((resolve, reject) => {
+  let output = '';
+  Readable.from(envelopes)
+    .pipe(new CucumberHtmlStream({ title: 'Nightly' }))
+    .on('data', (chunk) => (output += chunk))
+    .on('error', reject)
+    .on('end', () => resolve(output));
+});
+```
+
+The stream accepts `Envelope` objects in object mode, buffers the run and
+renders one HTML document on flush. It takes the same title, metadata, logo and
+accent options as `renderReport`, and produces the same HTML for the same
+envelopes and options. It writes no files and emits no summary; use
+`summarizeReport` or `generateReport` when you also need the stable JSON. The
+whole run is held in memory, exactly like the file API.
+
 ## Summary schema, version 2
 
 ```json

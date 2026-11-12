@@ -36,6 +36,21 @@ tolkira reports/junit.xml reports/cucumber.json --out report.html
 Suites and test cases are recomputed; `<testsuite tests="...">` totals are not
 trusted.
 
+## Verified producer shapes
+
+`test/junit-producers.test.ts` covers fixtures modelled on common producers.
+They are synthetic but real-shaped, and each records its provenance in a
+comment plus `test/fixtures/junit/PROVENANCE.md`:
+
+| Fixture | Producer shape | Covered behaviour |
+| --- | --- | --- |
+| `jest-junit.xml` | jest-junit 16.x | `<testsuites>`, `<testsuite>`, passed/failed/skipped, `<failure>`, testcase-level output |
+| `pytest.xml` | pytest 8.x `--junitxml` | `<properties>`, passed/failed/skipped, `<failure>`, suite-level output tolerated |
+| `gradle.xml` | Gradle 8.x test task | root `<testsuite>`, `<properties>`, passed/failed/error/skipped, `<failure>`, `<error>`, suite-level output tolerated |
+
+These are regression fixtures, not a claim that every dialect is supported.
+Suite-level `system-out`/`system-err` is intentionally not attached.
+
 ## Example
 
 ```xml

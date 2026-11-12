@@ -2,18 +2,13 @@ import { expect, test } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
+import { messagesFixture } from '../fixtures.js';
 
-const ciFull = fileURLToPath(
-  new URL('../fixtures/messages/ci-full.ndjson', import.meta.url),
-);
-const presentation = fileURLToPath(
-  new URL('../fixtures/messages/attachments-presentation.ndjson', import.meta.url),
-);
-const large = fileURLToPath(
-  new URL('../fixtures/messages/attachments-large.ndjson', import.meta.url),
-);
+const ciFull = messagesFixture('ci-full.ndjson');
+const presentation = messagesFixture('attachments-presentation.ndjson');
+const large = messagesFixture('attachments-large.ndjson');
 
 const FULL_REVISION = 'abcdef1234567890abcdef1234567890abcdef12';
 const CI_URL = 'https://github.com/acme/tolkira/actions/runs/42';

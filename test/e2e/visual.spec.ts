@@ -2,28 +2,25 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
+import { legacyFixture, messagesFixture } from '../fixtures.js';
 
-const fixtures = ['failed.json', 'minimal.json', 'behave.json', 'screenshot.json'].map(
-  (name) =>
-    fileURLToPath(new URL(`../fixtures/legacy/${name}`, import.meta.url)),
-);
+const fixtures = [
+  'failed.json',
+  'minimal.json',
+  'behave.json',
+  'screenshot.json',
+].map((name) => legacyFixture(name));
 fixtures.push(
-  fileURLToPath(
-    new URL('../fixtures/messages/screenshot.ndjson', import.meta.url),
-  ),
-  fileURLToPath(
-    new URL('../fixtures/messages/examples-tables.ndjson', import.meta.url),
-  ),
+  messagesFixture('screenshot.ndjson'),
+  messagesFixture('examples-tables.ndjson'),
 );
 
-const rulesOutlineBackground = fileURLToPath(
-  new URL('../fixtures/messages/rules-outline-background.ndjson', import.meta.url),
+const rulesOutlineBackground = messagesFixture(
+  'rules-outline-background.ndjson',
 );
-const rulesBackgrounds = fileURLToPath(
-  new URL('../fixtures/messages/rules-backgrounds.ndjson', import.meta.url),
-);
+const rulesBackgrounds = messagesFixture('rules-backgrounds.ndjson');
 
 async function waitForImages(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -108,9 +105,7 @@ test('captures hook screenshots for visual review', async ({
 }, testInfo) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-visual-hooks-'));
   const output = path.join(dir, 'hooks.html');
-  const hooks = fileURLToPath(
-    new URL('../fixtures/messages/hooks.ndjson', import.meta.url),
-  );
+  const hooks = messagesFixture('hooks.ndjson');
 
   try {
     const code = await runCli(

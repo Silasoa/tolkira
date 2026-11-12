@@ -2,69 +2,34 @@ import { expect, test } from '@playwright/test';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
+import { legacyFixture, messagesFixture } from '../fixtures.js';
 
-const fixture = fileURLToPath(
-  new URL('../fixtures/messages/screenshot.ndjson', import.meta.url),
+const fixture = messagesFixture('screenshot.ndjson');
+const legacyFixturePath = legacyFixture('screenshot.json');
+const minimalFixture = legacyFixture('minimal.json');
+const tableFixture = legacyFixture('happy.json');
+const xssFixture = legacyFixture('xss.json');
+const noMessageFixture = legacyFixture('failed-no-message.json');
+const unhappyFixture = legacyFixture('unhappy.json');
+const examplesFixture = messagesFixture('examples-tables.ndjson');
+const examplesAttachmentFixture = messagesFixture(
+  'examples-tables-attachment.ndjson',
 );
-const legacyFixture = fileURLToPath(
-  new URL('../fixtures/legacy/screenshot.json', import.meta.url),
+const hooksFixture = messagesFixture('hooks.ndjson');
+const globalHooksFixture = messagesFixture('global-hooks.ndjson');
+const globalHookAttachments = messagesFixture('global-hooks-attachments.ndjson');
+const undefinedFixture = messagesFixture('undefined.ndjson');
+const ambiguousFixture = messagesFixture('ambiguous.ndjson');
+const rulesOutlineBackgroundFixture = messagesFixture(
+  'rules-outline-background.ndjson',
 );
-const minimalFixture = fileURLToPath(
-  new URL('../fixtures/legacy/minimal.json', import.meta.url),
-);
-const tableFixture = fileURLToPath(
-  new URL('../fixtures/legacy/happy.json', import.meta.url),
-);
-const xssFixture = fileURLToPath(
-  new URL('../fixtures/legacy/xss.json', import.meta.url),
-);
-const noMessageFixture = fileURLToPath(
-  new URL('../fixtures/legacy/failed-no-message.json', import.meta.url),
-);
-const unhappyFixture = fileURLToPath(
-  new URL('../fixtures/legacy/unhappy.json', import.meta.url),
-);
-const examplesFixture = fileURLToPath(
-  new URL('../fixtures/messages/examples-tables.ndjson', import.meta.url),
-);
-const examplesAttachmentFixture = fileURLToPath(
-  new URL('../fixtures/messages/examples-tables-attachment.ndjson', import.meta.url),
-);
-const hooksFixture = fileURLToPath(
-  new URL('../fixtures/messages/hooks.ndjson', import.meta.url),
-);
-const globalHooksFixture = fileURLToPath(
-  new URL('../fixtures/messages/global-hooks.ndjson', import.meta.url),
-);
-const globalHookAttachments = fileURLToPath(
-  new URL('../fixtures/messages/global-hooks-attachments.ndjson', import.meta.url),
-);
-const undefinedFixture = fileURLToPath(
-  new URL('../fixtures/messages/undefined.ndjson', import.meta.url),
-);
-const ambiguousFixture = fileURLToPath(
-  new URL('../fixtures/messages/ambiguous.ndjson', import.meta.url),
-);
-const rulesOutlineBackgroundFixture = fileURLToPath(
-  new URL('../fixtures/messages/rules-outline-background.ndjson', import.meta.url),
-);
-const tagsFixture = fileURLToPath(
-  new URL('../fixtures/messages/tags.ndjson', import.meta.url),
-);
-const emptyFixture = fileURLToPath(
-  new URL('../fixtures/messages/empty.ndjson', import.meta.url),
-);
-const emptyNoneFixture = fileURLToPath(
-  new URL('../fixtures/messages/empty-none.ndjson', import.meta.url),
-);
-const emptyMixedFixture = fileURLToPath(
-  new URL('../fixtures/messages/empty-mixed.ndjson', import.meta.url),
-);
-const emptyStatusesFixture = fileURLToPath(
-  new URL('../fixtures/messages/empty-statuses.ndjson', import.meta.url),
-);
+const tagsFixture = messagesFixture('tags.ndjson');
+const emptyFixture = messagesFixture('empty.ndjson');
+const emptyNoneFixture = messagesFixture('empty-none.ndjson');
+const emptyMixedFixture = messagesFixture('empty-mixed.ndjson');
+const emptyStatusesFixture = messagesFixture('empty-statuses.ndjson');
 
 async function writeFailedTagsFixture(dir: string): Promise<string> {
   const input = path.join(dir, 'failed-tags.ndjson');
@@ -742,7 +707,7 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
 
   try {
     const code = await runCli(
-      [legacyFixture, '--out', output, '--title', 'Legacy E2E'],
+      [legacyFixturePath, '--out', output, '--title', 'Legacy E2E'],
       { stdout: () => undefined, stderr: () => undefined },
     );
     expect(code).toBe(0);

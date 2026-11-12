@@ -8,6 +8,10 @@ are explicitly out of scope.
 No production code, tests or CI were changed. This research note is the only
 change made by this task and it is not committed.
 
+**Update 2026-11-12:** G14 (stream adapter) and G15 (parameter highlighting)
+are implemented. The table keeps the original assessment and marks those two
+rows as matched; the rest of the note is unchanged.
+
 ## 1. Verdict
 
 Tolkira already matches or exceeds the official formatter on input formats,
@@ -89,7 +93,7 @@ Legend: **Match** = equivalent for the user; **Exceeds** = Tolkira does more;
 | Area | Official formatter 24.2.0 | cucumber-html-reporter 7.2.0 | Tolkira 0.2.0 | Verdict |
 | --- | --- | --- | --- | --- |
 | Input formats | Cucumber Messages only (NDJSON stream) | Legacy Cucumber JSON only | Legacy JSON, Messages (`.jsonl`/`.ndjson`), JUnit XML; auto-detected; directories and multiple inputs | **Exceeds** |
-| Entry points | ESM `CucumberHtmlStream` Transform; Java/Ruby/.NET wrappers; no CLI since v19 | CommonJS `generate(options, callback?)`; no CLI | CLI, ESM API (`generateReport`, `renderReport`, `summarizeReport`), compat shim | **Exceeds**, except no stream adapter |
+| Entry points | ESM `CucumberHtmlStream` Transform; Java/Ruby/.NET wrappers; no CLI since v19 | CommonJS `generate(options, callback?)`; no CLI | CLI, ESM API (`generateReport`, `renderReport`, `summarizeReport`, `CucumberHtmlStream`), compat shim | **Exceeds** |
 | Attachments | Inline base64 and external `attachment.url`; image, video, log, text, `text/uri-list`, JSON, binary; image/video collapsed in `<details>`; download button | Inline images or external screenshot files; text/JSON/binary; no video/audio special handling | Inline only; image (lightbox), video, audio, text, binary; JSON, URI-list and ANSI logs rendered; 50 MB each / 100 MB total; rejects remote URLs | **Match, except external URLs** |
 | Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else deterministic `attachment.<ext>`, else `attachment` | **Match** |
 | Metadata | `meta.implementation/runtime/os`; `meta.ci` job link and git revision/branch/tag | Arbitrary `metadata` key/value; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; `meta` producer/runtime/OS/CPU/protocol; `meta.ci` job link and git revision/branch/tag | **Match** |
@@ -140,8 +144,8 @@ dependency/architecture.
 | G11 | CI/git metadata from `meta.ci` | Match | — | No | Implemented: reads `meta.ci.name/url` and `meta.ci.git.revision/branch/tag`, renders a CI link (URL when the name is absent) and a short commit for https, scp-like and `ssh://` GitHub remotes. |
 | G12 | Attachment presentation polish | Match | — | No | Implemented: deterministic `attachment.<ext>` fallback, pretty JSON, `text/uri-list` links, ANSI logs with copy, and the image lightbox. |
 | G13 | External attachments / split assets | Deliberate difference | L | Yes | Do not copy. Keep rejecting remote URLs. A later opt-in split-assets mode is a separate product decision, not parity. |
-| G14 | `CucumberHtmlStream`-shaped adapter | Missing, optional | S | No | A Transform that collects envelopes and calls `renderHtml` on flush. Only needed if teams want to swap the formatter inside a Cucumber implementation without a post-run script. |
-| G15 | Parameter highlighting in steps | Missing, optional | S | No | Use `testStep.stepMatchArgumentsLists` and `parameterType` names to wrap matched fragments. Cosmetic; not needed for triage. |
+| G14 | `CucumberHtmlStream`-shaped adapter | Match (2026-11-12) | S | No | Exported `CucumberHtmlStream` Transform collects envelopes and calls the same renderer on flush; same options as `renderReport`. |
+| G15 | Parameter highlighting in steps | Match (2026-11-12) | S | No | Uses `testStep.stepMatchArgumentsLists` and parameter type names to wrap escaped matched fragments in `span.param`; plain fallback when ambiguous. |
 | G16 | Lazy rendering of closed documents | Different trade-off | L | No, but conflicts with no-JS | Do not copy React's lazy mount. Measure first; the static report is much smaller and works without JS. |
 
 ## 6. Priority
@@ -175,10 +179,9 @@ deliberate difference, not a gap.
 
 ### Optional / later
 
-10. **G14 stream adapter** if embedding into cucumber-js/jvm/ruby is a real
-    request.
-11. **G15 parameter highlighting** for visual fidelity.
-12. **G16 lazy rendering** only after a measured large-run problem; it would
+G14 (stream adapter) and G15 (parameter highlighting) shipped on 2026-11-12.
+
+10. **G16 lazy rendering** only after a measured large-run problem; it would
     weaken the no-JS guarantee.
 
 ### Never copy

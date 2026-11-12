@@ -31,6 +31,14 @@ offers a copy action.
 
 **Adapter** — code that turns an input format into Cucumber Messages.
 
+**Stream adapter** — `CucumberHtmlStream`, a Node `Transform` that accepts
+Messages envelopes and renders one HTML document on flush with the file API's
+options. It buffers the run; it is not an incremental renderer.
+
+**Parameter highlighting** — wrapping the fragments matched by a single
+`stepMatchArgumentsLists` entry in `span.param`, labelled with the Cucumber
+parameter type. It is cosmetic and does not change step text or the summary.
+
 **Normalisation** — converting legacy JSON into Messages so one renderer can
 handle both.
 

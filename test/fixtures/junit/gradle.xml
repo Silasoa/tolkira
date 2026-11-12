@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Provenance: synthetic, real-shaped Gradle 8.x test task XML.
+  Shape source: Gradle test reporting output
+  (root testsuite > properties/testcase, suite-level system-out/system-err).
+  Date: 2026-11-12. This is not a recorded CI run. No real paths, tokens or
+  personal data are included.
+-->
+<testsuite name="com.example.CheckoutTest" tests="4" skipped="1" failures="1" errors="1" timestamp="2026-11-12T09:30:00" hostname="ci-runner" time="0.25">
+  <properties>
+    <property name="java.version" value="21"/>
+  </properties>
+  <testcase name="guestCheckout()" classname="com.example.CheckoutTest" time="0.011"/>
+  <testcase name="expiredCoupon()" classname="com.example.CheckoutTest" time="0.013">
+    <failure message="expected: &lt;200&gt; but was: &lt;500&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;200&gt; but was: &lt;500&gt;
+    at com.example.CheckoutTest.expiredCoupon(CheckoutTest.java:42)</failure>
+  </testcase>
+  <testcase name="slowPayment()" classname="com.example.CheckoutTest" time="0.002">
+    <skipped message="disabled in CI"/>
+  </testcase>
+  <testcase name="brokenSetup()" classname="com.example.CheckoutTest" time="0.001">
+    <error message="IllegalStateException: no database" type="java.lang.IllegalStateException">java.lang.IllegalStateException: no database
+    at com.example.CheckoutTest.brokenSetup(CheckoutTest.java:50)</error>
+  </testcase>
+  <system-out><![CDATA[Gradle test worker stdout: request id req-42]]></system-out>
+  <system-err><![CDATA[Gradle test worker stderr: coupon warning]]></system-err>
+</testsuite>

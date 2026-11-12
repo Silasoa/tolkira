@@ -2,30 +2,21 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
+import { legacyFixture, messagesFixture } from '../fixtures.js';
 
 const fixtures = ['failed.json', 'minimal.json', 'behave.json'].map((name) =>
-  fileURLToPath(new URL(`../fixtures/legacy/${name}`, import.meta.url)),
+  legacyFixture(name),
 );
-const unhappy = fileURLToPath(
-  new URL('../fixtures/legacy/unhappy.json', import.meta.url),
+const unhappy = legacyFixture('unhappy.json');
+const outlineFixture = messagesFixture('examples-tables.ndjson');
+const allStatusesFixture = messagesFixture('all-statuses.ndjson');
+const rulesOutlineBackgroundFixture = messagesFixture(
+  'rules-outline-background.ndjson',
 );
-const outlineFixture = fileURLToPath(
-  new URL('../fixtures/messages/examples-tables.ndjson', import.meta.url),
-);
-const allStatusesFixture = fileURLToPath(
-  new URL('../fixtures/messages/all-statuses.ndjson', import.meta.url),
-);
-const rulesOutlineBackgroundFixture = fileURLToPath(
-  new URL('../fixtures/messages/rules-outline-background.ndjson', import.meta.url),
-);
-const ciFullFixture = fileURLToPath(
-  new URL('../fixtures/messages/ci-full.ndjson', import.meta.url),
-);
-const presentationFixture = fileURLToPath(
-  new URL('../fixtures/messages/attachments-presentation.ndjson', import.meta.url),
-);
+const ciFullFixture = messagesFixture('ci-full.ndjson');
+const presentationFixture = messagesFixture('attachments-presentation.ndjson');
 
 const viewports = [
   { width: 320, height: 700 },
@@ -409,9 +400,7 @@ test('keeps CI metadata, JSON and ANSI logs inside 320px and 200% zoom', async (
 test('keeps hooks readable at 320px and 200% zoom', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-hooks-responsive-'));
   const output = path.join(dir, 'hooks-responsive.html');
-  const hooks = fileURLToPath(
-    new URL('../fixtures/messages/hooks.ndjson', import.meta.url),
-  );
+  const hooks = messagesFixture('hooks.ndjson');
 
   try {
     const code = await runCli(

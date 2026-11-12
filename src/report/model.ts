@@ -49,6 +49,7 @@ export interface ReportStep {
   dataTable?: string[][];
   suggestions?: Array<{ language?: string; code: string }>;
   definitions?: Array<{ pattern: string; source?: string }>;
+  parameters?: Array<{ start: number; value: string; type: string }>;
   attachments: ReportAttachment[];
 }
 
@@ -721,6 +722,28 @@ export function buildReportModel(
             (definition): definition is { pattern: string; source?: string } =>
               Boolean(definition),
           );
+        const matchLists = testStep.stepMatchArgumentsLists ?? [];
+        const parameters: Array<{ start: number; value: string; type: string }> =
+          [];
+        if (matchLists.length === 1) {
+          for (const argument of matchLists[0]?.stepMatchArguments ?? []) {
+            const start = argument.group?.start;
+            const value = argument.group?.value;
+            if (
+              typeof start !== 'number' ||
+              !Number.isFinite(start) ||
+              typeof value !== 'string' ||
+              value.length === 0
+            ) {
+              continue;
+            }
+            parameters.push({
+              start,
+              value,
+              type: argument.parameterTypeName || 'anonymous',
+            });
+          }
+        }
         stepRows.push({
           id: testStep.id,
           order: testStepOrder++,
@@ -735,6 +758,7 @@ export function buildReportModel(
             ? { suggestions: stepSuggestions }
             : {}),
           ...(stepMatches.length > 0 ? { definitions: stepMatches } : {}),
+          ...(parameters.length > 0 ? { parameters } : {}),
           attachments: stepAttachments,
         });
       } else if (testStep.hookId) {

@@ -27,6 +27,20 @@ The dated cross-format limitations table is
 | cucumber-ruby | 12.0.1 real run | `message` formatter; `exception.message` carries the readable error while `message` is the stack, so the report merges them. |
 | Behave | not applicable | No Messages formatter. |
 
+## JUnit XML
+
+JUnit is basic mode: suites, test cases, statuses, durations, failures, errors,
+skipped cases and testcase-level `system-out`/`system-err`. Fixtures modelled
+on real output shapes, with provenance in `test/fixtures/junit/`, cover:
+
+| Producer | Tested shape | Notes |
+| --- | --- | --- |
+| jest-junit | 16.x | Synthetic but real-shaped; `<testsuites>` root and testcase-level output. |
+| pytest | 8.x `--junitxml` | Synthetic but real-shaped; `<properties>` and suite-level output are tolerated, not mapped. |
+| Gradle | 8.x test task | Synthetic but real-shaped; root `<testsuite>`, `<properties>`, `<failure>`/`<error>`/`<skipped>`. |
+
+See [`JUNIT-XML.md`](JUNIT-XML.md) for the mapping and limits.
+
 ## Scenario outlines
 
 Messages input carries the Gherkin document, so Tolkira groups executed

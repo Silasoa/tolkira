@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Provenance: synthetic, real-shaped pytest 8.x junitxml output.
+  Shape source: pytest `--junitxml` documentation and default output
+  (testsuites > testsuite > properties/testcase, suite-level system-out/err).
+  Date: 2026-11-12. This is not a recorded CI run. No real paths, tokens or
+  personal data are included.
+-->
+<testsuites>
+  <testsuite name="pytest" errors="0" failures="1" skipped="1" tests="3" time="0.35" timestamp="2026-11-12T09:15:00.123456" hostname="ci-runner">
+    <properties>
+      <property name="python_requires" value="&gt;=3.9"/>
+      <property name="ci" value="github-actions"/>
+    </properties>
+    <testcase classname="tests.test_checkout" name="test_guest_checkout" file="tests/test_checkout.py" line="10" time="0.002"/>
+    <testcase classname="tests.test_checkout" name="test_expired_coupon" file="tests/test_checkout.py" line="18" time="0.003">
+      <failure message="assert 200 == 500">def test_expired_coupon():
+&gt;       assert response.status_code == 200
+E       assert 500 == 200</failure>
+    </testcase>
+    <testcase classname="tests.test_checkout" name="test_slow_payment" file="tests/test_checkout.py" line="25" time="0.001">
+      <skipped type="pytest.skip" message="slow payments disabled in CI">tests/test_checkout.py:25: Skipped</skipped>
+    </testcase>
+    <system-out><![CDATA[Captured stdout call: request id req-42]]></system-out>
+    <system-err><![CDATA[Captured stderr call: coupon warning]]></system-err>
+  </testsuite>
+</testsuites>

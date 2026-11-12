@@ -1853,10 +1853,10 @@ describe('parity rules rendering', () => {
 
     expect(html).not.toContain('<section class="background"');
     expect(
-      html.match(/<\/span> an order for &quot;eggs&quot;<\/div>/g),
+      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/div>/g),
     ).toHaveLength(2);
     expect(
-      html.match(/<\/span> an order for &quot;milk&quot;<\/div>/g),
+      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/div>/g),
     ).toHaveLength(2);
     expect(html.match(/<\/span> an action<\/div>/g)).toHaveLength(2);
   });
@@ -1880,10 +1880,10 @@ describe('parity rules rendering', () => {
     expect(html).toContain('Background:</span> Shared order');
     expect(html).toContain('Order setup.');
     expect(
-      html.match(/<\/span> an order for &quot;eggs&quot;<\/div>/g),
+      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/div>/g),
     ).toHaveLength(2);
     expect(
-      html.match(/<\/span> an order for &quot;milk&quot;<\/div>/g),
+      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/div>/g),
     ).toHaveLength(2);
   });
 

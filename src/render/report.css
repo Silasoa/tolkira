@@ -241,6 +241,7 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .marker { width: 0.375rem; height: 0.375rem; border-radius: 1px; background: var(--line-strong); }
 .marker.pass { background: var(--pass); } .marker.fail { background: var(--fail); } .marker.pending { background: var(--pending); } .marker.undefined { background: var(--undefined); } .marker.ambiguous, .marker.skipped, .marker.unknown { background: var(--muted); }
 .step .kw { color: var(--muted); }
+.step .param { color: var(--accent-text); font-weight: 500; }
 .step .dur { color: var(--accent-text); font-family: var(--font-mono); font-size: 0.6875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .diagnostic { margin: 0.375rem 0 0.125rem; padding: 0.5rem 0.625rem; border: 1px solid var(--line); border-left: 3px solid var(--undefined); border-radius: 5px; background: var(--undefined-soft); }
 .diagnostic[data-diagnostic="ambiguous"] { border-left-color: var(--ambiguous); background: var(--surface-3); }

@@ -2,15 +2,12 @@ import { expect, test } from '@playwright/test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
+import { legacyFixture, messagesFixture } from '../fixtures.js';
 
-const tagFixture = fileURLToPath(
-  new URL('../fixtures/legacy/tag-expressions.json', import.meta.url),
-);
-const markdownFixture = fileURLToPath(
-  new URL('../fixtures/messages/markdown-descriptions.ndjson', import.meta.url),
-);
+const tagFixture = legacyFixture('tag-expressions.json');
+const markdownFixture = messagesFixture('markdown-descriptions.ndjson');
 
 async function writeReport(
   inputs: string[],

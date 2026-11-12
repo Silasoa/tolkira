@@ -1,3 +1,5 @@
+import { Transform, type TransformCallback } from 'node:stream';
+import type { Envelope } from '@cucumber/messages';
 import { loadInputs, provenanceFor } from './input/load.js';
 import { renderHtml } from './render/html.js';
 import { summarizeEnvelopes } from './summary.js';
@@ -27,6 +29,15 @@ export interface GeneratedReport {
   summary: ReportSummary;
 }
 
+function renderOptions(options: RenderReportOptions) {
+  return {
+    title: options.title ?? 'Tolkira report',
+    metadata: options.metadata,
+    logo: options.logo,
+    accent: options.accent,
+  };
+}
+
 export async function generateReport(
   inputs: string | string[],
   options: RenderReportOptions = {},
@@ -36,15 +47,42 @@ export async function generateReport(
   const summary = summarizeEnvelopes(envelopes);
   return {
     html: await renderHtml(envelopes, {
-      title: options.title ?? 'Tolkira report',
-      metadata: options.metadata,
-      logo: options.logo,
-      accent: options.accent,
+      ...renderOptions(options),
       summary,
       provenance: groups.length > 1 ? provenanceFor(groups) : undefined,
     }),
     summary,
   };
+}
+
+/**
+ * A `CucumberHtmlStream`-shaped adapter for Cucumber Messages. It collects
+ * envelopes and renders one HTML document on flush with the same options and
+ * renderer as `renderReport`.
+ */
+export class CucumberHtmlStream extends Transform {
+  private readonly envelopes: Envelope[] = [];
+
+  constructor(private readonly options: RenderReportOptions = {}) {
+    super({ objectMode: true });
+  }
+
+  _transform(
+    envelope: Envelope,
+    _encoding: BufferEncoding,
+    callback: TransformCallback,
+  ): void {
+    this.envelopes.push(envelope);
+    callback();
+  }
+
+  _flush(callback: TransformCallback): void {
+    renderHtml(this.envelopes, renderOptions(this.options)).then(
+      (html) => callback(null, html),
+      (error: unknown) =>
+        callback(error instanceof Error ? error : new Error(String(error))),
+    );
+  }
 }
 
 export async function renderReport(

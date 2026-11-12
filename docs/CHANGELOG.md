@@ -7,6 +7,18 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- `CucumberHtmlStream` is a Node `Transform` over Cucumber Messages envelopes.
+  It collects envelopes and emits the same HTML as `renderReport` on flush,
+  with the same title, metadata, logo and accent options. It writes no files
+  and emits no summary.
+- Matched step parameters render inside `span.param` with their Cucumber
+  parameter type from `stepMatchArgumentsLists`; all fragments are escaped.
+  Steps without exactly one match list, or with invalid/overlapping ranges,
+  keep the plain escaped text. Search, copy and the JSON summary are unchanged.
+- JUnit XML producer fixtures for jest-junit, pytest and Gradle, with recorded
+  provenance and coverage for suites, test cases, failures, errors, skipped
+  cases and testcase-level `system-out`/`system-err`. The adapter is unchanged;
+  the fixtures characterise its existing behaviour.
 - Feature, rule, background, scenario and examples descriptions render a safe
   GFM subset through `markdown-it`: headings, emphasis, code, links, lists,
   tables and blockquotes. Raw HTML stays escaped, links are limited to
@@ -98,6 +110,8 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- Test fixtures resolve through `test/fixtures.ts` helpers; the browser specs
+  no longer repeat `fileURLToPath(new URL(...))` fixture constants.
 - Empty and unexecuted scenarios now match the official formatter. A scenario
   whose selected test case started with zero raw step results, including a
   started-but-unfinished case, renders as an unexecuted row without an outcome

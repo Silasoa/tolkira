@@ -151,6 +151,10 @@ for the full schema and exit codes.
   plain substring search.
 - **Shareable filtered views.** Search, hidden statuses and the tag filter live
   in `?query=`, repeated `?hide=` and `?tag=`, so a URL reproduces the same view.
+- **Parameter highlighting.** Matched step arguments render with their Cucumber
+  parameter type from Messages; ambiguous or unmatched steps stay plain.
+- **Messages stream adapter.** `CucumberHtmlStream` accepts envelopes and emits
+  the same offline HTML as `renderReport`, for embedding without a temp file.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
 - **A Details view when you need it.** Status distribution, a feature-by-status

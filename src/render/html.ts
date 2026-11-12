@@ -622,6 +622,32 @@ function renderDiagnostic(step: ReportStep): string {
   return '';
 }
 
+function renderStepText(step: ReportStep): string {
+  if (!step.parameters?.length) return escapeHtml(step.text);
+
+  let cursor = 0;
+  let html = '';
+  for (const parameter of step.parameters) {
+    if (
+      !Number.isFinite(parameter.start) ||
+      parameter.start < cursor ||
+      parameter.start >= step.text.length
+    ) {
+      continue;
+    }
+    const end = Math.min(
+      parameter.start + parameter.value.length,
+      step.text.length,
+    );
+    const matched = step.text.slice(parameter.start, end);
+    if (!matched) continue;
+    html += escapeHtml(step.text.slice(cursor, parameter.start));
+    html += `<span class="param" data-parameter-type="${escapeHtml(parameter.type)}">${escapeHtml(matched)}</span>`;
+    cursor = end;
+  }
+  return html + escapeHtml(step.text.slice(cursor));
+}
+
 function renderStep(step: ReportStep, scenarioName: string): string {
   const diagnostic = renderDiagnostic(step);
   const docString = step.docString
@@ -647,7 +673,7 @@ function renderStep(step: ReportStep, scenarioName: string): string {
   const attachments = step.attachments
     .map((attachment) => renderAttachment(attachment, context))
     .join('');
-  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${escapeHtml(step.text)}${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
+  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${renderStepText(step)}${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
 }
 
 function hookLabel(

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Provenance: synthetic, real-shaped jest-junit 16.0.0 output.
+  Shape source: jest-junit README and default reporter output
+  (testsuites > testsuite > testcase, testcase-level system-out/system-err).
+  Date: 2026-11-12. This is not a recorded CI run. No real paths, tokens or
+  personal data are included.
+-->
+<testsuites name="jest tests" tests="3" failures="1" errors="0" skipped="1" time="0.42">
+  <testsuite name="checkout" errors="0" failures="1" skipped="1" timestamp="2026-11-12T09:00:00" time="0.40" tests="3">
+    <testcase classname="checkout.guest" name="guest checkout" time="0.12"/>
+    <testcase classname="checkout.coupon" name="expired coupon" time="0.21">
+      <failure message="Expected 200, got 500">AssertionError: Expected 200, got 500
+    at checkout.test.ts:42:5</failure>
+      <system-out><![CDATA[console.log checkout request id: req-42]]></system-out>
+      <system-err><![CDATA[console.error coupon stack trace]]></system-err>
+    </testcase>
+    <testcase classname="checkout.payment" name="slow payment" time="0.07">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>
