@@ -231,6 +231,87 @@ test('keeps long unbroken text inside 320px', async ({ page }) => {
   }
 });
 
+test('keeps a wide Markdown table inside 320px and 200% zoom', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-wide-table-'));
+  const input = path.join(dir, 'wide-table.json');
+  const output = path.join(dir, 'wide-table.html');
+  const headers = Array.from({ length: 20 }, (_, index) => `Column ${index + 1}`);
+  const description = [
+    `| ${headers.join(' | ')} |`,
+    `| ${headers.map(() => '---').join(' | ')} |`,
+    `| ${headers.map((_, index) => `Value ${index + 1}`).join(' | ')} |`,
+  ].join('\n');
+
+  try {
+    await writeFile(
+      input,
+      JSON.stringify([
+        {
+          name: 'Wide table feature',
+          description,
+          elements: [
+            {
+              keyword: 'Scenario',
+              type: 'scenario',
+              name: 'Wide table scenario',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a failing step',
+                  result: {
+                    status: 'failed',
+                    duration: 1,
+                    error_message: 'expected failure',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'utf8',
+    );
+    const code = await runCli(
+      [input, '--out', output, '--title', 'Wide table'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(pathToFileURL(output).href);
+    const table = page.locator('.description .tableWrap').first();
+    await expectWithinViewport(page, table, 'wide table at 320');
+    expect(
+      await table.evaluate(
+        (element) => element.scrollWidth > element.clientWidth,
+      ),
+      'wide table scrolls at 320',
+    ).toBe(true);
+    expect(await pageOverflow(page), 'wide table 320 overflow').toBeLessThanOrEqual(
+      1,
+    );
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    await expectWithinViewport(page, table, 'wide table at 200%');
+    expect(
+      await table.evaluate(
+        (element) => element.scrollWidth > element.clientWidth,
+      ),
+      'wide table scrolls at 200%',
+    ).toBe(true);
+    expect(
+      await pageOverflow(page),
+      'wide table 200% overflow',
+    ).toBeLessThanOrEqual(1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('keeps a long source name inside 320px', async ({ page }) => {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-long-source-'));
   const longName = `report_${'a'.repeat(60)}.json`;

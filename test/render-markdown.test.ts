@@ -242,6 +242,26 @@ describe('safe GFM descriptions', () => {
     }
   });
 
+  it('renders safe reference links and keeps reference images alt-only', async () => {
+    const html = await renderSynthetic(
+      'Feature text.',
+      `[docs][ref] and [bad][unsafe] plus ![shot][shot]
+
+[ref]: https://example.com/docs
+[shot]: https://example.com/shot.png
+[unsafe]: javascript:alert(1)`,
+    );
+    const description = scenarioDescription(html, 'Synthetic scenario');
+
+    expect(description).toContain('href="https://example.com/docs"');
+    expect(description).toContain('rel="noopener noreferrer nofollow"');
+    expect(description).not.toContain('<img');
+    expect(description).not.toContain('example.com/shot.png');
+    expect(description).not.toMatch(/href="javascript:/i);
+    expect(description).toContain('shot');
+    expect(description).toContain('bad');
+  });
+
   it('escapes a hostile link target', async () => {
     const html = await renderSynthetic(
       `[hostile](https://example.com/"onmouseover="alert(1))\n\n[uppercase](JaVaScRiPt:alert(1))`,
@@ -282,10 +302,11 @@ describe('safe GFM descriptions', () => {
     expect(feature).toContain('unclosed code');
   });
 
-  it('omits an empty description container', async () => {
-    const html = await renderSynthetic('', '');
-
-    expect(html.match(/class="description"/g) ?? []).toHaveLength(0);
+  it('omits an empty or whitespace-only description container', async () => {
+    for (const description of ['', '   ', '\n\t ']) {
+      const html = await renderSynthetic(description, description);
+      expect(html.match(/class="description"/g) ?? []).toHaveLength(0);
+    }
   });
 
   it('applies the safe renderer to legacy descriptions', async () => {

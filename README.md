@@ -143,6 +143,14 @@ for the full schema and exit codes.
   files are preserved through the legacy JSON adapter.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by
   status and tag; open matching features automatically and highlight matches.
+- **Rendered descriptions.** Feature, rule, background, scenario and examples
+  descriptions render a safe GFM subset - headings, emphasis, code, lists,
+  tables, quotes and http(s)/mailto links - from Messages, legacy JSON and JUnit.
+- **Tag expressions.** Search accepts the official Cucumber grammar
+  (`@a and not @b`, parentheses, escaped tags). Mixed text and tags fall back to
+  plain substring search.
+- **Shareable filtered views.** Search, hidden statuses and the tag filter live
+  in `?query=`, repeated `?hide=` and `?tag=`, so a URL reproduces the same view.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
 - **A Details view when you need it.** Status distribution, a feature-by-status
@@ -191,6 +199,15 @@ Single-file output alone is no longer unique: the official formatter and Allure
 can produce one file. Tolkira's difference is the combination - both Cucumber
 generations, JUnit as cheap breadth, an agent-readable summary, and no server,
 CDN or telemetry.
+
+### What parity means here
+
+"Parity" in this project means content and navigation: the same statements,
+steps, tags, statuses, durations and descriptions, plus search, tag expressions
+and shareable filter URLs, whether the input is legacy JSON, Messages or JUnit.
+It does not mean theme parity with `cucumber-html-reporter`, a report folder, or
+external attachments; Tolkira deliberately stays one offline file. The honest
+claim is credible Messages report parity, not full formatter parity.
 
 ### How it compares
 
@@ -274,9 +291,10 @@ main().catch((error) => {
 The wrapper is only for the compatibility subpath; the core package, CLI and
 other exports remain ESM-only. There is no default export.
 
-**Version note:** the CommonJS `require` path is new in Tolkira 0.3.0. The
-published 0.2.0 package exposes only the ESM `import` path; use the ESM form
-there, or install a 0.3.0 tarball from the repository until it is released.
+**Version note (unreleased):** the CommonJS `require` path is new in Tolkira
+0.3.0, which is not published yet. The published 0.2.0 package exposes only the
+ESM `import` path; use the ESM form there, or install a 0.3.0 tarball from the
+repository once that release is available.
 
 The options object is mostly compatible, but the call contract is not. Only
 the import style changing is not the whole story:

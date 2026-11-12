@@ -57,22 +57,24 @@ Measured 2026-11-12 after implementation with Node.js 26.13.0, esbuild 0.28.2,
 `markdown-it` 15.0.3 and `@cucumber/tag-expressions` 11.0.1. The packed and
 unpacked package sizes match the baseline above.
 
-| Bundle | Minified | Gzip |
-| --- | ---: | ---: |
-| Tag-expression evaluator IIFE (platform `browser`) | 3,566 B | 1,348 B |
+The report now ships one minified script artifact: the tag-expression, URL-state
+and open-state API plus the inline report script. `scripts/build-search.mjs`
+bundles and minifies both with browser target `chrome100`, `firefox100` and
+`safari15`, and fails the build above an explicit **16,000-byte budget**.
+Delivered size: 15,218 B minified / 5,131 B gzip.
 
 `renderReport` from the built `dist/index.js`, title `Size baseline`:
 
-| Fixture | HTML | Gzip | Inline scripts |
+| Fixture | HTML | Gzip | Inline script |
 | --- | ---: | ---: | ---: |
-| `test/fixtures/messages/empty.ndjson` | 68,211 B | 15,565 B | 22,564 B |
-| `test/fixtures/messages/markdown-descriptions.ndjson` | 78,877 B | 16,732 B | 22,564 B |
-| `test/fixtures/legacy/tag-expressions.json` | 74,094 B | 16,044 B | 22,564 B |
+| `test/fixtures/messages/empty.ndjson` | 60,794 B | 14,592 B | 15,218 B |
+| `test/fixtures/messages/markdown-descriptions.ndjson` | 71,569 B | 15,776 B | 15,218 B |
+| `test/fixtures/legacy/tag-expressions.json` | 66,677 B | 15,076 B | 15,218 B |
 
-Delta against the baseline: +7,911 B / +2,311 B gzip for the empty report,
-+8,925 B / +2,592 B gzip with Markdown descriptions and +7,899 B / +2,304 B gzip
-for tag expressions. The delta is larger than the early 3.3 KB estimate because
-the main inline script now also carries URL restore, serialisation, control
-sync and tag-expression wiring (about 2.9 KB unminified source); the IIFE is
-3.6 KB minified / 1.3 KB gzip. `markdown-it` stays server-side and adds no
+Delta against the pre-change baseline: +494 B / +1,338 B gzip for the empty
+report, +1,617 B / +1,636 B gzip with Markdown descriptions and +482 B /
++1,336 B gzip for tag expressions. The one minified script is smaller than the
+old unminified 16,084 B script but compresses slightly worse because minification
+removes whitespace that gzip repeated cheaply; the added tag-expression parser
+accounts for the remaining delta. `markdown-it` stays server-side and adds no
 report runtime.

@@ -47,13 +47,13 @@ recorded in `size.md`.
 ### Tag-expression parser in the inline script
 
 Use the official `@cucumber/tag-expressions` package. A small
-`src/render/search.ts` entry exports the tag-shaped check and evaluator; esbuild
-bundles it into an IIFE injected before the main inline script. Treat the whole
+`src/render/search.ts` entry exports the tag-shaped check, evaluator, URL
+state and open-state helpers. `scripts/build-search.mjs` bundles it with the
+report script into one minified inline artifact at build time. Treat the whole
 query as an expression only when it is tag-shaped; mixed text/tags stay text.
 Invalid expressions fall back to substring search. Status filters and the tag
-dropdown combine with a valid expression using AND. While an expression is
-active, the tag dropdown stays pinned to its selected tag; clearing the search
-releases the shortcut. The 20-newly-opened cap applies to the final visible
+dropdown combine with a valid expression using AND. Clearing the tag dropdown
+always applies immediately. The 20-newly-opened cap applies to the final visible
 set.
 
 ### URL state

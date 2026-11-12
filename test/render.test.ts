@@ -643,7 +643,7 @@ describe('messages rendering', () => {
     const html = await renderReport(fixture, { title: 'Highlight' });
 
     expect(html).toContain('CSS.highlights');
-    expect(html).toContain("CSS.highlights.set('tolkira-search'");
+    expect(html).toMatch(/CSS\.highlights\.set\(["']tolkira-search["']/);
     expect(html).toContain('new Highlight');
     expect(html).toContain('::highlight(tolkira-search)');
   });

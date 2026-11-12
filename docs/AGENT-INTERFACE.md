@@ -262,10 +262,10 @@ outside `features/`).
 
 - Remote attachments (`attachment.url`, `externalAttachment`) are rejected on
   purpose; the report must work offline. Inline the bytes.
-- Description Markdown is HTML-only. Remote image destinations are neutralised
-  and images render as alt text, so the report loads no external asset. JUnit
-  `description` attributes are a best-effort, non-standard mapping; they never
-  appear in the summary.
+- Description Markdown renders only in the HTML report. Remote image
+  destinations are neutralised and images render as alt text, so the report
+  loads no external asset. JUnit `description` attributes are a best-effort,
+  non-standard mapping; they never appear in the summary.
 - Tag-expression search, the tag dropdown and `?query=`/`?hide=`/`?tag=` URL
   state are HTML-only progressive enhancements. The summary schema, counts and
   no-JS report are unchanged.

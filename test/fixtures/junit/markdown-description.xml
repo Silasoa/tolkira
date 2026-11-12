@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Local hand-written fixture for JUnit description attributes; not a producer capture. -->
 <testsuites name="markdown">
   <testsuite name="JUnit markdown" tests="1" failures="0" time="0.001"
     description="# JUnit heading&#10;&#10;A **bold** line with [link](https://example.com/junit).">

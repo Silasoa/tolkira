@@ -21,7 +21,7 @@
 - [x] 2.2 Implement the tag-expression parser with substring fallback and cap;
   verify 1.3 green.
 - [x] 2.3 Implement URL state (`query`, repeated `hide`, `tag`) with
-  `replaceState`/`popstate`.
+  `replaceState`.
 - [x] 2.4 Keep counts/summary unchanged; run `npm run check` and
   `npm run test:e2e`.
 

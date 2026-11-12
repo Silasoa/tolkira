@@ -68,7 +68,7 @@ describe('input sanitisation', () => {
     expect(description).not.toContain('tolkira-probe.invalid');
   });
 
-  it('strips reference-style and angle-bracket remote images', () => {
+  it('keeps reference definitions while stripping angle-bracket remote images', () => {
     const envelopes = parseLegacyJson(
       JSON.stringify([
         {
@@ -85,8 +85,12 @@ describe('input sanitisation', () => {
       (envelope) => envelope.gherkinDocument,
     )?.gherkinDocument?.feature?.description;
 
-    expect(description).not.toContain('tolkira-probe.invalid');
-    expect(description).toContain('pixel');
+    expect(description).toContain(
+      '[ref]: https://tolkira-probe.invalid/x.png',
+    );
+    expect(description).toContain('![pixel][ref]');
+    expect(description).toContain('![angle]()');
+    expect(description).not.toContain('<https://tolkira-probe.invalid/x.png>');
   });
 
   it('rejects unknown and missing step statuses', () => {

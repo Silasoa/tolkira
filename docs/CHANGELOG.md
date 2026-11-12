@@ -25,7 +25,8 @@ Keep a Changelog and the project uses semantic versioning.
   `?tag=`. A report restores them on load, synchronises the search box, status
   buttons and tag select, and updates the URL with `replaceState` while
   preserving the hash and unrelated parameters. `file://` and blocked
-  `replaceState` keep filtering functional.
+  `replaceState` keep filtering functional. Clearing the tag dropdown always
+  applies immediately.
 - `require('tolkira/compat/cucumber-html-reporter')` now works from CommonJS.
   A tracked `.cts` wrapper emits `.cjs` plus `.d.cts` declarations, dynamically
   imports the ESM shim and forwards `generate(options, callback?)` without a

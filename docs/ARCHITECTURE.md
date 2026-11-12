@@ -79,9 +79,11 @@ and is covered by real producer fixtures.
   the agent summary.
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
   generates `src/render/styles.ts` for the inline report.
-- `src/render/search.ts` is bundled by `scripts/build-search.mjs` into the small
-  `TolkiraSearch` IIFE in `src/render/search-bundle.ts`; `npm run assets`
-  regenerates both generated modules.
+- `src/render/search.ts` carries the tag-expression, URL-state and open-state
+  helpers; `src/render/report-client.js` is the browser script.
+  `scripts/build-search.mjs` minifies both into one `CLIENT_SCRIPT` artifact in
+  `src/render/client-bundle.ts`; `npm run assets` regenerates the generated
+  modules.
 - Adds a small shell: visible title, optional logo and accent colour, system
   dark mode.
 - No CDN, no external fonts, no network requests.

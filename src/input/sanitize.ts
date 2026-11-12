@@ -12,20 +12,19 @@ const REMOTE_MARKDOWN_IMAGE =
   /!\[([^\]]*)\]\(\s*(?:https?:)?\/\/[^)\s]+(?:\s+["'][^"']*["'])?\s*\)/gi;
 const REMOTE_ANGLE_IMAGE =
   /!\[([^\]]*)\]\(\s*<(?:https?:)?\/\/[^>]+>\s*\)/gi;
-const REMOTE_REFERENCE_DEFINITION =
-  /^(\s*\[[^\]]+\]:)\s*(?:https?:)?\/\/\S+.*$/gim;
 const RAW_IMAGE_TAG = /<img\b[^>]*>/gi;
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 const MAX_TOTAL_ATTACHMENT_BYTES = 100 * 1024 * 1024;
 
 // The Markdown renderer owns images and emits alt text only. Neutralise remote
-// destinations here so no image URL survives into the report.
+// image destinations here so no image URL survives into the report. Reference
+// definitions stay intact: the renderer never emits an image URL and
+// reference-style links must keep working.
 function stripRemoteImages(value: string | undefined): string {
   if (typeof value !== 'string') return '';
   return value
     .replace(REMOTE_ANGLE_IMAGE, '![$1]()')
     .replace(REMOTE_MARKDOWN_IMAGE, '![$1]()')
-    .replace(REMOTE_REFERENCE_DEFINITION, '$1 <>')
     .replace(RAW_IMAGE_TAG, '');
 }
 

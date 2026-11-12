@@ -50,7 +50,11 @@ win.
 `markdown-descriptions.*` is a local composition for safe GFM rendering. Its
 feature, rule, background, scenario, outline and examples descriptions cover
 headings, lists, tables, blockquotes, links, raw HTML and inline, reference and
-linked images. The `.feature` file documents the Gherkin source.
+linked images. The `.ndjson` file is the authoritative input; the `.feature`
+file is an abridged illustration. The legacy and JUnit Markdown fixtures under
+`test/fixtures/legacy/markdown-description.json` and
+`test/fixtures/junit/markdown-description.xml` are local hand-written inputs
+for the same renderer, not producer captures.
 
 `attachments-naming.ndjson`, `attachments-presentation.ndjson` and
 `attachments-large.ndjson` are local compositions for attachment polish.

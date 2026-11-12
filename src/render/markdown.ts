@@ -8,10 +8,14 @@ const markdown = new MarkdownIt({
 });
 
 const SAFE_LINK = /^(?:https?:\/\/|mailto:)/i;
+// Images are alt-only, so their destination only needs to parse. Relative and
+// data:image destinations never reach the HTML; anchors still use SAFE_LINK.
+const SAFE_IMAGE = /^(?:https?:\/\/|mailto:|data:image\/|\.{0,2}\/)/i;
 
-// markdown-it shares validateLink between links and images, and images are
-// alt text only, so accept parsing here and police anchors in the core rule.
-markdown.validateLink = (): boolean => true;
+// markdown-it uses one validateLink hook for links and images. Keep only
+// destinations that can render without a network request or a dangerous scheme.
+markdown.validateLink = (url): boolean =>
+  SAFE_LINK.test(url) || SAFE_IMAGE.test(url);
 
 markdown.renderer.rules.link_open = (tokens, index, options, _env, self) => {
   tokens[index]?.attrSet('rel', 'noopener noreferrer nofollow');
@@ -79,6 +83,6 @@ markdown.renderer.rules.table_open = () =>
 markdown.renderer.rules.table_close = () => '</table></div>';
 
 export function renderDescription(description: string): string {
-  if (!description) return '';
+  if (!description || !description.trim()) return '';
   return `<div class="description">${markdown.render(description)}</div>`;
 }

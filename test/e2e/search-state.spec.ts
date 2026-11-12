@@ -170,9 +170,12 @@ test('combines a tag expression with status and tag filters using AND', async ({
     await expect(page.locator('#empty-results')).toBeVisible();
 
     await tag.selectOption('');
+    await expect(page.locator('#tolkira-live')).toHaveText(
+      '1 of 4 scenarios visible',
+    );
     await passed.click();
     await expect(page.locator('#tolkira-live')).toHaveText(
-      '2 of 4 scenarios visible',
+      '3 of 4 scenarios visible',
     );
     await expect(
       page.getByRole('heading', { name: 'gamma three' }),
@@ -226,6 +229,99 @@ test('caps newly opened rows for a tag expression at 20', async ({ page }) => {
     await search.fill('');
     await expect(page.locator('details.scenario[open]')).toHaveCount(0);
     await expect(page.locator('#tolkira-search-note')).toBeHidden();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('counts only newly opened rows against the search cap', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-newly-opened-cap-'));
+  const input = path.join(dir, 'partly-open.json');
+  const output = path.join(dir, 'partly-open.html');
+
+  try {
+    const elements = Array.from({ length: 30 }, (_, index) => ({
+      keyword: 'Scenario',
+      type: 'scenario',
+      name: `Cap scenario ${index + 1}`,
+      tags: ['@a'],
+      steps: [
+        {
+          keyword: 'Given ',
+          name: 'a step',
+          result:
+            index < 10
+              ? {
+                  status: 'failed',
+                  duration: 1,
+                  error_message: 'expected failure',
+                }
+              : { status: 'passed', duration: 1 },
+        },
+      ],
+    }));
+    await writeFile(
+      input,
+      JSON.stringify([{ name: 'Partly open feature', elements }]),
+      'utf8',
+    );
+    const code = await runCli(
+      [input, '--out', output, '--title', 'Newly opened cap'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(reportUrl(output));
+    await expect(page.locator('details.scenario[open]')).toHaveCount(10);
+
+    const search = page.locator('input[data-search]');
+    await search.fill('@a');
+    await expect(page.locator('#tolkira-live')).toHaveText(
+      '30 of 30 scenarios visible',
+    );
+    await expect(page.locator('details.scenario[open]')).toHaveCount(30);
+    await expect(page.locator('#tolkira-search-note')).toContainText(
+      '20 of 30 matches expanded',
+    );
+
+    await search.fill('');
+    await expect(page.locator('details.scenario[open]')).toHaveCount(10);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('restores query, hide and tag after a reload', async ({ page }) => {
+  const { dir, output } = await writeReport(
+    [tagFixture],
+    'Reload round-trip',
+    'tolkira-reload-round-trip-',
+  );
+
+  try {
+    await page.goto(reportUrl(output, '#scenario-1-1'));
+    const search = page.locator('input[data-search]');
+    const passed = page.locator('button.filter[data-status="passed"]');
+    const tag = page.locator('select[data-tag-filter]');
+
+    await search.fill('@a or @b');
+    await passed.click();
+    await tag.selectOption('@b');
+    await expect
+      .poll(() =>
+        page.evaluate(() => new URL(location.href).searchParams.get('tag')),
+      )
+      .toBe('@b');
+
+    await page.reload();
+
+    await expect(search).toHaveValue('@a or @b');
+    await expect(passed).toHaveAttribute('aria-pressed', 'false');
+    await expect(tag).toHaveValue('@b');
+    await expect(page.locator('#tolkira-live')).toHaveText(
+      '1 of 4 scenarios visible',
+    );
+    expect(new URL(page.url()).hash).toBe('#scenario-1-1');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

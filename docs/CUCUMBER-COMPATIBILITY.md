@@ -154,7 +154,12 @@ emit `h1`, `h2`, `h5` or `h6`; tables sit in the focusable scroll region.
 The same renderer covers Messages, legacy JSON and JUnit. JUnit has no standard
 description field; Tolkira reads the non-standard `description` attributes on
 `<testsuite>` and `<testcase>` when present and otherwise keeps plain names.
-Descriptions remain HTML-only and do not change the JSON summary.
+Descriptions render only in the HTML report and do not change the JSON summary.
+The Markdown fixtures are local hand-written inputs, not producer captures:
+`markdown-descriptions.ndjson` is authoritative, `markdown-descriptions.feature`
+is an abridged illustration of the Gherkin source,
+`legacy/markdown-description.json` covers the legacy adapter and
+`junit/markdown-description.xml` covers the JUnit description attributes.
 
 ## Search and URL state
 
@@ -163,9 +168,8 @@ whole query is tag-shaped: `@a and not @b`, `not @a`, parentheses and escaped
 tag characters. Text mixed with tags and invalid expressions fall back to the
 existing substring search, with no error. Status filters and the tag dropdown
 combine with a valid expression using AND, and the final visible set still opens
-at most 20 newly expanded rows. While a tag expression is active, the tag
-dropdown stays pinned to its selected tag; clear the search first to release
-the shortcut before clearing the dropdown.
+at most 20 newly expanded rows. Clearing the tag dropdown always applies
+immediately, even while a tag expression is active.
 
 The report stores `query`, every repeated lowercase `hide` value and `tag` in
 the URL, restores them on load and synchronises the search input, status
