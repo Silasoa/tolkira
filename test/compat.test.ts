@@ -160,6 +160,23 @@ describe('cucumber-html-reporter compat', () => {
     ).resolves.toContain('Happy HTML reporting');
   });
 
+  it('enforces the total input cap before reading every file', async () => {
+    const dir = await tempDir();
+    for (const name of ['first.json', 'second.json']) {
+      const handle = await open(path.join(dir, name), 'w');
+      await handle.truncate(60 * 1024 * 1024);
+      await handle.close();
+    }
+
+    await expect(
+      generate({
+        jsonDir: dir,
+        output: path.join(dir, 'report.html'),
+        ignoreBadJsonFile: true,
+      }),
+    ).rejects.toThrow('Inputs exceed 100 MB in total.');
+  });
+
   it('keeps the callback signature', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'callback.html');

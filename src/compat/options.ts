@@ -154,12 +154,19 @@ export async function resolveInputs(
   if (!options.ignoreBadJsonFile) return files;
 
   const valid: string[] = [];
+  let totalBytes = 0;
   for (const file of files) {
     const info = await stat(file);
     if (info.size > MAX_TOTAL_INPUT_BYTES) {
       warnings.push(`skipped oversized JSON file ${file}: over 100 MB`);
       continue;
     }
+    if (totalBytes + info.size > MAX_TOTAL_INPUT_BYTES) {
+      throw new Error(
+        'Inputs exceed 100 MB in total. Split the report or use external attachments.',
+      );
+    }
+    totalBytes += info.size;
     try {
       const parsed: unknown = JSON.parse(await readFile(file, 'utf8'));
       if (!Array.isArray(parsed)) throw new Error('not a feature array');
