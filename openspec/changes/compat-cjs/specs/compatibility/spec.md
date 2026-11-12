@@ -5,8 +5,8 @@
 ### Requirement: Load the compat subpath from CommonJS
 
 The compatibility subpath SHALL be loadable with `require()` and SHALL expose
-an async `generate(options)` function. It SHALL delegate to the ESM shim and
-SHALL NOT add a default export.
+an async `generate(options, callback?)` function. It SHALL delegate to the ESM
+shim, forward the optional callback, and SHALL NOT add a default export.
 
 #### Scenario: Require from CommonJS
 
@@ -14,6 +14,12 @@ SHALL NOT add a default export.
 - **THEN** it receives an object with a `generate` function
 - **AND** `await generate(options)` writes the report and returns the same
   result shape as the ESM import
+
+#### Scenario: Legacy callback
+
+- **WHEN** a CommonJS caller passes a callback to `generate`
+- **THEN** the callback receives the same success/error result as the ESM shim
+- **AND** the returned promise still resolves or rejects consistently
 
 #### Scenario: Errors propagate
 
@@ -41,5 +47,5 @@ CLI and other exports SHALL remain ESM-only.
 #### Scenario: Core require fails
 
 - **WHEN** a CommonJS file requires the package root
-- **THEN** it fails with the normal ESM/package error
-- **AND** no CJS core build is shipped
+- **THEN** it fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`
+- **AND** no root `default` condition or CJS core build is shipped

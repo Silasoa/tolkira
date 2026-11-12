@@ -27,14 +27,15 @@ narrow exception for the legacy shim.
 Ship `dist/compat/cucumber-html-reporter.cjs`:
 
 ```js
-async function generate(options) {
+async function generate(options, callback) {
   const mod = await import('./cucumber-html-reporter.js');
-  return mod.generate(options);
+  return mod.generate(options, callback);
 }
 module.exports = { generate };
 ```
 
-The dynamic import resolves the ESM shim; no default export.
+The dynamic import resolves the ESM shim and forwards the optional callback;
+no default export.
 
 ### Exports map
 
@@ -42,25 +43,37 @@ Add a `require` condition with `types` pointing at a `.d.cts` declaration:
 
 ```json
 "./compat/cucumber-html-reporter": {
-  "types": "./dist/compat/cucumber-html-reporter.d.ts",
-  "import": "./dist/compat/cucumber-html-reporter.js",
-  "require": "./dist/compat/cucumber-html-reporter.cjs"
+  "import": {
+    "types": "./dist/compat/cucumber-html-reporter.d.ts",
+    "default": "./dist/compat/cucumber-html-reporter.js"
+  },
+  "require": {
+    "types": "./dist/compat/cucumber-html-reporter.d.cts",
+    "default": "./dist/compat/cucumber-html-reporter.cjs"
+  }
 }
 ```
 
-TypeScript CJS consumers get a `.d.cts` (or `require` types) declaring
-`generate(options): Promise<...>`. The build copies/creates the wrapper.
+Do not put a top-level `types` on this subpath; it would win before the
+`require` condition. Add a tracked `.cts` source so `tsc` emits the `.cjs` and
+`.d.cts` build outputs; do not hand-write `dist`. The `.d.cts` declares
+`generate(options, callback?)`.
 
 ### Tests
 
 Add a test that spawns a real `.cjs` file with `require(...)` and awaits
-`generate` on a legacy fixture, asserting the HTML and summary. Add a root
-`require('tolkira')` failure test. Test errors reject.
+`generate` on a legacy fixture, asserting the HTML and summary, including the
+callback form. Add a root `require('tolkira')` failure test pinned to
+`ERR_PACKAGE_PATH_NOT_EXPORTED`, and a `.cts` TypeScript fixture under
+NodeNext. Because the fixture resolves the built package, run the build before
+tests in `check` or test the packed tarball; assert the `.cjs`/`.d.cts` files
+in `npm pack --dry-run`.
 
 ### Docs and ADR
 
-Update `docs/COMPATIBILITY.md` (CJS example), `docs/CHANGELOG.md` and ADR 0002:
-ESM core, CJS wrapper only for the shim.
+Update `docs/COMPATIBILITY.md` (CJS example), `docs/CHANGELOG.md`, `README.md`
+(the “cannot be required”/ESM-only claims and migration matrix), the Seed-Test
+paragraph and ADR 0002: ESM core, async CJS wrapper only for the shim.
 
 ## Risks / Trade-offs
 
