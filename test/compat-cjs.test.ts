@@ -282,10 +282,12 @@ describe('compat package build', () => {
 
   it('packs the CJS wrapper, declarations and bundles', async () => {
     const { stdout } = await execCommand('npm pack --dry-run --json');
-    const [packed] = JSON.parse(stdout) as Array<{
-      files: Array<{ path: string }>;
-    }>;
-    const files = packed.files.map((file) => file.path);
+    const parsed = JSON.parse(stdout) as
+      | Array<{ files: Array<{ path: string }> }>
+      | { files: Array<{ path: string }> };
+    const packed = Array.isArray(parsed) ? parsed[0] : parsed;
+    expect(packed).toBeDefined();
+    const files = (packed?.files ?? []).map((file) => file.path);
 
     expect(files).toEqual(
       expect.arrayContaining([
