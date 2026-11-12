@@ -202,7 +202,7 @@ deliberate; pick the tool that fits the job.
 | [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
 | [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | Saved JSON (`saveCollectedJSON`) | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, i18n and a report folder. |
 | [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
-| **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Versioned summary (`--json`)** | **Branding, dark mode; no theme gallery** | **ESM only** | **22+** | **Active** | **You need one offline file from legacy JSON and/or Messages, plus a stable summary for CI and agents.** |
+| **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Versioned summary (`--json`)** | **Branding, dark mode; no theme gallery** | **ESM; CJS compat shim** | **22+** | **Active** | **You need one offline file from legacy JSON and/or Messages, plus a stable summary for CI and agents.** |
 
 The visual comparison uses the report setup from
 [Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
@@ -217,7 +217,8 @@ Install Tolkira next to the old reporter and keep the existing JSON output:
 npm i -D tolkira
 ```
 
-Node.js 22 or newer is required. The compatibility shim is ESM-only.
+Node.js 22 or newer is required. The core and CLI are ESM-only; the
+compatibility subpath also loads from CommonJS through an async wrapper.
 
 **Before — CommonJS with cucumber-html-reporter:**
 
@@ -248,23 +249,33 @@ await generate({
 });
 ```
 
-**If the project must stay CommonJS**, Tolkira cannot be `require`d. Use a
-dynamic import inside an async wrapper:
+**If the project must stay CommonJS**, require the compatibility subpath and
+await the async wrapper:
 
 ```js
 // report.cjs
-(async () => {
-  const { generate } = await import('tolkira/compat/cucumber-html-reporter');
+const { generate } = require('tolkira/compat/cucumber-html-reporter');
+
+async function main() {
   await generate({
     jsonFile: 'reports/cucumber.json',
     output: 'reports/report.html',
   });
-})();
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 ```
 
-The options object is compatible; the import style is not. `theme` is ignored
-with a warning. Themes, charts, external screenshots and browser launch are not
-reproduced. The shim consumes the same input JSON, never the old rendered HTML.
+The wrapper is only for the compatibility subpath; the core package, CLI and
+other exports remain ESM-only. There is no default export.
+
+The options object is compatible; only the import style changes. `theme` is
+ignored with a warning. Themes, charts, external screenshots and browser launch
+are not reproduced. The shim consumes the same input JSON, never the old
+rendered HTML.
 See [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md)
 for the full mapping and caveats.
 

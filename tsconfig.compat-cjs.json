@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/compat/cucumber-html-reporter.cts"],
+  "exclude": ["node_modules", "dist", "test"]
+}

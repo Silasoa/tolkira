@@ -2,8 +2,9 @@
 
 **Status: experimental.** The compatibility subpath accepts the legacy options
 object and renders with Tolkira. It is a migration aid, not a promise of visual
-parity. The shim is ESM-only and asynchronous: use Node 22 or later,
-`import { generate }` and `await generate(...)` before reading the report.
+parity. The shim is asynchronous: use Node 22 or later, then either
+`import { generate }` or `require(...)`, and await `generate(...)` before
+reading the report.
 
 ## Before and after
 
@@ -37,21 +38,31 @@ await generate({
 });
 ```
 
-The options object is unchanged. The import style is not: the shim is ESM-only,
-so a CommonJS project needs a dynamic-import wrapper (or an ESM entry point):
+The options object is unchanged. ESM projects import the shim; CommonJS
+projects require it. The wrapper is async, so await the promise (or use the
+callback) before reading the report. The core package and CLI remain ESM-only.
+A CommonJS project can require the shim directly:
 
 ```js
 // report.cjs
-(async () => {
-  const { generate } = await import('tolkira/compat/cucumber-html-reporter');
+const { generate } = require('tolkira/compat/cucumber-html-reporter');
+
+async function main() {
   await generate({
     jsonFile: 'reports/cucumber.json',
     output: 'reports/report.html',
   });
-})();
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 ```
 
-`theme` is ignored with a warning; everything else maps to Tolkira. The callback form still works:
+The wrapper exposes only the named `generate` function; there is no default
+export. `theme` is ignored with a warning; everything else maps to Tolkira. The
+callback form still works:
 
 ```js
 generate(options, (error) => {
@@ -101,8 +112,9 @@ The core Messages path reads `meta.ci` and renders it in HTML only.
 
 Seed-Test 2.0's dev/AI integration branch is ESM. Use
 `import { generate } from 'tolkira/compat/cucumber-html-reporter'` and await
-the call before reading the HTML. Seed-Test 1.x is CommonJS and needs an ESM
-wrapper or an upgrade; the shim does not provide a CommonJS entry point.
+the call before reading the HTML. Seed-Test 1.x is CommonJS and can require the
+same subpath, then await `generate` or use its callback. The core package stays
+ESM-only.
 Seed-Test's group mode also expects a sidecar at `output + '.json'`; Tolkira
 does not write that file.
 

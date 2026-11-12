@@ -12,17 +12,17 @@
 
 ## 2. Implementer
 
-- [ ] 2.1 Add the tracked `.cts` wrapper, nested `require`/`import` export
+- [x] 2.1 Add the tracked `.cts` wrapper, nested `require`/`import` export
   conditions and callback forwarding; verify 1.1–1.3 green.
-- [ ] 2.2 Ensure `tsc` emits `.cjs`/`.d.cts` and make the NodeNext type test
+- [x] 2.2 Ensure `tsc` emits `.cjs`/`.d.cts` and make the NodeNext type test
   pass.
-- [ ] 2.3 Reorder `check` so the built package exists before the CJS fixture
+- [x] 2.3 Reorder `check` so the built package exists before the CJS fixture
   (or test the packed tarball); run `npm run check`, `npm run test:e2e` and
   `npm pack --dry-run`, asserting both wrapper files ship.
 
 ## 3. Documentation and review
 
-- [ ] 3.1 Update `docs/COMPATIBILITY.md`, `docs/CHANGELOG.md`, `README.md`,
+- [x] 3.1 Update `docs/COMPATIBILITY.md`, `docs/CHANGELOG.md`, `README.md`,
   the Seed-Test paragraph and ADR 0002; remove the “cannot be required” claims
   and state the async, shim-only CJS support.
 - [ ] 3.2 Run SCR, CR, DAR, SEC, UXR, PCA, CMP, STR and MKT; fix every blocker.

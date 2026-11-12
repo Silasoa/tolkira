@@ -45,8 +45,14 @@
       "import": "./dist/index.js"
     },
     "./compat/cucumber-html-reporter": {
-      "types": "./dist/compat/cucumber-html-reporter.d.ts",
-      "import": "./dist/compat/cucumber-html-reporter.js"
+      "import": {
+        "types": "./dist/compat/cucumber-html-reporter.d.ts",
+        "default": "./dist/compat/cucumber-html-reporter.js"
+      },
+      "require": {
+        "types": "./dist/compat/cucumber-html-reporter.d.cts",
+        "default": "./dist/compat/cucumber-html-reporter.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
@@ -67,7 +73,7 @@
   ],
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && npm run styles && node esbuild.mjs && tsc -p tsconfig.build.json",
+    "build": "npm run clean && npm run styles && node esbuild.mjs && tsc -p tsconfig.build.json && tsc -p tsconfig.compat-cjs.json",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "test": "npm run styles && vitest run",
@@ -75,7 +81,7 @@
     "styles": "node scripts/build-styles.mjs",
     "prestress": "npm run build",
     "stress": "node scripts/stress.mjs",
-    "check": "npm run styles && npm run typecheck && npm run lint && npm run test && npm run build",
+    "check": "npm run styles && npm run typecheck && npm run lint && npm run build && npm run test",
     "prepublishOnly": "npm run check"
   },
   "publishConfig": {

@@ -7,6 +7,10 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- `require('tolkira/compat/cucumber-html-reporter')` now works from CommonJS.
+  A tracked `.cts` wrapper emits `.cjs` plus `.d.cts` declarations, dynamically
+  imports the ESM shim and forwards `generate(options, callback?)` without a
+  default export. The core, CLI and package root stay ESM-only.
 - Messages `meta.ci` renders the CI name (or the URL when the name is absent)
   and http(s) job link, plus the git revision, branch and tag when present. A
   safe http(s), scp-like or `ssh://` GitHub remote links the 7-character commit
