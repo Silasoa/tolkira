@@ -24,27 +24,35 @@ only. The report is server-rendered with one inline script.
 ### Safe Markdown with `markdown-it`
 
 Add `markdown-it` as a server-side dependency with `html: false`,
-`linkify: false`, `typographer: false`. Disable the image rule; validate link
-targets against http(s)/mailto; render the result inside the existing
-description elements. Escape any raw text that Markdown leaves untouched.
-Feature/rule/background/scenario/examples descriptions all use one helper.
+`linkify: false`, `typographer: false`, `breaks: true`. Replace the `<p
+class="description">` wrappers with block `<div class="description">` and
+remove `white-space: pre-line`; cap heading levels and let tables scroll.
+Validate link targets against http(s)/mailto with
+`rel="noopener noreferrer nofollow"`. Use a custom image renderer that emits
+alt text only; do not let images fall through to links. Feature/rule/
+background/scenario/examples descriptions all use one helper.
 
-Written reason: a safe GFM subset is not worth hand-rolling; `markdown-it` is
-small, maintained and server-side, and raw HTML stays disabled.
+Written reason: a safe GFM renderer is not worth hand-rolling; `markdown-it`
+is small, maintained and server-side. Measure the packed size delta and record
+it in the change.
 
 ### Tag-expression parser in the inline script
 
-Support tags, `and`, `or`, `not` and parentheses. Tokenize, build a small AST
-and evaluate it against the row's tag set. If parsing fails, fall back to
-substring search; do not show an error. Keep the existing status/tag filters
-combined with the expression. The 20-match cap applies to the final visible set.
+Use the official `@cucumber/tag-expressions` package. A small
+`src/render/search.ts` entry exports the tag-shaped check and evaluator; esbuild
+bundles it into an IIFE injected before the main inline script. Treat the whole
+query as an expression only when it is tag-shaped; mixed text/tags stay text.
+Invalid expressions fall back to substring search. Status filters and the tag
+dropdown combine with a valid expression using AND. The 20-newly-opened cap
+applies to the final visible set.
 
 ### URL state
 
-On load, read `query`, repeated `hide`, and `tag` from `URLSearchParams` and
-apply them after the script initializes. On changes, write with
-`history.replaceState` so typing does not flood history; listen to `popstate`
-for back/forward. Do not persist the search-open state.
+On load, read `query`, repeated lowercase `hide`, and `tag` from
+`URLSearchParams`, apply them, and synchronize the search input, tag select and
+status `aria-pressed` state. On changes, write with `history.replaceState` in a
+try/catch, preserving the hash and unrelated parameters. Do not add history
+entries per keystroke and do not persist the search-open state.
 
 ### Contracts
 
