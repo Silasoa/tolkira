@@ -9,28 +9,32 @@ interfaces yet.
 - **Unified envelope index (`indexRun`).** One projection of features, latest
   attempts, results, attachments, diagnostics; model and summary both consume
   it. Add a cross-check test.
-- **Deepened Attachment module.** One module owns media-type normalization,
-  naming, kind, data URI and render dispatch; model and renderer stop
-  re-deriving it.
-- **E2E split + fixture helper.** Keep `test/fixtures.ts`; split the 2,200-line
-  report spec by area and reuse clipboard/ANSI helpers.
+- **Deepened Attachment module.** Rescoped to the real duplication: byte
+  counting and media presentation lookup. `attachment.ts` already owns
+  normalization and the safe-type allowlist.
+- **Pure input detection.** Promote sniffing out of the async file loop into a
+  pure decision table over `(content, identity)`; keep the 100 MB cap and
+  content-hash dedupe in the loader.
+- **Test split + fixture helper.** Widen the scope to `test/render.test.ts`
+  (2,286 lines / 92 tests) as well as the 2,400-line e2e spec; reuse
+  clipboard/ANSI/fixture helpers.
 
 ## Explore (Worth exploring)
 
 - **Typed DOM contract.** User-selected candidate. Define shared data-attribute
   names and a typed client boundary between `html.ts` and `report-client.js`;
   test the contract at one seam. Design in progress.
-- **`html.ts` view seams.** Split the 1,200-line renderer at report, triage,
-  matrix, details and attachment seams; `renderHtml` stays the only public
-  entry. Extra evaluation queued.
+- **`html.ts` view seams.** Keep exploring, but first reflow the four 4–8 KB
+  single-line template returns; then re-judge a split. The split alone is
+  relocation, not depth, unless view ownership becomes real.
 - **Pure input detection.** Separate format detection/bytes from parsing so it
   can be tested without files. Extra evaluation queued.
 
-## Speculative
+## Deferred
 
-- **Generated-assets build seam.** Move `styles.ts`/`client-bundle.ts` to a
-  generated namespace and regenerate before typecheck/build. Extra evaluation
-  queued.
+- **Generated-assets build seam.** Drop as speculative. The build scripts
+  already regenerate before typecheck; revisit only if a second consumer needs
+  the assets or a stale-output incident occurs.
 
 ## Not now
 
