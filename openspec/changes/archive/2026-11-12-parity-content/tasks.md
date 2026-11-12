@@ -29,8 +29,8 @@
 
 - [x] 3.1 Update `docs/CHANGELOG.md`, `docs/CUCUMBER-COMPATIBILITY.md`,
   `docs/AGENT-INTERFACE.md` and `GLOSSARY.md`.
-- [ ] 3.2 Run SCR, CR, DAR, SEC, UXR, PCA, CMP, STR and MKT; fix every blocker.
-- [ ] 3.3 Re-run the gate and archive after user approval.
+- [x] 3.2 Run SCR, CR, DAR, SEC, UXR, PCA, CMP, STR and MKT; fix every blocker.
+- [x] 3.3 Re-run the gate and archive after user approval.
 
 ## Workflow follow-up
 

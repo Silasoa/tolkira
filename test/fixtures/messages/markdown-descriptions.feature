@@ -1,6 +1,5 @@
-# Authoritative input: markdown-descriptions.ndjson. This file is an abridged
-# illustration of the Gherkin source. Raw HTML, malformed Markdown and the
-# empty-description case exist only in the NDJSON.
+# Authoritative input: markdown-descriptions.ndjson. This file illustrates the
+# same cases; the NDJSON is authoritative where the two differ.
 Feature: Markdown descriptions
 
   # Feature guide
