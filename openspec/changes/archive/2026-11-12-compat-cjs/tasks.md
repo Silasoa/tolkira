@@ -25,8 +25,8 @@
 - [x] 3.1 Update `docs/COMPATIBILITY.md`, `docs/CHANGELOG.md`, `README.md`,
   the Seed-Test paragraph and ADR 0002; remove the “cannot be required” claims
   and state the async, shim-only CJS support.
-- [ ] 3.2 Run SCR, CR, DAR, SEC, UXR, PCA, CMP, STR and MKT; fix every blocker.
-- [ ] 3.3 Re-run the gate and archive after user approval.
+- [x] 3.2 Run SCR, CR, DAR, SEC, UXR, PCA, CMP, STR and MKT; fix every blocker.
+- [x] 3.3 Re-run the gate and archive after user approval.
 
 ## Workflow follow-up
 
