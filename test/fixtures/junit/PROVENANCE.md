@@ -6,11 +6,12 @@ personal data. Date recorded: 2026-11-12.
 
 | Fixture | Producer shape | Basis | Covers |
 | --- | --- | --- | --- |
-| `jest-junit.xml` | jest-junit 16.x for Jest | jest-junit README and default reporter output | `<testsuites>`, `<testsuite>`, passed/failed/skipped, `<failure>`, testcase-level `<system-out>`/`<system-err>` |
-| `pytest.xml` | pytest 8.x `--junitxml` | pytest JUnit XML documentation and default output | suite `<properties>`, passed/failed/skipped, `<failure>`, suite-level `<system-out>`/`<system-err>` |
-| `gradle.xml` | Gradle 8.x test task | Gradle test reporting output | root `<testsuite>`, `<properties>`, passed/failed/error/skipped, `<failure>`, `<error>`, suite-level `<system-out>`/`<system-err>` |
+| `jest-junit.xml` | jest-junit 16.x for Jest | jest-junit README and default reporter output | `<testsuites>`, `<testsuite>`, passed/failed/skipped, `<failure>`, suite-level `<system-out>` tolerated and ignored |
+| `pytest.xml` | pytest 8.x `--junitxml` | pytest JUnit XML documentation and default output | suite `<properties>`, passed/failed/skipped, `<failure>`, testcase-level `<system-out>`/`<system-err>` attached |
+| `gradle.xml` | Gradle 8.x test task | Gradle test reporting output | root `<testsuite>`, `<properties>`, passed/failed/error/skipped, `<failure>`, `<error>`, suite-level `<system-out>`/`<system-err>` tolerated and ignored |
 
-The adapter does not map suite-level output; the pytest and Gradle fixtures
-keep it to prove the parser tolerates it without inventing test cases or
-attachments. Testcase-level output is asserted as text attachments in
-`test/junit-producers.test.ts`.
+The adapter maps testcase-level output only. The jest-junit and Gradle fixtures
+keep suite-level output to prove the parser tolerates it without inventing test
+cases or attachments; the pytest fixture carries the testcase-level output
+pytest writes when `junit_logging` captures it. Testcase-level output is
+asserted in `test/junit-producers.test.ts`.

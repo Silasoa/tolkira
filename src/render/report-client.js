@@ -302,13 +302,8 @@
     var step = scenario.querySelector('.step[data-status="failed"]');
     var hook = !step ? scenario.querySelector('.hook[data-status="failed"]') : null;
     var keyword = step && step.querySelector('.kw') ? step.querySelector('.kw').textContent.trim() : '';
-    var body = step ? step.querySelector('div') : null;
-    var text = '';
-    if (body) {
-      Array.prototype.forEach.call(body.childNodes, function (node) {
-        if (node.nodeType === 3) text += node.nodeValue;
-      });
-    }
+    var textNode = step ? step.querySelector('.stepText') : null;
+    var text = textNode ? textNode.textContent || '' : '';
     var error = step ? step.querySelector('.error') : hook ? hook.querySelector('.error') : null;
     var stepLabel = hook
       ? (hook.querySelector('.hookLabel') ? hook.querySelector('.hookLabel').textContent.trim() : 'Hook')

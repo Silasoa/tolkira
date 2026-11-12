@@ -4,7 +4,7 @@ import { renderReport, summarizeReport } from '../src/index.js';
 import { junitFixture } from './fixtures.js';
 
 describe('JUnit producer fixtures', () => {
-  it('maps jest-junit suites, statuses and testcase output', async () => {
+  it('maps jest-junit suites, statuses and suite output tolerance', async () => {
     const file = junitFixture('jest-junit.xml');
     const summary = await summarizeReport(file);
     const byName = new Map(
@@ -23,16 +23,16 @@ describe('JUnit producer fixtures', () => {
     expect(byName.get('expired coupon')?.steps[0]?.message).toContain(
       'Expected 200, got 500',
     );
-    expect(byName.get('expired coupon')?.attachments).toBe(2);
+    expect(byName.get('expired coupon')?.attachments).toBe(0);
     expect(byName.get('slow payment')?.status).toBe('skipped');
-    expect(summary.attachments.total).toBe(2);
+    // Suite-level output is a documented limitation: it is not attached.
+    expect(summary.attachments.total).toBe(0);
 
     const html = await renderReport(file, { title: 'Jest' });
-    expect(html).toContain('checkout request id: req-42');
-    expect(html).toContain('coupon stack trace');
+    expect(html).not.toContain('checkout request id: req-42');
   });
 
-  it('maps pytest properties, failure text and skipped case', async () => {
+  it('maps pytest properties, failure text and testcase output', async () => {
     const file = junitFixture('pytest.xml');
     const summary = await summarizeReport(file);
     const byName = new Map(
@@ -51,8 +51,12 @@ describe('JUnit producer fixtures', () => {
       'assert 500 == 200',
     );
     expect(byName.get('test_slow_payment')?.status).toBe('skipped');
-    // Suite-level output is a documented limitation: it is not attached.
-    expect(summary.attachments.total).toBe(0);
+    expect(byName.get('test_expired_coupon')?.attachments).toBe(2);
+    expect(summary.attachments.total).toBe(2);
+
+    const html = await renderReport(file, { title: 'pytest' });
+    expect(html).toContain('request id req-42');
+    expect(html).toContain('coupon warning');
   });
 
   it('maps a root Gradle testsuite with error, failure and skipped cases', async () => {

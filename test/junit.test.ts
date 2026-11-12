@@ -311,6 +311,26 @@ describe('JUnit XML input', () => {
     });
   });
 
+  it('ignores declaration text inside comments, CDATA and processing instructions', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'declaration-text.xml');
+    await writeFile(
+      file,
+      '<?xml version="1.0"?>' +
+        '<!-- <!DOCTYPE ignored> <!ENTITY ignored "x"> -->' +
+        '<?note <!DOCTYPE ignored> <!ENTITY ignored "x">?>' +
+        '<testsuites><testsuite name="declaration text"><testcase name="cdata">' +
+        '<failure message="CDATA"><![CDATA[<!DOCTYPE note> <!ENTITY custom "value">]]></failure>' +
+        '</testcase></testsuite></testsuites>',
+      'utf8',
+    );
+
+    const summary = await summarizeReport(file);
+    expect(summary.scenarios[0]?.steps[0]?.message).toContain(
+      '<!DOCTYPE note>',
+    );
+  });
+
   it('rejects empty and multi-root XML clearly', async () => {
     const dir = await tempDir();
     const empty = path.join(dir, 'empty-file.xml');

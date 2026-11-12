@@ -26,5 +26,8 @@ Tolkira processes untrusted test output. Security-relevant areas include:
 - denial of service through very large reports or attachments;
 - dependency vulnerabilities.
 
+HTML attachments are always escaped text, and SVG attachments are only used as
+`<img>` data-URI sources; neither is injected as markup or a document.
+
 Tolkira does not send telemetry and does not make network requests. A report
 should remain fully offline.

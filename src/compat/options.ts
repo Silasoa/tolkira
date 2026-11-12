@@ -1,8 +1,9 @@
 import { readFile, stat } from 'node:fs/promises';
+import type { Stats } from 'node:fs';
 import path from 'node:path';
 import type { ReportSummary } from '../summary.js';
 import { collectReportFiles } from '../input/files.js';
-import { MAX_TOTAL_INPUT_BYTES } from '../input/load.js';
+import { addInputBytes, MAX_TOTAL_INPUT_BYTES } from '../input/load.js';
 
 export interface CompatResult {
   output: string;
@@ -156,17 +157,19 @@ export async function resolveInputs(
   const valid: string[] = [];
   let totalBytes = 0;
   for (const file of files) {
-    const info = await stat(file);
+    let info: Stats;
+    try {
+      info = await stat(file);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      warnings.push(`skipped invalid JSON file ${file}: ${detail}`);
+      continue;
+    }
     if (info.size > MAX_TOTAL_INPUT_BYTES) {
       warnings.push(`skipped oversized JSON file ${file}: over 100 MB`);
       continue;
     }
-    if (totalBytes + info.size > MAX_TOTAL_INPUT_BYTES) {
-      throw new Error(
-        'Inputs exceed 100 MB in total. Split the report or use external attachments.',
-      );
-    }
-    totalBytes += info.size;
+    totalBytes = addInputBytes(totalBytes, info.size);
     try {
       const parsed: unknown = JSON.parse(await readFile(file, 'utf8'));
       if (!Array.isArray(parsed)) throw new Error('not a feature array');

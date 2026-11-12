@@ -1391,7 +1391,7 @@ describe('parity diagnostics rendering', () => {
 
   it('does not render a diagnostic on a passed step with definitions', async () => {
     const html = await renderReport(undefinedFixture, { title: 'Passed step' });
-    const marker = html.indexOf('an implemented step</div>');
+    const marker = html.indexOf('an implemented step</span>');
     expect(marker).toBeGreaterThan(-1);
     const start = html.lastIndexOf('<li class="step"', marker);
     const end = html.indexOf('</li>', marker);
@@ -1853,12 +1853,12 @@ describe('parity rules rendering', () => {
 
     expect(html).not.toContain('<section class="background"');
     expect(
-      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/div>/g),
+      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/span><\/div>/g),
     ).toHaveLength(2);
     expect(
-      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/div>/g),
+      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/span><\/div>/g),
     ).toHaveLength(2);
-    expect(html.match(/<\/span> an action<\/div>/g)).toHaveLength(2);
+    expect(html.match(/<\/span> <span class="stepText">an action<\/span><\/div>/g)).toHaveLength(2);
   });
 
   it('renders a feature background heading and description once', async () => {
@@ -1880,10 +1880,10 @@ describe('parity rules rendering', () => {
     expect(html).toContain('Background:</span> Shared order');
     expect(html).toContain('Order setup.');
     expect(
-      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/div>/g),
+      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/span><\/div>/g),
     ).toHaveLength(2);
     expect(
-      html.match(/<\/span> an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/div>/g),
+      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/span><\/div>/g),
     ).toHaveLength(2);
   });
 

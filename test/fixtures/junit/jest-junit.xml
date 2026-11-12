@@ -2,7 +2,8 @@
 <!--
   Provenance: synthetic, real-shaped jest-junit 16.0.0 output.
   Shape source: jest-junit README and default reporter output
-  (testsuites > testsuite > testcase, testcase-level system-out/system-err).
+  (testsuites > testsuite > testcase, suite-level system-out with
+  includeConsoleOutput; jest-junit has no testcase-level output or system-err).
   Date: 2026-11-12. This is not a recorded CI run. No real paths, tokens or
   personal data are included.
 -->
@@ -12,11 +13,10 @@
     <testcase classname="checkout.coupon" name="expired coupon" time="0.21">
       <failure message="Expected 200, got 500">AssertionError: Expected 200, got 500
     at checkout.test.ts:42:5</failure>
-      <system-out><![CDATA[console.log checkout request id: req-42]]></system-out>
-      <system-err><![CDATA[console.error coupon stack trace]]></system-err>
     </testcase>
     <testcase classname="checkout.payment" name="slow payment" time="0.07">
       <skipped/>
     </testcase>
+    <system-out><![CDATA[console.log checkout request id: req-42]]></system-out>
   </testsuite>
 </testsuites>

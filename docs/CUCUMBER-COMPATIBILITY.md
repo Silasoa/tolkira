@@ -35,9 +35,9 @@ on real output shapes, with provenance in `test/fixtures/junit/`, cover:
 
 | Producer | Tested shape | Notes |
 | --- | --- | --- |
-| jest-junit | 16.x | Synthetic but real-shaped; `<testsuites>` root and testcase-level output. |
-| pytest | 8.x `--junitxml` | Synthetic but real-shaped; `<properties>` and suite-level output are tolerated, not mapped. |
-| Gradle | 8.x test task | Synthetic but real-shaped; root `<testsuite>`, `<properties>`, `<failure>`/`<error>`/`<skipped>`. |
+| jest-junit | 16.x | Synthetic but real-shaped; `<testsuites>` root; suite-level `<system-out>` is tolerated, not mapped. |
+| pytest | 8.x `--junitxml` | Synthetic but real-shaped; `<properties>` plus testcase-level `system-out`/`system-err` are mapped. |
+| Gradle | 8.x test task | Synthetic but real-shaped; root `<testsuite>`, `<properties>`, `<failure>`/`<error>`/`<skipped>`; suite-level output is tolerated, not mapped. |
 
 See [`JUNIT-XML.md`](JUNIT-XML.md) for the mapping and limits.
 
@@ -123,7 +123,8 @@ Attachment names use the Cucumber `fileName` when present. Unnamed attachments
 fall back to a deterministic `attachment.<ext>` name in Messages and legacy
 JSON; known parameterised media types strip parameters and keep their
 extension (`text/uri-list` becomes `.txt` and `text/x.cucumber.log+plain`
-becomes `.log`), while unknown types become `attachment`. Names are text, never
+becomes `.log`), while unknown or forged types normalise to
+`application/octet-stream` and `attachment.bin`. Names are text, never
 filesystem paths. `application/json` attachments are pretty-printed without
 re-serialising values, so big numbers and duplicate keys survive; malformed
 JSON and bodies above 262,144 UTF-8 bytes render as escaped raw text.
@@ -131,8 +132,10 @@ JSON and bodies above 262,144 UTF-8 bytes render as escaped raw text.
 protocol-relative values stay escaped text. `text/x.cucumber.log+plain` logs
 render safe theme-aware SGR, 256-colour and truecolour spans plus a copy
 action; non-SGR control sequences are stripped, and logs above 262,144 UTF-8
-bytes render as escaped text without colour parsing. Attachment counts and the
-offline single-file contract are unchanged.
+bytes render as escaped text without colour parsing. `text/html` attachments
+are escaped text, and SVG attachments are only used as an `<img>` data URI;
+neither is injected as markup. Attachment counts and the offline single-file
+contract are unchanged.
 
 ## Step diagnostics
 

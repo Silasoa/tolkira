@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { renderAnsiLog, stripAnsi } from '../src/render/ansi.js';
+import { renderAnsiLog } from '../src/render/ansi.js';
+import { stripAnsi } from '../src/text.js';
 
 function spanCount(html: string): number {
   return (html.match(/<span /g) ?? []).length;
@@ -96,6 +97,12 @@ describe('renderAnsiLog', () => {
     expect(html).toBe('text\nnext\ttab');
   });
 
+  it('treats 8-bit C1 CSI as a control sequence', () => {
+    const html = renderAnsiLog('\u009b31mred\u009b0m plain');
+
+    expect(html).toBe('<span class="ansi ansi-fg-1">red</span> plain');
+  });
+
   it('marks background-only spans for contrasting text', () => {
     const html = renderAnsiLog('\u001b[44mbackground\u001b[0m');
 
@@ -124,6 +131,12 @@ describe('renderAnsiLog', () => {
 });
 
 describe('stripAnsi', () => {
+  it('returns text without controls unchanged', () => {
+    const text = 'visible text\nwith a tab\tand a newline';
+
+    expect(stripAnsi(text)).toBe(text);
+  });
+
   it('removes every escape family and keeps the visible text', () => {
     const text =
       '\u001b]8;;https://example.com/\u001b\\visible' +
@@ -135,6 +148,23 @@ describe('stripAnsi', () => {
       '\u001b[31mred\u001b[0m';
 
     expect(stripAnsi(text)).toBe('visiblecliptwo-bytered');
+  });
+
+  it('removes 8-bit C1 escape families', () => {
+    const text =
+      '\u009d0;title\u0007osc' +
+      '\u009d52;c;cHduZWQ=\u009cclip' +
+      '\u0090dcs payload\u009c' +
+      '\u009fapc payload\u009c' +
+      '\u009b31mred\u009b0m';
+
+    expect(stripAnsi(text)).toBe('oscclipred');
+  });
+
+  it('removes C0 and C1 controls but keeps newlines and tabs', () => {
+    expect(
+      stripAnsi('\u0000\u0001\u0007\u0008\u007f\u0085\u009ftext\nnext\ttab'),
+    ).toBe('text\nnext\ttab');
   });
 
   it('drops unterminated OSC, DCS and APC payloads', () => {

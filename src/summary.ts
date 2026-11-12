@@ -17,7 +17,7 @@ import type {
 } from '@cucumber/messages';
 import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
-import { stripAnsi } from './render/ansi.js';
+import { stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
 import { type ReportStatus, statusSeverity, worstExecutedStatus } from './report/status.js';
 

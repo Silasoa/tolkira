@@ -9,8 +9,9 @@
 - [x] 1.3 Write a failing real-stream test proving
   `CucumberHtmlStream` output and options equal `renderReport`.
 - [x] 1.4 Add provenance-bearing Jest, pytest and Gradle JUnit XML fixtures and
-  characterisation tests for suite/testcase/error/failure/skipped and
-  testcase-level `system-out`/`system-err`. These are regression tests: no
+  characterisation tests for suite/testcase/error/failure/skipped,
+  testcase-level `system-out`/`system-err` and suite-level output tolerance.
+  These are regression tests: no
   production change and no RED is expected when the adapter already matches.
 - [x] 1.5 Add `test/fixtures.ts` and replace duplicated browser-spec fixture
   constants; keep the tests green.
@@ -38,6 +39,25 @@
 `npm run test:e2e` green (222 tests, Chromium/Firefox/WebKit). One Firefox
 diagnostics test timed out under parallel load on the first run and passed
 alone and in the full rerun.
+
+2026-11-13, final review fixes: `npm run check` green (25 files, 428 tests),
+`npm run test:e2e` green (228 tests, Chromium/Firefox/WebKit),
+`npm pack --dry-run` succeeds and `npm audit --omit=dev` reports zero
+vulnerabilities.
+
+## Review fixes
+
+- C1/C0 controls are stripped from HTML, summary and clipboard together with
+  ANSI and 8-bit C1 escape families; a control-free fast path copies chunks.
+- Step text renders in `span.stepText`, so copy keeps parameterised text.
+- Any invalid, truncated or overlapping parameter range falls back to the full
+  plain step text; the spec delta matches.
+- JUnit declarations are rejected only outside comments, CDATA and PIs;
+  producer fixtures now match pytest (testcase-level output) and jest-junit
+  (suite-level output) shapes.
+- `@cucumber/tag-expressions` is a build-time dev dependency.
+- `stripAnsi`/`scanEscape` live in `src/text.ts`, the stream adapter lives in
+  `src/stream.ts` and the input cap is shared with the compat scanner.
 
 ## Workflow follow-up
 

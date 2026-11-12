@@ -14,6 +14,7 @@ const xssFixture = legacyFixture('xss.json');
 const noMessageFixture = legacyFixture('failed-no-message.json');
 const unhappyFixture = legacyFixture('unhappy.json');
 const examplesFixture = messagesFixture('examples-tables.ndjson');
+const parametersFixture = messagesFixture('parameters.ndjson');
 const examplesAttachmentFixture = messagesFixture(
   'examples-tables-attachment.ndjson',
 );
@@ -597,6 +598,82 @@ test('copies failure details', async ({ page }) => {
   }
 });
 
+test('copies parameterised failure details with the matched argument', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-copy-param-e2e-'));
+  const input = path.join(dir, 'parameters.ndjson');
+  const output = path.join(dir, 'parameters.html');
+
+  await page.addInitScript(() => {
+    (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied =
+            text;
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+
+  try {
+    const lines = (await readFile(parametersFixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    const pickle = lines.find((line) => line.pickle?.name === 'Numbers')?.pickle;
+    const testCase = lines.find(
+      (line) => line.testCase?.pickleId === pickle?.id,
+    )?.testCase;
+    const stepIds = new Set<string>(
+      (testCase?.testSteps ?? []).map((step: { id: string }) => step.id),
+    );
+    for (const line of lines) {
+      if (
+        line.testStepFinished &&
+        stepIds.has(line.testStepFinished.testStepId)
+      ) {
+        line.testStepFinished.testStepResult.status = 'FAILED';
+        line.testStepFinished.testStepResult.message = 'Expected 12 cucumbers';
+      }
+    }
+    await writeFile(
+      input,
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'utf8',
+    );
+
+    const code = await runCli(
+      [input, '--out', output, '--title', 'Parameter copy'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const failed = page.locator(
+      'details[data-scenario][data-status="failed"]',
+    );
+    await expect(failed.locator('.param')).toHaveText('12');
+    const copy = failed.locator('[data-copy-failure]');
+    await expect(copy).toBeVisible();
+    await copy.click();
+    await expect(copy).toHaveText('Copied');
+
+    const copied = await page.evaluate(
+      () =>
+        (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ??
+        '',
+    );
+    expect(copied).toContain('Step: Given I have 12 cucumbers');
+    expect(copied).toContain('Expected 12 cucumbers');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('copies failure details without terminal escape sequences', async ({
   page,
 }) => {
@@ -609,7 +686,11 @@ test('copies failure details without terminal escape sequences', async ({
     `${esc}]52;c;cHduZWQ=\u0007clip` +
     `${esc}Pdcs payload${esc}\\` +
     `${esc}_apc payload${esc}\\` +
-    `${esc}(Btwo-byte`;
+    `${esc}(Btwo-byte` +
+    `\u009d52;c;c1\u0007c1clip` +
+    `\u0090c1-dcs\u009c` +
+    `\u009b31mc1-red\u009b0m` +
+    `\u0000\u007f\u0085`;
 
   await page.addInitScript(() => {
     (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
@@ -665,12 +746,14 @@ test('copies failure details without terminal escape sequences', async ({
         (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ??
         '',
     );
-    expect(copied).toContain('linkcliptwo-byte');
+    expect(copied).toContain('linkcliptwo-bytec1clipc1-red');
     expect(copied).not.toContain(esc);
     expect(copied).not.toContain(']52;');
     expect(copied).not.toContain(']8;;');
     expect(copied).not.toContain('dcs payload');
     expect(copied).not.toContain('apc payload');
+    // oxlint-disable-next-line no-control-regex
+    expect(copied).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

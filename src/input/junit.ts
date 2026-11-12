@@ -90,7 +90,10 @@ function checkEntityReferences(fragment: string, source: string): void {
   }
 }
 
-function assertValidEntities(content: string, source: string): void {
+// Validates entity references and rejects DTD declarations. Comments, CDATA
+// sections and processing instructions are data, so declaration-looking text
+// inside them must not trip the rejection.
+function assertSafeMarkup(content: string, source: string): void {
   const scanTag = (start: number): number => {
     let index = start + 1;
     let quote = '';
@@ -136,6 +139,14 @@ function assertValidEntities(content: string, source: string): void {
       const end = content.indexOf('?>', start + 2);
       index = end === -1 ? content.length : end + 2;
     } else if (content.startsWith('<!', start)) {
+      const declaration = /^<!(DOCTYPE|ENTITY)\b/i.exec(
+        content.slice(start, start + 10),
+      );
+      if (declaration) {
+        throw new Error(
+          `Invalid JUnit XML in ${source}: <!${declaration[1]!.toUpperCase()}> declarations are not supported.`,
+        );
+      }
       const end = content.indexOf('>', start + 2);
       index = end === -1 ? content.length : end + 1;
     } else {
@@ -265,14 +276,7 @@ export async function parseJUnitXml(
 ): Promise<Envelope[]> {
   const { XMLParser, XMLValidator } = await import('fast-xml-parser');
 
-  const forbidden = /<!(DOCTYPE|ENTITY)\b/i.exec(content);
-  if (forbidden) {
-    throw new Error(
-      `Invalid JUnit XML in ${source}: <!${forbidden[1]!.toUpperCase()}> declarations are not supported.`,
-    );
-  }
-
-  assertValidEntities(content, source);
+  assertSafeMarkup(content, source);
 
   // fast-xml-parser's parser is lenient about mismatched closing tags and would
   // silently reshape broken XML; validate first so bad input fails clearly.

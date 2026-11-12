@@ -95,7 +95,7 @@ Legend: **Match** = equivalent for the user; **Exceeds** = Tolkira does more;
 | Input formats | Cucumber Messages only (NDJSON stream) | Legacy Cucumber JSON only | Legacy JSON, Messages (`.jsonl`/`.ndjson`), JUnit XML; auto-detected; directories and multiple inputs | **Exceeds** |
 | Entry points | ESM `CucumberHtmlStream` Transform; Java/Ruby/.NET wrappers; no CLI since v19 | CommonJS `generate(options, callback?)`; no CLI | CLI, ESM API (`generateReport`, `renderReport`, `summarizeReport`, `CucumberHtmlStream`), compat shim | **Exceeds** |
 | Attachments | Inline base64 and external `attachment.url`; image, video, log, text, `text/uri-list`, JSON, binary; image/video collapsed in `<details>`; download button | Inline images or external screenshot files; text/JSON/binary; no video/audio special handling | Inline only; image (lightbox), video, audio, text, binary; JSON, URI-list and ANSI logs rendered; 50 MB each / 100 MB total; rejects remote URLs | **Match, except external URLs** |
-| Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else deterministic `attachment.<ext>`, else `attachment` | **Match** |
+| Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else deterministic `attachment.<ext>` for known types, else `application/octet-stream` / `attachment.bin` | **Match** |
 | Metadata | `meta.implementation/runtime/os`; `meta.ci` job link and git revision/branch/tag | Arbitrary `metadata` key/value; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; `meta` producer/runtime/OS/CPU/protocol; `meta.ci` job link and git revision/branch/tag | **Match** |
 | Search | Full-text Gherkin index; text or tag expression; 500 ms debounce; URL query state. The index covers feature/scenario/rule/background names and descriptions and steps, but not examples block names, examples table values, substituted pickle names, errors or attachments | None | Substring over scenario/feature/URI/keyword/description/tags/steps incl. error messages; single-tag dropdown; no URL state | **Partial** |
 | Status filters | Checkboxes that hide statuses; counts; only shown when more than one status exists | None | Toggle buttons per status with counts | **Match** |
@@ -144,7 +144,7 @@ dependency/architecture.
 | G11 | CI/git metadata from `meta.ci` | Match | — | No | Implemented: reads `meta.ci.name/url` and `meta.ci.git.revision/branch/tag`, renders a CI link (URL when the name is absent) and a short commit for https, scp-like and `ssh://` GitHub remotes. |
 | G12 | Attachment presentation polish | Match | — | No | Implemented: deterministic `attachment.<ext>` fallback, pretty JSON, `text/uri-list` links, ANSI logs with copy, and the image lightbox. |
 | G13 | External attachments / split assets | Deliberate difference | L | Yes | Do not copy. Keep rejecting remote URLs. A later opt-in split-assets mode is a separate product decision, not parity. |
-| G14 | `CucumberHtmlStream`-shaped adapter | Match (2026-11-12) | S | No | Exported `CucumberHtmlStream` Transform collects envelopes and calls the same renderer on flush; same options as `renderReport`. |
+| G14 | `CucumberHtmlStream`-shaped adapter | Shape-compatible (2026-11-12) | S | No | Exported `CucumberHtmlStream` is a Node `Transform` that buffers envelopes until flush and takes `RenderReportOptions`. It calls the same renderer as `renderReport`; it is not an incremental renderer. |
 | G15 | Parameter highlighting in steps | Match (2026-11-12) | S | No | Uses `testStep.stepMatchArgumentsLists` and parameter type names to wrap escaped matched fragments in `span.param`; plain fallback when ambiguous. |
 | G16 | Lazy rendering of closed documents | Different trade-off | L | No, but conflicts with no-JS | Do not copy React's lazy mount. Measure first; the static report is much smaller and works without JS. |
 
@@ -343,7 +343,8 @@ Official:
 
 Tolkira:
 
-- fallback name `attachment.<ext>` or `attachment`;
+- fallback name `attachment.<ext>` for known types, else `attachment.bin` with
+  `application/octet-stream`;
 - images inline with a lightbox, video/audio players;
 - text attachments in a `<details>` block; JSON pretty-printed; URI lists
   linked for http(s); ANSI logs rendered with a copy action;

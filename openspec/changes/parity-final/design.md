@@ -50,25 +50,28 @@ The report model carries the first match argument list only when
 fragment renders as
 `<span class="param" data-parameter-type="...">...</span>`; a missing
 `parameterTypeName` falls back to `anonymous`. Every plain and matched fragment
-goes through `escapeHtml`. Invalid starts, out-of-range values and overlapping
-arguments are skipped so the full original text is emitted at most once.
-Zero argument lists, multiple lists (ambiguous) and empty arguments render the
-existing escaped plain text. The summary, `data-search` text and copy-failure
-text continue to use the unmodified step text. One CSS rule uses the existing
-accent text colour; no new dependency or client script.
+goes through `escapeHtml`. Invalid starts, truncated, out-of-range or mismatched values and overlapping
+arguments fall back to the full escaped step text without any `span.param`,
+emitted exactly once. Zero argument lists, multiple lists
+(ambiguous) and empty arguments render the existing escaped plain text. The
+summary, `data-search` text and copy-failure text continue to use the
+unmodified step text. Step text itself sits in a `span.stepText` so copy reads
+the composed text rather than the plain text nodes. One CSS rule uses the
+existing accent text colour; no new dependency or client script.
 
 ### JUnit producer fixtures
 
-Add `jest-junit.xml` (jest-junit shape), `pytest.xml` (pytest junitxml shape,
-including `<properties>` and suite-level output) and `gradle.xml` (Gradle test
-XML shape with a root `<testsuite>` and `<properties>`). Each file starts with
+Add `jest-junit.xml` (jest-junit shape with suite-level output), `pytest.xml`
+(pytest junitxml shape with `<properties>` and testcase-level output) and
+`gradle.xml` (Gradle test XML shape with a root `<testsuite>`, `<properties>`
+and suite-level output). Each file starts with
 a comment recording shape, producer/version, date and that it is synthetic but
 modelled on public output. A `PROVENANCE.md` repeats the table. Tests assert
-status mapping, failure/error text, skipped cases, durations and
-testcase-level `system-out`/`system-err` attachments. The adapter is not
-changed; if a fixture exposed a real bug it would be raised separately, not
-papered over with invented behaviour. Suite-level output remains ignored as
-`docs/JUNIT-XML.md` already states.
+status mapping, failure/error text, skipped cases, durations, testcase-level
+`system-out`/`system-err` attachments and suite-level output tolerance. The
+adapter is not changed; if a fixture exposed a real bug it would be raised
+separately, not papered over with invented behaviour. Suite-level output
+remains ignored as `docs/JUNIT-XML.md` already states.
 
 ### Fixture-path helper
 

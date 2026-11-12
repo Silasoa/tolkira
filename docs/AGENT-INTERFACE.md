@@ -70,8 +70,8 @@ omitted.
 
 ### Messages stream
 
-`CucumberHtmlStream` is a Node `Transform` for callers that already hold
-Cucumber Messages envelopes:
+`CucumberHtmlStream` is a shape-compatible Node `Transform` for callers that
+already hold Cucumber Messages envelopes:
 
 ```ts
 import { Readable } from 'node:stream';
@@ -88,11 +88,11 @@ const html = await new Promise<string>((resolve, reject) => {
 ```
 
 The stream accepts `Envelope` objects in object mode, buffers the run and
-renders one HTML document on flush. It takes the same title, metadata, logo and
-accent options as `renderReport`, and produces the same HTML for the same
-envelopes and options. It writes no files and emits no summary; use
-`summarizeReport` or `generateReport` when you also need the stable JSON. The
-whole run is held in memory, exactly like the file API.
+renders one HTML document on flush. It takes `RenderReportOptions` (title,
+metadata, logo, accent) and produces the same HTML for the same envelopes and
+options. It is not an incremental renderer. It writes no files and emits no
+summary; use `summarizeReport` or `generateReport` when you also need the
+stable JSON. The whole run is held in memory, exactly like the file API.
 
 ## Summary schema, version 2
 
@@ -247,7 +247,8 @@ Field contract:
 - Attachment file names are not part of the summary. `scenarios[].attachments`
   is a count and is 0 for an unexecuted scenario; open the HTML report to see
   the image or file. Unnamed attachments use a deterministic
-  `attachment.<ext>` fallback in HTML; unknown media types use `attachment`.
+  `attachment.<ext>` fallback in HTML; unknown media types normalise to
+  `application/octet-stream` and `attachment.bin`.
 - CI metadata from Messages `meta.ci` is HTML-only. It renders in the report
   header and Details, but no CI field appears in the summary and
   `schemaVersion` stays 2. When `ci.name` is missing, the http(s) `ci.url` is

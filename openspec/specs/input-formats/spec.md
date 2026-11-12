@@ -161,9 +161,17 @@ with a clear file-specific error for malformed XML.
 - **WHEN** a JUnit file is not well-formed XML
 - **THEN** generation fails with an error that names the file
 
+#### Scenario: Declarations in comments, CDATA and processing instructions
+
+- **WHEN** `<!DOCTYPE>` or `<!ENTITY>` text appears inside a comment, CDATA
+  section or processing instruction
+- **THEN** it is treated as data and the document still parses
+- **AND** declarations outside those constructs are still rejected
+
 #### Scenario: DTD and entity declarations
 
-- **WHEN** the document declares a `<!DOCTYPE>` or `<!ENTITY>` in any case
+- **WHEN** the document declares a `<!DOCTYPE>` or `<!ENTITY>` outside a
+  comment, CDATA section or processing instruction, in any case
 - **THEN** generation fails with an error that names the file and the rejected
   declaration
 - **AND** processing instructions with ampersands are still accepted

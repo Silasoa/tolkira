@@ -1,4 +1,5 @@
 import { MAX_TEXT_ATTACHMENT_BYTES } from '../report/attachment.js';
+import { isEscapeIntroducer, scanEscape } from '../text.js';
 import { escapeHtml } from './escape.js';
 
 interface AnsiStyle {
@@ -171,89 +172,6 @@ function spanMarkup(style: AnsiStyle): string {
   return `<span class="${classes.join(' ')}"${attributes}>`;
 }
 
-// Returns the index just past the CSI sequence starting at `[`.
-function csiEnd(text: string, start: number): number {
-  let index = start + 1;
-  while (index < text.length && text.charCodeAt(index) >= 0x30 && text.charCodeAt(index) <= 0x3f) {
-    index += 1;
-  }
-  while (index < text.length && text.charCodeAt(index) >= 0x20 && text.charCodeAt(index) <= 0x2f) {
-    index += 1;
-  }
-  return index < text.length ? index + 1 : index;
-}
-
-interface EscapeScan {
-  /** Index just past the escape sequence. */
-  end: number;
-  /** SGR parameters when the sequence is a Select Graphic Rendition. */
-  sgr?: string;
-}
-
-// Scans one escape sequence starting at ESC. Handles CSI, OSC, DCS, APC, PM,
-// SOS (all terminated by ST) and two-byte designators with intermediates.
-function scanEscape(text: string, start: number): EscapeScan {
-  let index = start + 1;
-  if (index >= text.length) return { end: index };
-  const introducer = text[index] as string;
-
-  if (introducer === '[') {
-    const end = csiEnd(text, index);
-    const final = end > index + 1 ? text[end - 1] : '';
-    return final === 'm'
-      ? { end, sgr: text.slice(index + 1, end - 1) }
-      : { end };
-  }
-
-  if (
-    introducer === ']' ||
-    introducer === 'P' ||
-    introducer === '_' ||
-    introducer === '^' ||
-    introducer === 'X'
-  ) {
-    let end = index + 1;
-    while (end < text.length) {
-      if (introducer === ']' && text[end] === '\u0007') return { end: end + 1 };
-      if (text[end] === '\u001b' && text[end + 1] === '\\') {
-        return { end: end + 2 };
-      }
-      end += 1;
-    }
-    return { end: text.length };
-  }
-
-  let end = index;
-  while (
-    end < text.length &&
-    text.charCodeAt(end) >= 0x20 &&
-    text.charCodeAt(end) <= 0x2f
-  ) {
-    end += 1;
-  }
-  if (
-    end < text.length &&
-    text.charCodeAt(end) >= 0x30 &&
-    text.charCodeAt(end) <= 0x7e
-  ) {
-    end += 1;
-  }
-  return { end };
-}
-
-/** Removes ANSI escape sequences, including OSC, DCS, APC and two-byte escapes. */
-export function stripAnsi(text: string): string {
-  let output = '';
-  for (let index = 0; index < text.length; index += 1) {
-    if (text.charCodeAt(index) === 0x1b) {
-      index = scanEscape(text, index).end - 1;
-      continue;
-    }
-    output += text[index];
-  }
-  return output;
-}
-
 function ansiToHtml(text: string, colorize: boolean): string {
   let output = '';
   let buffer = '';
@@ -282,7 +200,7 @@ function ansiToHtml(text: string, colorize: boolean): string {
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index] ?? '';
     const code = text.charCodeAt(index);
-    if (character === '\u001b') {
+    if (isEscapeIntroducer(code)) {
       const scan = scanEscape(text, index);
       if (scan.sgr !== undefined) {
         flush();

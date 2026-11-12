@@ -30,7 +30,7 @@ tolkira reports/junit.xml reports/cucumber.json --out report.html
 | `<skipped>` | skipped |
 | no status child | passed |
 | `time="1.234"` | 1234 ms |
-| `system-out` / `system-err` | `text/plain` attachments |
+| `system-out` / `system-err` | `text/plain` attachments (testcase level only) |
 | `file` attribute | not used yet; the input file is the URI |
 
 Suites and test cases are recomputed; `<testsuite tests="...">` totals are not
@@ -44,9 +44,9 @@ comment plus `test/fixtures/junit/PROVENANCE.md`:
 
 | Fixture | Producer shape | Covered behaviour |
 | --- | --- | --- |
-| `jest-junit.xml` | jest-junit 16.x | `<testsuites>`, `<testsuite>`, passed/failed/skipped, `<failure>`, testcase-level output |
-| `pytest.xml` | pytest 8.x `--junitxml` | `<properties>`, passed/failed/skipped, `<failure>`, suite-level output tolerated |
-| `gradle.xml` | Gradle 8.x test task | root `<testsuite>`, `<properties>`, passed/failed/error/skipped, `<failure>`, `<error>`, suite-level output tolerated |
+| `jest-junit.xml` | jest-junit 16.x | `<testsuites>`, `<testsuite>`, passed/failed/skipped, `<failure>`, suite-level output tolerated and ignored |
+| `pytest.xml` | pytest 8.x `--junitxml` | `<properties>`, passed/failed/skipped, `<failure>`, testcase-level output attached |
+| `gradle.xml` | Gradle 8.x test task | root `<testsuite>`, `<properties>`, passed/failed/error/skipped, `<failure>`, `<error>`, suite-level output tolerated and ignored |
 
 These are regression fixtures, not a claim that every dialect is supported.
 Suite-level `system-out`/`system-err` is intentionally not attached.
@@ -80,6 +80,9 @@ one.
   the JSON summary.
 - `system-out`/`system-err` are text only; HTML is escaped and never executed.
   Only testcase-level output is mapped; suite-level output is ignored.
+- `<!DOCTYPE>` and `<!ENTITY>` declarations are rejected as a parser-safety
+  measure. The same text inside comments, CDATA sections or processing
+  instructions is data and is accepted.
 - A document with no test cases is rejected with a clear error instead of
   rendered as an empty run.
 - JUnit XML dialects differ; Tolkira handles the common Jenkins/Gradle/Maven/

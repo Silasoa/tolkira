@@ -18,6 +18,10 @@ export const MEDIA_EXTENSIONS: Record<string, string> = {
   'video/webm': 'webm',
 };
 
+// `text/html` is only ever rendered as escaped text inside <pre>, never as
+// markup. `image/svg+xml` is only used as an <img> data-URI source, where
+// scripts do not run. Neither type reaches the document as HTML.
+
 export function normalizedMediaType(mediaType: string): string {
   return mediaType.split(';')[0]?.trim().toLowerCase() ?? '';
 }

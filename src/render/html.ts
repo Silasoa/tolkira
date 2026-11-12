@@ -623,24 +623,29 @@ function renderDiagnostic(step: ReportStep): string {
 }
 
 function renderStepText(step: ReportStep): string {
-  if (!step.parameters?.length) return escapeHtml(step.text);
+  const parameters = step.parameters;
+  if (!parameters?.length) return escapeHtml(step.text);
 
   let cursor = 0;
-  let html = '';
-  for (const parameter of step.parameters) {
+  for (const parameter of parameters) {
+    const end = parameter.start + parameter.value.length;
     if (
-      !Number.isFinite(parameter.start) ||
+      !Number.isInteger(parameter.start) ||
       parameter.start < cursor ||
-      parameter.start >= step.text.length
+      !parameter.value.length ||
+      end > step.text.length ||
+      step.text.slice(parameter.start, end) !== parameter.value
     ) {
-      continue;
+      return escapeHtml(step.text);
     }
-    const end = Math.min(
-      parameter.start + parameter.value.length,
-      step.text.length,
-    );
+    cursor = end;
+  }
+
+  cursor = 0;
+  let html = '';
+  for (const parameter of parameters) {
+    const end = parameter.start + parameter.value.length;
     const matched = step.text.slice(parameter.start, end);
-    if (!matched) continue;
     html += escapeHtml(step.text.slice(cursor, parameter.start));
     html += `<span class="param" data-parameter-type="${escapeHtml(parameter.type)}">${escapeHtml(matched)}</span>`;
     cursor = end;
@@ -673,7 +678,7 @@ function renderStep(step: ReportStep, scenarioName: string): string {
   const attachments = step.attachments
     .map((attachment) => renderAttachment(attachment, context))
     .join('');
-  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> ${renderStepText(step)}${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
+  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> <span class="stepText">${renderStepText(step)}</span>${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
 }
 
 function hookLabel(

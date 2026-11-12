@@ -35,6 +35,7 @@ step's plain text, the JSON summary or the search/copy text.
 
 #### Scenario: Invalid argument range
 
-- **WHEN** an argument start is out of range or overlaps an earlier argument
-- **THEN** the invalid fragment is not wrapped
-- **AND** the original step text is emitted at most once
+- **WHEN** an argument start is finite but out of range, truncated, does not
+  match the step text or overlaps an earlier argument
+- **THEN** the report renders the full escaped step text without `span.param`
+- **AND** the original step text is emitted exactly once

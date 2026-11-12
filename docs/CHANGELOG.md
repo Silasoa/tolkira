@@ -7,18 +7,20 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
-- `CucumberHtmlStream` is a Node `Transform` over Cucumber Messages envelopes.
-  It collects envelopes and emits the same HTML as `renderReport` on flush,
-  with the same title, metadata, logo and accent options. It writes no files
-  and emits no summary.
+- `CucumberHtmlStream` is a shape-compatible Node `Transform` over Cucumber
+  Messages envelopes. It buffers the run until flush and takes
+  `RenderReportOptions`, emitting the same HTML as `renderReport` with the same
+  title, metadata, logo and accent. It writes no files and emits no summary.
 - Matched step parameters render inside `span.param` with their Cucumber
-  parameter type from `stepMatchArgumentsLists`; all fragments are escaped.
-  Steps without exactly one match list, or with invalid/overlapping ranges,
-  keep the plain escaped text. Search, copy and the JSON summary are unchanged.
+  parameter type from `stepMatchArgumentsLists`; all fragments are escaped and
+  the step text sits in `span.stepText` so copy keeps the composed text. Steps
+  without exactly one match list, or with invalid, truncated, mismatched or
+  overlapping ranges, keep the full plain escaped text. Search, copy and the JSON summary
+  are otherwise unchanged.
 - JUnit XML producer fixtures for jest-junit, pytest and Gradle, with recorded
   provenance and coverage for suites, test cases, failures, errors, skipped
-  cases and testcase-level `system-out`/`system-err`. The adapter is unchanged;
-  the fixtures characterise its existing behaviour.
+  cases, testcase-level output attachments and suite-level output tolerance.
+  The adapter is unchanged; the fixtures characterise its existing behaviour.
 - Feature, rule, background, scenario and examples descriptions render a safe
   GFM subset through `markdown-it`: headings, emphasis, code, links, lists,
   tables and blockquotes. Raw HTML stays escaped, links are limited to
@@ -54,7 +56,8 @@ Keep a Changelog and the project uses semantic versioning.
   summary stays schema version 2.
 - Unnamed attachments use a deterministic `attachment.<ext>` fallback across
   Messages and legacy JSON. Known parameterised media types keep their
-  extension; unknown types become `attachment`. JSON attachments are
+  extension; unknown types normalise to `application/octet-stream` and
+  `attachment.bin`. JSON attachments are
   pretty-printed and escaped without losing big numbers or duplicate keys,
   `text/uri-list` entries link only for http(s), and
   `text/x.cucumber.log+plain` logs render theme-aware SGR, 256-colour and
@@ -129,6 +132,21 @@ Keep a Changelog and the project uses semantic versioning.
   no hooks are now unexecuted, so their scenario totals drop by one compared
   with version 1; legacy steps without a result and JUnit test cases remain
   executed.
+
+### Security
+
+- `--out` and the compatibility shim refuse to overwrite an input file and
+  leave the original bytes untouched.
+- The 100 MB total input cap is enforced from file metadata before a file is
+  read, in the core loader and in `jsonDir` scanning.
+- ANSI escape sequences, 8-bit C1 escapes and other C0/C1 controls are removed
+  from step, hook and run-hook messages before HTML, JSON summary and clipboard
+  copy. Newlines and tabs are kept; text without controls takes a fast path.
+- Attachments only keep an explicit media-type allowlist. Unknown or forged
+  types normalise to `application/octet-stream` (`attachment.bin`); `text/html`
+  is escaped text and SVG is limited to an `<img>` data URI.
+- JUnit XML rejects `<!DOCTYPE>` and `<!ENTITY>` declarations outside comments,
+  CDATA sections and processing instructions, and reports the declaration kind.
 
 ## [0.2.0] - 2026-11-10
 

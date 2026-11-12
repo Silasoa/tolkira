@@ -21,9 +21,8 @@ import type {
 } from '@cucumber/messages';
 
 import { isSyntheticBackground } from '../input/background.js';
-import { stripAnsi } from '../render/ansi.js';
 import { stepResultMessage } from '../result-message.js';
-import { stripBidiControls } from '../text.js';
+import { stripAnsi, stripBidiControls } from '../text.js';
 import { MEDIA_EXTENSIONS, normalizedMediaType, safeMediaType } from './attachment.js';
 import { type ReportStatus, worstExecutedStatus } from './status.js';
 

@@ -26,6 +26,12 @@ function testCaseFor(list: Envelope[], pickleName: string) {
   return testCase!;
 }
 
+function scenarioHtml(html: string, name: string): string {
+  const start = html.indexOf(`data-scenario-name="${name}"`);
+  expect(start).toBeGreaterThan(-1);
+  return html.slice(start, html.indexOf('</details>', start));
+}
+
 describe('step parameter highlighting', () => {
   it('wraps typed arguments and keeps surrounding text', async () => {
     const html = await render();
@@ -49,9 +55,11 @@ describe('step parameter highlighting', () => {
     const html = await render();
 
     expect(html).toContain(
-      '<span class="kw">Then</span> a step with two matches',
+      '<span class="kw">Then</span> <span class="stepText">a step with two matches</span>',
     );
-    expect(html).toContain('<span class="kw">And</span> a plain step');
+    expect(html).toContain(
+      '<span class="kw">And</span> <span class="stepText">a plain step</span>',
+    );
     expect(html.match(/class="param"/g)).toHaveLength(2);
   });
 
@@ -80,7 +88,7 @@ describe('step parameter highlighting', () => {
     );
   });
 
-  it('ignores an out-of-range argument start', async () => {
+  it('falls back to the full text for an out-of-range argument start', async () => {
     const list = await envelopes();
     const testCase = testCaseFor(list, 'Numbers');
     testCase.testSteps[0]!.stepMatchArgumentsLists = [
@@ -92,12 +100,15 @@ describe('step parameter highlighting', () => {
     ];
 
     const html = await renderHtml(list, { title: 'Parameters' });
+    const numbers = scenarioHtml(html, 'Numbers');
 
-    expect(html).not.toContain('data-parameter-type="int">12');
-    expect(html).toContain('I have 12 cucumbers');
+    expect(numbers).not.toContain('class="param"');
+    expect(numbers).toContain(
+      '<span class="stepText">I have 12 cucumbers</span>',
+    );
   });
 
-  it('ignores overlapping arguments and emits the text once', async () => {
+  it('falls back to the full text for overlapping arguments', async () => {
     const list = await envelopes();
     const testCase = testCaseFor(list, 'Numbers');
     testCase.testSteps[0]!.stepMatchArgumentsLists = [
@@ -110,9 +121,52 @@ describe('step parameter highlighting', () => {
     ];
 
     const html = await renderHtml(list, { title: 'Parameters' });
+    const numbers = scenarioHtml(html, 'Numbers');
 
-    expect(html.match(/data-parameter-type="int">12<\/span>/g)).toHaveLength(1);
-    expect(html).not.toContain('1212');
+    expect(numbers).not.toContain('class="param"');
+    expect(numbers).toContain(
+      '<span class="stepText">I have 12 cucumbers</span>',
+    );
+  });
+
+  it('falls back to the full text for a truncated argument range', async () => {
+    const list = await envelopes();
+    const testCase = testCaseFor(list, 'Numbers');
+    testCase.testSteps[0]!.stepMatchArgumentsLists = [
+      {
+        stepMatchArguments: [
+          { group: { start: 10, value: 'cucumbers and more' }, parameterTypeName: 'string' },
+        ],
+      },
+    ];
+
+    const html = await renderHtml(list, { title: 'Parameters' });
+    const numbers = scenarioHtml(html, 'Numbers');
+
+    expect(numbers).not.toContain('class="param"');
+    expect(numbers).toContain(
+      '<span class="stepText">I have 12 cucumbers</span>',
+    );
+  });
+
+  it('falls back to the full text when an argument value does not match', async () => {
+    const list = await envelopes();
+    const testCase = testCaseFor(list, 'Numbers');
+    testCase.testSteps[0]!.stepMatchArgumentsLists = [
+      {
+        stepMatchArguments: [
+          { group: { start: 7, value: '13' }, parameterTypeName: 'int' },
+        ],
+      },
+    ];
+
+    const html = await renderHtml(list, { title: 'Parameters' });
+    const numbers = scenarioHtml(html, 'Numbers');
+
+    expect(numbers).not.toContain('class="param"');
+    expect(numbers).toContain(
+      '<span class="stepText">I have 12 cucumbers</span>',
+    );
   });
 
   it('highlights arguments at the start and end of a step', async () => {

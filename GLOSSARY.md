@@ -17,7 +17,8 @@ hook. Screenshots are attachments.
 
 **Attachment fallback name** — the deterministic `attachment.<ext>` name used
 when an attachment has no Cucumber `fileName`. Known parameterised media types
-keep their extension; unknown types use `attachment`.
+keep their extension; unknown types normalise to `application/octet-stream` and
+`attachment.bin`.
 
 **CI metadata** — the optional Messages `meta.ci` block: CI name and URL plus
 git remote, revision, branch and tag. It renders in the HTML header and Details
@@ -31,9 +32,9 @@ offers a copy action.
 
 **Adapter** — code that turns an input format into Cucumber Messages.
 
-**Stream adapter** — `CucumberHtmlStream`, a Node `Transform` that accepts
-Messages envelopes and renders one HTML document on flush with the file API's
-options. It buffers the run; it is not an incremental renderer.
+**Stream adapter** — `CucumberHtmlStream`, a shape-compatible Node `Transform`
+that accepts Messages envelopes and renders one HTML document on flush with
+`RenderReportOptions`. It buffers the run; it is not an incremental renderer.
 
 **Parameter highlighting** — wrapping the fragments matched by a single
 `stepMatchArgumentsLists` entry in `span.param`, labelled with the Cucumber

@@ -10,6 +10,15 @@ import { isEnvelopeLike, parseMessages } from './messages.js';
 const MESSAGES_EXTENSIONS = new Set(['.jsonl', '.ndjson']);
 export const MAX_TOTAL_INPUT_BYTES = 100 * 1024 * 1024;
 
+export function addInputBytes(totalBytes: number, size: number): number {
+  if (totalBytes + size > MAX_TOTAL_INPUT_BYTES) {
+    throw new Error(
+      'Inputs exceed 100 MB in total. Split the report or use external attachments.',
+    );
+  }
+  return totalBytes + size;
+}
+
 type JsonObject = Record<string, unknown>;
 
 function isObject(value: unknown): value is JsonObject {
@@ -150,17 +159,13 @@ export async function loadInputs(
 
   for (const [index, input] of ordered.entries()) {
     const info = await stat(input.file);
-    if (totalBytes + info.size > MAX_TOTAL_INPUT_BYTES) {
-      throw new Error(
-        'Inputs exceed 100 MB in total. Split the report or use external attachments.',
-      );
-    }
+    const nextTotal = addInputBytes(totalBytes, info.size);
     const content = await readFile(input.file, 'utf8');
     const hash = createHash('sha256').update(content).digest('hex');
     if (seenContent.has(hash)) continue;
     seenContent.add(hash);
 
-    totalBytes += info.size;
+    totalBytes = nextTotal;
 
     const extension = path.extname(input.file).toLowerCase();
     const legacy = sniffLegacy(content);

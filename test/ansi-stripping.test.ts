@@ -12,9 +12,13 @@ const HOSTILE =
   `${ESC}]52;c;cHduZWQ=\u0007clip` +
   `${ESC}Pdcs payload${ESC}\\` +
   `${ESC}_apc payload${ESC}\\` +
-  `${ESC}(Btwo-byte`;
+  `${ESC}(Btwo-byte` +
+  `\u009d52;c;c1-osc\u0007c1clip` +
+  `\u0090c1-dcs\u009c` +
+  `\u009b1mc1-csi\u009b0m` +
+  `\u0000\u0007\u007f\u0085\u009f`;
 
-const VISIBLE = 'linkcliptwo-byte';
+const VISIBLE = 'linkcliptwo-bytec1clipc1-csi';
 
 function envelopes(): Envelope[] {
   const lines: unknown[] = [
@@ -190,6 +194,8 @@ describe('ANSI escape stripping in report text', () => {
     expect(html).not.toContain(']8;;');
     expect(html).not.toContain('dcs payload');
     expect(html).not.toContain('apc payload');
+    // oxlint-disable-next-line no-control-regex
+    expect(html).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/);
     expect(html).toContain(VISIBLE);
   });
 });
