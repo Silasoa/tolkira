@@ -18,6 +18,24 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
    implementer → review swarm → archive.
 5. Re-check this list at every release and after every review swarm.
 
+## How agents work
+
+- This file is intake. A GitHub issue is for durable, actionable, testable
+  work; the decision tree is in
+  [`docs/agents/issue-tracker.md`](agents/issue-tracker.md).
+- One issue per OpenSpec change; keep each issue to one coherent change. Batch
+  related chores under one meta issue instead of opening an issue per note.
+- `ready-for-agent` means testable acceptance criteria and a linked
+  spec/change. Labels route work and never replace the issue body; see
+  [`docs/agents/triage-labels.md`](agents/triage-labels.md).
+- Commit one logical change with a conventional prefix, reference the
+  issue/change, run `npm run hygiene` and `npm run check`, and never add a
+  `Co-authored-by` trailer, a generated artifact or a local path.
+- Specs are the contract. The OpenSpec CLI version is an implementation detail
+  (2.0 migration in progress); do not hardcode CLI flags in issues, specs or
+  docs.
+- Only the coordinator closes issues; workers never close, archive or publish.
+
 ## Open work
 
 | ID | Area | Priority | Item | Issue |
@@ -43,9 +61,14 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 Playwright, cache, editor and swap patterns to `.gitignore`, added
 `docs/README.md` and linked it from `README.md`, `CONTRIBUTING.md` and
 `llms.txt`, and archived three unreferenced research notes under
-`docs/research/archive/`. Remaining: reduce the weight of the comparison
-images (`docs/comparison/old-*` stays because `docs/COMPARISON.md` links every
-image) and deduplicate the tracked `.opencode/` skills.
+`docs/research/archive/`. Added the durable issue/backlog/commit workflow in
+`docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`,
+`CONTRIBUTING.md` and `AGENTS.md`, plus `npm run hygiene`
+(`scripts/check-hygiene.mjs`) for tracked artifacts, absolute local home paths
+and `Co-authored-by` trailers, wired into CI. Remaining: reduce the weight of
+the comparison images (`docs/comparison/old-*` stays because
+`docs/COMPARISON.md` links every image) and finish the `.opencode`/`.agents`
+skill deduplication as part of the OpenSpec 2.0 migration.
 
 ## Decisions (do not re-open without a trigger)
 

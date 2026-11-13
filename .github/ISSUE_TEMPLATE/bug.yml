@@ -1,5 +1,5 @@
 name: Bug report
-description: Something is broken or produces a wrong report.
+description: Something is broken or produces a wrong report. See docs/agents/issue-tracker.md.
 title: "bug: "
 labels: [needs-triage]
 body:
@@ -38,3 +38,17 @@ body:
     attributes:
       label: Logs / stack trace
       render: shell
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Optional; the maintainer applies the matching area label.
+      options:
+        - Input (legacy JSON, Messages, JUnit)
+        - Report UI
+        - CLI / API / summary
+        - Compatibility / migration
+        - Tests / fixtures
+        - Build / release / CI
+        - Docs / agent workflow
+        - Not sure

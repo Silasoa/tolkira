@@ -80,6 +80,7 @@
     "test": "npm run assets && vitest run",
     "test:e2e": "playwright test",
     "pretest:e2e": "npm run assets",
+    "hygiene": "node scripts/check-hygiene.mjs",
     "assets": "node scripts/build-styles.mjs && node scripts/build-search.mjs",
     "styles": "node scripts/build-styles.mjs",
     "prestress": "npm run build",

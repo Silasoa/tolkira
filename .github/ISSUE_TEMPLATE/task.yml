@@ -1,0 +1,81 @@
+name: Task
+description: Scoped, actionable work with testable acceptance criteria. Ideas belong in docs/BACKLOG.md.
+title: "task: "
+labels: [needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read `docs/agents/issue-tracker.md` before filing. This form is for
+        work that is already actionable; ideas, research questions and review
+        notes that are not actionable stay in `docs/BACKLOG.md`. A spec is
+        written before implementation.
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and evidence
+      description: What is wrong or missing, how it was found, and the backlog ID or review finding.
+      placeholder: B-0xx, review finding, reproduction, or link.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What this issue changes. Keep it to one coherent change.
+    validations:
+      required: true
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-goals
+      description: What this issue deliberately does not change.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable, observable statements. Add one checklist item per behaviour or edge case.
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Commands, fixtures and browser coverage that prove the criteria.
+      placeholder: |
+        npm run check
+        npm run test:e2e (report changes)
+    validations:
+      required: true
+  - type: input
+    id: spec
+    attributes:
+      label: Spec / OpenSpec change
+      description: Link the change directory or spec. Required before ready-for-agent; a docs-only chore states why no spec is needed.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: The maintainer applies the matching area label; this field does not replace it.
+      options:
+        - Input (legacy JSON, Messages, JUnit)
+        - Report UI
+        - CLI / API / summary
+        - Compatibility / migration
+        - Tests / fixtures
+        - Build / release / CI
+        - Docs / agent workflow
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Readiness
+      description: The maintainer sets ready-for-agent only when all of these apply.
+      options:
+        - label: Acceptance criteria are testable.
+        - label: A spec/change is linked, or the docs-only exemption is stated.
+        - label: The work fits one coherent change.

@@ -13,3 +13,5 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [Specs](../openspec/) — change contracts and spec history.
 - [Changelog](CHANGELOG.md) — released behaviour.
 - [Backlog](BACKLOG.md) — open findings and decisions.
+- [Issue and commit workflow](agents/issue-tracker.md) — issue vs backlog,
+  labels, templates and commit hygiene.

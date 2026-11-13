@@ -67,6 +67,9 @@ Spec first, tests first, small vertical slices.
 ## Orchestration
 
 - One change per issue; one implementer per change.
+- Findings follow the issue-vs-backlog decision tree in
+  `docs/agents/issue-tracker.md`: local backlog for intake, GitHub issue for
+  durable and testable work. Do not open an issue for every review note.
 - Spawn independent reviewers in one parallel batch; give concurrent workers
   disjoint file ownership.
 - No review or architecture finding is discarded silently. Fix it, file a
@@ -75,7 +78,10 @@ Spec first, tests first, small vertical slices.
   reviewer; see `docs/agents/review.md`.
 - Workers never close issues, merge, archive changes or publish releases.
 - Commit and push after every completed step.
-- Never add `Co-authored-by` trailers. The usual tool address
+- Run `npm run hygiene` before every commit; fix findings, never bypass them.
+  Keep one logical change per commit with a conventional prefix and an
+  issue/change reference. Never commit generated/local artifacts, secrets or a
+  `Co-authored-by` trailer: the usual tool address
   (`opencode@users.noreply.github.com`) belongs to an unrelated GitHub user.
 - Long commands run in the foreground; never wait on a background command.
 - Handoff at session end or when context fills.
@@ -85,8 +91,9 @@ Spec first, tests first, small vertical slices.
 
 ## Gate before merge
 
-`npm run check` must be green:
+`npm run hygiene` and `npm run check` must be green:
 
+- hygiene (tracked artifacts, local paths, commit trailers)
 - typecheck
 - lint
 - unit tests
@@ -145,7 +152,10 @@ If a secret is found, rotate it first; rewriting history is secondary.
   need structural indexing.
 - **Open Design:** optional for the report shell/visuals. If it does not work
   with the current OpenCode version, do not block on it.
-- **OpenSpec:** required for change contracts and spec history.
+- **OpenSpec:** required for change contracts and spec history. The CLI version
+  is an implementation detail (2.0 migration in progress); the change
+  directory and spec files are the contract, so do not hardcode CLI flags in
+  docs, issues or scripts.
 - **Pocock skills:** use grilling, to-spec, to-tickets, code-review, tdd and
   domain-modeling as needed; they are tools, not ceremony.
 

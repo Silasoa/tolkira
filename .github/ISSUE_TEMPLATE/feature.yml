@@ -1,8 +1,14 @@
 name: Feature request
-description: Suggest a capability or a report improvement.
+description: Suggest a capability or report improvement. Intake only; a spec follows before implementation.
 title: "feat: "
 labels: [needs-triage]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature requests are intake, not a spec. See
+        `docs/agents/issue-tracker.md` for when an item becomes an actionable
+        issue.
   - type: textarea
     id: problem
     attributes:
@@ -24,10 +30,13 @@ body:
     id: area
     attributes:
       label: Area
+      description: Optional; the maintainer applies the matching area label.
       options:
-        - Legacy JSON input
-        - Messages input
+        - Input (legacy JSON, Messages, JUnit)
         - Report UI
-        - CLI/API
-        - Release/packaging
-        - Docs
+        - CLI / API / summary
+        - Compatibility / migration
+        - Tests / fixtures
+        - Build / release / CI
+        - Docs / agent workflow
+        - Other

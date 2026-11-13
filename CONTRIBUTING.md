@@ -6,7 +6,9 @@ this before opening a PR. The full documentation map is in
 
 ## Before code
 
-1. Open or find an issue that describes the problem.
+1. Open or find an issue. If the idea is not actionable yet, record it in
+   [`docs/BACKLOG.md`](docs/BACKLOG.md); the decision tree is in
+   [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md).
 2. Write or update the OpenSpec change: proposal, spec delta with acceptance
    criteria, design and tasks.
 3. Get user/maintainer approval of the spec.
@@ -22,11 +24,14 @@ Requires Node.js 22 or newer.
 ```shell
 npm ci
 npx playwright install chromium firefox webkit
+npm run hygiene
 npm run check
 npm run test:e2e
 ```
 
-`npm run check` runs typecheck, lint, unit tests and build.
+`npm run check` runs typecheck, lint, unit tests and build. `npm run hygiene`
+checks tracked generated/local files, absolute local paths in docs and commit
+trailers; CI runs the same check on the committed tree.
 
 ## Pull requests
 
@@ -45,6 +50,24 @@ Use short, imperative English messages, for example:
 - `feat: preserve png attachments from legacy json`
 - `fix: escape report title`
 - `docs: record legacy fixture limitations`
+
+## Commit hygiene
+
+- One logical change per commit; do not mix refactors, formatting and
+  behaviour.
+- Use a conventional prefix: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`,
+  `perf:`, `build:`, `ci:` or `chore:`.
+- Run `npm run hygiene` and `npm run check` before committing; run
+  `npm run test:e2e` for report changes.
+- `npm run hygiene` rejects tracked `model.diff`, `*.official.html`,
+  `test-results/`, `playwright-report/`, env/key files, absolute local home
+  paths in docs, and `Co-authored-by` trailers.
+- Reference the issue and the OpenSpec change in the commit body, for example
+  `Refs #12` and `Change: openspec/changes/<name>`.
+- Never commit generated or local artifacts, secrets, customer data, or a
+  `Co-authored-by` trailer. The usual tool address belongs to an unrelated
+  GitHub user.
+- Keep the diff scoped; leave unrelated edits out of the commit.
 
 ## License
 

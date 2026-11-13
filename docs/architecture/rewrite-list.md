@@ -1,8 +1,7 @@
 # Architecture rewrite list
 
-Source: `C:\Users\YourSystem\AppData\Local\Temp\opencode\architecture-review-20261113-003825.html`
-(2026-11-13, after 0.3.0). Statuses are coordinator decisions, not approved
-interfaces yet.
+Source: architecture review artifact from 2026-11-13 (local, not committed).
+Statuses are coordinator decisions, not approved interfaces yet.
 
 ## Do next (Strong)
 

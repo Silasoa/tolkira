@@ -75,8 +75,8 @@ still runs for every user-facing report feature.
 
 ## Rules
 
-- The gate (`typecheck + lint + test + build + e2e`) must be green before
-  review; reviewers re-run what they can.
+- The gate (`npm run hygiene` + typecheck + lint + test + build + e2e) must be
+  green before review; reviewers re-run what they can.
 - A reviewer reports findings; the coordinator decides. No finding may be
   dropped silently: it is fixed, filed as a GitHub issue, or recorded as a
   decision with a trigger in `docs/BACKLOG.md`.
