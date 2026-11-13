@@ -1,7 +1,9 @@
 import { loadInputs, provenanceFor } from './input/load.js';
+import { sanitizeEnvelopes } from './input/sanitize.js';
 import { renderOptions, type RenderReportOptions } from './options.js';
+import { indexRun } from './report/index-run.js';
 import { renderHtml } from './render/html.js';
-import { summarizeEnvelopes } from './summary.js';
+import { summarizeIndex } from './summary.js';
 import type { ReportSummary } from './summary.js';
 
 export const version = '0.3.0';
@@ -28,12 +30,16 @@ export async function generateReport(
   options: RenderReportOptions = {},
 ): Promise<GeneratedReport> {
   const groups = await loadInputs(inputs);
-  const envelopes = groups.flatMap((group) => group.envelopes);
-  const summary = summarizeEnvelopes(envelopes);
+  const envelopes = sanitizeEnvelopes(
+    groups.flatMap((group) => group.envelopes),
+  );
+  const index = indexRun(envelopes);
+  const summary = summarizeIndex(index);
   return {
     html: await renderHtml(envelopes, {
       ...renderOptions(options),
       summary,
+      index,
       provenance: groups.length > 1 ? provenanceFor(groups) : undefined,
     }),
     summary,

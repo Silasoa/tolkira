@@ -21,6 +21,6 @@
 
 ## 3. Handover
 
-- [ ] 3.1 Commit and push the slice; report commit, tests, behavior
+- [x] 3.1 Commit and push the slice; report commit, tests, behavior
   differences and deferred items.
-- [ ] 3.2 Leave archive, tag and publish to the coordinator/user.
+- [x] 3.2 Leave archive, tag and publish to the coordinator/user.

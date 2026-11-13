@@ -14,7 +14,11 @@ import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
 import { MEDIA_EXTENSIONS, normalizedMediaType, safeMediaType } from './attachment.js';
-import { indexRun, type RunStepDefinition } from './index-run.js';
+import {
+  indexRun,
+  type RunIndex,
+  type RunStepDefinition,
+} from './index-run.js';
 import { type ReportStatus, worstExecutedStatus } from './status.js';
 
 export type { ReportStatus } from './status.js';
@@ -415,8 +419,8 @@ function ruleMetadata(rule: Rule): ReportRule {
 export function buildReportModel(
   envelopes: Envelope[],
   provenance?: Map<string, string>,
+  index: RunIndex = indexRun(envelopes),
 ): ReportModel {
-  const index = indexRun(envelopes);
   const attachmentCache = new Map<Attachment, ReportAttachment>();
   const ruleCache = new Map<Rule, ReportRule>();
   let startedAt: string | undefined;

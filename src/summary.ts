@@ -10,7 +10,11 @@ import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
-import { indexRun, type RunStepDefinition } from './report/index-run.js';
+import {
+  indexRun,
+  type RunIndex,
+  type RunStepDefinition,
+} from './report/index-run.js';
 import { type ReportStatus, statusSeverity, worstExecutedStatus } from './report/status.js';
 
 export const SUMMARY_SCHEMA_VERSION = 2;
@@ -182,7 +186,11 @@ function attachmentBytes(attachment: Attachment): number {
  * This is the machine-readable contract for agents and CI tools.
  */
 export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
-  const index = indexRun(sanitizeEnvelopes(input));
+  return summarizeIndex(indexRun(sanitizeEnvelopes(input)));
+}
+
+/** Builds the summary from an index already reduced from sanitized envelopes. */
+export function summarizeIndex(index: RunIndex): ReportSummary {
   const scenarioCounts = emptyCounts();
   const stepCounts = emptyCounts();
   const scenarios: SummaryScenario[] = [];

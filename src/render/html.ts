@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Envelope } from '@cucumber/messages';
 import { sanitizeEnvelopes } from '../input/sanitize.js';
+import { indexRun, type RunIndex } from '../report/index-run.js';
 import {
   MAX_TEXT_ATTACHMENT_BYTES,
   normalizedMediaType,
@@ -24,7 +25,7 @@ import {
   worstExecutedStatus,
 } from '../report/status.js';
 import type { ReportSummary } from '../summary.js';
-import { summarizeEnvelopes, displayUri } from '../summary.js';
+import { summarizeIndex, displayUri } from '../summary.js';
 import { stripBidiControls } from '../text.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { renderAnsiLog } from './ansi.js';
@@ -48,6 +49,8 @@ export interface RenderOptions {
   accent?: string;
   summary?: ReportSummary;
   provenance?: Map<string, string>;
+  /** Index already built from the sanitized envelopes; internal fast path. */
+  index?: RunIndex;
 }
 
 function statusLabel(status: ReportStatus): string {
@@ -1240,8 +1243,9 @@ export async function renderHtml(
   options: RenderOptions,
 ): Promise<string> {
   const safeEnvelopes = sanitizeEnvelopes(envelopes);
-  const model = buildReportModel(safeEnvelopes, options.provenance);
-  const summary = options.summary ?? summarizeEnvelopes(safeEnvelopes);
+  const index = options.index ?? indexRun(safeEnvelopes);
+  const model = buildReportModel(safeEnvelopes, options.provenance, index);
+  const summary = options.summary ?? summarizeIndex(index);
   const logo = isLogoDataUri(options.logo)
     ? `<img class="logo" src="${escapeHtml(options.logo)}" alt="">`
     : '';
