@@ -10,12 +10,13 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 2. The coordinator gives it an ID (`B-001`), an area and a priority.
 3. Choose one:
    - **Fix now** — small enough for the current slice.
-   - **Issue** — file it on GitHub with the `area:*` and `priority:*` labels and
-     link it here. A spec is written before implementation.
+   - **Issue** — draft it, pass the IR review, then file it on GitHub with the
+     `area:*` and `priority:*` labels and link it here. A spec is written
+     before implementation.
    - **Decision** — reject or defer with a concrete reason and a trigger for
      revisiting. This is the only allowed way to not act.
-4. Issues move through the normal workflow: OpenSpec change → TDD-Red →
-   implementer → review swarm → archive.
+4. Issues move through the normal workflow: IR review → OpenSpec change and
+   PIR/DXR spec review → TDD-Red → implementer → review swarm → archive.
 5. Re-check this list at every release and after every review swarm.
 
 ## How agents work

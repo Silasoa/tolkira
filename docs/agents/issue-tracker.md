@@ -80,6 +80,15 @@ body is required before it becomes `ready-for-agent`.
 spec/change (or a stated docs-only exemption), a known file surface, and no
 open product decision. Labels route the work; they never replace the body.
 
+## Review before posting
+
+Before creating an issue, run the IR (Issue Review) gate in
+[`review.md`](review.md): one independent subagent checks that the work is real
+and durable, one coherent change, agent-actionable from the body, free of
+secrets, private paths, customer data and internal-only instructions, and
+labeled consistently. Fix blockers, then post. This applies to maintainer- and
+agent-created issues; community issues get the same checks at triage.
+
 ## Templates
 
 Use the Task template for scoped work with a spec, the Bug template for
@@ -99,14 +108,15 @@ exist before the spec, but it cannot become `ready-for-agent` without one.
 
 ## Lifecycle
 
-1. A new issue starts with `needs-triage`.
-2. Triage sets one area, one priority and one of `accepted`, `needs-info`,
+1. Draft the issue and pass the IR review.
+2. Create it; a new issue starts with `needs-triage`.
+3. Triage sets one area, one priority and one of `accepted`, `needs-info`,
    `ready-for-human`, `ready-for-agent` or `wontfix`.
-3. `accepted` means the work is queued but the spec is not approved yet; it
+4. `accepted` means the work is queued but the spec is not approved yet; it
    may stay in the backlog across releases.
-4. A `ready-for-agent` issue has an approved spec and testable acceptance
+5. A `ready-for-agent` issue has an approved spec and testable acceptance
    criteria; the implementer runs the gate and review.
-5. The coordinator closes only after the change is merged, with a comment
+6. The coordinator closes only after the change is merged, with a comment
    linking the commit or PR and, when applicable, the archived change.
 
 ## OpenSpec version note

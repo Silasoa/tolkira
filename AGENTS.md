@@ -58,9 +58,10 @@ Spec first, tests first, small vertical slices.
   from legacy HTML reporters. Findings inform README/positioning, not the
   OpenSpec contract.
 - **Independent reviewers:** blind review, see `docs/agents/review.md`.
-  Standard set: SCR (Spec-Compliance), CR (Code Review), DAR (Documentation &
-  Agent-Readability). Triggered: SEC (security/attachments), UXR (report shell),
-  ILA (i18n), PCA (performance/complexity), PSA (prompts/skills).
+  IR (Issue Review) runs before an issue is posted. Standard set: SCR
+  (Spec-Compliance), CR (Code Review), DAR (Documentation & Agent-Readability).
+  Triggered: SEC (security/attachments), UXR (report shell), ILA (i18n), PCA
+  (performance/complexity), PSA (prompts/skills).
 - **Fixer:** a separate worker for review findings, not the implementer of
   record.
 
@@ -72,6 +73,10 @@ Spec first, tests first, small vertical slices.
   durable and testable work. Do not open an issue for every review note.
 - Spawn independent reviewers in one parallel batch; give concurrent workers
   disjoint file ownership.
+- Before posting a GitHub issue, run one independent IR (Issue Review): real
+  and durable work, one coherent change, agent-actionable body, no sensitive
+  or internal-only content. Fix blockers, then post. Community issues get the
+  same checks at triage.
 - No review or architecture finding is discarded silently. Fix it, file a
   GitHub issue, or record a decision with a trigger in `docs/BACKLOG.md`.
 - After every user-facing report feature, run the CMP parity comparison

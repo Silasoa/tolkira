@@ -4,6 +4,15 @@ Purpose: independent verification of every code change before it is pushed. No
 worker is trusted on its own report, and no single agent (including the
 coordinator) is the only adversarial check.
 
+## Gates at a glance
+
+| Stage | Gate | Shape |
+| --- | --- | --- |
+| Issue draft | IR — Issue Review | one independent subagent, before posting |
+| Spec/design | PIR + DXR | parallel, before code |
+| Implementation | SCR + CR + DAR (+ triggered) | parallel, blind |
+| User-facing report feature | CMP | before merge |
+
 ## Rule: docs-only skips review, everything else is reviewed
 
 - **Docs/comments only** (markdown, comments, changelog, specs, ADRs): no
@@ -17,6 +26,34 @@ coordinator) is the only adversarial check.
 Reviewers receive the SPEC (or change intent) and the DIFF only — never the
 implementer's self-report. The coordinator assembles the inputs (spec + `git
 diff`) and spawns the reviewers. Reviewers are read-only.
+
+## Issue review gate (before posting)
+
+The coordinator or a worker drafts the issue, then one independent subagent
+runs a short **IR — Issue Review**. This is not the full spec swarm. It applies
+to maintainer- and agent-created issues; incoming community issues get the same
+checks at triage.
+
+IR checks:
+
+- **Real and durable.** The work is not already fixed, duplicated by another
+  issue, or decided in `docs/BACKLOG.md`, and it is not better kept as an
+  intake item; it has value beyond the current session.
+- **One coherent change.** It is not an umbrella mixing unrelated work. A
+  batch uses a meta issue with a checklist or separate sub-issues.
+- **Agent-actionable.** A fresh agent can act from the body alone: context,
+  scope, non-goals, testable acceptance criteria, verification, spec/change
+  link and the file surface.
+- **Public-safe.** No secrets, tokens, private paths, customer data, personal
+  contact data, internal-only working rules, or security-sensitive
+  reproduction details that should not be public.
+- **Consistent.** Title prefix, one `area:*`, one `priority:*` and one
+  readiness label match `triage-labels.md`; the issue does not claim
+  `ready-for-agent` without a spec.
+
+The reviewer returns blockers and optional improvements. The coordinator fixes
+blockers before posting and never posts with an open blocker. A material edit
+to a posted issue re-runs the check.
 
 ## Standard reviewer set (parallel, blind)
 
