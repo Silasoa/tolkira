@@ -646,3 +646,35 @@ documented contract and still require the async Seed-Test change.
 
 The integration is therefore viable as a Seed-Test-led change. It is not a
 zero-change drop-in because of the async contract and the group sidecar.
+
+## 11. Smoke result (Tolkira 0.3.0)
+
+Run on 2026-11-13 against `adessoSE/Seed-Test` branch `AI-integration-prototype`
+at `ce2cad8`, with a packed Tolkira 0.3.0 tarball installed into the clone.
+
+Verified:
+
+- the patched Seed-Test backend compiles with `tsc -b` and passes ESLint;
+- `report.service.spec.ts` passes 35/35, including the sidecar assertions;
+- the compiled `generateHtmlReport` writes a 103,444-byte story report in 23 ms
+  and a 104,389-byte group report plus
+  `features/<group>/<group>.html.json`;
+- `analyzeGroupReport` reads the sidecar as 2 stories, 3 passed / 1 failed
+  scenarios and 7 passed / 1 failed steps;
+- a retry in the same directory does not duplicate features;
+- the HTML is self-contained, renders inline screenshots, and has no
+  horizontal overflow at 320 px.
+
+Patch shape (7 files, +43/-36):
+
+- `backend/package.json`: replace `cucumber-html-reporter` with `tolkira`;
+- `report.service.ts`: named `generate`, `await`, `CucumberHtmlReporterOptions`,
+  async `generateHtmlReport` and the sidecar pre-merge;
+- `report.controller.ts`: await the call;
+- `models.ts` and `report.types.ts`: use the Tolkira options type;
+- root `package.json`: remove the dead `cucumber-html-reporter` override.
+
+Not verified: the full backend with MongoDB, auth and Docker, `npm ci` with the
+regenerated lockfile, Linux and Node 22/24, and a live cucumber-js run. The
+sidecar merge assumes each per-story file is a top-level JSON array, which the
+legacy formatter guarantees.
