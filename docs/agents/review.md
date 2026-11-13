@@ -77,8 +77,11 @@ still runs for every user-facing report feature.
 
 - The gate (`typecheck + lint + test + build + e2e`) must be green before
   review; reviewers re-run what they can.
-- A reviewer reports findings; the coordinator decides. If the coordinator
-  overrides a finding, the reason is logged in the issue or commit.
+- A reviewer reports findings; the coordinator decides. No finding may be
+  dropped silently: it is fixed, filed as a GitHub issue, or recorded as a
+  decision with a trigger in `docs/BACKLOG.md`.
+- A finding that is deferred or rejected without an issue needs a written
+  reason in `docs/BACKLOG.md`; “not now” alone is not a decision.
 - Rejection loop: a failing review spawns a fixer worker (not the coordinator,
   not the implementer of record), who inherits the findings; then re-review.
 - Keep a small running counter of code changes since the last PCA run; when it
