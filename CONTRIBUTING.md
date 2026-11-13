@@ -1,7 +1,8 @@
 # Contributing
 
 Thanks for taking a look. Tolkira is spec-first and review-first; please read
-this before opening a PR.
+this before opening a PR. The full documentation map is in
+[`docs/README.md`](https://github.com/Silasoa/tolkira/blob/main/docs/README.md).
 
 ## Before code
 

@@ -39,6 +39,14 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-015 | Decision | P3 | Node 20 support policy | [#18](https://github.com/Silasoa/tolkira/issues/18) |
 | B-016 | Meta | P2 | Public repo hygiene and `.gitignore` baseline | [#20](https://github.com/Silasoa/tolkira/issues/20) |
 
+**B-016 status (2026-11-13).** Done: removed the tracked `model.diff`, added
+Playwright, cache, editor and swap patterns to `.gitignore`, added
+`docs/README.md` and linked it from `README.md`, `CONTRIBUTING.md` and
+`llms.txt`, and archived three unreferenced research notes under
+`docs/research/archive/`. Remaining: reduce the weight of the comparison
+images (`docs/comparison/old-*` stays because `docs/COMPARISON.md` links every
+image) and deduplicate the tracked `.opencode/` skills.
+
 ## Decisions (do not re-open without a trigger)
 
 - **G13 external attachments / split assets.** Deliberate conflict with the

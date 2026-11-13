@@ -357,6 +357,7 @@ remaining Behave real-run gap.
 
 ## Documentation
 
+- [`docs/README.md`](https://github.com/Silasoa/tolkira/blob/main/docs/README.md) — map of all project documentation.
 - [`llms.txt`](https://github.com/Silasoa/tolkira/blob/main/llms.txt) — short entry point for AI agents.
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema, CLI
   contract and exit codes.

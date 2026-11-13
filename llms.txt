@@ -9,6 +9,8 @@ Package: https://www.npmjs.com/package/tolkira
 
 ## Start here
 
+- [Documentation map](https://github.com/Silasoa/tolkira/blob/main/docs/README.md):
+  entry point to product, architecture, compatibility and research docs.
 - [README](https://github.com/Silasoa/tolkira/blob/main/README.md): install,
   quick start, migration from cucumber-html-reporter and MCHR, decision matrix.
 - [Agent interface](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md):
