@@ -2,12 +2,12 @@ import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Envelope } from '@cucumber/messages';
+import { detectInput } from './detect.js';
 import { parseLegacyJson, parseLegacyValue } from './legacy.js';
 import { collectReportFiles } from './files.js';
-import { looksLikeJUnit, parseJUnitXml } from './junit.js';
-import { isEnvelopeLike, parseMessages } from './messages.js';
+import { parseJUnitXml } from './junit.js';
+import { parseMessages } from './messages.js';
 
-const MESSAGES_EXTENSIONS = new Set(['.jsonl', '.ndjson']);
 export const MAX_TOTAL_INPUT_BYTES = 100 * 1024 * 1024;
 
 export function addInputBytes(totalBytes: number, size: number): number {
@@ -17,54 +17,6 @@ export function addInputBytes(totalBytes: number, size: number): number {
     );
   }
   return totalBytes + size;
-}
-
-type JsonObject = Record<string, unknown>;
-
-function isObject(value: unknown): value is JsonObject {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function isFeatureLike(value: unknown): boolean {
-  return (
-    isObject(value) &&
-    (Array.isArray(value.elements) ||
-      (typeof value.keyword === 'string' && typeof value.name === 'string'))
-  );
-}
-
-type LegacySniff =
-  | { kind: 'legacy'; parsed: unknown[] }
-  | { kind: 'malformed' }
-  | undefined;
-
-function sniffLegacy(content: string): LegacySniff {
-  const trimmed = content.replace(/^\uFEFF/, '').trimStart();
-  if (!trimmed.startsWith('[')) return undefined;
-  try {
-    const parsed: unknown = JSON.parse(trimmed);
-    if (!Array.isArray(parsed)) return undefined;
-    return parsed.every(isFeatureLike)
-      ? { kind: 'legacy', parsed }
-      : undefined;
-  } catch {
-    return { kind: 'malformed' };
-  }
-}
-
-function looksLikeMessages(content: string): boolean {
-  const firstLine = content
-    .replace(/^\uFEFF/, '')
-    .split(/\r?\n/, 20)
-    .map((line) => line.trim())
-    .find(Boolean);
-  if (!firstLine) return false;
-
-  try {
-    return isEnvelopeLike(JSON.parse(firstLine));
-  } catch {
-    return false;
-  }
 }
 
 function invalidJson(content: string, file: string): never {
@@ -167,41 +119,42 @@ export async function loadInputs(
 
     totalBytes = nextTotal;
 
-    const extension = path.extname(input.file).toLowerCase();
-    const legacy = sniffLegacy(content);
+    const decision = detectInput(content, input);
     let parsed: Envelope[] = [];
 
-    if (legacy?.kind === 'legacy') {
-      parsed = parseLegacyValue(legacy.parsed, input.file, {
-        idPrefix: `legacy-${index}`,
-      });
-    } else if (legacy?.kind === 'malformed') {
-      // Validation-only: throws on malformed JSON; there is no result to add.
-      parseLegacyJson(content, input.file, { idPrefix: `legacy-${index}` });
-    } else if (looksLikeJUnit(content)) {
-      parsed = await parseJUnitXml(content, input.file, {
-        idPrefix: `junit-${index}`,
-      });
-    } else if (looksLikeMessages(content)) {
-      parsed = parseMessages(content, input.file);
-    } else if (input.explicit && extension === '.xml') {
-      // Validation-only: throws when the explicit XML is not usable JUnit.
-      await parseJUnitXml(content, input.file, { idPrefix: `junit-${index}` });
-    } else {
-      if (
-        input.explicit &&
-        MESSAGES_EXTENSIONS.has(extension) &&
-        content.trim().length === 0
-      ) {
-        throw new Error(`Input is empty: ${input.file}`);
-      }
-      if (input.explicit) {
-        invalidJson(content, input.file);
-      }
-      if (MESSAGES_EXTENSIONS.has(extension)) {
+    switch (decision.kind) {
+      case 'legacy':
+        parsed = parseLegacyValue(decision.parsed, input.file, {
+          idPrefix: `legacy-${index}`,
+        });
+        break;
+      case 'legacy-validation':
+        // Validation-only: throws on malformed JSON; there is no result to add.
+        parseLegacyJson(content, input.file, { idPrefix: `legacy-${index}` });
+        break;
+      case 'junit':
+        parsed = await parseJUnitXml(content, input.file, {
+          idPrefix: `junit-${index}`,
+        });
+        break;
+      case 'junit-validation':
+        // Validation-only: throws when the explicit XML is not usable JUnit.
+        await parseJUnitXml(content, input.file, {
+          idPrefix: `junit-${index}`,
+        });
+        break;
+      case 'messages':
+        parsed = parseMessages(content, input.file);
+        break;
+      case 'messages-validation':
         // Validation-only fallback; valid Messages are handled above.
         parseMessages(content, input.file);
-      }
+        break;
+      case 'json-validation':
+        invalidJson(content, input.file);
+        break;
+      case 'skip':
+        break;
     }
 
     groups.push({ file: input.file, envelopes: parsed });

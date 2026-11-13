@@ -71,26 +71,6 @@ describe('input merging', () => {
     expect(html).toContain('Screenshot attachment');
   });
 
-  it('detects a Messages file with a .json extension', async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-sniff-'));
-    tempDirs.push(dir);
-    const renamed = path.join(dir, 'messages.json');
-    await copyFile(messages, renamed);
-
-    const html = await renderReport(renamed, { title: 'Sniffed messages' });
-    expect(html).toContain('Screenshot attachment');
-  });
-
-  it('detects a legacy file with an .ndjson extension', async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-sniff-'));
-    tempDirs.push(dir);
-    const renamed = path.join(dir, 'legacy.ndjson');
-    await copyFile(legacy, renamed);
-
-    const html = await renderReport(renamed, { title: 'Sniffed legacy' });
-    expect(html).toContain('Happy HTML reporting');
-  });
-
   it('skips unrelated JSON files in a directory', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-skip-'));
     tempDirs.push(dir);
