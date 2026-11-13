@@ -37,6 +37,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-013 | Tests | P3 | JUnit suite-level output and producer coverage | [#16](https://github.com/Silasoa/tolkira/issues/16) |
 | B-014 | Performance | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
 | B-015 | Decision | P3 | Node 20 support policy | [#18](https://github.com/Silasoa/tolkira/issues/18) |
+| B-016 | Meta | P2 | Public repo hygiene and `.gitignore` baseline | [#20](https://github.com/Silasoa/tolkira/issues/20) |
 
 ## Decisions (do not re-open without a trigger)
 
