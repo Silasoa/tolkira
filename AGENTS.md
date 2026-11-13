@@ -156,8 +156,10 @@ If a secret is found, rotate it first; rewriting history is secondary.
   is an implementation detail (2.0 migration in progress); the change
   directory and spec files are the contract, so do not hardcode CLI flags in
   docs, issues or scripts.
-- **Pocock skills:** use grilling, to-spec, to-tickets, code-review, tdd and
-  domain-modeling as needed; they are tools, not ceremony.
+- **Pocock skills:** use the installed grilling, code-review, tdd and
+  domain-modeling skills as needed; `to-spec` and `to-tickets` are not
+  installed, so the issue tracker and OpenSpec artifacts are the workflow of
+  record. Skills are tools, not ceremony.
 
 ## Communication
 

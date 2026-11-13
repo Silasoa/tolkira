@@ -40,22 +40,27 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
-| B-001 | Parity | P1 | Playwright JSON adapter | [#4](https://github.com/Silasoa/tolkira/issues/4) |
-| B-002 | Vision | P1 | CI annotations and PR summary from `--json` | [#5](https://github.com/Silasoa/tolkira/issues/5) |
-| B-003 | Integration | P1 | Seed-Test 2.0 group sidecar | [#6](https://github.com/Silasoa/tolkira/issues/6) |
-| B-004 | Architecture | P2 | Reflow and split `html.ts` at view seams | [#7](https://github.com/Silasoa/tolkira/issues/7) |
-| B-005 | Tests | P2 | Split render/e2e suites and finish fixture helpers | [#8](https://github.com/Silasoa/tolkira/issues/8) |
-| B-006 | Architecture | P2 | Consolidate attachment byte counting and presentation lookup | [#9](https://github.com/Silasoa/tolkira/issues/9) |
-| B-007 | Vision | P2 | Optional history file and trends | [#10](https://github.com/Silasoa/tolkira/issues/10) |
-| B-008 | Vision | P2 | Decide external or split-assets attachment mode | [#11](https://github.com/Silasoa/tolkira/issues/11) |
-| B-009 | Vision | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
-| B-010 | Vision | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
-| B-011 | Architecture | P3 | Generated-assets build seam (deferred) | [#14](https://github.com/Silasoa/tolkira/issues/14) |
-| B-012 | Research | P3 | Real Behave run with attachments and doc strings | [#15](https://github.com/Silasoa/tolkira/issues/15) |
-| B-013 | Tests | P3 | JUnit suite-level output and producer coverage | [#16](https://github.com/Silasoa/tolkira/issues/16) |
-| B-014 | Performance | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
-| B-015 | Decision | P3 | Node 20 support policy | [#18](https://github.com/Silasoa/tolkira/issues/18) |
+| B-001 | Input | P1 | Playwright JSON adapter | [#4](https://github.com/Silasoa/tolkira/issues/4) |
+| B-002 | CLI/API | P1 | CI annotations and PR summary from `--json` | [#5](https://github.com/Silasoa/tolkira/issues/5) |
+| B-004 | Report | P2 | Reflow and split `html.ts` at view seams | [#7](https://github.com/Silasoa/tolkira/issues/7) |
+| B-005 | Test | P2 | Split render/e2e suites and finish fixture helpers | [#8](https://github.com/Silasoa/tolkira/issues/8) |
+| B-006 | Input | P2 | Consolidate attachment byte counting and presentation lookup | [#9](https://github.com/Silasoa/tolkira/issues/9) |
+| B-007 | Report | P2 | Optional history file and trends | [#10](https://github.com/Silasoa/tolkira/issues/10) |
+| B-008 | Input | P2 | Decide external or split-assets attachment mode | [#11](https://github.com/Silasoa/tolkira/issues/11) |
+| B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
+| B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-011 | Build/release | P3 | Generated-assets build seam (deferred) | [#14](https://github.com/Silasoa/tolkira/issues/14) |
+| B-012 | Test | P3 | Real Behave run with attachments and doc strings | [#15](https://github.com/Silasoa/tolkira/issues/15) |
+| B-013 | Input | P3 | JUnit suite-level output and producer coverage | [#16](https://github.com/Silasoa/tolkira/issues/16) |
+| B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
+| B-015 | Build/release | P3 | Node 20 support policy | [#18](https://github.com/Silasoa/tolkira/issues/18) |
 | B-016 | Meta | P2 | Public repo hygiene and `.gitignore` baseline | [#20](https://github.com/Silasoa/tolkira/issues/20) |
+
+**Label taxonomy (2026-11-13).** Remote labels now match
+[`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
+`priority:*` and one readiness label. `accepted` was added for triaged work
+without an approved spec; the old theme labels (`area:parity`,
+`area:architecture`, ...) were removed.
 
 **B-016 status (2026-11-13).** Done: removed the tracked `model.diff`, added
 Playwright, cache, editor and swap patterns to `.gitignore`, added
@@ -69,6 +74,14 @@ and `Co-authored-by` trailers, wired into CI. Remaining: reduce the weight of
 the comparison images (`docs/comparison/old-*` stays because
 `docs/COMPARISON.md` links every image) and finish the `.opencode`/`.agents`
 skill deduplication as part of the OpenSpec 2.0 migration.
+
+## Resolved
+
+- **B-003 Seed-Test 2.0 group sidecar** — resolved for Tolkira on 2026-11-13.
+  The 0.3.0 smoke proved that Seed-Test owns the ~10-line sidecar pre-merge and
+  needs no Tolkira change. [#6](https://github.com/Silasoa/tolkira/issues/6) is
+  closed; evidence is in
+  [`docs/research/seed-test-2-integration.md`](research/seed-test-2-integration.md).
 
 ## Decisions (do not re-open without a trigger)
 

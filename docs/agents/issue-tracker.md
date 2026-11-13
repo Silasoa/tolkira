@@ -57,9 +57,9 @@ Examples:
 ## Issue quality
 
 Title: `<type>: <imperative outcome>`, for example
-`fix: preserve png attachments from legacy json`. Use `bug`, `feat`, `task`,
-`docs`, `perf`, `build` or `ci`. The area label carries the area; do not encode
-it twice.
+`fix: preserve png attachments from legacy json`. Use `feat`, `fix`, `docs`,
+`test`, `refactor`, `perf`, `build`, `ci`, `chore` or `task`. The area label
+carries the area; do not encode it twice.
 
 Body:
 
@@ -72,6 +72,9 @@ Body:
   or a named manual check.
 - **Verification** — commands, fixtures and browser coverage.
 - **Links** — spec/OpenSpec change and related issue or backlog ID.
+
+An `accepted` issue may start with context and a testable outcome; the full
+body is required before it becomes `ready-for-agent`.
 
 `ready-for-agent` requires all of: testable acceptance criteria, a linked
 spec/change (or a stated docs-only exemption), a known file surface, and no
@@ -97,11 +100,13 @@ exist before the spec, but it cannot become `ready-for-agent` without one.
 ## Lifecycle
 
 1. A new issue starts with `needs-triage`.
-2. Triage sets one area, one priority and one of `needs-info`,
+2. Triage sets one area, one priority and one of `accepted`, `needs-info`,
    `ready-for-human`, `ready-for-agent` or `wontfix`.
-3. A `ready-for-agent` issue has an approved spec and testable acceptance
+3. `accepted` means the work is queued but the spec is not approved yet; it
+   may stay in the backlog across releases.
+4. A `ready-for-agent` issue has an approved spec and testable acceptance
    criteria; the implementer runs the gate and review.
-4. The coordinator closes only after the change is merged, with a comment
+5. The coordinator closes only after the change is merged, with a comment
    linking the commit or PR and, when applicable, the archived change.
 
 ## OpenSpec version note

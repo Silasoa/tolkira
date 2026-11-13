@@ -67,6 +67,7 @@ body:
         - Tests / fixtures
         - Build / release / CI
         - Docs / agent workflow
+        - Meta / governance
         - Other
     validations:
       required: true

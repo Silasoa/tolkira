@@ -13,7 +13,7 @@ rejected.
 | `area:input` | Legacy JSON, Messages, JUnit parsing, detection, loading and attachments |
 | `area:report` | Report shell, rendering, search/filter, viewport and accessibility |
 | `area:cli-api` | CLI options, ESM API, JSON summary and result messages |
-| `area:compat` | `cucumber-html-reporter` shim, producer support and migration |
+| `area:compat` | `cucumber-html-reporter` shim and migration |
 | `area:test` | Test infrastructure, fixtures, coverage and the browser suite |
 | `area:build-release` | Build, packaging, dependencies, CI and release |
 | `area:docs` | README, docs, glossary, ADRs and agent instructions |
@@ -35,6 +35,7 @@ Performance work takes the surface it affects and a `perf:` title.
 | Label | Meaning |
 |---|---|
 | `needs-triage` | Default; maintainer has not evaluated it yet |
+| `accepted` | Triaged and queued; spec not yet approved |
 | `needs-info` | Waiting on the reporter; remove when answered |
 | `ready-for-agent` | Fully specified, ready for an agent |
 | `ready-for-human` | Requires human judgement, access or visual review |
