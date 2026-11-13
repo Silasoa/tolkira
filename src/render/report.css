@@ -98,10 +98,10 @@ img, video { max-width: 100%; height: auto; }
 .filter { min-height: 1.875rem; padding: 0 0.5625rem; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--paper); color: var(--ink-2); font-size: 0.75rem; }
 .filter b { margin-left: 0.25rem; font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
 .filter[aria-pressed="false"] { color: var(--muted); background: transparent; border-style: dashed; }
-.filter[data-status="passed"][aria-pressed="true"] { color: var(--pass); border-color: color-mix(in oklab, var(--pass) 30%, var(--line)); background: var(--pass-soft); }
-.filter[data-status="failed"][aria-pressed="true"] { color: var(--fail); border-color: color-mix(in oklab, var(--fail) 30%, var(--line)); background: var(--fail-soft); }
-.filter[data-status="pending"][aria-pressed="true"] { color: var(--pending); border-color: color-mix(in oklab, var(--pending) 30%, var(--line)); background: var(--pending-soft); }
-.filter[data-status="undefined"][aria-pressed="true"] { color: var(--undefined); border-color: color-mix(in oklab, var(--undefined) 30%, var(--line)); background: var(--undefined-soft); }
+.filter[data-filter-status="passed"][aria-pressed="true"] { color: var(--pass); border-color: color-mix(in oklab, var(--pass) 30%, var(--line)); background: var(--pass-soft); }
+.filter[data-filter-status="failed"][aria-pressed="true"] { color: var(--fail); border-color: color-mix(in oklab, var(--fail) 30%, var(--line)); background: var(--fail-soft); }
+.filter[data-filter-status="pending"][aria-pressed="true"] { color: var(--pending); border-color: color-mix(in oklab, var(--pending) 30%, var(--line)); background: var(--pending-soft); }
+.filter[data-filter-status="undefined"][aria-pressed="true"] { color: var(--undefined); border-color: color-mix(in oklab, var(--undefined) 30%, var(--line)); background: var(--undefined-soft); }
 .expand { display: flex; gap: 0.25rem; margin-left: auto; }
 .expand button { min-height: 1.875rem; padding: 0 0.5rem; border: 0; background: transparent; color: var(--muted); font-size: 0.75rem; text-decoration: underline; text-underline-offset: 0.16em; }
 .live { margin: 0.625rem 0 0; color: var(--muted); font-size: 0.75rem; }

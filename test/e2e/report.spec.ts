@@ -417,6 +417,16 @@ test('filters by status', async ({ page }) => {
     const failedFilter = page.locator('button.filter[data-filter-status="failed"]');
     await expect(failedFilter).toBeVisible();
     await expect(failedFilter).toHaveAttribute('aria-pressed', 'true');
+    const pressedColour = await failedFilter.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const probe = document.createElement('div');
+      probe.style.color = style.getPropertyValue('--fail').trim();
+      document.body.append(probe);
+      const expected = getComputedStyle(probe).color;
+      probe.remove();
+      return { actual: style.color, expected };
+    });
+    expect(pressedColour.actual).toBe(pressedColour.expected);
     await failedFilter.focus();
     await page.keyboard.press('Space');
     await expect(failedFilter).toHaveAttribute('aria-pressed', 'false');

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { parseMessages } from '../src/input/messages.js';
 import {
   DOM_IDS,
+  FILTER_STATUS_ATTRIBUTE,
   decodeScenario,
   encodeScenario,
   featureId,
@@ -12,6 +13,9 @@ import {
   type ScenarioFacts,
 } from '../src/render/dom-contract.js';
 import { renderHtml } from '../src/render/html.js';
+import { REPORT_CSS } from '../src/render/styles.js';
+
+const COLORED_FILTER_STATUSES = ['passed', 'failed', 'pending', 'undefined'];
 
 const examplesFixture = fileURLToPath(
   new URL('./fixtures/messages/examples-tables.ndjson', import.meta.url),
@@ -275,5 +279,30 @@ describe('rendered scenario contract', () => {
       scenarios.filter((tag) => !/\sdata-status=/.test(tag)).length,
     ).toBeGreaterThan(0);
     expect(scenarios.some((tag) => /\sdata-status="/.test(tag))).toBe(true);
+  });
+});
+
+describe('filter status styling contract', () => {
+  it('colours pressed chips through the attribute the toolbar renders', async () => {
+    const css = (
+      await readFile(new URL('../src/render/report.css', import.meta.url), 'utf8')
+    ).replace(/\r\n/g, '\n');
+    expect(REPORT_CSS).toBe(css);
+    expect(css).not.toMatch(/\.filter\[data-status=/);
+
+    for (const status of COLORED_FILTER_STATUSES) {
+      expect(css).toContain(
+        `.filter[${FILTER_STATUS_ATTRIBUTE}="${status}"][aria-pressed="true"]`,
+      );
+    }
+
+    const html = await renderHtml(await parsedFixture(emptyMixedFixture), {
+      title: 'Filter status styling',
+    });
+    const chips = [...html.matchAll(/<button class="filter"([^>]*)>/g)];
+    expect(chips.length).toBeGreaterThan(0);
+    for (const chip of chips) {
+      expect(chip[1]).toContain(`${FILTER_STATUS_ATTRIBUTE}="`);
+    }
   });
 });
