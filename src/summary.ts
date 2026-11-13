@@ -4,21 +4,13 @@ import type {
   Duration,
   Envelope,
   Feature,
-  FeatureChild,
-  Hook,
-  Pickle,
-  RuleChild,
-  TestCase,
-  TestCaseStarted,
-  TestRunHookFinished,
-  TestRunHookStarted,
-  TestStepFinished,
   TestStepResult,
 } from '@cucumber/messages';
 import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
+import { indexRun, type RunStepDefinition } from './report/index-run.js';
 import { type ReportStatus, statusSeverity, worstExecutedStatus } from './report/status.js';
 
 export const SUMMARY_SCHEMA_VERSION = 2;
@@ -176,33 +168,6 @@ export function displayUri(uri: string): string {
   return parts.slice(-3).join('/') || uri;
 }
 
-function featureTree(document: Feature | undefined): {
-  featureName: string;
-  stepKeywords: Map<string, string>;
-} {
-  const stepKeywords = new Map<string, string>();
-  if (!document) return { featureName: '', stepKeywords };
-
-  const visit = (children: readonly (FeatureChild | RuleChild)[]): void => {
-    for (const child of children) {
-      if (child.background) {
-        for (const step of child.background.steps ?? []) {
-          stepKeywords.set(step.id, step.keyword ?? '');
-        }
-      }
-      if (child.scenario) {
-        for (const step of child.scenario.steps ?? []) {
-          stepKeywords.set(step.id, step.keyword ?? '');
-        }
-      }
-      if ('rule' in child && child.rule) visit(child.rule.children ?? []);
-    }
-  };
-
-  visit(document.children ?? []);
-  return { featureName: document.name ?? '', stepKeywords };
-}
-
 function attachmentBytes(attachment: Attachment): number {
   const body = attachment.body ?? '';
   if (attachment.contentEncoding === 'BASE64') {
@@ -217,148 +182,7 @@ function attachmentBytes(attachment: Attachment): number {
  * This is the machine-readable contract for agents and CI tools.
  */
 export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
-  const envelopes = sanitizeEnvelopes(input);
-  const features = new Map<string, Feature>();
-  const pickles = new Map<string, Pickle>();
-  const testCasesByPickle = new Map<string, TestCase[]>();
-  const startedByTestCase = new Map<string, TestCaseStarted[]>();
-  const hooks = new Map<string, Hook>();
-  const runHookStarts = new Map<string, TestRunHookStarted>();
-  const runHookFinishes = new Map<string, TestRunHookFinished>();
-  const results = new Map<string, TestStepFinished[]>();
-  const attachments = new Map<string, Attachment[]>();
-  const attachmentList: Attachment[] = [];
-  const scenarioFeatures = new Map<string, Feature>();
-  const suggestions = new Map<string, Array<{ language?: string; code: string }>>();
-  const stepDefinitions = new Map<string, { pattern: string; source?: string }>();
-
-  const indexFeature = (feature: Feature): void => {
-    const visit = (children: readonly (FeatureChild | RuleChild)[]): void => {
-      for (const child of children) {
-        if (child.scenario) scenarioFeatures.set(child.scenario.id, feature);
-        if ('rule' in child && child.rule) visit(child.rule.children ?? []);
-      }
-    };
-    visit(feature.children ?? []);
-  };
-
-  for (const envelope of envelopes) {
-    if (envelope.gherkinDocument?.feature) {
-      features.set(
-        envelope.gherkinDocument.uri ?? '',
-        envelope.gherkinDocument.feature,
-      );
-      indexFeature(envelope.gherkinDocument.feature);
-    }
-    if (envelope.pickle) pickles.set(envelope.pickle.id, envelope.pickle);
-    if (envelope.testCase) {
-      const list = testCasesByPickle.get(envelope.testCase.pickleId) ?? [];
-      list.push(envelope.testCase);
-      testCasesByPickle.set(envelope.testCase.pickleId, list);
-    }
-    if (envelope.testCaseStarted) {
-      const list =
-        startedByTestCase.get(envelope.testCaseStarted.testCaseId) ?? [];
-      list.push(envelope.testCaseStarted);
-      startedByTestCase.set(envelope.testCaseStarted.testCaseId, list);
-    }
-    if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
-    if (envelope.testRunHookStarted) {
-      runHookStarts.set(envelope.testRunHookStarted.id, envelope.testRunHookStarted);
-    }
-    if (envelope.testRunHookFinished) {
-      runHookFinishes.set(
-        envelope.testRunHookFinished.testRunHookStartedId,
-        envelope.testRunHookFinished,
-      );
-    }
-    if (envelope.testStepFinished) {
-      const list = results.get(envelope.testStepFinished.testCaseStartedId) ?? [];
-      list.push(envelope.testStepFinished);
-      results.set(envelope.testStepFinished.testCaseStartedId, list);
-    }
-    if (envelope.attachment) {
-      attachmentList.push(envelope.attachment);
-      const startedId = envelope.attachment.testCaseStartedId;
-      if (startedId) {
-        const list = attachments.get(startedId) ?? [];
-        list.push(envelope.attachment);
-        attachments.set(startedId, list);
-      }
-    }
-    if (envelope.suggestion) {
-      const snippets = Array.isArray(envelope.suggestion.snippets)
-        ? envelope.suggestion.snippets
-        : [];
-      const list = snippets
-        .filter((snippet) => typeof snippet?.code === 'string')
-        .map((snippet) => ({
-          ...(typeof snippet.language === 'string' && snippet.language
-            ? { language: snippet.language }
-            : {}),
-          code: snippet.code,
-        }));
-      if (list.length > 0) suggestions.set(envelope.suggestion.pickleStepId, list);
-    }
-    if (envelope.stepDefinition) {
-      const pattern = envelope.stepDefinition.pattern;
-      if (typeof pattern?.source === 'string') {
-        const reference = envelope.stepDefinition.sourceReference;
-        const uri = typeof reference?.uri === 'string' ? reference.uri : '';
-        const line =
-          typeof reference?.location?.line === 'number'
-            ? reference.location.line
-            : undefined;
-        const display = displayUri(uri);
-        const source = display ? (line ? `${display}:${line}` : display) : undefined;
-        stepDefinitions.set(envelope.stepDefinition.id, {
-          pattern: pattern.source,
-          ...(source ? { source } : {}),
-        });
-      }
-    }
-  }
-
-  const treeCache = new Map<
-    Feature,
-    { featureName: string; stepKeywords: Map<string, string> }
-  >();
-  const treeOf = (
-    feature: Feature | undefined,
-  ): { featureName: string; stepKeywords: Map<string, string> } => {
-    if (!feature) return { featureName: '', stepKeywords: new Map() };
-    const cached = treeCache.get(feature);
-    if (cached) return cached;
-    const tree = featureTree(feature);
-    treeCache.set(feature, tree);
-    return tree;
-  };
-
-  const latestByPickle = new Map<string, TestCaseStarted>();
-  for (const [pickleId, testCases] of testCasesByPickle) {
-    const candidates = testCases.flatMap(
-      (testCase) => startedByTestCase.get(testCase.id) ?? [],
-    );
-    let latest: TestCaseStarted | undefined;
-    for (const candidate of candidates) {
-      if (!latest) {
-        latest = candidate;
-        continue;
-      }
-      const newer =
-        candidate.attempt > latest.attempt ||
-        (candidate.attempt === latest.attempt &&
-          (candidate.timestamp?.seconds ?? 0) >
-            (latest.timestamp?.seconds ?? 0)) ||
-        (candidate.attempt === latest.attempt &&
-          (candidate.timestamp?.seconds ?? 0) ===
-            (latest.timestamp?.seconds ?? 0) &&
-          (candidate.timestamp?.nanos ?? 0) > (latest.timestamp?.nanos ?? 0));
-      if (newer) latest = candidate;
-    }
-    if (latest) latestByPickle.set(pickleId, latest);
-  }
-
+  const index = indexRun(sanitizeEnvelopes(input));
   const scenarioCounts = emptyCounts();
   const stepCounts = emptyCounts();
   const scenarios: SummaryScenario[] = [];
@@ -366,21 +190,21 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   const featureSet = new Set<Feature>();
   let totalDuration = 0;
 
-  for (const pickle of pickles.values()) {
-    const testCases = testCasesByPickle.get(pickle.id) ?? [];
+  for (const pickle of index.pickles.values()) {
+    const testCases = index.testCasesByPickle.get(pickle.id) ?? [];
     const testSteps = testCases.flatMap((testCase) => testCase.testSteps);
-    const started = latestByPickle.get(pickle.id);
+    const started = index.attempts.get(pickle.id);
     // Never-started pickles stay pruned from entries and counts.
     if (!started) continue;
-    const finished = results.get(started.id) ?? [];
+    const finished = index.results.get(started.id) ?? [];
     const resultByStep = new Map(
       finished.map((entry) => [entry.testStepId, entry.testStepResult]),
     );
     const feature =
-      scenarioFeatures.get(pickle.astNodeIds[0] ?? '') ??
-      features.get(pickle.uri);
+      index.featureByScenarioId.get(pickle.astNodeIds[0] ?? '') ??
+      index.featuresByUri.get(pickle.uri);
     if (feature) featureSet.add(feature);
-    const tree = treeOf(feature);
+    const featureName = feature?.name ?? '';
     const pickleSteps = new Map(
       (pickle.steps ?? []).map((step) => [step.id, step]),
     );
@@ -397,21 +221,32 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         const status = toStatus(result.status);
         const stepSuggestions =
           status === 'undefined'
-            ? (suggestions.get(testStep.pickleStepId) ?? [])
+            ? (index.suggestions.get(testStep.pickleStepId) ?? [])
             : [];
         const definitionIds =
           status === 'ambiguous' && Array.isArray(testStep.stepDefinitionIds)
             ? testStep.stepDefinitionIds
             : [];
         const stepMatches = definitionIds
-          .map((id) => stepDefinitions.get(id))
+          .map((id) => index.definitions.get(id))
           .filter(
-            (definition): definition is { pattern: string; source?: string } =>
+            (definition): definition is RunStepDefinition =>
               Boolean(definition),
-          );
+          )
+          .map(({ pattern, uri, line }) => {
+            const display = displayUri(uri);
+            return {
+              pattern,
+              ...(display
+                ? line
+                  ? { source: `${display}:${line}` }
+                  : { source: display }
+                : {}),
+            };
+          });
         steps.push({
           keyword: astNodeId
-            ? (tree.stepKeywords.get(astNodeId) ?? '').trim()
+            ? (index.steps.get(astNodeId)?.keyword ?? '').trim()
             : '',
           text: pickleStep?.text ?? '',
           status,
@@ -423,7 +258,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
           ...(stepMatches.length > 0 ? { definitions: stepMatches } : {}),
         });
       } else if (testStep.hookId) {
-        const hook = hooks.get(testStep.hookId);
+        const hook = index.hooks.get(testStep.hookId);
         steps.push({
           keyword: 'Hook',
           text: hook?.type ?? 'hook',
@@ -438,7 +273,9 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     const status = scenarioStatus(finished.map((entry) => entry.testStepResult));
     const executed = finished.length > 0;
     const scenarioDuration = steps.reduce((sum, step) => sum + step.durationMs, 0);
-    const scenarioAttachments = executed ? (attachments.get(started.id) ?? []) : [];
+    const scenarioAttachments = executed
+      ? (index.attachmentsByStarted.get(started.id) ?? [])
+      : [];
     for (const attachment of scenarioAttachments) countedAttachments.add(attachment);
 
     if (executed) {
@@ -450,7 +287,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
     scenarios.push({
       name: pickle.name ?? '',
       uri: displayUri(pickle.uri ?? ''),
-      feature: tree.featureName,
+      feature: featureName,
       status,
       executed,
       durationMs: finiteDuration(scenarioDuration),
@@ -466,8 +303,8 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
   );
 
   const runHookResults: TestStepResult[] = [];
-  for (const start of runHookStarts.values()) {
-    const result = runHookFinishes.get(start.id)?.result;
+  for (const start of index.runHookStarts.values()) {
+    const result = index.runHookFinishes.get(start.id)?.result;
     if (result) runHookResults.push(result);
   }
   const runHookStatus = scenarioStatus(runHookResults);
@@ -487,7 +324,7 @@ export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
         ? runHookStatus
         : scenarioOverall;
 
-  const orphanAttachments = attachmentList.filter(
+  const orphanAttachments = index.attachments.filter(
     (attachment) =>
       !attachment.testCaseStartedId || countedAttachments.has(attachment),
   );

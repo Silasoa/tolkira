@@ -4,26 +4,17 @@ import type {
   Background,
   Ci,
   Envelope,
-  Examples,
-  Feature,
   FeatureChild,
-  Hook,
-  Pickle,
   Rule,
   RuleChild,
-  Scenario,
   Step,
-  TestCase,
-  TestCaseStarted,
-  TestRunHookFinished,
-  TestRunHookStarted,
-  TestStepFinished,
 } from '@cucumber/messages';
 
 import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
 import { MEDIA_EXTENSIONS, normalizedMediaType, safeMediaType } from './attachment.js';
+import { indexRun, type RunStepDefinition } from './index-run.js';
 import { type ReportStatus, worstExecutedStatus } from './status.js';
 
 export type { ReportStatus } from './status.js';
@@ -388,14 +379,6 @@ function count(counts: Record<ReportStatus, number> & { total: number }, status:
   counts[status] += 1;
 }
 
-interface OutlineExample {
-  uri: string;
-  scenario: Scenario;
-  examples: Examples;
-  examplesIndex: number;
-  exampleIndex: number;
-}
-
 function backgroundRow(background: Background): ReportBackground | undefined {
   if (isSyntheticBackground(background)) return undefined;
   return {
@@ -429,95 +412,17 @@ function ruleMetadata(rule: Rule): ReportRule {
   };
 }
 
-function featureTree(document: Feature | undefined): Map<string, {
-  scenario: Scenario;
-  rule?: ReportRule;
-}> {
-  const map = new Map<string, { scenario: Scenario; rule?: ReportRule }>();
-  if (!document) return map;
-  const visit = (
-    children: readonly (FeatureChild | RuleChild)[],
-    rule?: ReportRule,
-  ): void => {
-    for (const child of children) {
-      if (child.scenario) {
-        map.set(child.scenario.id, { scenario: child.scenario, ...(rule ? { rule } : {}) });
-      }
-      if ('rule' in child && child.rule) {
-        visit(child.rule.children ?? [], ruleMetadata(child.rule));
-      }
-    }
-  };
-  visit(document.children ?? []);
-  return map;
-}
-
-function exampleRowTree(
-  document: Feature | undefined,
-  uri: string,
-): Map<string, OutlineExample> {
-  const map = new Map<string, OutlineExample>();
-  if (!document) return map;
-  const visit = (children: readonly (FeatureChild | RuleChild)[]): void => {
-    for (const child of children) {
-      if (child.scenario) {
-        const scenario = child.scenario;
-        (scenario.examples ?? []).forEach((examples, examplesIndex) => {
-          (examples.tableBody ?? []).forEach((row, exampleIndex) => {
-            map.set(row.id, {
-              uri,
-              scenario,
-              examples,
-              examplesIndex,
-              exampleIndex,
-            });
-          });
-        });
-      }
-      if ('rule' in child && child.rule) visit(child.rule.children ?? []);
-    }
-  };
-  visit(document.children ?? []);
-  return map;
-}
-
 export function buildReportModel(
   envelopes: Envelope[],
   provenance?: Map<string, string>,
 ): ReportModel {
-  const features = new Map<string, Feature>();
-  const featureUris = new Map<Feature, string>();
-  const featureSeen = new Set<Feature>();
-  const featureOrder: Feature[] = [];
-  const scenarioTree = new Map<string, { scenario: Scenario; rule?: ReportRule }>();
-  const outlineRows = new Map<string, OutlineExample>();
-  const featureByScenarioId = new Map<string, Feature>();
-  const stepById = new Map<string, Step>();
-  const pickles = new Map<string, Pickle>();
-  const testCases = new Map<string, TestCase>();
-  const started = new Map<string, TestCaseStarted>();
-  const hooks = new Map<string, Hook>();
-  const runHookStarts = new Map<string, TestRunHookStarted>();
-  const runHookFinishes = new Map<string, TestRunHookFinished>();
-  const results = new Map<string, TestStepFinished[]>();
-  const attachments = new Map<string, Attachment[]>();
-  const runHookAttachments = new Map<string, Attachment[]>();
-  const suggestions = new Map<string, Array<{ language?: string; code: string }>>();
-  const stepDefinitions = new Map<string, { pattern: string; source?: string }>();
+  const index = indexRun(envelopes);
   const attachmentCache = new Map<Attachment, ReportAttachment>();
+  const ruleCache = new Map<Rule, ReportRule>();
   let startedAt: string | undefined;
   let finishedAt: string | undefined;
   let source = 'Cucumber';
   let environment: ReportEnvironment | undefined;
-
-  const mapAttachments = (list: Attachment[]): ReportAttachment[] =>
-    list.map((attachment) => {
-      const cached = attachmentCache.get(attachment);
-      if (cached) return cached;
-      const mapped = toAttachment(attachment);
-      attachmentCache.set(attachment, mapped);
-      return mapped;
-    });
 
   for (const envelope of envelopes) {
     if (envelope.meta) {
@@ -546,146 +451,62 @@ export function buildReportModel(
       const iso = timestampIso(envelope.testRunFinished.timestamp);
       if (iso && (!finishedAt || iso > finishedAt)) finishedAt = iso;
     }
-    if (envelope.gherkinDocument?.feature) {
-      const feature = envelope.gherkinDocument.feature;
-      const uri = envelope.gherkinDocument.uri;
-      const key = uri ?? feature.name;
-      if (!features.has(key)) features.set(key, feature);
-      if (!featureSeen.has(feature)) {
-        featureSeen.add(feature);
-        if (uri) featureUris.set(feature, uri);
-        featureOrder.push(feature);
-      }
-      for (const [id, value] of featureTree(feature)) {
-        scenarioTree.set(id, value);
-        featureByScenarioId.set(id, feature);
-      }
-      for (const [id, value] of exampleRowTree(feature, uri ?? '')) {
-        outlineRows.set(id, value);
-      }
-      const collectSteps = (children: readonly (FeatureChild | RuleChild)[]): void => {
-        for (const child of children) {
-          if (child.background) {
-            for (const step of child.background.steps ?? []) stepById.set(step.id, step);
-          }
-          if (child.scenario) {
-            for (const step of child.scenario.steps ?? []) stepById.set(step.id, step);
-          }
-          if ('rule' in child && child.rule) collectSteps(child.rule.children ?? []);
-        }
-      };
-      collectSteps(feature.children ?? []);
-    }
-    if (envelope.pickle) pickles.set(envelope.pickle.id, envelope.pickle);
-    if (envelope.testCase) testCases.set(envelope.testCase.id, envelope.testCase);
-    if (envelope.testCaseStarted) started.set(envelope.testCaseStarted.id, envelope.testCaseStarted);
-    if (envelope.hook) hooks.set(envelope.hook.id, envelope.hook);
-    if (envelope.testRunHookStarted) {
-      runHookStarts.set(envelope.testRunHookStarted.id, envelope.testRunHookStarted);
-    }
-    if (envelope.testRunHookFinished) {
-      runHookFinishes.set(
-        envelope.testRunHookFinished.testRunHookStartedId,
-        envelope.testRunHookFinished,
-      );
-    }
-    if (envelope.testStepFinished) {
-      const list = results.get(envelope.testStepFinished.testCaseStartedId) ?? [];
-      list.push(envelope.testStepFinished);
-      results.set(envelope.testStepFinished.testCaseStartedId, list);
-    }
-    if (envelope.attachment) {
-      const key = envelope.attachment.testRunHookStartedId;
-      const target = key ? runHookAttachments : attachments;
-      const id = key ?? envelope.attachment.testCaseStartedId ?? '';
-      const list = target.get(id) ?? [];
-      list.push(envelope.attachment);
-      target.set(id, list);
-    }
-    if (envelope.suggestion) {
-      const snippets = Array.isArray(envelope.suggestion.snippets)
-        ? envelope.suggestion.snippets
-        : [];
-      const list = snippets
-        .filter((snippet) => typeof snippet?.code === 'string')
-        .map((snippet) => ({
-          ...(typeof snippet.language === 'string' && snippet.language
-            ? { language: snippet.language }
-            : {}),
-          code: snippet.code,
-        }));
-      if (list.length > 0) suggestions.set(envelope.suggestion.pickleStepId, list);
-    }
-    if (envelope.stepDefinition) {
-      const pattern = envelope.stepDefinition.pattern;
-      if (typeof pattern?.source === 'string') {
-        const reference = envelope.stepDefinition.sourceReference;
-        const uri = typeof reference?.uri === 'string' ? reference.uri : '';
-        const line =
-          typeof reference?.location?.line === 'number'
-            ? reference.location.line
-            : undefined;
-        const source = uri ? (line ? `${uri}:${line}` : uri) : undefined;
-        stepDefinitions.set(envelope.stepDefinition.id, {
-          pattern: pattern.source,
-          ...(source ? { source } : {}),
-        });
-      }
-    }
   }
 
-  const testCasesByPickle = new Map<string, TestCase[]>();
-  for (const testCase of testCases.values()) {
-    const list = testCasesByPickle.get(testCase.pickleId) ?? [];
-    list.push(testCase);
-    testCasesByPickle.set(testCase.pickleId, list);
-  }
+  const mapAttachments = (list: Attachment[]): ReportAttachment[] =>
+    list.map((attachment) => {
+      const cached = attachmentCache.get(attachment);
+      if (cached) return cached;
+      const mapped = toAttachment(attachment);
+      attachmentCache.set(attachment, mapped);
+      return mapped;
+    });
 
-  const startedByTestCase = new Map<string, TestCaseStarted[]>();
-  for (const item of started.values()) {
-    const list = startedByTestCase.get(item.testCaseId) ?? [];
-    list.push(item);
-    startedByTestCase.set(item.testCaseId, list);
-  }
+  const ruleOf = (rule: Rule | undefined): ReportRule | undefined => {
+    if (!rule) return undefined;
+    const cached = ruleCache.get(rule);
+    if (cached) return cached;
+    const metadata = ruleMetadata(rule);
+    ruleCache.set(rule, metadata);
+    return metadata;
+  };
 
+  const featureOrder = index.featureDocuments.map((document) => document.feature);
+  const featureUris = new Map(
+    index.featureDocuments.map((document) => [document.feature, document.uri]),
+  );
   const scenarioRows: ReportScenario[] = [];
   const scenarioCounts = emptyStatusCounts();
   const stepCounts = emptyStatusCounts();
   const hookCounts = emptyStatusCounts();
-  const featureScenarios = new Map<Feature, ReportScenario[]>();
+  const featureScenarios = new Map<
+    (typeof featureOrder)[number],
+    ReportScenario[]
+  >();
 
-  for (const pickle of pickles.values()) {
-    const testCasesForPickle = testCasesByPickle.get(pickle.id) ?? [];
-    const candidates = testCasesForPickle.flatMap(
-      (testCase) => startedByTestCase.get(testCase.id) ?? [],
-    );
+  for (const pickle of index.pickles.values()) {
     // The latest started attempt wins, even when it reported nothing: an
     // earlier retried attempt must not mask a later unexecuted one.
-    const latest = candidates.reduce<TestCaseStarted | undefined>((current, candidate) => {
-      if (!current) return candidate;
-      if (candidate.attempt > current.attempt) return candidate;
-      if (candidate.attempt < current.attempt) return current;
-      const cSeconds = candidate.timestamp?.seconds ?? 0;
-      const currentSeconds = current.timestamp?.seconds ?? 0;
-      if (cSeconds !== currentSeconds) return cSeconds > currentSeconds ? candidate : current;
-      const cNanos = candidate.timestamp?.nanos ?? 0;
-      const currentNanos = current.timestamp?.nanos ?? 0;
-      return cNanos > currentNanos ? candidate : current;
-    }, undefined);
+    const latest = index.attempts.get(pickle.id);
     if (!latest) continue;
 
-    const testCase = testCases.get(latest.testCaseId);
+    const testCase = index.testCases.get(latest.testCaseId);
     if (!testCase) continue;
     const pickleSteps = new Map(pickle.steps.map((step) => [step.id, step]));
-    const rawResults = (results.get(latest.id) ?? []).map(
+    const rawResults = (index.results.get(latest.id) ?? []).map(
       (entry) => entry.testStepResult,
     );
     const executed = rawResults.length > 0;
     // An unexecuted attempt contributes no attachment, even when the runner
     // emitted an attachment envelope for it.
-    const startedAttachments = executed ? (attachments.get(latest.id) ?? []) : [];
+    const startedAttachments = executed
+      ? (index.caseAttachments.get(latest.id) ?? [])
+      : [];
     const resultsByStep = new Map(
-      (results.get(latest.id) ?? []).map((entry) => [entry.testStepId, entry.testStepResult]),
+      (index.results.get(latest.id) ?? []).map((entry) => [
+        entry.testStepId,
+        entry.testStepResult,
+      ]),
     );
     const stepRows: ReportStep[] = [];
     const hookRows: ReportHook[] = [];
@@ -698,21 +519,26 @@ export function buildReportModel(
       if (testStep.pickleStepId) {
         const pickleStep = pickleSteps.get(testStep.pickleStepId);
         const ast = pickleStep?.astNodeIds[0];
-        const data = stepData(ast ? stepById.get(ast) : undefined);
+        const data = stepData(ast ? index.steps.get(ast) : undefined);
         const stepAttachments = mapAttachments(
           startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
         );
         const message = stepResultMessage(result);
-        const stepSuggestions = suggestions.get(testStep.pickleStepId) ?? [];
+        const stepSuggestions =
+          index.suggestions.get(testStep.pickleStepId) ?? [];
         const definitionIds = Array.isArray(testStep.stepDefinitionIds)
           ? testStep.stepDefinitionIds
           : [];
         const stepMatches = definitionIds
-          .map((id) => stepDefinitions.get(id))
+          .map((id) => index.definitions.get(id))
           .filter(
-            (definition): definition is { pattern: string; source?: string } =>
+            (definition): definition is RunStepDefinition =>
               Boolean(definition),
-          );
+          )
+          .map(({ pattern, uri, line }) => ({
+            pattern,
+            ...(uri ? (line ? { source: `${uri}:${line}` } : { source: uri }) : {}),
+          }));
         const matchLists = testStep.stepMatchArgumentsLists ?? [];
         const parameters: Array<{ start: number; value: string; type: string }> =
           [];
@@ -753,7 +579,7 @@ export function buildReportModel(
           attachments: stepAttachments,
         });
       } else if (testStep.hookId) {
-        const hook = hooks.get(testStep.hookId);
+        const hook = index.hooks.get(testStep.hookId);
         const hookAttachments = mapAttachments(
           startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
         );
@@ -781,7 +607,9 @@ export function buildReportModel(
     const astIds = pickle.astNodeIds ?? [];
     // The deepest AST id is the examples row. Verify the URI as well so a
     // merged input cannot attach the same row id to the wrong outline.
-    const candidate = astIds.length ? outlineRows.get(astIds.at(-1) ?? '') : undefined;
+    const candidate = astIds.length
+      ? index.outlineRows.get(astIds.at(-1) ?? '')
+      : undefined;
     const outlineExample =
       candidate &&
       astIds.includes(candidate.scenario.id) &&
@@ -789,14 +617,14 @@ export function buildReportModel(
         ? candidate
         : undefined;
     const scenarioId = outlineExample?.scenario.id ?? astIds[0] ?? '';
-    const tree = outlineExample ?? scenarioTree.get(scenarioId);
+    const tree = outlineExample ?? index.scenarioTree.get(scenarioId);
     const astEntry = outlineExample
-      ? scenarioTree.get(outlineExample.scenario.id)
-      : scenarioTree.get(scenarioId);
-    const rule = astEntry?.rule;
+      ? index.scenarioTree.get(outlineExample.scenario.id)
+      : index.scenarioTree.get(scenarioId);
+    const rule = ruleOf(astEntry?.rule);
     const feature =
-      featureByScenarioId.get(scenarioId) ??
-      features.get(pickle.uri);
+      index.featureByScenarioId.get(scenarioId) ??
+      index.featuresByKey.get(pickle.uri);
     const stepAttachments = stepRows.flatMap((step) => step.attachments);
     const hookAttachments = hookRows.flatMap((hook) => hook.attachments);
     const extraAttachments = mapAttachments(
@@ -874,7 +702,7 @@ export function buildReportModel(
     const scenarios = featureScenarios.get(feature) ?? [];
     if (scenarios.length === 0) continue;
     const status = worstExecutedStatus(scenarios);
-    const featureUri = featureUris.get(feature) ?? scenarios[0]?.uri ?? '';
+    const featureUri = featureUris.get(feature) || scenarios[0]?.uri || '';
     const sourceFiles = new Set<string | undefined>([
       ...scenarios.map((scenario) => provenance?.get(scenario.uri)),
       provenance?.get(featureUri),
@@ -906,17 +734,17 @@ export function buildReportModel(
   }
 
   const runHooks: ReportRunHook[] = [];
-  const orderedRunHooks = [...runHookStarts.values()]
-    .map((start, index) => ({ start, index }))
+  const orderedRunHooks = [...index.runHookStarts.values()]
+    .map((start, position) => ({ start, position }))
     .sort((a, b) => {
       const seconds = (a.start.timestamp?.seconds ?? 0) - (b.start.timestamp?.seconds ?? 0);
       if (seconds !== 0) return seconds;
       const nanos = (a.start.timestamp?.nanos ?? 0) - (b.start.timestamp?.nanos ?? 0);
-      return nanos !== 0 ? nanos : a.index - b.index;
+      return nanos !== 0 ? nanos : a.position - b.position;
     });
   for (const { start } of orderedRunHooks) {
-    const finish = runHookFinishes.get(start.id);
-    const hook = hooks.get(start.hookId);
+    const finish = index.runHookFinishes.get(start.id);
+    const hook = index.hooks.get(start.hookId);
     const result = finish?.result;
     const message = result ? stepResultMessage(result) : '';
     runHooks.push({
@@ -926,13 +754,13 @@ export function buildReportModel(
       status: result ? statusOf(result.status) : 'unknown',
       durationMs: durationMs(result?.duration),
       ...(message ? { message: stripAnsi(message) } : {}),
-      attachments: mapAttachments(runHookAttachments.get(start.id) ?? []),
+      attachments: mapAttachments(index.runHookAttachments.get(start.id) ?? []),
     });
   }
   for (const hook of runHooks) count(hookCounts, hook.status);
 
   const attachmentRows = scenarioRows.flatMap((scenario) => scenario.attachments);
-  const runAttachments = mapAttachments(attachments.get('') ?? []);
+  const runAttachments = mapAttachments(index.runAttachments);
   const allAttachments = [
     ...attachmentRows,
     ...runHooks.flatMap((hook) => hook.attachments),
