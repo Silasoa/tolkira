@@ -16,7 +16,8 @@ coordinator) is the only adversarial check.
 ## Rule: docs-only skips review, everything else is reviewed
 
 - **Docs/comments only** (markdown, comments, changelog, specs, ADRs): no
-  review. The coordinator reviews and the gate runs.
+  review. The coordinator reviews and the gate runs. Issue drafts are the
+  exception: IR runs before posting even though the issue is text.
 - **Anything else** (code, config, prompts, generated assets, fixtures):
   the standard reviewer set runs before push. There is no “small code change”
   exemption.
