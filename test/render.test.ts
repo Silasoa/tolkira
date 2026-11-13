@@ -601,9 +601,9 @@ describe('messages rendering', () => {
   it('renders filters only for statuses with scenarios', async () => {
     const html = await renderReport(passedOnlyFixture, { title: 'Passed only' });
 
-    expect(html).toContain('data-status="passed"');
+    expect(html).toContain('data-filter-status="passed"');
     expect(html).not.toMatch(
-      /<button class="filter"[^>]+data-status="failed"/,
+      /<button class="filter"[^>]+data-filter-status="failed"/,
     );
     expect(html).not.toMatch(
       /<details class="scenario"[^>]+data-status="failed"/,
@@ -2170,7 +2170,7 @@ describe('empty-run rendering', () => {
     expect(featureSummary).toContain('class="fail"');
     expect(featureSummary).not.toContain('class="unknown"');
     expect(html).not.toMatch(
-      /<button class="filter"[^>]+data-status="unknown"/,
+      /<button class="filter"[^>]+data-filter-status="unknown"/,
     );
   });
 

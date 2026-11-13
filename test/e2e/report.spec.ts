@@ -369,7 +369,7 @@ test('renders a messages report in the browser', async ({ page }) => {
       page.locator('.error').filter({ hasText: 'Expected 1 to equal 2' }),
     ).toBeVisible();
 
-    const failedFilter = page.locator('button.filter[data-status="failed"]');
+    const failedFilter = page.locator('button.filter[data-filter-status="failed"]');
     await page.getByRole('heading', { name: 'Failing scenario' }).click();
     await expect(failedFilter).toHaveAttribute('aria-pressed', 'true');
     await expect(
@@ -414,7 +414,7 @@ test('filters by status', async ({ page }) => {
     expect(code).toBe(0);
 
     await page.goto(pathToFileURL(output).href);
-    const failedFilter = page.locator('button.filter[data-status="failed"]');
+    const failedFilter = page.locator('button.filter[data-filter-status="failed"]');
     await expect(failedFilter).toBeVisible();
     await expect(failedFilter).toHaveAttribute('aria-pressed', 'true');
     await failedFilter.focus();
@@ -1321,14 +1321,14 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
       page.locator('details.scenario:visible .exampleNo').first(),
     ).toHaveText('#1.1');
 
-    const failedFilter = page.locator('button.filter[data-status="failed"]');
+    const failedFilter = page.locator('button.filter[data-filter-status="failed"]');
     await failedFilter.click();
     await expect(page.locator('details.scenario:visible')).toHaveCount(5);
     await expect(page.locator('section.outline:visible')).toHaveCount(2);
     await expect(page.locator('section.examples:visible')).toHaveCount(2);
     await failedFilter.click();
 
-    const passedFilter = page.locator('button.filter[data-status="passed"]');
+    const passedFilter = page.locator('button.filter[data-filter-status="passed"]');
     await passedFilter.click();
     await expect(page.locator('details.scenario:visible')).toHaveCount(2);
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
@@ -2107,7 +2107,7 @@ test('filters rules by search, status and tag', async ({ page }) => {
     await expect(page.locator('section.rule:visible')).toHaveCount(1);
 
     await tagFilter.selectOption('');
-    const passedFilter = page.locator('button.filter[data-status="passed"]');
+    const passedFilter = page.locator('button.filter[data-filter-status="passed"]');
     await passedFilter.click();
     await expect(ruleOne).toBeVisible();
     await expect(ruleTwo).toBeHidden();
@@ -2244,7 +2244,7 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
     await expect(report.getByText('50%', { exact: true })).toBeVisible();
     await expect(report.getByText('2 executed scenarios')).toBeVisible();
     await expect(page.getByText('1 of 2 passed · 1 failed')).toBeVisible();
-    await expect(page.locator('button.filter[data-status="unknown"]')).toHaveCount(
+    await expect(page.locator('button.filter[data-filter-status="unknown"]')).toHaveCount(
       0,
     );
 

@@ -28,6 +28,14 @@ import { summarizeEnvelopes, displayUri } from '../summary.js';
 import { stripBidiControls } from '../text.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { renderAnsiLog } from './ansi.js';
+import {
+  DOM_IDS,
+  FILTER_STATUS_ATTRIBUTE,
+  SCENARIO_ATTRIBUTE,
+  encodeScenario,
+  featureId,
+  scenarioId,
+} from './dom-contract.js';
 import { escapeHtml } from './escape.js';
 import { CLIENT_SCRIPT } from './client-bundle.js';
 import { renderDescription } from './markdown.js';
@@ -200,8 +208,8 @@ function renderTriageRow({
   const links = failing
     .slice(0, TRIAGE_SCENARIO_LIMIT)
     .map((scenario) => {
-      const scenarioIndex = scenarios.indexOf(scenario) + 1;
-      return `<li><a class="triageScenario" href="#scenario-${index + 1}-${scenarioIndex}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span>${escapeHtml(scenarioLabel(scenario))}</span></a></li>`;
+      const scenarioIndex = scenarios.indexOf(scenario);
+      return `<li><a class="triageScenario" href="#${scenarioId(index, scenarioIndex)}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span><span>${escapeHtml(scenarioLabel(scenario))}</span></a></li>`;
     })
     .join('');
   const more =
@@ -224,7 +232,7 @@ function renderTriageRow({
   const reason = reasonSource
     ? `${reasonSource} — ${reasonMessage.split(/\r?\n/)[0].trim().slice(0, 120)}${reasonMessage.split(/\r?\n/)[0].trim().length > 120 ? '…' : ''}`
     : '';
-  return `<li class="triageItem"><a class="triageFeature" href="#feature-${index + 1}" title="${escapeHtml(displayUri(feature.uri))}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul>${reason ? `<p class="triageReason"><span class="triageReasonLabel">First failure:</span> ${escapeHtml(reason)}</p>` : ''}</li>`;
+  return `<li class="triageItem"><a class="triageFeature" href="#${featureId(index)}" title="${escapeHtml(displayUri(feature.uri))}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul>${reason ? `<p class="triageReason"><span class="triageReasonLabel">First failure:</span> ${escapeHtml(reason)}</p>` : ''}</li>`;
 }
 
 function renderTriage(features: OrderedFeature[]): string {
@@ -852,9 +860,6 @@ function renderScenario(
     scenario.status === 'failed'
       ? '<button class="copyFailure" type="button" data-copy-failure>Copy failure</button>'
       : '';
-  const exampleData = grouped
-    ? ` data-example="${escapeHtml(example)}" data-examples-name="${escapeHtml(outline?.examplesName ?? '')}"`
-    : '';
   const scenarioMeta =
     grouped && outline
       ? `<span>Scenario: ${escapeHtml(scenario.name)}</span>`
@@ -862,10 +867,19 @@ function renderScenario(
   const statusCell = scenario.executed
     ? `<span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span>`
     : '<span class="statusCell"><span class="sr">Not executed</span></span>';
-  const statusData = scenario.executed
-    ? ` data-status="${scenario.status}"`
-    : '';
-  return `<details class="scenario" id="scenario-${featureIndex + 1}-${scenarioIndex + 1}" data-scenario${statusData} data-uri="${escapeHtml(displayUri(scenario.uri))}" data-scenario-name="${escapeHtml(scenario.name)}"${exampleData} data-tags="${escapeHtml(scenario.tags.join(' '))}" data-search="${escapeHtml(scenarioText(scenario))}" ${open ? 'open' : ''}><summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps and hooks">${inlineItems}</ol>${passedHooksGroup}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
+  const attributes = encodeScenario({
+    ...(scenario.executed ? { status: scenario.status } : {}),
+    name: scenario.name,
+    uri: displayUri(scenario.uri),
+    tags: scenario.tags,
+    ...(grouped
+      ? { example, examplesName: outline?.examplesName ?? '' }
+      : {}),
+    search: scenarioText(scenario),
+  })
+    .map(([name, value]) => `${name}="${escapeHtml(value)}"`)
+    .join(' ');
+  return `<details class="scenario" id="${scenarioId(featureIndex, scenarioIndex)}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}><summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary><div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps and hooks">${inlineItems}</ol>${passedHooksGroup}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div></details>`;
 }
 
 function renderExamples(
@@ -1084,7 +1098,7 @@ function renderFeature(
   const backgroundSearch = escapeHtml(
     feature.backgrounds.map(backgroundText).join(' '),
   );
-  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="feature-${featureIndex + 1}" data-feature data-background-search="${backgroundSearch}" ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>${description}${backgroundMarkup(feature.backgrounds)}<div class="rows">${topItems
+  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="${featureId(featureIndex)}" data-feature data-background-search="${backgroundSearch}" ${open ? 'open' : ''}><summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>${description}${backgroundMarkup(feature.backgrounds)}<div class="rows">${topItems
     .map((item) =>
       item.kind === 'rule'
         ? renderRuleBlock(item, featureIndex, idIndex)
@@ -1151,12 +1165,12 @@ function renderReportView(
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
     : '';
-  return `<div class="tabPanel" id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} executed scenario${model.counts.scenarios.total === 1 ? '' : 's'}</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${total}</span><span class="sr">${passed} / ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
+  return `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} executed scenario${model.counts.scenarios.total === 1 ? '' : 's'}</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${total}</span><span class="sr">${passed} / ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
     .map(
       (status) =>
-        `<button class="filter" type="button" data-status="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
+        `<button class="filter" type="button" ${FILTER_STATUS_ATTRIBUTE}="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
     )
-    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="tolkira-live" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="tolkira-search-note" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div>${runHooks}<div class="empty" id="empty-results" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
+    .join('')}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div><p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div>${runHooks}<div class="empty" id="${DOM_IDS.emptyResults}" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Screenshots are embedded.</p></main></div>`;
 }
 
 function renderAnalysisView(
@@ -1197,7 +1211,7 @@ function renderAnalysisView(
     ciDetailRows(model.environment?.ci),
   ].join('');
   const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
-  return `<div class="tabPanel" id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} / ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Executed scenarios only. Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>Executed scenarios only.</p><div class="legend">${displayStatuses(model)
+  return `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} / ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Executed scenarios only. Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>Executed scenarios only.</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,
@@ -1235,7 +1249,7 @@ export async function renderHtml(
     ? `<style>:root{--accent:${options.accent}}</style>`
     : '';
   const clientScript = `<script>${CLIENT_SCRIPT.replace(/<\/script/gi, '<\\/script')}</script>`;
-  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header><p class="sr" id="tolkira-copy-live" aria-live="polite"></p>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}<dialog class="lightbox" id="tolkira-lightbox" aria-label="Full-size attachment"><button class="lightboxClose" type="button" data-lightbox-close>Close</button><img alt=""></dialog>${clientScript}`;
+  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div><div class="views" role="tablist" aria-label="Report view"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="report-view">Report</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="analysis-view">Details</button></div></div></header><p class="sr" id="${DOM_IDS.copyLive}" aria-live="polite"></p>${renderReportView(model, options)}${renderAnalysisView(model, options, summary)}<dialog class="lightbox" id="${DOM_IDS.lightbox}" aria-label="Full-size attachment"><button class="lightboxClose" type="button" data-lightbox-close>Close</button><img alt=""></dialog>${clientScript}`;
   const hashes = inlineScriptHashes(body);
   return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(hashes)}\n<style>${REPORT_CSS}${accent}</style>\n</head>\n<body>${body}</body>\n</html>`;
 }

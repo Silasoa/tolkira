@@ -135,7 +135,7 @@ test('combines a tag expression with status and tag filters using AND', async ({
   try {
     await page.goto(reportUrl(output));
     const search = page.locator('input[data-search]');
-    const passed = page.locator('button.filter[data-status="passed"]');
+    const passed = page.locator('button.filter[data-filter-status="passed"]');
     const tag = page.locator('select[data-tag-filter]');
 
     await search.fill('@a or @b');
@@ -298,7 +298,7 @@ test('restores query, hide and tag after a reload', async ({ page }) => {
   try {
     await page.goto(reportUrl(output, '#scenario-1-1'));
     const search = page.locator('input[data-search]');
-    const passed = page.locator('button.filter[data-status="passed"]');
+    const passed = page.locator('button.filter[data-filter-status="passed"]');
     const tag = page.locator('select[data-tag-filter]');
 
     await search.fill('@a or @b');
@@ -342,8 +342,8 @@ test('restores query, repeated hide and tag parameters and syncs controls', asyn
     );
 
     const search = page.locator('input[data-search]');
-    const passed = page.locator('button.filter[data-status="passed"]');
-    const failed = page.locator('button.filter[data-status="failed"]');
+    const passed = page.locator('button.filter[data-filter-status="passed"]');
+    const failed = page.locator('button.filter[data-filter-status="failed"]');
     const tag = page.locator('select[data-tag-filter]');
 
     await expect(search).toHaveValue('alpha one');
@@ -399,8 +399,8 @@ test('updates query, repeated hide and tag with replaceState and preserves the h
   try {
     await page.goto(reportUrl(output, '?utm=mail#scenario-1-1'));
     const search = page.locator('input[data-search]');
-    const passed = page.locator('button.filter[data-status="passed"]');
-    const failed = page.locator('button.filter[data-status="failed"]');
+    const passed = page.locator('button.filter[data-filter-status="passed"]');
+    const failed = page.locator('button.filter[data-filter-status="failed"]');
     const tag = page.locator('select[data-tag-filter]');
     const historyBefore = await page.evaluate(() => history.length);
 
@@ -475,7 +475,7 @@ test('keeps filtering working when replaceState throws', async ({ page }) => {
       '1 of 4 scenarios visible',
     );
 
-    await page.locator('button.filter[data-status="passed"]').click();
+    await page.locator('button.filter[data-filter-status="passed"]').click();
     await expect(page.locator('#tolkira-live')).toHaveText(
       '0 of 4 scenarios visible',
     );
@@ -500,14 +500,14 @@ test('ignores empty, unknown and uppercase URL parameters', async ({ page }) => 
     await expect(page.locator('details.scenario[hidden]')).toHaveCount(0);
     await expect(page.locator('input[data-search]')).toHaveValue('');
     await expect(
-      page.locator('button.filter[data-status="passed"]'),
+      page.locator('button.filter[data-filter-status="passed"]'),
     ).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#empty-results')).toBeHidden();
 
     await page.goto(reportUrl(output, '?HIDE=passed'));
     await expect(page.locator('details.scenario[hidden]')).toHaveCount(0);
     await expect(
-      page.locator('button.filter[data-status="passed"]'),
+      page.locator('button.filter[data-filter-status="passed"]'),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(errors).toEqual([]);
   } finally {
@@ -532,7 +532,7 @@ test('keeps the static report readable without JavaScript', async ({
     await expect(page.locator('details.scenario')).toHaveCount(4);
     await expect(page.locator('input[data-search]')).toHaveValue('');
     await expect(
-      page.locator('button.filter[data-status="passed"]'),
+      page.locator('button.filter[data-filter-status="passed"]'),
     ).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#tolkira-live')).toHaveText('');
     await expect(page.locator('#empty-results')).toBeHidden();

@@ -80,10 +80,12 @@ and is covered by real producer fixtures.
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
   generates `src/render/styles.ts` for the inline report.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
-  helpers; `src/render/report-client.js` is the browser script.
-  `scripts/build-search.mjs` minifies both into one `CLIENT_SCRIPT` artifact in
-  `src/render/client-bundle.ts`; `npm run assets` regenerates the generated
-  modules.
+  helpers; `src/render/report-client.ts` is the browser script.
+  `src/render/dom-contract.ts` owns the scenario data attributes, the shared
+  IDs and the pure visibility decisions used by both the templates and the
+  client. `scripts/build-search.mjs` bundles them into one `CLIENT_SCRIPT`
+  artifact in `src/render/client-bundle.ts`; `npm run assets` regenerates the
+  generated modules.
 - Adds a small shell: visible title, optional logo and accent colour, system
   dark mode.
 - No CDN, no external fonts, no network requests.
