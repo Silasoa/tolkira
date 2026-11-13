@@ -50,12 +50,8 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-008 | Input | P2 | Decide external or split-assets attachment mode | [#11](https://github.com/Silasoa/tolkira/issues/11) |
 | B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
-| B-011 | Build/release | P3 | Generated-assets build seam (deferred) | [#14](https://github.com/Silasoa/tolkira/issues/14) |
 | B-012 | Test | P3 | Real Behave run with attachments and doc strings | [#15](https://github.com/Silasoa/tolkira/issues/15) |
-| B-013 | Input | P3 | JUnit suite-level output and producer coverage | [#16](https://github.com/Silasoa/tolkira/issues/16) |
 | B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
-| B-015 | Build/release | P3 | Node 20 support policy | [#18](https://github.com/Silasoa/tolkira/issues/18) |
-| B-016 | Meta | P2 | Public repo hygiene and `.gitignore` baseline | [#20](https://github.com/Silasoa/tolkira/issues/20) |
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
@@ -63,18 +59,11 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 without an approved spec; the old theme labels (`area:parity`,
 `area:architecture`, ...) were removed.
 
-**B-016 status (2026-11-13).** Done: removed the tracked `model.diff`, added
-Playwright, cache, editor and swap patterns to `.gitignore`, added
-`docs/README.md` and linked it from `README.md`, `CONTRIBUTING.md` and
-`llms.txt`, and archived three unreferenced research notes under
-`docs/research/archive/`. Added the durable issue/backlog/commit workflow in
-`docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`,
-`CONTRIBUTING.md` and `AGENTS.md`, plus `npm run hygiene`
-(`scripts/check-hygiene.mjs`) for tracked artifacts, absolute local home paths
-and `Co-authored-by` trailers, wired into CI. Remaining: reduce the weight of
-the comparison images (`docs/comparison/old-*` stays because
-`docs/COMPARISON.md` links every image) and finish the `.opencode`/`.agents`
-skill deduplication as part of the OpenSpec 2.0 migration.
+**IR review (2026-11-13).** The remaining open issues passed. Optional
+refinements before promotion: #8 refresh the line count and name the e2e
+specs; #12 keep the locale trigger explicit; #13 narrow to print CSS or one
+delivery format; #15 name the fixture and the missing Behave shapes; #17 name
+the benchmark path and budget.
 
 ## Resolved
 
@@ -83,6 +72,23 @@ skill deduplication as part of the OpenSpec 2.0 migration.
   needs no Tolkira change. [#6](https://github.com/Silasoa/tolkira/issues/6) is
   closed; evidence is in
   [`docs/research/seed-test-2-integration.md`](research/seed-test-2-integration.md).
+- **B-011 Generated-assets build seam** — decision retained; #14 closed. Keep
+  the current convention until a second consumer or a stale-output incident.
+- **B-013 JUnit suite-level output** — decided: suite-level output stays
+  intentionally unattached; `docs/JUNIT-XML.md` documents it and fixtures
+  cover both producer shapes. #16 closed.
+- **B-015 Node 20 support policy** — decided and implemented: Node 22 is the
+  floor (ADR 0002, `docs/COMPATIBILITY.md`); CI covers 22, 24 and 26. #18
+  closed.
+- **B-016 Public repo hygiene** — audit complete; #20 closed. Removed the
+  tracked `model.diff`, added Playwright, cache, editor and swap patterns to
+  `.gitignore`, added `docs/README.md` and linked it from `README.md`,
+  `CONTRIBUTING.md` and `llms.txt`, archived three unreferenced research notes,
+  added the issue/backlog/commit workflow and `npm run hygiene` with CI, and
+  replaced the `.opencode` copies with `.agents` skills in `e93b677`.
+  Comparison images are kept by decision.
+- **Backlog tracker #19** — closed; `docs/BACKLOG.md` is the single open-work
+  ledger, GitHub issues are the work items.
 
 ## Decisions (do not re-open without a trigger)
 
@@ -93,6 +99,9 @@ skill deduplication as part of the OpenSpec 2.0 migration.
   measured large-run problem; the static report is much smaller.
 - **Themes/charts.** Deliberate non-goal. Branding is title, metadata, logo,
   accent and dark mode.
+- **Comparison images.** Keep the referenced `docs/comparison` images (about
+  3.3 MB, 54% of tracked bytes). Revisit if the repo exceeds 10 MB, the images
+  exceed 5 MB, or a lighter format preserves the comparison.
 - **Generated assets.** Keep the current convention until a second consumer or
   a stale-output incident occurs (B-011).
 - **Node 20.** Keep Node 22 LTS as the supported floor until a green Node 20
