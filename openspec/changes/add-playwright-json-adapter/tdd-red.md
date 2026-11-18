@@ -1,7 +1,8 @@
 # TDD-Red — Playwright JSON adapter
 
 Status: RED confirmed on 2026-11-18. No `src/` or `docs/` change is part of
-this handoff, and no commit was made.
+this handoff. This worker did not commit; the coordinator may commit the suite
+separately.
 
 ## Command and result
 

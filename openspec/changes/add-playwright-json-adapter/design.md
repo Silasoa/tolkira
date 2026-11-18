@@ -73,15 +73,17 @@ feature name is the project name, so the feature list reads as the Playwright
 configuration; the rule path keeps the file and describe context.
 
 If the report has no project name (older or hand-written JSON), use the file
-path as the feature name and keep one feature per file.
+path as the feature name and give the feature the per-file URI
+`playwright://<idPrefix>/file/<normalized-file>`. A run-level error feature
+uses `playwright://<idPrefix>/errors`, so two inputs cannot collide.
 
 Playwright spec tags lack the `@` prefix, so normalise them to `@tag` for the
 existing search and tag-expression semantics. Strip trailing `@tag` tokens
 from file, describe and spec titles before they become rule or scenario names.
 Known `skip`, `fixme` and `fail` annotations become `@skip`, `@fixme` and
-`@fail`; their description and every other annotation are appended to the
-scenario description as `Annotation: <type> - <description>` (HTML-only,
-matching the summary contract).
+`@fail`; their type and description, and every other annotation, are appended
+to the scenario description as `Annotation: <type> - <description>`
+(HTML-only, matching the summary contract).
 A `test.status` of `flaky` adds `@flaky`; a failed expected failure adds
 `@expected-failure`; an unexpected pass adds `@unexpected-pass`.
 
@@ -97,10 +99,12 @@ Apply these in order, because the model derives status from step results:
    pass: add one synthetic failed step with `Expected to fail, but passed`,
    add `@unexpected-pass` and keep the scenario failed.
 3. `test.status === 'skipped'` is skipped. If there are no results, emit one
-   synthetic skipped step so the scenario is visible and counted as skipped.
+   synthetic skipped step with duration 0 so the scenario is visible and
+   counted as skipped.
 4. `passed` -> passed.
 5. `failed`, `timedOut`, `interrupted` -> failed.
-6. `undefined` or no results for a non-skipped test -> unexecuted, not passed.
+6. `undefined` or no results for a **non-skipped** test -> unexecuted, not
+   passed. Emit exactly one empty started attempt and no steps.
 7. `test.status === 'flaky'` with a passed final result is passed, add
    `@flaky`.
 8. `result.status` is the source of truth for every other case.
@@ -111,15 +115,11 @@ the implementer must not leave an expected failure red or an unexpected pass
 green. Key expected failure on `test.status`/`expectedStatus`, not only on
 `result.status`, so `test.fail()` plus a timeout is still green.
 
-The step results, not a separate scenario status field, drive the report
-status. These two envelope rules are therefore mandatory; the implementer must
-not leave an expected failure red or an unexpected pass green.
-
 Use the final result for the visible scenario. Emit one `testCaseStarted` per
 result with `attempt = result.retry`; the model's attempt is 0-based, so the
-second attempt is `attempt === 1` and the HTML shows `Attempt: 2`. A test with
-no results still gets one started attempt with no step results, so it stays
-visible as unexecuted instead of disappearing from the summary.
+second attempt is `attempt === 1` and the HTML shows `Attempt: 2`. A
+non-skipped test with no results still gets one empty started attempt with no
+steps, so it stays visible as unexecuted instead of disappearing.
 
 ### Steps
 
@@ -127,11 +127,24 @@ Flatten `JSONReportTestStep` depth-first. A step's text is its `title` plus an
 optional `subtitle`; nesting is shown with a `›` prefix. A step with an error
 is failed, except in the expected-failure rule above where every step is
 passed. A step without an error is passed, or skipped when the final result is
-skipped. If the final result failed, timed out or was interrupted and no step
-carries the error, append one synthetic failed `Error` step; do not mark every
-step failed. If a test has no steps, create one synthetic step carrying the
-final status and duration so the status counts remain correct. An unexpected
-pass appends a synthetic failed step even when the normal steps passed.
+skipped.
+
+Define exactly one synthetic step when none of the normal steps can carry the
+outcome:
+
+- failed/timedOut/interrupted with no step error: append one synthetic failed
+  `Error` step carrying the result duration and message; normal steps keep
+  their own status;
+- unexpected pass: append one synthetic failed step with `Expected to fail,
+  but passed`;
+- expected failure with no steps: one synthetic passed step carrying the
+  result duration; the error text stays in the description;
+- skipped with no results: one synthetic skipped step with duration 0;
+- non-skipped with no results: no synthetic step; the empty started attempt is
+  the row.
+
+If a test has steps but no step carries the error, only the synthetic error
+step is failed; do not mark every step failed.
 
 Durations are milliseconds in Playwright and nanoseconds in the legacy
 normalizer; multiply by 1,000,000. The report model sums visible step
@@ -154,11 +167,13 @@ or a `path`.
 - `path` may be relative or absolute. Accept it only when its real path stays
   inside the input file's directory or the process working directory. Use
   `realpath` and `path.relative` for both roots, with case-insensitive
-  containment on Windows. Reject symlinks, non-regular files, missing files and
-  paths whose relative form starts with `..`. Playwright emits absolute paths,
-  so absolute paths inside either root must work. The cwd root supports the
-  common CI layout where `reports/results.json` and `test-results/` are
-  siblings; it is not taken from report data.
+  containment on Windows. Reject symlinks, non-regular files, missing files,
+  paths whose relative form starts with `..`, and paths where
+  `path.isAbsolute(relative)` is true (a cross-drive or UNC escape on Windows).
+  Playwright emits absolute paths, so absolute paths inside either root must
+  work. The cwd root supports the common CI layout where
+  `reports/results.json` and `test-results/` are siblings; it is not taken
+  from report data.
 - Check `lstat` and the file size before reading; enforce the 50 MB per-file
   cap and a running 100 MB total while encoding. A file over the cap fails the
   report rather than being read into memory.

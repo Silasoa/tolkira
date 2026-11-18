@@ -16,8 +16,8 @@ weakening the one-file, offline promise.
 - Map a Playwright project to a feature, file/describe paths to rules and a
   spec to a scenario; use the last result and expose the retry attempt.
 - Preserve inline attachments and safely embed path attachments that stay
-  inside the input file's directory. Skip missing or outside paths and
-  document that limit.
+  inside the input file's directory or the process working directory. Skip
+  missing or outside paths and document that limit.
 - Preserve tags, annotations, error messages, snippets and error-context
   attachments.
 - Add fixtures from a real Playwright run plus synthetic edge cases, and update
