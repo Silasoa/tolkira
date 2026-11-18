@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
-import { legacyFixture, messagesFixture } from '../fixtures.js';
+import {
+  legacyFixture,
+  messagesFixture,
+  playwrightFixture,
+} from '../fixtures.js';
 
 const fixture = messagesFixture('screenshot.ndjson');
 const legacyFixturePath = legacyFixture('screenshot.json');
@@ -868,6 +872,35 @@ test('searches by tag', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Attach a screenshot' }),
     ).toBeHidden();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('renders a Playwright JSON report in the browser', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-playwright-e2e-'));
+  const output = path.join(dir, 'playwright.html');
+
+  try {
+    const code = await runCli(
+      [playwrightFixture('real-run.json'), '--out', output, '--title', 'Playwright E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    await expect(
+      page.getByRole('heading', { name: 'alpha', level: 2 }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'passes with steps' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'timed out' }),
+    ).toBeVisible();
+    await expect(
+      page.locator('.tag').filter({ hasText: '@smoke' }).first(),
+    ).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

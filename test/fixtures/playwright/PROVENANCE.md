@@ -21,9 +21,9 @@ JSON shape. They contain no recorded CI run, real path, token or personal data.
 | Fixture | Basis | Covers |
 | --- | --- | --- |
 | `real-run.json` | sanitized Playwright 1.65.0 JSON reporter output | two projects, file and describe rules, tags, annotations, inline PNG/text attachments, safe path attachment, Markdown error context, failed/flaky/skipped/passed, retries, timed out, expected failure, unexpected pass, nested steps |
-| `nested-describes.json` | Playwright JSON shape | several describe levels, tagged file/describe/spec titles, annotation in the scenario description, nested steps with a subtitle |
-| `statuses.json` | Playwright JSON shape | `interrupted`, a test with no results, a failed result whose step has no error |
-| `steps.json` | Playwright JSON shape | one failed step with passed siblings, skipped step status, a failed result with no step error |
+| `nested-describes.json` | Playwright JSON shape | two files in one project, several describe levels, tagged file/describe/spec titles, annotation in the scenario description, nested steps with a subtitle |
+| `statuses.json` | Playwright JSON shape | `interrupted`, expected failure from `timedOut`, skipped without results, non-skipped without results, a failed result whose step has no error, known annotation tags and descriptions |
+| `steps.json` | Playwright JSON shape | one failed step with passed siblings, skipped step status, a failed result without a step error |
 | `output.json` | Playwright JSON shape | `stdout`/`stderr` text and base64 buffer entries |
 | `errors.json` | Playwright JSON shape | run-level `errors` with no suites and a config location |
 | `empty.json` | Playwright JSON shape | no suites and no errors |
