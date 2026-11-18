@@ -46,17 +46,23 @@ projects SHALL produce one scenario per project.
 - **THEN** the report contains a scenario for each project
 - **AND** the project names are visible in the feature grouping
 
+#### Scenario: One project with several files
+
+- **WHEN** two files run in the same project
+- **THEN** they share the project feature
+- **AND** their rules keep the file path
+
 #### Scenario: Nested describes are preserved
 
 - **WHEN** a spec is nested under several `test.describe` suites
 - **THEN** the describe titles appear in the rule path
-- **AND** the scenario name is the spec title without the `@tag` suffix
+- **AND** trailing `@tag` tokens are removed from the scenario and rule names
 
 #### Scenario: Tags and annotations survive
 
 - **WHEN** a spec has Playwright tags or test annotations
-- **THEN** the tags are available to search and filters
-- **AND** annotation type and description are visible as metadata
+- **THEN** the tags are normalised to `@tag` and available to search and filters
+- **AND** annotation type and description are visible in the scenario description
 
 ### Requirement: Preserve retries and final status
 
@@ -69,6 +75,7 @@ passed with a retry attempt; a test that never passed SHALL render as failed.
 - **WHEN** the first result failed and the second result passed
 - **THEN** the scenario is passed
 - **AND** its attempt is the second attempt
+- **AND** it is marked as flaky
 
 #### Scenario: Failed after retries
 
@@ -97,8 +104,8 @@ passed with a retry attempt; a test that never passed SHALL render as failed.
 #### Scenario: No results
 
 - **WHEN** a test has no results
-- **THEN** the scenario is not rendered as passed
-- **AND** it is reported as skipped or unexecuted
+- **THEN** the scenario remains visible as unexecuted
+- **AND** it is not rendered as passed or skipped
 
 ### Requirement: Preserve Playwright steps and errors
 
@@ -111,12 +118,14 @@ executing or rendering untrusted HTML.
 - **WHEN** a result contains nested steps
 - **THEN** every step is visible in order
 - **AND** its duration is preserved
+- **AND** only the step carrying the error is failed
 
 #### Scenario: Failure detail
 
-- **WHEN** a result has an error
-- **THEN** the scenario and the failing step are failed
-- **AND** the message, snippet and location are visible as text
+- **WHEN** a result has an error but no step carries it
+- **THEN** the scenario is failed
+- **AND** a synthetic failed error step shows the message
+- **AND** all other steps keep their own status
 
 #### Scenario: Timed out or interrupted
 
@@ -130,12 +139,18 @@ executing or rendering untrusted HTML.
 - **THEN** the report shows a path relative to the input root or its basename
 - **AND** no absolute local path is embedded in the report
 
+#### Scenario: Control codes are stripped
+
+- **WHEN** an error message or snippet contains ANSI or C0/C1 control codes
+- **THEN** the report text contains no control codes
+- **AND** the readable message is preserved
+
 ### Requirement: Preserve attachments safely
 
 The adapter SHALL preserve inline Playwright attachments and SHALL embed path
 attachments only when the resolved regular file stays inside the input file's
-directory. It SHALL reject remote URLs and SHALL apply the existing attachment
-size, media-type and total-byte limits.
+directory or the process working directory. It SHALL reject remote URLs and
+SHALL apply the existing attachment size, media-type and total-byte limits.
 
 #### Scenario: Inline body attachment
 
@@ -145,13 +160,13 @@ size, media-type and total-byte limits.
 #### Scenario: Safe path attachment
 
 - **WHEN** an attachment path resolves to a regular file inside the input
-  file's directory
+  file's directory or the process working directory
 - **THEN** the file is embedded in the report
 
 #### Scenario: Unsafe or missing path
 
-- **WHEN** an attachment path is absolute outside the input tree, a symlink,
-  missing or not a regular file
+- **WHEN** an attachment path is outside both roots, a symlink, missing or not
+  a regular file
 - **THEN** it is skipped
 - **AND** the report still renders without reading that path
 
@@ -160,6 +175,12 @@ size, media-type and total-byte limits.
 - **WHEN** a result has `stdout` or `stderr` entries
 - **THEN** their text is preserved as text attachments
 - **AND** buffer entries are decoded, not rendered as HTML
+
+#### Scenario: Markdown error context
+
+- **WHEN** an attachment has `text/markdown`
+- **THEN** the report renders it as escaped readable text
+- **AND** it is not offered only as a binary download
 
 #### Scenario: Attachment limits
 

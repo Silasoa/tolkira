@@ -16,18 +16,20 @@ would fake attempts or duplicate scenarios.
 legacy, JUnit and Messages checks:
 
 - the parsed value is a non-array object;
-- `suites` is an array;
-- `config` is an object;
-- `stats` is an object.
+- `config` is an object and `stats` is an object;
+- `suites` is an array or `errors` is an array.
 
-This is deliberately stricter than "has suites" so a random JSON object is
-still rejected as unsupported. Malformed JSON remains `json-validation` and
-keeps the existing parse error. A parsed object that fails the Playwright shape
-also remains `json-validation`.
+`suites` may still be malformed; the adapter validates it and throws a
+Playwright-specific error instead of falling through to a generic unsupported
+input. A report with `config` and `stats` but neither a suites nor an errors
+array remains `json-validation`, so a random JSON object is still rejected.
+Malformed JSON remains `json-validation` and keeps the existing parse error.
 
-`load.ts` dispatches `playwright` to a new `parsePlaywrightJson(content, file,
-{ idPrefix })`. The adapter receives the raw file content so it can parse once
-and resolve path attachments relative to the file.
+Detection returns the parsed value with the decision, as the legacy branch
+does. `load.ts` dispatches `playwright` to
+`parsePlaywrightJson(parsed, file, { idPrefix })`; there is no second JSON
+parse. The adapter receives the file path so it can resolve path attachments
+relative to it.
 
 ## Normalization path
 
@@ -62,19 +64,23 @@ Playwright hierarchy: project -> file -> describe -> spec -> test -> result.
 | `stdout` / `stderr` | text attachments |
 
 One spec may have tests in several projects. Emit one scenario per test so
-projects do not overwrite each other. Build one feature per project, with the
-feature URI `playwright://<project>`; each scenario keeps the spec file as its
-URI, so provenance and directory merging stay per file. A feature name is the
-project name, so the feature list reads as the Playwright configuration; the
-rule path keeps the file and describe context.
+projects do not overwrite each other. Build one feature per input/project, with
+the feature URI `playwright://<input-basename>/<project>`; each scenario keeps
+the spec file as its URI, so provenance and directory merging stay per file. A
+feature name is the project name, so the feature list reads as the Playwright
+configuration; the rule path keeps the file and describe context.
 
 If the report has no project name (older or hand-written JSON), use the file
 path as the feature name and keep one feature per file.
 
-Spec tags keep their `@` prefix. Known `skip`, `fixme` and `fail` annotations
-become `@skip`, `@fixme` and `@fail`; other annotations are appended to the
-scenario description as `Annotation: <type> - <description>`. A `test.status`
-of `flaky` adds `@flaky` so the HTML filter can surface it.
+Playwright spec tags lack the `@` prefix, so normalise them to `@tag` for the
+existing search and tag-expression semantics. Strip trailing `@tag` tokens
+from file, describe and spec titles before they become rule or scenario names.
+Known `skip`, `fixme` and `fail` annotations become `@skip`, `@fixme` and
+`@fail`; other annotations are appended to the scenario description as
+`Annotation: <type> - <description>` (HTML-only, matching the summary contract).
+A `test.status` of `flaky` adds `@flaky`; a failed expected failure adds
+`@expected-failure`; an unexpected pass adds `@unexpected-pass`.
 
 ### Status
 
@@ -90,37 +96,61 @@ of `flaky` adds `@flaky` so the HTML filter can surface it.
   pass: render failed, add `@unexpected-pass` and a synthetic failure message
 - `result.status` is the source of truth for every other case.
 
-Use the final result for the visible scenario. If earlier attempts failed,
-attach a small text attachment with their status and error messages so the
-retry history is not lost. Set the generated `testCaseStarted.attempt` to the
-final result's `retry` index after normalization.
+Use the final result for the visible scenario. Emit one `testCaseStarted` per
+result with `attempt = result.retry`; the model's attempt is 0-based, so the
+second attempt is `attempt === 1` and the HTML shows `Attempt: 2`. A test with
+no results still gets one started attempt with no step results, so it stays
+visible as unexecuted instead of disappearing from the summary.
 
 ### Steps
 
 Flatten `JSONReportTestStep` depth-first. A step's text is its `title` plus an
 optional `subtitle`; nesting is shown with a `›` prefix. A step with an error
-is failed; otherwise it inherits the final result status. If a test has no
-steps, create one synthetic step carrying the final status and duration so the
-status counts remain correct.
+is failed. A step without an error is passed, or skipped when the final result
+is skipped. If the final result failed, timed out or was interrupted and no
+step carries the error, append one synthetic failed `Error` step; do not mark
+every step failed. If a test has no steps, create one synthetic step carrying
+the final status and duration so the status counts remain correct.
 
 Durations are milliseconds in Playwright and nanoseconds in the legacy
-normalizer; multiply by 1,000,000. The final scenario duration comes from the
-result duration.
+normalizer; multiply by 1,000,000. The report model sums visible step
+durations, so the scenario duration is that sum. When a test has no steps, the
+synthetic step carries `result.duration`. This is documented as a basic-mode
+limit: hidden Playwright overhead is not invented as a step.
+
+The error message is the final result's `error.message`, then
+`errors[].message`, then `error.value`/`error.stack`. Append the snippet and a
+relative location. The model strips ANSI from step messages; any error text
+appended to a description is stripped before it is stored.
 
 ### Attachments
 
 Playwright attachments have `name`, `contentType`, and either a base64 `body`
 or a `path`.
 
-- Inline `body` becomes a legacy `embedding` with its content type.
-- `path` is resolved against the input file's directory. Only regular files
-  whose real path stays inside that directory are read. Absolute paths,
-  `..` escapes, symlinks and missing files are skipped.
+- Inline `body` becomes an attachment with its content type.
+- `path` may be relative or absolute. Accept it only when its real path stays
+  inside the input file's directory or the process working directory. Use
+  `realpath` and `path.relative` for both roots, with case-insensitive
+  containment on Windows. Reject symlinks, non-regular files, missing files and
+  paths whose relative form starts with `..`. Playwright emits absolute paths,
+  so absolute paths inside either root must work. The cwd root supports the
+  common CI layout where `reports/results.json` and `test-results/` are
+  siblings; it is not taken from report data.
+- Check `lstat` and the file size before reading; enforce the 50 MB per-file
+  cap and a running 100 MB total while encoding. A file over the cap fails the
+  report rather than being read into memory.
 - `stdout` and `stderr` entries become `text/plain` attachments; `{ buffer }`
   entries are decoded from base64 as `application/octet-stream`, not
   interpreted as HTML.
-- The existing `sanitizeEnvelopes` enforces the 50 MB per-attachment and 100 MB
-  total limits and rejects external/remote attachments.
+- Normalise Playwright's `text/markdown` to `text/plain` for the report, so
+  `error-context.md` renders as escaped readable text instead of a `.bin`
+  download. This keeps the change inside the input adapter and its existing
+  text-attachment rendering.
+- A `path` that starts with `http://` or `https://` is treated as a remote URL
+  and skipped; nothing is fetched.
+- The existing `sanitizeEnvelopes` remains the final guard for total bytes,
+  remote URLs and external attachments.
 - `safeMediaType` remains the renderer's last line of defence; unknown types
   become `application/octet-stream`.
 
@@ -161,12 +191,19 @@ the run start/finish envelopes and accept it; the report shows zero scenarios.
 
 The adapter validates:
 
-- top-level `config`, `suites` and `stats` objects/arrays;
-- suite `specs` and `suites` arrays;
+- top-level `config` and `stats` objects;
+- `suites` and `errors` arrays when present; a non-array `suites` is an error
+  once the report is classified as Playwright;
+- suite `specs` and optional `suites` arrays;
 - spec `tests` array;
 - test `results` array;
 - attachment `name`/`contentType` strings and `body`/`path` types;
 - step `title` and `duration`.
+
+Every generated id uses `playwright-${index}` plus a local counter, so two
+Playwright inputs or a Playwright plus Cucumber merge cannot collide. A
+`repeatEach` run may produce several tests for one spec in the same project;
+include the test index in the scenario id even when the names repeat.
 
 Errors name the file and the failing path, for example
 `Invalid Playwright JSON in report.json: suites[0].specs must be an array.`
