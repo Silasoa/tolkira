@@ -59,7 +59,7 @@ with real provenance. Each card shows the input's worst status, counts and a
 proportion bar.
 
 **Feature matrix** — the Details table with one row per feature and one count
-column per status present in the run, plus total and duration.
+column per status present in the run, plus total and Scenario time.
 
 **Scenario outline** — a Gherkin scenario template with an Examples table.
 Tolkira renders one outline section per executed outline with examples in
@@ -73,8 +73,19 @@ name, tags and description. An outline can have several.
 attachments and anchor.
 
 **Executed scenario** — a scenario whose selected test case reported at least
-one raw step result, including a hook result. Only executed scenarios appear in
-scenario counts, percentages, bars, triage and the Details matrix.
+one raw step result, including a hook result. Adapters represent a reported skip
+without steps as a synthetic skipped step, so the summary reports it as
+executed. Executed scenarios appear in scenario counts, bars, triage and the
+Details matrix.
+
+**Skipped scenario** — an executed scenario whose final reported status is
+`skipped`, for example a statically skipped test with no step results. It stays
+in counts, status pills, filters and bars, but it is not a pass attempt.
+
+**Attempted pass rate** — the pass percentage over attempted scenarios:
+executed results whose status is not `skipped`. Counts and bars include skipped;
+the Report and Details health and the feature pass text do not. A run with
+results but no attempt states `No scenarios attempted` instead of a percentage.
 
 **Unexecuted scenario** — a scenario whose selected test case started but
 reported no raw step result, including a started-but-unfinished case. It stays

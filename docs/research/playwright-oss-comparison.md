@@ -57,6 +57,9 @@ passed on a later run.
    sections, and failure-first ordering interleaves files; native keeps one
    file group. A file-level view or toggle would help.
 
+Status after #25 (2026-11-19): items 1, 2, 4 and 5 addressed; item 3
+(attachment loss) and item 6 (file grouping) remain open/deferred.
+
 ### Documented basic-mode limits with real costs
 
 - Flaky is flattened to passed + `@flaky`; there is no flaky count/status in

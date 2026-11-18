@@ -26,5 +26,8 @@ JSON shape. They contain no recorded CI run, real path, token or personal data.
 | `steps.json` | Playwright JSON shape | one failed step with passed siblings, skipped step status, a failed result without a step error |
 | `output.json` | Playwright JSON shape | `stdout`/`stderr` text and base64 buffer entries |
 | `errors.json` | Playwright JSON shape | run-level `errors` with no suites and a config location |
+| `error-locations.json` | Playwright JSON shape | error locations at the end, mid-sentence and with backslashes; two errors with different locations; no-column and line-prefix locations; column in the text for a no-column location |
+| `skipped-no-steps.json` | Playwright JSON shape | pass, fail and a statically skipped test without results, for executed-skip counts |
+| `two-files.json` | Playwright JSON shape | one project feature spanning `sample-a.spec.ts` and `sample-b.spec.ts`, for the `2 spec files` label |
 | `empty.json` | Playwright JSON shape | no suites and no errors |
 | `malformed-*.json` | Playwright JSON shape | invalid `suites`, suite `specs`, test `results` and attachment `contentType` |

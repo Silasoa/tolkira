@@ -1019,7 +1019,7 @@ describe('triage overview', () => {
       (match) => match[1],
     );
     expect(names).toEqual(['Mixed feature', 'Passed feature']);
-    expect(html).toContain('1 of 2 passed · 1 unknown');
+    expect(html).toContain('1 passed of 2 attempted · 1 unknown');
     expect(html).toContain('1 of 3 scenarios need attention.');
     expect(html).toContain('<span class="triageStatus unknown">Unknown</span>');
     const sources = html.slice(
@@ -1165,7 +1165,7 @@ describe('feature overview and matrix', () => {
     );
     const list = featureList(html);
 
-    expect(list).toContain('1 of 3 passed · 1 failed, 1 pending');
+    expect(list).toContain('1 passed of 3 attempted · 1 failed, 1 pending');
     const bar = list.slice(list.indexOf('class="bar"'));
     expect(bar.indexOf('class="pass"')).toBeLessThan(
       bar.indexOf('class="fail"'),
@@ -1182,7 +1182,7 @@ describe('feature overview and matrix', () => {
       list.indexOf('Happy HTML reporting'),
       list.indexOf('Unhappy HTML reporting'),
     );
-    expect(happy).toContain('5 of 6 passed · 1 failed');
+    expect(happy).toContain('5 passed of 6 attempted · 1 failed');
     expect(happy.match(/<i class="(pass|fail)"/g) ?? []).toHaveLength(2);
     const bar = happy.slice(happy.indexOf('class="bar"'));
     expect(bar.indexOf('class="pass"')).toBeLessThan(
@@ -1191,7 +1191,7 @@ describe('feature overview and matrix', () => {
     expect(happy).toContain('class="featureUri"');
 
     const behave = list.slice(list.indexOf('Behave feature'));
-    expect(behave).toContain('1 of 1 passed');
+    expect(behave).toContain('1 passed of 1 attempted');
     expect(behave.match(/<i class="pass"/g) ?? []).toHaveLength(1);
     expect(behave).not.toContain('passed ·');
   });
@@ -2112,14 +2112,14 @@ describe('empty-run rendering', () => {
     const html = await renderReport(emptyMixedFixture, { title: 'Mixed run' });
 
     expect(html).toContain('1 / 1');
-    expect(html).not.toContain('1 of 2 passed');
+    expect(html).not.toContain('1 passed of 2 attempted');
     expect(html).toContain('<strong>100%</strong>');
     expect(html).toContain('<span>1 scenario with results</span>');
     expect(html).toContain('<span>1 unexecuted</span>');
     expect(html).not.toContain('Needs attention');
 
     const list = featureList(html);
-    expect(list).toContain('1 of 1 passed');
+    expect(list).toContain('1 passed of 1 attempted');
     expect(list.match(/data-scenario-name=/g) ?? []).toHaveLength(2);
     expect(list).toContain('Blank started scenario');
     expect(list).not.toContain('Never started scenario');
@@ -2149,7 +2149,7 @@ describe('empty-run rendering', () => {
     });
 
     expect(html).toContain('1 / 2');
-    expect(html).not.toContain('1 of 3 passed');
+    expect(html).not.toContain('1 passed of 3 attempted');
     expect(html).toContain('<strong>50%</strong>');
 
     const triage = html.slice(
@@ -2162,7 +2162,7 @@ describe('empty-run rendering', () => {
     expect(triage).not.toContain('2 of 3 scenarios need attention.');
 
     const list = featureList(html);
-    expect(list).toContain('1 of 2 passed · 1 failed');
+    expect(list).toContain('1 passed of 2 attempted · 1 failed');
     expect(list).not.toContain('1 unknown');
     const featureSummary = list.slice(
       list.indexOf('Mixed statuses'),

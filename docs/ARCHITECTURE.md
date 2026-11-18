@@ -71,10 +71,11 @@ and is covered by real producer fixtures.
 - Default Report tab: title, run metadata, pass-rate health panel, search,
   status filters, exception-first feature and scenario order, a triage index, a
   source strip for multi-file runs with unambiguous provenance, feature
-  counts/proportion bars, fixed thumbnail gutter and scenario details. Every
-  scenario count, percentage, bar, triage entry and matrix cell covers executed
-  scenarios only; unexecuted rows stay visible without an outcome. Below
-  560 px the triage collapses and the source strip hides.
+  counts/proportion bars, fixed thumbnail gutter and scenario details. Scenario
+  counts, bars, triage entries and matrix cells cover reported (executed)
+  scenarios, including skipped; unexecuted rows stay visible without an outcome.
+  The run percentage and feature pass text use attempted (non-skipped)
+  scenarios. Below 560 px the triage collapses and the source strip hides.
 - Details tab: feature-by-status matrix, status distribution, environment and
   the agent summary.
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`

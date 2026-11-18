@@ -86,7 +86,7 @@ it. The gap is the combination.
 
 - Exception-first Report list: non-passing features and scenarios first.
 - A "Needs attention" index with counts and links into the collapsed detail.
-- Feature rows with passed/total counts and proportion bars.
+- Feature rows with passed/attempted counts and proportion bars.
 - Feature-by-status matrix in Details.
 - Source strip for multi-file runs with real provenance.
 - Batched CLI edge fixes from the 0.1.2 audit.

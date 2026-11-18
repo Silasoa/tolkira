@@ -27,6 +27,16 @@ Keep a Changelog and the project uses semantic versioning.
   and HTML-report replay are not claimed. See
   [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
 
+### Changed
+
+- Report and Details pass rates now count attempted (non-skipped) scenarios
+  while counts and bars still include skipped results. The header names
+  `N scenarios with results` and any `N unexecuted` rows, a run with only
+  skipped results states `No scenarios attempted`, multi-file features show
+  `N spec files`, Playwright errors carry one location, and summed durations are
+  labelled `Test time` and `Scenario time`. The Details environment heading is
+  now `Run environment`.
+
 ## [0.3.0] - 2026-11-13
 
 ### Added

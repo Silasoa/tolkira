@@ -529,8 +529,22 @@ describe('Playwright JSON input', () => {
     const oneFileLabels = [
       ...oneFileHtml.matchAll(/<span class="featureUri">(.*?)<\/span>/g),
     ].map((match) => match[1]);
+    const oneFileMatrix = [
+      ...oneFileHtml.matchAll(/<span class="matrixUri">(.*?)<\/span>/g),
+    ].map((match) => match[1]);
+    const oneFileTriage = [
+      ...oneFileHtml.matchAll(/<a class="triageFeature"[^>]*title="([^"]*)"/g),
+    ].map((match) => match[1]);
     expect(oneFileLabels).toHaveLength(2);
     expect(oneFileLabels.every((label) => label === 'sample.spec.ts')).toBe(
+      true,
+    );
+    expect(oneFileMatrix).toHaveLength(2);
+    expect(oneFileMatrix.every((label) => label === 'sample.spec.ts')).toBe(
+      true,
+    );
+    expect(oneFileTriage.length).toBeGreaterThan(0);
+    expect(oneFileTriage.every((label) => label === 'sample.spec.ts')).toBe(
       true,
     );
   });
@@ -570,7 +584,15 @@ describe('Playwright JSON input', () => {
 
     const linePrefix = normalized(messages('line prefix is not the location'));
     expect(linePrefix).toContain('tests/g.spec.ts:12');
-    expect(occurrences(linePrefix, 'at tests/g.spec.ts:1')).toBe(1);
+    expect(
+      linePrefix.match(/(?:^|\n)at tests\/g\.spec\.ts:1(?:\n|$)/g) ?? [],
+    ).toHaveLength(1);
+
+    const lineWithColumn = normalized(
+      messages('location without a column matches a column in the message'),
+    );
+    expect(occurrences(lineWithColumn, 'at tests/x.spec.ts:50:12')).toBe(1);
+    expect(occurrences(lineWithColumn, 'at tests/x.spec.ts:50')).toBe(1);
   });
 
   it('uses step errors for step status and keeps other steps passed', async () => {

@@ -266,6 +266,44 @@
               ]
             }
           ]
+        },
+        {
+          "title": "location without a column matches a column in the message",
+          "ok": false,
+          "tags": [],
+          "id": "errors-spec-line-with-column",
+          "file": "errors.spec.ts",
+          "line": 28,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 4,
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:00:06.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Error: column mismatch\n  at tests/x.spec.ts:50:12",
+                    "location": {
+                      "file": "tests/x.spec.ts",
+                      "line": 50
+                    }
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -275,7 +313,7 @@
     "startTime": "2026-11-19T11:00:00.000Z",
     "duration": 35,
     "expected": 1,
-    "unexpected": 5,
+    "unexpected": 6,
     "flaky": 0,
     "skipped": 0
   }

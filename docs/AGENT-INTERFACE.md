@@ -249,13 +249,18 @@ Field contract:
   pickles never started contributes no row and is not counted.
 - `counts.scenarios` counts executed scenarios only, so `total` can be smaller
   than `scenarios.length`. `counts.scenarios` and `counts.steps` always contain
-  every status key, even when the value is `0`. `total` is the sum.
+  every status key, even when the value is `0`. `total` is the sum. The HTML
+  pass rate and feature pass text use attempted (non-skipped) scenarios, while
+  counts, pills and bars include skipped results.
 - `scenarios[].executed` is `true` when the selected test case reported at
-  least one raw step result, including a hook result. An unexecuted scenario
-  keeps `status: "unknown"` and `executed: false`; it is not counted in
-  `counts.scenarios`. A pickle that never started has no entry at all.
-- `durationMs` is a number of milliseconds and includes scenario and test-run
-  hook time. `steps[].durationMs` is rounded to three decimals.
+  least one raw step result, including a hook result. Adapters represent a
+  reported skip without steps as a synthetic skipped step, so the summary
+  reports it as executed. An unexecuted scenario keeps `status: "unknown"` and
+  `executed: false`; it is not counted in `counts.scenarios`. A pickle that
+  never started has no entry at all.
+- `durationMs` is a number of milliseconds and sums the final attempt per
+  scenario plus test-run hooks. It is not wall-clock time.
+  `steps[].durationMs` is rounded to three decimals.
 - `scenarios` is sorted by `uri`, then `name`, so output is stable across runs.
 - `scenarios[].name` is the Cucumber pickle name. Examples of one scenario
   outline can share the same name; the HTML report labels rows with `#1.1` and

@@ -2243,7 +2243,7 @@ test('keeps a blank row searchable in a mixed run', async ({ page }) => {
     await expect(
       page
         .getByRole('tabpanel', { name: 'Report' })
-        .getByText('1 / 1', { exact: true }),
+        .getByText('1 / 1 attempted', { exact: true }),
     ).toBeVisible();
     await expect(
       page
@@ -2301,7 +2301,7 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
     await page.goto(pathToFileURL(output).href);
     const report = page.getByRole('tabpanel', { name: 'Report' });
     await expect(
-      report.getByText('1 / 2', { exact: true }),
+      report.getByText('1 / 2 attempted', { exact: true }),
     ).toBeVisible();
     await expect(report.getByText('50%', { exact: true })).toBeVisible();
     await expect(report.locator('.runHead .meta')).toContainText(
@@ -2310,7 +2310,9 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
     await expect(report.locator('.runHead .meta')).toContainText(
       '1 unexecuted',
     );
-    await expect(page.getByText('1 of 2 passed · 1 failed')).toBeVisible();
+    await expect(
+      page.getByText('1 passed of 2 attempted · 1 failed'),
+    ).toBeVisible();
     await expect(page.locator('button.filter[data-filter-status="unknown"]')).toHaveCount(
       0,
     );
@@ -2373,6 +2375,19 @@ test('computes the attempted scenario ratio for a run with a skip', async ({
     await expect(details).toContainText(
       'Pass rate counts attempted (non-skipped) scenarios; counts and bars include skipped.',
     );
+
+    await page.getByRole('tab', { name: 'Report' }).click();
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    await expect(health).toBeVisible();
+    await expect(health).toContainText('1 / 2 attempted');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(1);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

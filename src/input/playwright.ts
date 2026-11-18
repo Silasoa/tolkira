@@ -619,6 +619,15 @@ function scrubPaths(text: string, inputDir: string): string {
   );
 }
 
+function locationAlreadyPresent(part: string, at: string): boolean {
+  const normalized = part.replace(/\\/g, '/');
+  const needle = at.replace(/\\/g, '/');
+  const escaped = escapeRegExp(needle);
+  // A location without a column also matches the same file and line with one.
+  const column = /:\d+:\d+$/.test(needle) ? '' : '(?::\\d+)?';
+  return new RegExp(`(?:^|[^\\w:./-])${escaped}${column}(?![\\w:])`).test(normalized);
+}
+
 function errorText(
   error: PlaywrightError | undefined,
   inputDir: string,
@@ -630,7 +639,9 @@ function errorText(
   if (message) parts.push(scrubPaths(stripAnsi(message), inputDir).trim());
   if (error.snippet) parts.push(scrubPaths(stripAnsi(error.snippet), inputDir).trim());
   const at = locationText(error.location, inputDir);
-  if (at) parts.push(`at ${at}`);
+  if (at && !parts.some((part) => locationAlreadyPresent(part, at))) {
+    parts.push(`at ${at}`);
+  }
   return parts.filter(Boolean).join('\n\n') || undefined;
 }
 

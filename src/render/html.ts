@@ -154,6 +154,27 @@ function barWidth(count: number, total: number): number {
   return total === 0 ? 0 : Math.round((count / total) * 1000) / 10;
 }
 
+function featureSourceLabel(feature: ReportFeature): string {
+  const uris = new Set(
+    feature.scenarios.map((scenario) => displayUri(scenario.uri)).filter(Boolean),
+  );
+  if (uris.size === 0) return '';
+  return uris.size === 1 ? [...uris][0] ?? '' : `${uris.size} spec files`;
+}
+
+function healthMarkup(model: ReportModel): string {
+  const { total, passed, skipped } = model.counts.scenarios;
+  if (total === 0) {
+    return '<div class="healthTop"><strong>0%</strong><span aria-hidden="true">0 / 0</span><span class="sr">0 / 0 passed</span></div>';
+  }
+  const attempted = total - skipped;
+  if (attempted === 0) {
+    return '<div class="healthTop"><span>No scenarios attempted</span><span class="sr">Skipped scenarios are results, not pass attempts.</span></div>';
+  }
+  const percent = Math.round((passed / attempted) * 1000) / 10;
+  return `<div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${attempted} attempted</span><span class="sr">${passed} of ${attempted} attempted scenarios passed</span></div>`;
+}
+
 function attentionCounts(scenarios: ReportScenario[]): string {
   const counts = new Map<ReportStatus, number>();
   for (const scenario of scenarios) {
@@ -188,12 +209,18 @@ function featureShape(
   const passed = executed.filter(
     (scenario) => scenario.status === 'passed',
   ).length;
+  const attempted = executed.filter(
+    (scenario) => scenario.status !== 'skipped',
+  ).length;
   const attention = attentionCounts(executed);
-  const counts = `${passed} of ${executed.length} passed${attention ? ` · ${attention}` : ''}`;
+  const counts =
+    attempted === 0
+      ? `${passed} of 0 passed${attention ? ` · ${attention}` : ''}`
+      : `${passed} passed of ${attempted} attempted${attention ? ` · ${attention}` : ''}`;
   const source = feature.sourceFile
     ? `<span class="featureSource">from ${escapeHtml(feature.sourceFile)}</span>`
     : '';
-  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(displayUri(feature.uri))}</span>${tagsMarkup(feature.tags, 'featureTags')}</span>`;
+  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(featureSourceLabel(feature))}</span>${tagsMarkup(feature.tags, 'featureTags')}</span>`;
 }
 
 interface TriageEntry extends OrderedFeature {
@@ -235,7 +262,7 @@ function renderTriageRow({
   const reason = reasonSource
     ? `${reasonSource} — ${reasonMessage.split(/\r?\n/)[0].trim().slice(0, 120)}${reasonMessage.split(/\r?\n/)[0].trim().length > 120 ? '…' : ''}`
     : '';
-  return `<li class="triageItem"><a class="triageFeature" href="#${featureId(index)}" title="${escapeHtml(displayUri(feature.uri))}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul>${reason ? `<p class="triageReason"><span class="triageReasonLabel">First failure:</span> ${escapeHtml(reason)}</p>` : ''}</li>`;
+  return `<li class="triageItem"><a class="triageFeature" href="#${featureId(index)}" title="${escapeHtml(featureSourceLabel(feature))}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios)}</p><ul class="triageScenarios">${links}${more}</ul>${reason ? `<p class="triageReason"><span class="triageReasonLabel">First failure:</span> ${escapeHtml(reason)}</p>` : ''}</li>`;
 }
 
 function renderTriage(features: OrderedFeature[]): string {
@@ -1120,7 +1147,7 @@ function renderFeatureMatrix(model: ReportModel): string {
   const statuses = matrixStatuses(model);
   const head = `<tr><th>Feature</th><th>Total</th>${statuses
     .map((status) => `<th>${statusLabel(status)}</th>`)
-    .join('')}<th>Duration</th></tr>`;
+    .join('')}<th>Scenario time</th></tr>`;
   const rows = model.features
     .map((feature) => {
       const executed = executedOnly(feature.scenarios);
@@ -1131,7 +1158,7 @@ function renderFeatureMatrix(model: ReportModel): string {
           return `<td class="num${count === 0 ? ' zero' : ''}">${count}</td>`;
         })
         .join('');
-      return `<tr><th scope="row"><span class="matrixName">${escapeHtml(feature.name)}</span><span class="matrixUri">${escapeHtml(displayUri(feature.uri))}</span></th><td class="num">${executed.length}</td>${cells}<td class="num">${durationLabel(feature.durationMs)}</td></tr>`;
+      return `<tr><th scope="row"><span class="matrixName">${escapeHtml(feature.name)}</span><span class="matrixUri">${escapeHtml(featureSourceLabel(feature))}</span></th><td class="num">${executed.length}</td>${cells}<td class="num">${durationLabel(feature.durationMs)}</td></tr>`;
     })
     .join('');
   return `<table class="featureTable"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
@@ -1152,8 +1179,9 @@ function renderReportView(
   options: RenderOptions,
 ): string {
   const total = model.counts.scenarios.total;
-  const passed = model.counts.scenarios.passed;
-  const percent = total === 0 ? 0 : Math.round((passed / total) * 1000) / 10;
+  const unexecuted = model.scenarios.filter(
+    (scenario) => !scenario.executed,
+  ).length;
   const meta = metadataLine(options.metadata);
   const ci = ciHeaderMarkup(model.environment?.ci);
   const date = dateLabel(model.startedAt);
@@ -1168,7 +1196,7 @@ function renderReportView(
   const tagFilter = tags.length
     ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
     : '';
-  return `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${model.counts.scenarios.total} executed scenario${model.counts.scenarios.total === 1 ? '' : 's'}</span><span>${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health"><div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${total}</span><span class="sr">${passed} / ${total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
+  return `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${total} scenario${total === 1 ? '' : 's'} with results</span>${unexecuted > 0 ? `<span>${unexecuted} unexecuted</span>` : ''}<span title="Sum of the final attempt per scenario and run hooks"><b>Test time</b> ${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health">${healthMarkup(model)}${statusBar(model)}${countPills(model)}</div></header><div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${displayStatuses(model)
     .map(
       (status) =>
         `<button class="filter" type="button" ${FILTER_STATUS_ATTRIBUTE}="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
@@ -1213,13 +1241,13 @@ function renderAnalysisView(
       : '',
     ciDetailRows(model.environment?.ci),
   ].join('');
-  const runRows = `<dt>Duration</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
-  return `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health"><div class="healthTop"><strong>${counts.total === 0 ? 0 : Math.round((counts.passed / counts.total) * 1000) / 10}%</strong><span>${counts.passed} / ${counts.total} passed</span></div>${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Executed scenarios only. Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>Executed scenarios only.</p><div class="legend">${displayStatuses(model)
+  const runRows = `<dt>Test time</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${counts.total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd>`;
+  return `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health">${healthMarkup(model)}${statusBar(model)}${countPills(model)}</div></header><div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Executed scenarios only. Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>Pass rate counts attempted (non-skipped) scenarios; counts and bars include skipped.</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,
     )
-    .join('')}</div><h2 class="subhead">Run</h2><dl class="metaList">${runRows}</dl>${environmentRows ? `<h2 class="subhead">Cucumber environment</h2><dl class="metaList">${environmentRows}</dl>` : ''}${customRows ? `<h2 class="subhead">Custom metadata</h2><dl class="metaList">${customRows}</dl>` : ''}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, 'Run attachments')).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents. Its step counts include hook entries; the HTML counts above exclude them.</p><pre class="json" tabindex="0" aria-label="Agent summary JSON">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
+    .join('')}</div><h2 class="subhead">Run</h2><dl class="metaList">${runRows}</dl><p class="durationNote">Test time sums the final attempt per scenario and test-run hooks; Scenario time sums the final attempt per scenario. Neither is wall-clock time.</p>${environmentRows ? `<h2 class="subhead">Run environment</h2><dl class="metaList">${environmentRows}</dl>` : ''}${customRows ? `<h2 class="subhead">Custom metadata</h2><dl class="metaList">${customRows}</dl>` : ''}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, 'Run attachments')).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents. Its step counts include hook entries; the HTML counts above exclude them.</p><pre class="json" tabindex="0" aria-label="Agent summary JSON">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
 }
 
 

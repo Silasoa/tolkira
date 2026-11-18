@@ -36,3 +36,9 @@ the same digits SHALL NOT count as the same location.
 
 - **WHEN** the error location has a file and line but no column
 - **THEN** the appended location is `at <file>:<line>`
+
+#### Scenario: Column in the text for a location without one
+
+- **WHEN** the error location has a file and line but no column, and the
+  message or snippet contains the same file and line followed by a column
+- **THEN** the adapter does not append a second location line

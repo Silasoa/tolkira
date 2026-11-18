@@ -74,7 +74,8 @@ the scenario:
   carries `@expected-failure`;
 - an unexpected pass -> one synthetic failed step and `@unexpected-pass`;
 - `skipped` with no results -> one synthetic skipped step, so the scenario stays
-  visible and counts as skipped;
+  visible and counts as skipped; its summary entry has `executed: true` and
+  `status: "skipped"`;
 - a non-skipped test with no results -> an empty started attempt, visible as
   unexecuted, not passed and not skipped.
 
@@ -84,7 +85,9 @@ carrying the final status and `result.duration`. Step durations are exclusive:
 a parent step's duration minus its children's durations. When the visible steps
 sum to less than `result.duration`, one explicit `Playwright overhead` step
 carries the residual, so the scenario duration equals `result.duration`. Hidden
-Playwright time is never folded silently into a child step.
+Playwright time is never folded silently into a child step. The HTML report
+labels the summed run value `Test time` and the matrix column `Scenario time`;
+neither is wall-clock time.
 
 ### Errors
 
@@ -93,7 +96,10 @@ concatenated; otherwise `result.error` is used. Playwright often repeats the
 same failure in both places, so this avoids showing it twice. Within an error
 the message is `message`, then `value`, then `stack`. The snippet follows, then
 a source location relative to the input file's directory or the process working
-directory; a path outside both uses only its basename. ANSI and C0/C1 control
+directory; a path outside both uses only its basename. A location line is
+appended only when neither the message nor the snippet already contains that
+location as a complete token, so `file:1` does not match inside `file:12`, and
+two errors keep their own locations. ANSI and C0/C1 control
 codes are stripped, and absolute local paths in the message, value, stack and
 snippet are replaced by a relative path or basename. That includes common POSIX
 roots (`/Users`, `/home`, `/tmp`, `/var`, `/opt`, `/etc`, `/usr`, `/private`,

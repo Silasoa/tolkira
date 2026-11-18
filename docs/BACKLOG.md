@@ -123,6 +123,9 @@ the benchmark path and budget.
 - **CI summary labels.** `--ci markdown` keeps `Duration` and the GitHub notice
   says `executed scenarios`; align them with the report's `Test time` when the
   CI surface is next touched.
+- **Details matrix caption.** The caption still says `Executed scenarios only.`
+  and 320 px can split `1` from `failed`; align the wording and the cell layout
+  with the next vocabulary pass if users report it.
 
 ## Review follow-ups (2026-11-18)
 

@@ -104,12 +104,12 @@ describe the viewport, not the font.
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
 | Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features and scenarios; filters only for present statuses |
 | Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure |
-| Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar; hidden below 560 px, where the feature source badge remains |
-| Feature | `details.feature` | Native disclosure; status, name, counts, proportion bar, source badge, URI |
+| Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar; hidden at 560 px or narrower. The Report row's source badge hides at 900 px or narrower, so the Details matrix keeps the source label |
+| Feature | `details.feature` | Native disclosure; status, name, counts, proportion bar, source badge (file path or `N spec files`), URI |
 | Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |
 | Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
-| Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Cucumber environment / Custom metadata blocks, agent summary |
+| Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Run environment / Custom metadata blocks, agent summary |
 
 ## Interaction rules
 

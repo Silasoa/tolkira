@@ -163,8 +163,8 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
   with links that open the scenario detail.
 - **Multi-file context.** A source strip shows per-input status, counts and a
   proportion bar when the run has more than one input file and provenance is
-  unambiguous. On phones the strip is hidden and the feature row keeps the
-  source.
+  unambiguous. It is hidden at 560 px or narrower, and the Report row hides its
+  source at 900 px or narrower; the Details matrix keeps the source label.
 - **Screenshots and attachments that survive.** Images, text, video, audio and
   files are preserved through the input adapters.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by
@@ -186,7 +186,7 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
 - **A Details view when you need it.** Status distribution, a feature-by-status
-  matrix, run metadata and the Cucumber environment (producer, runtime, OS, CPU,
+  matrix, run metadata and the Run environment (producer, runtime, OS, CPU,
   protocol).
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure
