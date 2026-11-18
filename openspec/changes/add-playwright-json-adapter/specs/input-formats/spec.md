@@ -58,6 +58,13 @@ projects SHALL produce one scenario per project.
 - **THEN** the describe titles appear in the rule path
 - **AND** trailing `@tag` tokens are removed from the scenario and rule names
 
+#### Scenario: Scenario order is deterministic
+
+- **WHEN** tests with and without path attachments share a suite
+- **THEN** model and generated ids follow the source order
+- **AND** attachment I/O cannot reorder scenarios
+- **AND** rendering the same input twice yields identical HTML
+
 #### Scenario: Tags and annotations survive
 
 - **WHEN** a spec has Playwright tags or test annotations
@@ -127,6 +134,15 @@ executing or rendering untrusted HTML.
 - **AND** its duration is preserved
 - **AND** only the step carrying the error is failed
 
+#### Scenario: Step durations do not double-count
+
+- **WHEN** a parent step's duration includes its child steps
+- **THEN** the parent's visible duration excludes the children
+- **AND** any remaining time up to the result duration is one explicit
+  `Playwright overhead` step
+- **AND** the visible step sum equals the result duration when it does not
+  already exceed it
+
 #### Scenario: Failure detail
 
 - **WHEN** a result has an error but no step carries it
@@ -188,6 +204,14 @@ SHALL apply the existing attachment size, media-type and total-byte limits.
 - **WHEN** an attachment has `text/markdown`
 - **THEN** the report renders it as escaped readable text
 - **AND** it is not offered only as a binary download
+
+#### Scenario: Trace zips are skipped
+
+- **WHEN** an attachment is a Playwright trace (`name: trace`,
+  `contentType: application/zip`)
+- **THEN** its body or path is not embedded
+- **AND** it does not count towards the attachment budget
+- **AND** an ordinary zip attachment is still handled normally
 
 #### Scenario: Attachment limits
 

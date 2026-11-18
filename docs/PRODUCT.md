@@ -91,13 +91,18 @@ it. The gap is the combination.
 - Source strip for multi-file runs with real provenance.
 - Batched CLI edge fixes from the 0.1.2 audit.
 
+### v0.3 — Playwright input (shipped)
+
+- Native Playwright JSON adapter: projects, file/describe rules, retries with
+  the final attempt visible, nested steps, expected/unexpected outcomes,
+  attachments and run-level errors.
+
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media.
 - History/trends via an optional history file.
 - PDF/email summary.
 - German UI/localisation.
-- Playwright JSON adapter.
 - CI annotations/PR summary.
 - Deeper dashboard and custom themes.
 

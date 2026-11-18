@@ -41,7 +41,7 @@ unsupported input and never with a partial report.
 
 | Playwright | Report |
 | --- | --- |
-| project name | feature; falls back to the file path when the report has no project |
+| project name | feature; falls back to `projectId`, then the file path when the report has no project |
 | file + describe path | rule, for example `checkout.spec.ts › cart › payment` |
 | spec title (minus trailing `@tags`) | scenario name |
 | one spec test in one project | one scenario |
@@ -49,8 +49,8 @@ unsupported input and never with a partial report.
 | `result.retry` | attempt index (the HTML shows `Attempt: retry + 1`) |
 | nested result steps | flat steps in order, deeper levels prefixed with `›` |
 | `result.error` / `errors` | failed step message, snippet and relative location |
-| spec tags and known annotations | `@tag`, `@skip`, `@fixme`, `@fail` |
-| every annotation | `Annotation: <type> - <description>` in the scenario description |
+| spec tags and known annotations | `@tag`, `@skip`, `@fixme`, `@fail`, `@slow` |
+| every annotation | `Annotation: <type> - <description>`, or `Annotation: <type>` without one |
 | `stdout` / `stderr` | `text/plain` and `application/octet-stream` attachments |
 | run-level `errors` | one failed `Playwright` feature, one scenario per error |
 
@@ -79,17 +79,22 @@ the scenario:
 
 A failed result with steps but no step error keeps the ordinary steps and appends
 one synthetic failed `Error` step. A test with no steps gets one synthetic step
-carrying the final status and `result.duration`. The scenario duration is the
-sum of the visible step durations; hidden Playwright overhead is not invented as
-a step.
+carrying the final status and `result.duration`. Step durations are exclusive:
+a parent step's duration minus its children's durations. When the visible steps
+sum to less than `result.duration`, one explicit `Playwright overhead` step
+carries the residual, so the scenario duration equals `result.duration`. Hidden
+Playwright time is never folded silently into a child step.
 
 ### Errors
 
-The message is `error.message`, then `errors[].message`, then `error.value` or
-`error.stack`. The snippet follows, then a source location relative to the input
-file's directory or the process working directory; a path outside both uses only
-its basename. ANSI and C0/C1 control codes are stripped. No absolute local path
-is embedded in the report.
+The result's `error` object is used when present, followed by every `errors`
+entry; identical text is included once. Within an error the message is
+`message`, then `value`, then `stack`. The snippet follows, then a source
+location relative to the input file's directory or the process working
+directory; a path outside both uses only its basename. ANSI and C0/C1 control
+codes are stripped, and absolute local paths in the message, value, stack and
+snippet are replaced by a relative path or basename. No absolute local path is
+embedded in the report.
 
 ## Attachments
 
@@ -98,15 +103,23 @@ Playwright attachments have `name`, `contentType` and either a base64 `body` or 
 
 - A non-empty `body` wins and is embedded with its declared content type.
 - An empty `body` falls back to `path`.
-- A `path` may be relative or absolute. It is read only when its real path is a
-  regular file inside the input file's directory or the process working
-  directory. Symlinks, missing files, non-regular files, remote URLs and paths
-  outside both roots are skipped without reading.
-- `lstat` and the file size are checked before reading. A file above 50 MB fails
+- A relative `path` is resolved against the input file's directory first, then
+  the process working directory. An absolute `path` must itself stay inside one
+  of those roots.
+- Only the final path component is `lstat`-checked. Parent symlinks are followed
+  by `realpath`, and the resolved target must still be a regular file inside the
+  roots. Symlinks, missing files, non-regular files, URL schemes (`http:`,
+  `https:`, `file:`) and UNC/device paths (`\\`, `//`) are skipped without
+  reading.
+- The file is opened, then sized and read through that descriptor, so a size
+  check cannot be invalidated by a path change. A file above 50 MB fails
   generation; the running total is capped at 100 MB. No partial report is
   written.
 - `text/markdown` becomes `text/plain`, so `error-context.md` renders as escaped
   readable text instead of a binary download.
+- Playwright trace attachments (`name: "trace"`,
+  `contentType: "application/zip"`) are skipped. Other zip bodies stay ordinary
+  attachments.
 - `stdout` and `stderr` text entries become `text/plain`; base64 buffer entries
   become `application/octet-stream` and are never interpreted as HTML.
 
@@ -125,7 +138,8 @@ and renders zero scenarios.
 
 ## Basic-mode limits
 
-- No trace viewer, Playwright HTML-report replay or trace zip reading.
+- No trace viewer, Playwright HTML-report replay or trace zip reading. Trace zip
+  attachments are skipped and do not count towards the attachment budget.
 - An embedded video attachment uses the existing inline video element only.
 - Only the final attempt is rendered; earlier results supply the attempt count
   and are otherwise not exposed as scenario rows.

@@ -1,4 +1,4 @@
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { lstat, open, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import {
   AttachmentContentEncoding,
@@ -28,7 +28,7 @@ import { stripAnsi } from '../text.js';
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 const MAX_TOTAL_ATTACHMENT_BYTES = 100 * 1024 * 1024;
 const FAILED_STATUSES = new Set(['failed', 'timedOut', 'interrupted']);
-const KNOWN_ANNOTATIONS = new Set(['skip', 'fixme', 'fail']);
+const KNOWN_ANNOTATIONS = new Set(['skip', 'fixme', 'fail', 'slow']);
 
 type JsonObject = Record<string, unknown>;
 
@@ -499,6 +499,9 @@ function addDuration(base: Timestamp, milliseconds: number): Timestamp {
   return timestamp(base.seconds * 1000 + base.nanos / 1_000_000 + milliseconds);
 }
 
+// Playwright durations are milliseconds; Messages uses nanoseconds. The legacy
+// adapter's time helpers do not fit, so the conversion stays local until a third
+// adapter justifies a shared module.
 function durationOf(milliseconds: number): Duration {
   const nanos = Math.max(0, Math.round(milliseconds * 1_000_000));
   return {
@@ -514,12 +517,33 @@ function location(line?: number, column?: number): Location {
     : { line: safeLine };
 }
 
+// Right-to-left token scan; a regex here backtracked quadratically on long
+// titles with many trailing @tags.
 function stripTrailingTags(value: string): string {
-  return value.replace(/(?:\s+@[^\s@]+)+\s*$/, '').trim();
+  let end = value.length;
+  while (end > 0) {
+    let tokenEnd = end;
+    while (tokenEnd > 0 && /\s/.test(value[tokenEnd - 1] as string)) tokenEnd -= 1;
+    let tokenStart = tokenEnd;
+    while (tokenStart > 0 && !/\s/.test(value[tokenStart - 1] as string)) {
+      tokenStart -= 1;
+    }
+    const token = value.slice(tokenStart, tokenEnd);
+    if (
+      tokenStart === 0 ||
+      token.length < 2 ||
+      token[0] !== '@' ||
+      token.includes('@', 1)
+    ) {
+      break;
+    }
+    end = tokenStart;
+  }
+  return value.slice(0, end).trim();
 }
 
-function fileUri(value: string | undefined): string {
-  return (value ?? 'playwright.spec.ts').replace(/\\/g, '/').replace(/^\.\//, '');
+function fileUri(value: string | undefined, inputDir: string): string {
+  return relativeFile(value ?? 'playwright.spec.ts', inputDir);
 }
 
 function isInside(root: string, target: string): boolean {
@@ -563,6 +587,35 @@ function locationText(
   return `${file}${line}${column}`;
 }
 
+const ABSOLUTE_LOCAL_PATH = /(?:[A-Za-z]:[\\/]|\/Users\/|\/home\/)[^\s"'<>|]+/g;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function rootPattern(root: string): RegExp | undefined {
+  const trimmed = root.replace(/[\\/]+$/, '');
+  if (!trimmed) return undefined;
+  const body = trimmed
+    .split(/[\\/]/)
+    .map((part) => escapeRegExp(part))
+    .join('[\\\\/]');
+  return new RegExp(`${body}(?:[\\\\/]|(?=$|[^\\w.-]))`, 'gi');
+}
+
+// Error text is untrusted and must not carry the machine's absolute paths into
+// a shared report. Roots become relative; other local paths keep the basename.
+function scrubPaths(text: string, inputDir: string): string {
+  let scrubbed = text;
+  for (const root of [inputDir, process.cwd()]) {
+    const pattern = rootPattern(root);
+    if (pattern) scrubbed = scrubbed.replace(pattern, '');
+  }
+  return scrubbed.replace(ABSOLUTE_LOCAL_PATH, (match) =>
+    path.basename(match.replace(/\\/g, '/')),
+  );
+}
+
 function errorText(
   error: PlaywrightError | undefined,
   inputDir: string,
@@ -571,15 +624,23 @@ function errorText(
   const message = [error.message, error.value, error.stack]
     .find((entry): entry is string => typeof entry === 'string' && entry.trim() !== '');
   const parts: string[] = [];
-  if (message) parts.push(stripAnsi(message).trim());
-  if (error.snippet) parts.push(stripAnsi(error.snippet).trim());
+  if (message) parts.push(scrubPaths(stripAnsi(message), inputDir).trim());
+  if (error.snippet) parts.push(scrubPaths(stripAnsi(error.snippet), inputDir).trim());
   const at = locationText(error.location, inputDir);
   if (at) parts.push(`at ${at}`);
   return parts.filter(Boolean).join('\n\n') || undefined;
 }
 
-function firstError(result: PlaywrightResult | undefined): PlaywrightError | undefined {
-  return result?.error ?? result?.errors[0];
+function resultErrorText(
+  result: PlaywrightResult | undefined,
+  inputDir: string,
+): string | undefined {
+  const texts: string[] = [];
+  for (const error of [result?.error, ...(result?.errors ?? [])]) {
+    const text = errorText(error, inputDir);
+    if (text && !texts.includes(text)) texts.push(text);
+  }
+  return texts.length > 0 ? texts.join('\n\n') : undefined;
 }
 
 function stepText(step: PlaywrightStep, depth: number): string {
@@ -593,9 +654,12 @@ function flattenSteps(
 ): Array<{ text: string; durationMs: number; error?: PlaywrightError }> {
   const rows: Array<{ text: string; durationMs: number; error?: PlaywrightError }> = [];
   for (const step of steps) {
+    // Playwright step durations are inclusive; subtract children so parent and
+    // child are not counted twice by the report model.
+    const childMs = step.steps.reduce((sum, child) => sum + child.duration, 0);
     rows.push({
       text: stepText(step, depth),
-      durationMs: step.duration,
+      durationMs: Math.max(0, step.duration - childMs),
       ...(step.error ? { error: step.error } : {}),
     });
     rows.push(...flattenSteps(step.steps, depth + 1));
@@ -628,9 +692,10 @@ function canonicalSteps(
   inputDir: string,
 ): CanonicalStep[] {
   const flat = flattenSteps(result?.steps ?? []);
+  let steps: CanonicalStep[];
 
   if (mode === 'unexpected-pass') {
-    const steps: CanonicalStep[] = flat.map((step) => ({
+    steps = flat.map((step) => ({
       text: step.text,
       durationMs: step.durationMs,
       status: PASSED,
@@ -641,12 +706,9 @@ function canonicalSteps(
       status: FAILED,
       message: 'Unexpected pass: expected to fail, but passed.',
     });
-    return steps;
-  }
-
-  if (mode === 'expected-failure' || mode === 'skipped') {
+  } else if (mode === 'expected-failure' || mode === 'skipped') {
     const status = mode === 'skipped' ? SKIPPED : PASSED;
-    const steps: CanonicalStep[] = flat.map((step) => ({
+    steps = flat.map((step) => ({
       text: step.text,
       durationMs: step.durationMs,
       status,
@@ -658,41 +720,50 @@ function canonicalSteps(
         status,
       });
     }
-    return steps;
+  } else {
+    if (!result) return [];
+
+    const failed = FAILED_STATUSES.has(result.status);
+    steps = flat.map((step) => {
+      const message = errorText(step.error, inputDir);
+      return {
+        text: step.text,
+        durationMs: step.durationMs,
+        status: step.error ? FAILED : PASSED,
+        ...(message ? { message } : {}),
+      };
+    });
+
+    if (failed && !flat.some((step) => step.error)) {
+      steps.push({
+        text: 'Error',
+        durationMs: steps.length > 0 ? 0 : result.duration,
+        status: FAILED,
+        message:
+          resultErrorText(result, inputDir) ??
+          `Playwright reported a ${result.status} result.`,
+      });
+    }
+
+    if (steps.length === 0) {
+      steps.push({
+        text: 'Test',
+        durationMs: result.duration,
+        status: statusOf(result.status),
+      });
+    }
   }
 
-  if (!result) return [];
-
-  const failed = FAILED_STATUSES.has(result.status);
-  const steps: CanonicalStep[] = flat.map((step) => {
-    const message = errorText(step.error, inputDir);
-    return {
-      text: step.text,
-      durationMs: step.durationMs,
-      status: step.error ? FAILED : PASSED,
-      ...(message ? { message } : {}),
-    };
-  });
-
-  if (failed && !flat.some((step) => step.error)) {
+  if (!result) return steps;
+  const visibleMs = steps.reduce((sum, step) => sum + step.durationMs, 0);
+  const residual = result.duration - visibleMs;
+  if (residual > 0) {
     steps.push({
-      text: 'Error',
-      durationMs: steps.length > 0 ? 0 : result.duration,
-      status: FAILED,
-      message:
-        errorText(firstError(result), inputDir) ??
-        `Playwright reported a ${result.status} result.`,
+      text: 'Playwright overhead',
+      durationMs: residual,
+      status: mode === 'skipped' ? SKIPPED : PASSED,
     });
   }
-
-  if (steps.length === 0) {
-    steps.push({
-      text: 'Test',
-      durationMs: result.duration,
-      status: statusOf(result.status),
-    });
-  }
-
   return steps;
 }
 
@@ -704,48 +775,79 @@ function attemptSteps(result: PlaywrightResult, inputDir: string): CanonicalStep
   );
 }
 
+const NON_LOCAL_PATH = /^(?:https?|file):/i;
+
+// Reject URL schemes and UNC/device paths before any lstat, so a crafted JSON
+// report cannot make the adapter touch an SMB or device path.
+function isNonLocalPath(file: string): boolean {
+  return (
+    NON_LOCAL_PATH.test(file) ||
+    file.startsWith('\\\\') ||
+    file.startsWith('//')
+  );
+}
+
+async function readAttachment(
+  candidate: string,
+  context: PlanContext,
+): Promise<PlannedAttachment | undefined> {
+  const info = await lstat(candidate).catch(() => undefined);
+  if (!info || info.isSymbolicLink() || !info.isFile()) return undefined;
+
+  const target = await realpath(candidate).catch(() => undefined);
+  if (!target || !context.roots.some((root) => isInside(root, target))) {
+    return undefined;
+  }
+
+  // Stat and read through the opened handle; the path could change after
+  // realpath. Size caps are enforced on the descriptor, not the earlier lstat.
+  const handle = await open(target, 'r').catch(() => undefined);
+  if (!handle) return undefined;
+  try {
+    const stats = await handle.stat().catch(() => undefined);
+    if (!stats || !stats.isFile()) return undefined;
+    if (stats.size > MAX_ATTACHMENT_BYTES) {
+      throw new Error('Attachment is larger than 50 MB. Use a smaller asset.');
+    }
+    if (context.totalAttachmentBytes + stats.size > MAX_TOTAL_ATTACHMENT_BYTES) {
+      throw new Error(
+        'Attachments exceed 100 MB in total. Split the report or use smaller assets.',
+      );
+    }
+    const data = await handle.readFile().catch(() => undefined);
+    if (!data) return undefined;
+    context.totalAttachmentBytes += stats.size;
+    return {
+      fileName: path.basename(candidate),
+      mediaType: 'application/octet-stream',
+      body: data.toString('base64'),
+      contentEncoding: AttachmentContentEncoding.BASE64,
+    };
+  } finally {
+    await handle.close().catch(() => undefined);
+  }
+}
+
 async function resolveAttachmentPath(
   file: string,
   context: PlanContext,
 ): Promise<PlannedAttachment | undefined> {
-  if (/^https?:\/\//i.test(file)) return undefined;
-  const resolved = path.resolve(context.inputDir, file);
-  let info;
-  try {
-    info = await lstat(resolved);
-  } catch {
-    return undefined;
+  if (isNonLocalPath(file)) return undefined;
+  // Relative paths use the input directory first, then cwd for CI layouts where
+  // reports/results.json and test-results/ are siblings.
+  const candidates = path.isAbsolute(file)
+    ? [file]
+    : [path.resolve(context.inputDir, file), path.resolve(process.cwd(), file)];
+  for (const candidate of candidates) {
+    const attachment = await readAttachment(candidate, context);
+    if (attachment) return attachment;
   }
-  if (info.isSymbolicLink() || !info.isFile()) return undefined;
-
-  let target: string;
-  try {
-    target = await realpath(resolved);
-  } catch {
-    return undefined;
-  }
-  if (!context.roots.some((root) => isInside(root, target))) return undefined;
-
-  if (info.size > MAX_ATTACHMENT_BYTES) {
-    throw new Error('Attachment is larger than 50 MB. Use a smaller asset.');
-  }
-  if (context.totalAttachmentBytes + info.size > MAX_TOTAL_ATTACHMENT_BYTES) {
-    throw new Error(
-      'Attachments exceed 100 MB in total. Split the report or use smaller assets.',
-    );
-  }
-  context.totalAttachmentBytes += info.size;
-
-  const data = await readFile(target);
-  return {
-    fileName: path.basename(resolved),
-    mediaType: 'application/octet-stream',
-    body: data.toString('base64'),
-    contentEncoding: AttachmentContentEncoding.BASE64,
-  };
+  return undefined;
 }
 
-function normalizedMediaType(mediaType: string): string {
+// Only folds Playwright's documented markdown case here; the report layer
+// normalises and allow-lists media types in report/attachment.ts.
+function playwrightMediaType(mediaType: string): string {
   return mediaType.split(';', 1)[0]?.trim().toLowerCase() === 'text/markdown'
     ? 'text/plain'
     : mediaType;
@@ -758,10 +860,17 @@ async function attachmentsForResult(
   const planned: PlannedAttachment[] = [];
 
   for (const attachment of result.attachments) {
+    if (
+      attachment.name.toLowerCase() === 'trace' &&
+      attachment.contentType.toLowerCase().startsWith('application/zip')
+    ) {
+      // Trace zips are not readable in a report; keep them out of the budget.
+      continue;
+    }
     if (attachment.body !== undefined && attachment.body !== '') {
       planned.push({
         fileName: attachment.name,
-        mediaType: normalizedMediaType(attachment.contentType),
+        mediaType: playwrightMediaType(attachment.contentType),
         body: attachment.body,
         contentEncoding: AttachmentContentEncoding.BASE64,
       });
@@ -773,7 +882,7 @@ async function attachmentsForResult(
     planned.push({
       ...file,
       fileName: attachment.name || file.fileName,
-      mediaType: normalizedMediaType(attachment.contentType),
+      mediaType: playwrightMediaType(attachment.contentType),
     });
   }
 
@@ -847,19 +956,22 @@ async function scenarioPlan(
   test: PlaywrightTest,
   describes: string[],
 ): Promise<ScenarioPlan> {
-  const file = fileUri(spec.file);
+  const file = fileUri(spec.file, context.inputDir);
   const ruleName = [stripTrailingTags(file), ...describes]
     .filter(Boolean)
     .join(' › ');
   const rule = ruleFor(context, feature, ruleName || file);
   const name = stripTrailingTags(spec.title) || `Test ${rule.scenarios.length + 1}`;
   const results = test.results;
-  const final =
+  const finalIndex =
     results.length > 0
-      ? results.reduce((latest, candidate) =>
-          candidate.retry > latest.retry ? candidate : latest,
+      ? results.reduce(
+          (best, candidate, index) =>
+            candidate.retry > (results[best] as PlaywrightResult).retry ? index : best,
+          0,
         )
-      : undefined;
+      : -1;
+  const final = finalIndex >= 0 ? results[finalIndex] : undefined;
   const finalStatus = final?.status;
   const skipped =
     test.status === 'skipped' ||
@@ -905,7 +1017,7 @@ async function scenarioPlan(
       : `Annotation: ${annotation.type}`,
   );
   if (expectedFailure) {
-    const text = errorText(firstError(final), context.inputDir);
+    const text = resultErrorText(final, context.inputDir);
     if (text) descriptionParts.push(text);
   }
   if (unexpectedPass) {
@@ -963,9 +1075,12 @@ async function scenarioPlan(
     testRunStartedId: context.runId,
   };
 
-  const attempts: PlannedAttempt[] = [];
+  // Register before the attachment reads: scenario collection starts every
+  // async plan up front, so a later push could otherwise reorder the report.
+  const plan: ScenarioPlan = { scenario, pickle, testCase, attempts: [] };
+  rule.scenarios.push(plan);
   if (results.length === 0) {
-    attempts.push({
+    plan.attempts.push({
       attempt: 0,
       timestamp: context.runTimestamp,
       steps: skipped ? canonical : [],
@@ -973,33 +1088,21 @@ async function scenarioPlan(
       willBeRetried: false,
     });
   } else {
-    const finalIndex = results.reduce(
-      (best, candidate, index) =>
-        candidate.retry > (results[best] as PlaywrightResult).retry ? index : best,
-      0,
-    );
     for (const [index, result] of results.entries()) {
       const isFinal = index === finalIndex;
-      const steps = isFinal
-        ? canonical
-        : attemptSteps(result, context.inputDir).slice(0, canonical.length);
-      attempts.push({
+      plan.attempts.push({
         attempt: result.retry,
         timestamp: timestampOf(result.startTime, context.runTimestamp),
-        steps,
-        attachments: await attachmentsForResult(result, context),
+        steps: isFinal ? canonical : attemptSteps(result, context.inputDir),
+        // Earlier attempts are never rendered; reading their attachments would
+        // spend the total byte budget twice per retry.
+        attachments: isFinal ? await attachmentsForResult(result, context) : [],
         willBeRetried: index < results.length - 1,
       });
     }
   }
 
-  rule.scenarios.push({ scenario, pickle, testCase, attempts });
-  return {
-    scenario,
-    pickle,
-    testCase,
-    attempts,
-  };
+  return plan;
 }
 
 function collectScenarios(
@@ -1007,15 +1110,15 @@ function collectScenarios(
   suite: PlaywrightSuite,
   describes: string[],
   file: string,
-): Promise<void>[] {
+): Array<() => Promise<void>> {
   const suiteFile = stripTrailingTags(suite.file ?? file);
-  const jobs: Promise<void>[] = [];
+  const jobs: Array<() => Promise<void>> = [];
 
   for (const spec of suite.specs) {
     const specFile = stripTrailingTags(spec.file ?? suiteFile);
     for (const test of spec.tests) {
       const project = test.projectName || test.projectId;
-      jobs.push(
+      jobs.push(() =>
         scenarioPlan(
           context,
           featureFor(context, project, specFile),
@@ -1177,7 +1280,10 @@ export async function parsePlaywrightJson(
   const startTime = optionalString(parsed.stats, 'startTime', source, 'stats');
   const startMs = startTime ? Date.parse(startTime) : Number.NaN;
   const runTimestamp = timestamp(Number.isFinite(startMs) ? startMs : 0);
-  const inputDir = path.dirname(path.resolve(source));
+  const sourcePath = path.resolve(source);
+  const inputDir = await realpath(sourcePath)
+    .then((resolved) => path.dirname(resolved))
+    .catch(() => path.dirname(sourcePath));
   const roots: string[] = [];
   for (const root of [inputDir, process.cwd()]) {
     try {
@@ -1207,7 +1313,8 @@ export async function parsePlaywrightJson(
 
   for (const suite of rootsSuites) {
     const file = stripTrailingTags(suite.file ?? suite.title ?? 'playwright.spec.ts');
-    await Promise.all(collectScenarios(context, suite, [], file));
+    // Await in collection order so I/O timing cannot reorder scenarios.
+    for (const job of collectScenarios(context, suite, [], file)) await job();
   }
 
   addErrorFeature(context, Array.isArray(parsed.errors) ? parsed.errors : []);

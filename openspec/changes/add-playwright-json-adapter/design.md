@@ -45,7 +45,10 @@ small shared module; do not copy their semantics.
 The existing `indexRun`/`latestAttempt` then selects the final attempt, which
 is the user-facing result. Earlier attempts remain in the envelopes for the
 attempt count; only the latest attempt is rendered, which matches the current
-summary contract.
+summary contract. Plan collection runs in source order (jobs are started one at
+a time), so file I/O cannot reorder scenarios or ids. Only the final attempt's
+attachments are read, because earlier attempts are never rendered and must not
+consume the total attachment budget.
 
 ## Mapping
 
@@ -147,15 +150,19 @@ If a test has steps but no step carries the error, only the synthetic error
 step is failed; do not mark every step failed.
 
 Durations are milliseconds in Playwright and nanoseconds in the legacy
-normalizer; multiply by 1,000,000. The report model sums visible step
-durations, so the scenario duration is that sum. When a test has no steps, the
-synthetic step carries `result.duration`. This is documented as a basic-mode
-limit: hidden Playwright overhead is not invented as a step.
+normalizer; multiply by 1,000,000. Playwright step durations are inclusive, so
+flatten a parent's own time as `max(0, duration - child durations)`. When the
+visible step sum is below `result.duration`, append one explicit synthetic
+`Playwright overhead` step with the residual so the scenario total equals the
+result duration; when no steps exist, the synthetic step carries
+`result.duration`. Do not invent overhead when the visible sum already exceeds
+the result.
 
-The error message is the final result's `error.message`, then
-`errors[].message`, then `error.value`/`error.stack`. Append the snippet and a
-relative location. The model strips ANSI from step messages; any error text
-appended to a description is stripped before it is stored.
+The error message is the final result's `error` first, then `errors[]`;
+within an error, `message`, then `value` or `stack`. Append the snippet and a
+relative location. Strip ANSI from all error text and replace absolute local
+paths in the message, value, stack and snippet with a root-relative path or
+basename. The model also strips ANSI from step messages.
 
 ### Attachments
 
@@ -174,9 +181,11 @@ or a `path`.
   work. The cwd root supports the common CI layout where
   `reports/results.json` and `test-results/` are siblings; it is not taken
   from report data.
-- Check `lstat` and the file size before reading; enforce the 50 MB per-file
-  cap and a running 100 MB total while encoding. A file over the cap fails the
-  report rather than being read into memory.
+- Only the final path component is `lstat`-checked; parent symlinks are
+  followed by `realpath` and the resolved target must stay inside a root. Open
+  the resolved file and size and read it through that descriptor, so the size
+  cap cannot be invalidated by a later path change. A file over the cap fails
+  the report rather than being read into memory.
 - `stdout` and `stderr` entries become `text/plain` attachments; `{ buffer }`
   entries are decoded from base64 as `application/octet-stream`, not
   interpreted as HTML.
@@ -184,8 +193,13 @@ or a `path`.
   `error-context.md` renders as escaped readable text instead of a `.bin`
   download. This keeps the change inside the input adapter and its existing
   text-attachment rendering.
-- A `path` that starts with `http://` or `https://` is treated as a remote URL
-  and skipped; nothing is fetched.
+- A `path` that starts with a URL scheme (`http:`, `https:`, `file:`) or a
+  Windows UNC/device prefix (`\\`, `//`) is treated as non-local and skipped;
+  nothing is fetched or stat'ed. Relative paths resolve against the input
+  directory first, then the process working directory.
+- Playwright trace attachments (`name: trace`, `contentType: application/zip`)
+  are skipped: a trace zip has no readable report representation and must not
+  consume the attachment budget. Ordinary zip bodies stay attachments.
 - The existing `sanitizeEnvelopes` remains the final guard for total bytes,
   remote URLs and external attachments.
 - `safeMediaType` remains the renderer's last line of defence; unknown types

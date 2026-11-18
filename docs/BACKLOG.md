@@ -40,7 +40,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
-| B-001 | Input | P1 | Playwright JSON adapter | [#4](https://github.com/Silasoa/tolkira/issues/4) |
 | B-002 | CLI/API | P1 | CI annotations and PR summary from `--json` | [#5](https://github.com/Silasoa/tolkira/issues/5) |
 | B-004 | Report | P2 | Reflow and split `html.ts` at view seams | [#7](https://github.com/Silasoa/tolkira/issues/7) |
 | B-005 | Test | P2 | Split render/e2e suites and finish fixture helpers | [#8](https://github.com/Silasoa/tolkira/issues/8) |
@@ -66,6 +65,10 @@ the benchmark path and budget.
 
 ## Resolved
 
+- **B-001 Playwright JSON adapter** — shipped on 2026-11-18. The native adapter
+  covers projects, file/describe rules, retries, steps, attachments and
+  run-level errors; see [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
+  [#4](https://github.com/Silasoa/tolkira/issues/4) is resolved.
 - **B-003 Seed-Test 2.0 group sidecar** — resolved for Tolkira on 2026-11-13.
   The 0.3.0 smoke proved that Seed-Test owns the ~10-line sidecar pre-merge and
   needs no Tolkira change. [#6](https://github.com/Silasoa/tolkira/issues/6) is

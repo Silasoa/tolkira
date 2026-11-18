@@ -4,6 +4,7 @@ import {
   mkdtemp,
   open,
   readFile,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -64,7 +65,10 @@ function scenario(
   return found;
 }
 
-function reportWithAttachments(attachments: unknown[]): unknown {
+function reportWithAttachments(
+  attachments: unknown[],
+  specTitle = 'uses attachments',
+): unknown {
   return {
     config: {
       version: '1.65.0',
@@ -80,7 +84,7 @@ function reportWithAttachments(attachments: unknown[]): unknown {
         column: 0,
         specs: [
           {
-            title: 'uses attachments',
+            title: specTitle,
             ok: true,
             tags: [],
             id: 'paths-spec-1',
@@ -125,6 +129,89 @@ function reportWithAttachments(attachments: unknown[]): unknown {
   };
 }
 
+function playwrightSpec(
+  title: string,
+  results: unknown[],
+  file = 'sample.spec.ts',
+): unknown {
+  return {
+    title,
+    ok: true,
+    tags: [],
+    id: title,
+    file,
+    line: 1,
+    column: 1,
+    tests: [
+      {
+        timeout: 30000,
+        annotations: [],
+        expectedStatus: 'passed',
+        projectId: 'chromium',
+        projectName: 'chromium',
+        status: 'expected',
+        results,
+      },
+    ],
+  };
+}
+
+function passedResult(extra: Record<string, unknown> = {}): unknown {
+  return {
+    status: 'passed',
+    duration: 1,
+    retry: 0,
+    startTime: '2026-11-18T18:30:00.000Z',
+    stdout: [],
+    stderr: [],
+    annotations: [],
+    attachments: [],
+    ...extra,
+  };
+}
+
+function playwrightReport(specs: unknown[], file = 'sample.spec.ts'): unknown {
+  return {
+    config: {
+      version: '1.65.0',
+      configFile: 'playwright.config.ts',
+      rootDir: 'tests',
+      projects: [{ id: 'chromium', name: 'chromium', retries: 0 }],
+    },
+    suites: [{ title: file, file, line: 0, column: 0, specs }],
+    errors: [],
+    stats: {
+      startTime: '2026-11-18T18:30:00.000Z',
+      duration: 1,
+      expected: 1,
+      unexpected: 0,
+      flaky: 0,
+      skipped: 0,
+    },
+  };
+}
+
+function mutateErrors(
+  value: unknown,
+  update: (error: Record<string, unknown>) => void,
+): void {
+  if (Array.isArray(value)) {
+    for (const child of value) mutateErrors(child, update);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  const record = value as Record<string, unknown>;
+  const error = record.error;
+  if (error && typeof error === 'object' && !Array.isArray(error)) {
+    update(error as Record<string, unknown>);
+  }
+  for (const child of Object.values(record)) mutateErrors(child, update);
+}
+
+async function realRunCopy(): Promise<Record<string, unknown>> {
+  return JSON.parse(await readFile(realRun, 'utf8')) as Record<string, unknown>;
+}
+
 async function writeReport(dir: string, value: unknown): Promise<string> {
   const file = path.join(dir, 'report.json');
   await writeFile(file, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
@@ -162,18 +249,20 @@ describe('Playwright JSON input', () => {
       attempt: 0,
       uri: 'sample.spec.ts',
     });
-    expect(passes.durationMs).toBe(5);
+    expect(passes.durationMs).toBe(8);
     expect(passes.tags).toEqual(
       expect.arrayContaining(['@checkout', '@smoke']),
     );
-    expect(passes.steps.map((step) => step.durationMs)).toEqual([3, 2]);
+    expect(passes.steps.map((step) => step.durationMs)).toEqual([1, 2, 5]);
     expect(passes.steps.map((step) => step.status)).toEqual([
+      'passed',
       'passed',
       'passed',
     ]);
     expect(passes.steps[0]?.text).toContain('outer step');
     expect(passes.steps[1]?.text).toContain('inner step');
     expect(passes.steps[1]?.text).toContain('›');
+    expect(passes.steps[2]?.text).toBe('Playwright overhead');
 
     const modelPasses = model.scenarios.find(
       (entry) => entry.name === 'passes with steps' && entry.featureName === 'alpha',
@@ -299,6 +388,7 @@ describe('Playwright JSON input', () => {
 
     const paysSummary = scenario(summary, 'pays');
     expect(paysSummary.steps.map((step) => step.status)).toEqual([
+      'passed',
       'passed',
       'passed',
     ]);
@@ -580,6 +670,301 @@ describe('Playwright JSON input', () => {
     expect(summary.attachments.total).toBe(0);
     expect(html).not.toContain('outside secret must not be read');
   });
+
+  it('keeps source order when tests mix results and path attachments', async () => {
+    const dir = await tempDir();
+    await writeFile(path.join(dir, 'note.txt'), 'order attachment', 'utf8');
+    const input = await writeReport(
+      dir,
+      playwrightReport([
+        playwrightSpec('first plain', [passedResult()]),
+        playwrightSpec('second no result', []),
+        playwrightSpec('third path attachment', [
+          passedResult({
+            attachments: [
+              {
+                name: 'order-note',
+                contentType: 'text/plain',
+                path: 'note.txt',
+              },
+            ],
+          }),
+        ]),
+        playwrightSpec('fourth plain', [passedResult()]),
+      ]),
+    );
+
+    const model = buildReportModel(await loadEnvelopes(input));
+    const html = await renderReport(input, { title: 'Order' });
+    const names = model.scenarios
+      .filter((entry) => entry.featureName === 'chromium')
+      .map((entry) => entry.name);
+
+    expect(names).toEqual([
+      'first plain',
+      'second no result',
+      'third path attachment',
+      'fourth plain',
+    ]);
+    // The report intentionally groups rows by status, so HTML order is not
+    // source order; rendering must still be deterministic.
+    const again = await renderReport(input, { title: 'Order' });
+    expect(again).toBe(html);
+  });
+
+  it('skips URL, device and UNC attachment paths without reading them', async () => {
+    const dir = await tempDir();
+    await writeFile(path.join(dir, 'note.txt'), 'safe local attachment', 'utf8');
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        {
+          name: 'http',
+          contentType: 'text/plain',
+          path: 'http://example.com/secret.txt',
+        },
+        {
+          name: 'https',
+          contentType: 'text/plain',
+          path: 'https://example.com/secret.txt',
+        },
+        {
+          name: 'file-url',
+          contentType: 'text/plain',
+          path: 'file:///etc/passwd',
+        },
+        {
+          name: 'unc-backslash',
+          contentType: 'text/plain',
+          path: '\\\\server\\share\\UNC secret must not be read',
+        },
+        {
+          name: 'unc-forward',
+          contentType: 'text/plain',
+          path: '//server/share/UNC secret must not be read',
+        },
+        { name: 'safe', contentType: 'text/plain', path: 'note.txt' },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Remote paths' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(1);
+    expect(html).toContain('safe local attachment');
+    expect(html).not.toContain('UNC secret must not be read');
+    expect(html).not.toContain('server/share');
+  });
+
+  it('resolves a relative attachment path against the input directory, then cwd', async () => {
+    const dir = await tempDir();
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        {
+          name: 'cwd-relative',
+          contentType: 'text/plain',
+          path: 'test/fixtures/playwright/attachments/note-file.txt',
+        },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Relative fallback' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(1);
+    expect(html).toContain('path attachment for the Playwright adapter fixture');
+  });
+
+  it('embeds a non-empty inline body before reading its path', async () => {
+    const dir = await tempDir();
+    await writeFile(path.join(dir, 'note.txt'), 'from the path', 'utf8');
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        {
+          name: 'inline-first',
+          contentType: 'text/plain',
+          body: Buffer.from('from the body', 'utf8').toString('base64'),
+          path: 'note.txt',
+        },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Body precedence' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(1);
+    expect(html).toContain('from the body');
+    expect(html).not.toContain('from the path');
+  });
+
+  it('falls back to a path attachment when the inline body is empty', async () => {
+    const dir = await tempDir();
+    await writeFile(path.join(dir, 'note.txt'), 'from the path', 'utf8');
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        {
+          name: 'empty-body',
+          contentType: 'text/plain',
+          body: '',
+          path: 'note.txt',
+        },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Empty body' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(1);
+    expect(html).toContain('from the path');
+  });
+
+  it('keeps multiple path attachments in declared order', async () => {
+    const dir = await tempDir();
+    await writeFile(path.join(dir, 'first.txt'), 'first path attachment', 'utf8');
+    await writeFile(path.join(dir, 'second.txt'), 'second path attachment', 'utf8');
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        { name: 'first', contentType: 'text/plain', path: 'first.txt' },
+        { name: 'second', contentType: 'text/plain', path: 'second.txt' },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Path order' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(2);
+    expect(html.indexOf('first path attachment')).toBeGreaterThan(-1);
+    expect(html.indexOf('first path attachment')).toBeLessThan(
+      html.indexOf('second path attachment'),
+    );
+  });
+
+  it('skips Playwright trace attachments and keeps ordinary zip bodies', async () => {
+    const dir = await tempDir();
+    await writeFile(path.join(dir, 'trace.zip'), 'trace path marker', 'utf8');
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        {
+          name: 'trace',
+          contentType: 'application/zip',
+          body: Buffer.from('trace body marker', 'utf8').toString('base64'),
+        },
+        {
+          name: 'trace',
+          contentType: 'application/zip',
+          path: 'trace.zip',
+        },
+        {
+          name: 'archive',
+          contentType: 'application/zip',
+          body: Buffer.from('ordinary zip marker', 'utf8').toString('base64'),
+        },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Traces' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(1);
+    expect(html).not.toContain('trace body marker');
+    expect(html).not.toContain('trace path marker');
+  });
+
+  it('removes absolute local paths from error messages and snippets', async () => {
+    const dir = await tempDir();
+    const inputDir = await realpath(dir);
+    const inside = path.join(inputDir, 'tests', 'sample.spec.ts');
+    const windowsOutside = 'C:\\Users\\tolkira\\private\\secret.spec.ts';
+    const posixOutside = '/home/tolkira/private/secret.spec.ts';
+    const report = await realRunCopy();
+    mutateErrors(report, (error) => {
+      error.message = `Error: expected checkout\n  at ${inside}:30:15\n  at ${windowsOutside}:3:4\n  at ${posixOutside}:5:6`;
+      error.stack = `Error: expected checkout\n    at ${windowsOutside}:3:4`;
+      error.snippet = `> 30 | expect(1).toBe(2)\n    at ${posixOutside}:5:6`;
+    });
+    const input = await writeReport(dir, report);
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Scrubbed paths' });
+    const fails = scenario(summary, 'fails', 'alpha');
+    const message =
+      fails.steps.find((step) => step.status === 'failed')?.message ?? '';
+
+    expect(message).toContain('expected checkout');
+    expect(message).toContain('sample.spec.ts');
+    expect(message).not.toContain(inputDir);
+    expect(message).not.toContain(windowsOutside);
+    expect(message).not.toContain(posixOutside);
+    expect(html).toContain('expected checkout');
+    expect(html).not.toContain(inputDir);
+    expect(html).not.toContain(windowsOutside);
+    expect(html).not.toContain(posixOutside);
+  });
+
+  it('strips ANSI and control codes from error text', async () => {
+    const dir = await tempDir();
+    const report = await realRunCopy();
+    mutateErrors(report, (error) => {
+      error.message = '\u001b[31mExpected 2\u001b[0m\n\u0007Received 1';
+      error.stack = '\u001b[1mstack trace\u001b[0m';
+      error.snippet = '\u001b[32m> 1 | expect(1).toBe(2)\u001b[0m';
+    });
+    const input = await writeReport(dir, report);
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Control codes' });
+    const fails = scenario(summary, 'fails', 'alpha');
+    const message =
+      fails.steps.find((step) => step.status === 'failed')?.message ?? '';
+
+    expect(message).toContain('Expected 2');
+    expect(message).toContain('Received 1');
+    expect(message).not.toContain('\u001b');
+    expect(message).not.toContain('\u0007');
+    expect(html).toContain('Expected 2');
+    expect(html).not.toContain('\u001b');
+    expect(html).not.toContain('\u0007');
+  });
+
+  it('normalizes an absolute spec file to a relative rule and URI', async () => {
+    const dir = await tempDir();
+    const realDir = await realpath(dir);
+    const absolute = path.join(realDir, 'nested', 'abs.spec.ts');
+    const input = await writeReport(
+      dir,
+      playwrightReport([playwrightSpec('absolute file', [passedResult()], absolute)]),
+    );
+
+    const summary = await summarizeReport(input);
+    const model = buildReportModel(await loadEnvelopes(input));
+
+    expect(summary.scenarios[0]?.uri).toBe('nested/abs.spec.ts');
+    expect(model.scenarios[0]?.ruleName).toContain('nested/abs.spec.ts');
+    expect(JSON.stringify(model)).not.toContain(realDir);
+  });
+
+  it('strips long trailing tag runs without backtracking', async () => {
+    const tags = ' @tag'.repeat(20_000);
+    const dir = await tempDir();
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([], `long title${tags}`),
+    );
+    expect((await summarizeReport(input)).scenarios[0]?.name).toBe('long title');
+
+    const partialDir = await tempDir();
+    const partial = `long partial${tags} @`;
+    const partialInput = await writeReport(
+      partialDir,
+      reportWithAttachments([], partial),
+    );
+    expect((await summarizeReport(partialInput)).scenarios[0]?.name).toBe(partial);
+  }, 2000);
 
   it.skipIf(process.platform === 'win32')(
     'skips symlinked attachment paths',

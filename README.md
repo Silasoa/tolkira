@@ -140,12 +140,13 @@ for the full schema and exit codes.
   unambiguous. On phones the strip is hidden and the feature row keeps the
   source.
 - **Screenshots and attachments that survive.** Images, text, video, audio and
-  files are preserved through the legacy JSON adapter.
+  files are preserved through the input adapters.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by
   status and tag; open matching features automatically and highlight matches.
 - **Rendered descriptions.** Feature, rule, background, scenario and examples
   descriptions render a safe GFM subset - headings, emphasis, code, lists,
-  tables, quotes and http(s)/mailto links - from Messages, legacy JSON and JUnit.
+  tables, quotes and http(s)/mailto links - from Messages, legacy JSON, JUnit
+  and Playwright JSON.
 - **Tag expressions.** Search accepts the official Cucumber grammar
   (`@a and not @b`, parentheses, escaped tags). Mixed text and tags fall back to
   plain substring search.
@@ -196,7 +197,7 @@ work offline lose their layout and charts.
 Tolkira keeps the old input working and fixes the parts that hurt:
 
 - one offline file instead of CDN dependencies;
-- legacy JSON **and** modern Messages;
+- legacy JSON, modern Messages and native Playwright JSON;
 - JUnit XML as cheap breadth for non-Cucumber teams;
 - screenshots and attachments that stay in the report;
 - a stable JSON summary for agents and CI;
@@ -211,7 +212,8 @@ CDN or telemetry.
 
 "Parity" in this project means content and navigation: the same statements,
 steps, tags, statuses, durations and descriptions, plus search, tag expressions
-and shareable filter URLs, whether the input is legacy JSON, Messages or JUnit.
+and shareable filter URLs, whether the input is legacy JSON, Messages, JUnit or
+Playwright JSON.
 It does not mean theme parity with `cucumber-html-reporter`, a report folder, or
 external attachments; Tolkira deliberately stays one offline file. The honest
 claim is credible Messages report parity, not full formatter parity.
@@ -221,12 +223,12 @@ claim is credible Messages report parity, not full formatter parity.
 Last checked 2026-11-11 against the current package docs. Trade-offs are
 deliberate; pick the tool that fits the job.
 
-| Tool | Offline | Legacy JSON | Messages | JUnit | JSON summary | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
-| [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | Saved JSON (`saveCollectedJSON`) | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, i18n and a report folder. |
-| [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
-| **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Versioned summary (`--json`)** | **Branding, dark mode; no theme gallery** | **ESM; CJS compat shim** | **22+** | **Active** | **You need one offline file from legacy JSON and/or Messages, plus a stable summary for CI and agents.** |
+| Tool | Offline | Legacy JSON | Messages | JUnit | Playwright JSON | JSON summary | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
+| [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | No | Saved JSON (`saveCollectedJSON`) | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, i18n and a report folder. |
+| [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
+| **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Yes** | **Versioned summary (`--json`)** | **Branding, dark mode; no theme gallery** | **ESM; CJS compat shim** | **22+** | **Active** | **You need one offline file from legacy JSON, Messages, JUnit or Playwright JSON, plus a stable summary for CI and agents.** |
 
 The visual comparison uses the report setup from
 [Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
