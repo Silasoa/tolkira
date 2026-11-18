@@ -116,6 +116,13 @@ the benchmark path and budget.
   a stale-output incident occurs (B-011).
 - **Node 20.** Keep Node 22 LTS as the supported floor until a green Node 20
   smoke test exists (B-015).
+- **Skipped results in Needs attention.** Triage still lists skipped results as
+  needing attention while the pass ratio treats them as not attempted.
+  Revisit when a user reports the triage as noisy or misleading; changing its
+  membership is a separate report-rendering decision.
+- **CI summary labels.** `--ci markdown` keeps `Duration` and the GitHub notice
+  says `executed scenarios`; align them with the report's `Test time` when the
+  CI surface is next touched.
 
 ## Review follow-ups (2026-11-18)
 
