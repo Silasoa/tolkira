@@ -1,0 +1,329 @@
+import {
+  copyFile,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { afterEach, describe, expect, it } from 'vitest';
+import { runCli } from '../src/cli.js';
+
+const failed = fileURLToPath(
+  new URL('./fixtures/legacy/failed.json', import.meta.url),
+);
+const screenshot = fileURLToPath(
+  new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
+);
+const allStatuses = fileURLToPath(
+  new URL('./fixtures/messages/all-statuses.ndjson', import.meta.url),
+);
+const logoPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+);
+
+const dirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
+});
+
+async function tempDir(): Promise<string> {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-cli-ci-'));
+  dirs.push(dir);
+  return dir;
+}
+
+async function cli(argv: string[]) {
+  let stdout = '';
+  let stderr = '';
+  const code = await runCli(argv, {
+    stdout: (text) => {
+      stdout += text;
+    },
+    stderr: (text) => {
+      stderr += text;
+    },
+  });
+  return { code, stdout, stderr };
+}
+
+async function missing(file: string): Promise<boolean> {
+  try {
+    await readFile(file);
+    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ENOENT';
+  }
+}
+
+describe('CLI CI output', () => {
+  it('emits GitHub annotations on stdout without writing HTML', async () => {
+    const dir = await tempDir();
+
+    const run = await cli([failed, '--ci', 'github']);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toBe('');
+    const lines = run.stdout.trimEnd().split('\n');
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.every((line) => line.startsWith('::'))).toBe(true);
+    expect(run.stdout).toContain('::error ');
+    expect(run.stdout).toContain('::notice title=Tolkira::');
+    expect(run.stdout).not.toContain('Report written to');
+    await expect(readdir(dir)).resolves.toEqual([]);
+  });
+
+  it('writes Markdown to stdout without --out', async () => {
+    const dir = await tempDir();
+
+    const run = await cli([allStatuses, '--ci', 'markdown']);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toBe('');
+    expect(run.stdout.startsWith('## Tolkira report')).toBe(true);
+    expect(run.stdout).not.toContain('::error');
+    expect(run.stdout).not.toContain('Report written to');
+    await expect(readdir(dir)).resolves.toEqual([]);
+  });
+
+  it('writes Markdown to --ci-out and creates missing directories', async () => {
+    const dir = await tempDir();
+    const ciFile = path.join(dir, 'nested', 'deep', 'summary.md');
+
+    const run = await cli([
+      failed,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      ciFile,
+    ]);
+
+    expect(run.code).toBe(0);
+    const markdown = await readFile(ciFile, 'utf8');
+    expect(markdown.startsWith('## Tolkira report')).toBe(true);
+    expect(markdown).toContain('Happy HTML reporting');
+    expect(run.stdout).not.toContain('## ');
+    expect(run.stdout).not.toContain('::');
+    await expect(readdir(dir)).resolves.toEqual(['nested']);
+  });
+
+  it('writes HTML and stdout Markdown without a human confirmation', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+
+    const run = await cli([failed, '--out', output, '--ci', 'markdown']);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toBe('');
+    expect(run.stdout.startsWith('## Tolkira report')).toBe(true);
+    expect(run.stdout).not.toContain('::');
+    expect(run.stdout).not.toContain('Report written to');
+    await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+  });
+
+  it('rejects GitHub annotations bound to --ci-out before writing anything', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+    const ciFile = path.join(dir, 'summary.md');
+
+    const run = await cli([
+      failed,
+      '--out',
+      output,
+      '--ci',
+      'github',
+      '--ci-out',
+      ciFile,
+    ]);
+
+    expect(run.code).toBe(2);
+    expect(run.stderr).toContain('--ci-out');
+    expect(await missing(output)).toBe(true);
+    expect(await missing(ciFile)).toBe(true);
+  });
+
+  it('rejects empty, unknown and case-mismatched --ci values', async () => {
+    const invalid = [
+      ['--ci', ''],
+      ['--ci', 'GitHub'],
+      ['--ci', 'yaml'],
+    ];
+
+    for (const extra of invalid) {
+      const run = await cli([failed, ...extra]);
+      expect(run.code, extra.join(' ')).toBe(2);
+      expect(run.stderr, extra.join(' ')).toContain('--ci');
+      expect(run.stderr, extra.join(' ')).toMatch(/github|markdown/i);
+      expect(run.stdout, extra.join(' ')).toBe('');
+    }
+  });
+
+  it('rejects --ci-out without --ci and an empty --ci-out path', async () => {
+    const dir = await tempDir();
+    const withoutCi = await cli([
+      failed,
+      '--ci-out',
+      path.join(dir, 'summary.md'),
+    ]);
+    expect(withoutCi.code).toBe(2);
+    expect(withoutCi.stderr).toContain('--ci-out');
+    expect(withoutCi.stderr).toMatch(/requires/i);
+
+    const emptyPath = await cli([failed, '--ci', 'markdown', '--ci-out', '']);
+    expect(emptyPath.code).toBe(2);
+    expect(emptyPath.stderr).toContain('--ci-out');
+    expect(emptyPath.stderr).toMatch(/file path|requires/i);
+    await expect(readdir(dir)).resolves.toEqual([]);
+  });
+
+  it('rejects --json and --ci on stdout but allows both with --ci-out', async () => {
+    const conflict = await cli([screenshot, '--json', '--ci', 'github']);
+    expect(conflict.code).toBe(2);
+    expect(conflict.stdout).toBe('');
+    expect(conflict.stderr).toContain('--json');
+    expect(conflict.stderr).toContain('--ci-out');
+
+    const dir = await tempDir();
+    const ciFile = path.join(dir, 'summary.md');
+    const allowed = await cli([
+      screenshot,
+      '--json',
+      '--ci',
+      'markdown',
+      '--ci-out',
+      ciFile,
+    ]);
+    expect(allowed.code).toBe(0);
+    expect(allowed.stderr).toBe('');
+    const summary = JSON.parse(allowed.stdout) as { status: string };
+    expect(summary.status).toBe('failed');
+    await expect(readFile(ciFile, 'utf8')).resolves.toContain(
+      '## Tolkira report',
+    );
+  });
+
+  it('rejects a --ci-out path that resolves to --out, an input or the logo', async () => {
+    const outDir = await tempDir();
+    const output = path.join(outDir, 'report.html');
+    const alias = `${outDir}${path.sep}nested${path.sep}..${path.sep}report.html`;
+    expect(alias).not.toBe(output);
+
+    const sameAsOut = await cli([
+      screenshot,
+      '--out',
+      output,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      alias,
+    ]);
+    expect(sameAsOut.code).toBe(2);
+    expect(sameAsOut.stderr).toContain('--ci-out');
+    expect(sameAsOut.stderr).toMatch(/--out|overwrite/);
+    await expect(readdir(outDir)).resolves.toEqual([]);
+
+    const inputDir = await tempDir();
+    const input = path.join(inputDir, 'input.ndjson');
+    await copyFile(screenshot, input);
+    const before = await readFile(input, 'utf8');
+    const sameAsInput = await cli([
+      input,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      input,
+    ]);
+    expect(sameAsInput.code).toBe(2);
+    expect(sameAsInput.stderr).toContain('--ci-out');
+    expect(sameAsInput.stderr).toMatch(/input|overwrite/);
+    await expect(readFile(input, 'utf8')).resolves.toBe(before);
+
+    const logoDir = await tempDir();
+    const logo = path.join(logoDir, 'logo.png');
+    const logoOutput = path.join(logoDir, 'report.html');
+    await writeFile(logo, logoPng);
+    const logoBefore = await readFile(logo);
+    const sameAsLogo = await cli([
+      screenshot,
+      '--out',
+      logoOutput,
+      '--logo',
+      logo,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      logo,
+    ]);
+    expect(sameAsLogo.code).toBe(2);
+    expect(sameAsLogo.stderr).toContain('--ci-out');
+    expect(sameAsLogo.stderr).toMatch(/logo|overwrite/);
+    await expect(readFile(logo)).resolves.toEqual(logoBefore);
+    expect(await missing(logoOutput)).toBe(true);
+  });
+
+  it('keeps HTML byte-identical with --ci and exits 0 for a failed run', async () => {
+    const dir = await tempDir();
+    const baseline = path.join(dir, 'baseline.html');
+    const withCi = path.join(dir, 'with-ci.html');
+    const ciFile = path.join(dir, 'summary.md');
+
+    const plain = await cli([screenshot, '--out', baseline]);
+    const annotated = await cli([
+      screenshot,
+      '--out',
+      withCi,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      ciFile,
+    ]);
+
+    expect(plain.code).toBe(0);
+    expect(annotated.code).toBe(0);
+    expect(annotated.stderr).toBe('');
+    expect(annotated.stdout).toContain(`Report written to ${withCi}`);
+    expect(await readFile(baseline)).toEqual(await readFile(withCi));
+    await expect(readFile(ciFile, 'utf8')).resolves.toContain(
+      '## Tolkira report',
+    );
+  });
+
+  it('returns 1 when the CI file cannot be written but keeps the HTML', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+    const blocker = path.join(dir, 'blocked');
+    await writeFile(blocker, 'not a directory', 'utf8');
+
+    const run = await cli([
+      failed,
+      '--out',
+      output,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      path.join(blocker, 'summary.md'),
+    ]);
+
+    expect(run.code).toBe(1);
+    expect(run.stderr).toContain('tolkira:');
+    await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+  });
+
+  it('keeps --logo dependent on --out when --ci is present', async () => {
+    const dir = await tempDir();
+    const logo = path.join(dir, 'logo.png');
+    await writeFile(logo, logoPng);
+
+    const run = await cli([failed, '--ci', 'markdown', '--logo', logo]);
+
+    expect(run.code).toBe(2);
+    expect(run.stderr).toContain('--logo requires --out');
+  });
+});
