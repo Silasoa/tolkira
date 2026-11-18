@@ -587,7 +587,10 @@ function locationText(
   return `${file}${line}${column}`;
 }
 
-const ABSOLUTE_LOCAL_PATH = /(?:[A-Za-z]:[\\/]|\/Users\/|\/home\/)[^\s"'<>|]+/g;
+// Common local roots on POSIX plus Windows drive paths. The lookbehinds keep
+// URL text such as https://example.com/tmp/report intact.
+const ABSOLUTE_LOCAL_PATH =
+  /(?:(?<![A-Za-z0-9_])[A-Za-z]:[\\/]|(?<![A-Za-z0-9_/])\/(?:Users|home|tmp|var|opt|etc|usr|private|mnt|srv|root|workspace)\/)[^\s"'<>|]+/g;
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -635,8 +638,12 @@ function resultErrorText(
   result: PlaywrightResult | undefined,
   inputDir: string,
 ): string | undefined {
+  // Playwright reports the same failure in `error` and `errors[0]`, so prefer
+  // the array when it has entries and fall back to the single error otherwise.
+  const errors =
+    result?.errors && result.errors.length > 0 ? result.errors : [result?.error];
   const texts: string[] = [];
-  for (const error of [result?.error, ...(result?.errors ?? [])]) {
+  for (const error of errors) {
     const text = errorText(error, inputDir);
     if (text && !texts.includes(text)) texts.push(text);
   }

@@ -158,11 +158,13 @@ result duration; when no steps exist, the synthetic step carries
 `result.duration`. Do not invent overhead when the visible sum already exceeds
 the result.
 
-The error message is the final result's `error` first, then `errors[]`;
-within an error, `message`, then `value` or `stack`. Append the snippet and a
-relative location. Strip ANSI from all error text and replace absolute local
-paths in the message, value, stack and snippet with a root-relative path or
-basename. The model also strips ANSI from step messages.
+The error message is the final result's `errors[]` when that array is
+non-empty, otherwise its `error`; Playwright often duplicates `error` as
+`errors[0]`, so using both would show a failure twice. Within an error,
+`message`, then `value` or `stack`. Append the snippet and a relative location.
+Strip ANSI from all error text and replace absolute local paths in the message,
+value, stack and snippet with a root-relative path or basename. The model also
+strips ANSI from step messages.
 
 ### Attachments
 

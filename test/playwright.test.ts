@@ -133,6 +133,7 @@ function playwrightSpec(
   title: string,
   results: unknown[],
   file = 'sample.spec.ts',
+  testStatus = 'expected',
 ): unknown {
   return {
     title,
@@ -149,7 +150,7 @@ function playwrightSpec(
         expectedStatus: 'passed',
         projectId: 'chromium',
         projectName: 'chromium',
-        status: 'expected',
+        status: testStatus,
         results,
       },
     ],
@@ -929,6 +930,76 @@ describe('Playwright JSON input', () => {
     expect(html).toContain('Expected 2');
     expect(html).not.toContain('\u001b');
     expect(html).not.toContain('\u0007');
+  });
+
+  it('removes common POSIX local roots from stack text but keeps URLs', async () => {
+    const dir = await tempDir();
+    const tmpPath = '/tmp/secret/project/file.ts';
+    const varPath = '/var/secret/file.ts';
+    const url = 'https://example.com/tmp/report';
+    const input = await writeReport(
+      dir,
+      playwrightReport([
+        playwrightSpec(
+          'stack only',
+          [
+            passedResult({
+              status: 'failed',
+              error: {
+                stack: `Error: stack failure\n at ${tmpPath}:1:2\n at ${varPath}:3:4`,
+                snippet: `see ${url} for context`,
+              },
+            }),
+          ],
+          'sample.spec.ts',
+          'unexpected',
+        ),
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'POSIX paths' });
+    const message =
+      summary.scenarios[0]?.steps.find((step) => step.status === 'failed')
+        ?.message ?? '';
+
+    expect(message).toContain('stack failure');
+    expect(message).not.toContain(tmpPath);
+    expect(message).not.toContain(varPath);
+    expect(html).not.toContain(tmpPath);
+    expect(html).not.toContain(varPath);
+    expect(html).toContain(url);
+  });
+
+  it('shows a failure once when Playwright duplicates it in error and errors', async () => {
+    const dir = await tempDir();
+    const duplicated = 'Error: duplicate detail';
+    const input = await writeReport(
+      dir,
+      playwrightReport([
+        playwrightSpec(
+          'duplicated error',
+          [
+            passedResult({
+              status: 'failed',
+              error: { message: duplicated },
+              errors: [{ message: duplicated }],
+            }),
+          ],
+          'sample.spec.ts',
+          'unexpected',
+        ),
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const message =
+      summary.scenarios[0]?.steps.find((step) => step.status === 'failed')
+        ?.message ?? '';
+
+    expect(message).toContain('duplicate detail');
+    expect(message.match(/duplicate detail/g)).toHaveLength(1);
+    expect(JSON.stringify(summary).match(/duplicate detail/g)).toHaveLength(1);
   });
 
   it('normalizes an absolute spec file to a relative rule and URI', async () => {

@@ -87,14 +87,17 @@ Playwright time is never folded silently into a child step.
 
 ### Errors
 
-The result's `error` object is used when present, followed by every `errors`
-entry; identical text is included once. Within an error the message is
-`message`, then `value`, then `stack`. The snippet follows, then a source
-location relative to the input file's directory or the process working
+When `result.errors` is non-empty it is the failure source and every entry is
+concatenated; otherwise `result.error` is used. Playwright often repeats the
+same failure in both places, so this avoids showing it twice. Within an error
+the message is `message`, then `value`, then `stack`. The snippet follows, then
+a source location relative to the input file's directory or the process working
 directory; a path outside both uses only its basename. ANSI and C0/C1 control
 codes are stripped, and absolute local paths in the message, value, stack and
-snippet are replaced by a relative path or basename. No absolute local path is
-embedded in the report.
+snippet are replaced by a relative path or basename. That includes common POSIX
+roots (`/Users`, `/home`, `/tmp`, `/var`, `/opt`, `/etc`, `/usr`, `/private`,
+`/mnt`, `/srv`, `/root`, `/workspace`), while normal text and URLs stay intact.
+No absolute local path is embedded in the report.
 
 ## Attachments
 

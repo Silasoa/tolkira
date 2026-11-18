@@ -150,6 +150,11 @@ executing or rendering untrusted HTML.
 - **AND** a synthetic failed error step shows the message
 - **AND** all other steps keep their own status
 
+#### Scenario: Duplicate error is shown once
+
+- **WHEN** a result repeats the same failure in `error` and `errors`
+- **THEN** the failure detail appears once
+
 #### Scenario: Timed out or interrupted
 
 - **WHEN** a result status is `timedOut` or `interrupted`
