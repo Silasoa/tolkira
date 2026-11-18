@@ -32,9 +32,8 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 - Commit one logical change with a conventional prefix, reference the
   issue/change, run `npm run hygiene` and `npm run check`, and never add a
   `Co-authored-by` trailer, a generated artifact or a local path.
-- Specs are the contract. The OpenSpec CLI version is an implementation detail
-  (2.0 migration in progress); do not hardcode CLI flags in issues, specs or
-  docs.
+- Specs are the contract. The OpenSpec CLI and its skills are installed
+  globally; do not hardcode CLI flags in issues, specs or docs.
 - Only the coordinator closes issues; workers never close, archive or publish.
 
 ## Open work

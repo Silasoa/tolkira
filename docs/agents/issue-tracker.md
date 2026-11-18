@@ -121,9 +121,8 @@ exist before the spec, but it cannot become `ready-for-agent` without one.
 
 ## OpenSpec version note
 
-The workflow uses whatever OpenSpec CLI the repository currently uses; the
-maintainer is upgrading to 2.0. The change directory and spec files are the
-contract, independent of the CLI version. Do not hardcode CLI command names,
+The workflow uses the globally installed OpenSpec CLI and skills. The change
+directory and spec files are the contract, independent of the CLI version. Do not hardcode CLI command names,
 flags or generated paths in issues, specs or scripts; refer to the change
 directory and the spec instead. If the CLI changes, the contract stays valid.
 

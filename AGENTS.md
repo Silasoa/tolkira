@@ -157,14 +157,13 @@ If a secret is found, rotate it first; rewriting history is secondary.
   need structural indexing.
 - **Open Design:** optional for the report shell/visuals. If it does not work
   with the current OpenCode version, do not block on it.
-- **OpenSpec:** required for change contracts and spec history. The CLI version
-  is an implementation detail (2.0 migration in progress); the change
-  directory and spec files are the contract, so do not hardcode CLI flags in
+- **OpenSpec:** required for change contracts and spec history. The CLI and
+  its skills are installed globally (skills in `~/.agents/skills`); the change
+  directory and spec files are the contract. Do not hardcode CLI flags in
   docs, issues or scripts.
-- **Pocock skills:** use the installed grilling, code-review, tdd and
-  domain-modeling skills as needed; `to-spec` and `to-tickets` are not
-  installed, so the issue tracker and OpenSpec artifacts are the workflow of
-  record. Skills are tools, not ceremony.
+- **Pocock skills:** the global install includes grilling, code-review, tdd,
+  domain-modeling, to-spec and to-tickets. `to-spec` and `to-tickets` are
+  user-invoked; the rest are tools, not ceremony.
 
 ## Communication
 
