@@ -129,6 +129,18 @@ the benchmark path and budget.
   can split one spec file across rule sections. Revisit when navigation becomes
   a real user problem; trigger: a user request for a file-level view, then
   specify a view or toggle with one-file-one-group acceptance.
+- **Native Playwright report additions.** Copy prompt (agent-ready failure
+  text), slowest scenarios and a step filter are candidates in #24; the step
+  filter waits for a real report with >30 steps per scenario, and a project
+  filter is only useful for multi-project reports. Do not copy the trace
+  viewer, report folder, JS-only SPA, snapshot diff or worker gantt.
+
+## Ideas (not scheduled)
+
+- **Export Playwright test definitions/cases.** A report could expose the
+  test/spec definitions (title, steps, file/line) as JSON or Markdown for
+  migration or test-case management. Trigger: a user asks for case import or
+  export; this is not report parity and no issue exists yet.
 
 ## Fixed in 0.3
 
