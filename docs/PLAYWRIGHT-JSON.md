@@ -97,10 +97,11 @@ directory; a path outside both uses only its basename. ANSI and C0/C1 control
 codes are stripped, and absolute local paths in the message, value, stack and
 snippet are replaced by a relative path or basename. That includes common POSIX
 roots (`/Users`, `/home`, `/tmp`, `/var`, `/opt`, `/etc`, `/usr`, `/private`,
-`/mnt`, `/srv`, `/root`, `/workspace`), while normal text and URLs stay intact.
-No absolute local path is embedded in Playwright error text. Annotation
-descriptions and `stdout`/`stderr` payloads are user-supplied text and are not
-path-scrubbed.
+`/mnt`, `/srv`, `/root`, `/workspace`, `/builds`, `/app`, `/data`, `/github`),
+while normal text and URLs stay intact. No absolute local path under these
+roots remains in Playwright error text; paths outside the list are not
+scrubbed. Annotation descriptions and `stdout`/`stderr` payloads are
+user-supplied text and are not path-scrubbed.
 
 ## Attachments
 

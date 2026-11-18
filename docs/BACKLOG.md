@@ -110,6 +110,21 @@ the benchmark path and budget.
 - **Node 20.** Keep Node 22 LTS as the supported floor until a green Node 20
   smoke test exists (B-015).
 
+## Review follow-ups (2026-11-18)
+
+- **Playwright adapter structure.** Keep one adapter until about 1,800 lines or
+  a second JSON shape; then split validation at the existing `validate*` seam.
+  A shared millisecond time helper waits for a third adapter.
+- **Playwright retry artifacts.** Only the final attempt is rendered; earlier
+  screenshots and error context are not exposed. Revisit if flake forensics
+  becomes a requirement.
+- **Attachment containment.** `realpath` blocks symlink and UNC escapes;
+  hardlinks inside the roots and growth after the descriptor size check require
+  local write access and are accepted for local CI artifacts. Revisit for
+  untrusted report exchange.
+- **Windows junction/cross-drive and repeat-each** are covered by Linux CI and
+  counter IDs, but not by dedicated fixtures; add when a producer needs it.
+
 ## Fixed in 0.3
 
 - Outlines/examples, hooks, diagnostics, empty-run semantics, rules/tags,

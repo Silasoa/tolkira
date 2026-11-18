@@ -936,6 +936,7 @@ describe('Playwright JSON input', () => {
     const dir = await tempDir();
     const tmpPath = '/tmp/secret/project/file.ts';
     const varPath = '/var/secret/file.ts';
+    const buildsPath = '/builds/ci/project/file.ts';
     const url = 'https://example.com/tmp/report';
     const input = await writeReport(
       dir,
@@ -946,7 +947,7 @@ describe('Playwright JSON input', () => {
             passedResult({
               status: 'failed',
               error: {
-                stack: `Error: stack failure\n at ${tmpPath}:1:2\n at ${varPath}:3:4`,
+                stack: `Error: stack failure\n at ${tmpPath}:1:2\n at ${varPath}:3:4\n at ${buildsPath}:5:6`,
                 snippet: `see ${url} for context`,
               },
             }),
@@ -966,8 +967,10 @@ describe('Playwright JSON input', () => {
     expect(message).toContain('stack failure');
     expect(message).not.toContain(tmpPath);
     expect(message).not.toContain(varPath);
+    expect(message).not.toContain(buildsPath);
     expect(html).not.toContain(tmpPath);
     expect(html).not.toContain(varPath);
+    expect(html).not.toContain(buildsPath);
     expect(html).toContain(url);
   });
 

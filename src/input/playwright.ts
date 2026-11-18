@@ -590,7 +590,7 @@ function locationText(
 // Common local roots on POSIX plus Windows drive paths. The lookbehinds keep
 // URL text such as https://example.com/tmp/report intact.
 const ABSOLUTE_LOCAL_PATH =
-  /(?:(?<![A-Za-z0-9_])[A-Za-z]:[\\/]|(?<![A-Za-z0-9_/])\/(?:Users|home|tmp|var|opt|etc|usr|private|mnt|srv|root|workspace)\/)[^\s"'<>|]+/g;
+  /(?:(?<![A-Za-z0-9_])[A-Za-z]:[\\/]|(?<![A-Za-z0-9_/])\/(?:Users|home|tmp|var|opt|etc|usr|private|mnt|srv|root|workspace|builds|app|data|github)\/)[^\s"'<>|]+/g;
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

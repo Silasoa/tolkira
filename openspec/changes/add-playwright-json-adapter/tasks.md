@@ -56,6 +56,14 @@
 ## 5. Verification and review
 
 - [x] 5.1 Run `npm run hygiene`, `npm run check` and `npm run test:e2e`.
-- [ ] 5.2 Run the review swarm: SCR, CR, DAR, CMP, SEC.
-- [ ] 5.3 Fix findings and record any deferred decision in `docs/BACKLOG.md`.
-- [ ] 5.4 Commit and push with the issue and change reference.
+- [x] 5.2 Run the review swarm: SCR, CR, DAR, CMP, SEC.
+- [x] 5.3 Fix findings and record any deferred decision in `docs/BACKLOG.md`.
+- [x] 5.4 Commit and push with the issue and change reference.
+
+## Gate record
+
+2026-11-18: `npm run hygiene` ok; `npm run check` 549 passed, 1 skipped;
+`npm run test:e2e` 231 passed (Chromium, Firefox, WebKit). Review swarm:
+SCR, CR, STR, SEC and CMP pass after fixes; DAR blockers were the error-path
+claim, project fallback and release wording, all corrected. Deferred
+follow-ups are recorded in `docs/BACKLOG.md`.
