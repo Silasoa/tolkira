@@ -50,6 +50,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-012 | Test | P3 | Real Behave run with attachments and doc strings | [#15](https://github.com/Silasoa/tolkira/issues/15) |
 | B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
+| B-017 | Report | P2 | Playwright OSS comparison findings (meta batch) | [#24](https://github.com/Silasoa/tolkira/issues/24) |
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
@@ -124,6 +125,10 @@ the benchmark path and budget.
   untrusted report exchange.
 - **Windows junction/cross-drive and repeat-each** are covered by Linux CI and
   counter IDs, but not by dedicated fixtures; add when a producer needs it.
+- **Playwright file-level grouping.** A project feature spanning several files
+  can split one spec file across rule sections. Revisit when navigation becomes
+  a real user problem; trigger: a user request for a file-level view, then
+  specify a view or toggle with one-file-one-group acceptance.
 
 ## Fixed in 0.3
 
