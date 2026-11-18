@@ -9,17 +9,22 @@
 
 - [ ] 2.1 Add detection-table cases for Playwright JSON, malformed JSON and
   non-misclassification of Cucumber legacy, Messages and JUnit.
-- [ ] 2.2 Add a real Playwright JSON fixture covering two projects, nested
-  describes and steps, passed/failed/skipped/flaky, expected failure,
-  unexpected pass, timedOut, retries, inline and path attachments, tags,
-  annotations and error context.
+- [ ] 2.2 Add a real Playwright JSON fixture covering two projects and two
+  files in one project, nested describes and steps, passed/failed/skipped/
+  flaky, expected failure, unexpected pass, timedOut, retries, inline and path
+  attachments, tags, annotations and error context. Copy the safe attachment
+  files into the fixture directory and rewrite every absolute path,
+  `config.rootDir`, `config.configFile`, annotation location and error location
+  to a relative fixture path.
 - [ ] 2.3 Add adapter tests for project/file/rule mapping, final status,
-  expected failure, unexpected pass, flaky attempt, no-results visibility,
-  step statuses, errors, attachment safety, malformed shapes and merged
-  inputs.
+  expected failure counted once as passed (including timedOut/interrupted),
+  unexpected pass counted as failed, flaky attempt, skipped-without-results,
+  non-skipped no-results visibility, step statuses, annotation descriptions,
+  source paths/control codes, errors, attachment safety, malformed shapes and
+  merged inputs.
 - [ ] 2.4 Add explicit tests for empty runs, run-level errors, stdout/stderr,
-  markdown error context, path-size rejection before read, loader dedupe and
-  CLI exit/absent output.
+  markdown error context, safe/outside attachment roots, path-size rejection
+  before read, loader dedupe and CLI exit/absent output.
 - [ ] 2.5 Confirm the new tests fail for the right reason before implementation.
 
 ## 3. Implement

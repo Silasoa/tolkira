@@ -89,9 +89,16 @@ passed with a retry attempt; a test that never passed SHALL render as failed.
 - **THEN** the scenario is skipped
 - **AND** it does not count as passed
 
+#### Scenario: Skipped test without results
+
+- **WHEN** a test is marked skipped and has no results
+- **THEN** the scenario remains visible as skipped
+- **AND** it is not treated as an unknown unexecuted test
+
 #### Scenario: Expected failure
 
-- **WHEN** a test is marked as an expected failure and its final result failed
+- **WHEN** a test is marked as an expected failure and its final result
+  failed, timed out or was interrupted
 - **THEN** the scenario is not counted as a regression
 - **AND** it is marked as an expected failure
 
@@ -103,7 +110,7 @@ passed with a retry attempt; a test that never passed SHALL render as failed.
 
 #### Scenario: No results
 
-- **WHEN** a test has no results
+- **WHEN** a non-skipped test has no results
 - **THEN** the scenario remains visible as unexecuted
 - **AND** it is not rendered as passed or skipped
 
@@ -225,5 +232,7 @@ support.
 #### Scenario: Unsupported artifacts
 
 - **WHEN** a Playwright report is opened
-- **THEN** no trace viewer, video player or HTML-report replay is claimed
+- **THEN** no trace viewer or HTML-report replay is claimed
+- **AND** an embedded video attachment uses only the existing inline video
+  element
 - **AND** the docs state that outside-tree path attachments are skipped

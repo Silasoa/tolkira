@@ -17,11 +17,12 @@ legacy, JUnit and Messages checks:
 
 - the parsed value is a non-array object;
 - `config` is an object and `stats` is an object;
-- `suites` is an array or `errors` is an array.
+- the object owns a `suites` key (even when its value is malformed) or has an
+  `errors` array.
 
-`suites` may still be malformed; the adapter validates it and throws a
+`suites` may be malformed; the adapter validates it and throws a
 Playwright-specific error instead of falling through to a generic unsupported
-input. A report with `config` and `stats` but neither a suites nor an errors
+input. A report with `config` and `stats` but no `suites` key and no `errors`
 array remains `json-validation`, so a random JSON object is still rejected.
 Malformed JSON remains `json-validation` and keeps the existing parse error.
 
@@ -34,11 +35,12 @@ relative to it.
 ## Normalization path
 
 `parsePlaywrightJson` emits `Envelope[]` directly: `meta`, `testRunStarted`,
-one `gherkinDocument` per project/file, a `pickle` and `testCase` per spec, one
-`testCaseStarted` per result with `attempt = result.retry`, step events,
-attachments and `testRunFinished`. Reuse the pure id, duration and status
-helpers from the legacy adapter or move them to a small shared module; do not
-copy their semantics.
+one `gherkinDocument` per input/project, one `pickle` and `testCase` per
+test (project), one `testCaseStarted` per result with `attempt =
+result.retry`, step events, attachments and `testRunFinished`. A spec that ran
+in two projects therefore has one pickle/testCase pair per project. Reuse the
+pure id, duration and status helpers from the legacy adapter or move them to a
+small shared module; do not copy their semantics.
 
 The existing `indexRun`/`latestAttempt` then selects the final attempt, which
 is the user-facing result. Earlier attempts remain in the envelopes for the
@@ -65,8 +67,8 @@ Playwright hierarchy: project -> file -> describe -> spec -> test -> result.
 
 One spec may have tests in several projects. Emit one scenario per test so
 projects do not overwrite each other. Build one feature per input/project, with
-the feature URI `playwright://<input-basename>/<project>`; each scenario keeps
-the spec file as its URI, so provenance and directory merging stay per file. A
+the feature URI `playwright://<idPrefix>/<project>`; each scenario keeps the
+spec file as its URI, so provenance and directory merging stay per file. A
 feature name is the project name, so the feature list reads as the Playwright
 configuration; the rule path keeps the file and describe context.
 
@@ -77,24 +79,41 @@ Playwright spec tags lack the `@` prefix, so normalise them to `@tag` for the
 existing search and tag-expression semantics. Strip trailing `@tag` tokens
 from file, describe and spec titles before they become rule or scenario names.
 Known `skip`, `fixme` and `fail` annotations become `@skip`, `@fixme` and
-`@fail`; other annotations are appended to the scenario description as
-`Annotation: <type> - <description>` (HTML-only, matching the summary contract).
+`@fail`; their description and every other annotation are appended to the
+scenario description as `Annotation: <type> - <description>` (HTML-only,
+matching the summary contract).
 A `test.status` of `flaky` adds `@flaky`; a failed expected failure adds
 `@expected-failure`; an unexpected pass adds `@unexpected-pass`.
 
 ### Status
 
-- `passed` -> passed
-- `failed`, `timedOut`, `interrupted` -> failed
-- `skipped` -> skipped
-- `undefined` or no results -> unexecuted but not passed
-- `test.status === 'expected'` with a failed final result is an expected
-  failure: render passed, add `@expected-failure` and append the error text to
-  the scenario description
-- `test.status === 'flaky'` with a passed final result is passed, add `@flaky`
-- `test.status === 'unexpected'` with a passed final result is an unexpected
-  pass: render failed, add `@unexpected-pass` and a synthetic failure message
-- `result.status` is the source of truth for every other case.
+Apply these in order, because the model derives status from step results:
+
+1. `test.status === 'expected'` with a failed, timedOut or interrupted final
+   result is an expected failure: emit **passed** step results (including any
+   step that errored), append the error text to the scenario description, add
+   `@expected-failure` and keep the scenario passed.
+2. `test.status === 'unexpected'` with a passed final result is an unexpected
+   pass: add one synthetic failed step with `Expected to fail, but passed`,
+   add `@unexpected-pass` and keep the scenario failed.
+3. `test.status === 'skipped'` is skipped. If there are no results, emit one
+   synthetic skipped step so the scenario is visible and counted as skipped.
+4. `passed` -> passed.
+5. `failed`, `timedOut`, `interrupted` -> failed.
+6. `undefined` or no results for a non-skipped test -> unexecuted, not passed.
+7. `test.status === 'flaky'` with a passed final result is passed, add
+   `@flaky`.
+8. `result.status` is the source of truth for every other case.
+
+The step results, not a separate scenario status field, drive the report
+status. The expected-failure and unexpected-pass envelope rules are mandatory;
+the implementer must not leave an expected failure red or an unexpected pass
+green. Key expected failure on `test.status`/`expectedStatus`, not only on
+`result.status`, so `test.fail()` plus a timeout is still green.
+
+The step results, not a separate scenario status field, drive the report
+status. These two envelope rules are therefore mandatory; the implementer must
+not leave an expected failure red or an unexpected pass green.
 
 Use the final result for the visible scenario. Emit one `testCaseStarted` per
 result with `attempt = result.retry`; the model's attempt is 0-based, so the
@@ -106,11 +125,13 @@ visible as unexecuted instead of disappearing from the summary.
 
 Flatten `JSONReportTestStep` depth-first. A step's text is its `title` plus an
 optional `subtitle`; nesting is shown with a `›` prefix. A step with an error
-is failed. A step without an error is passed, or skipped when the final result
-is skipped. If the final result failed, timed out or was interrupted and no
-step carries the error, append one synthetic failed `Error` step; do not mark
-every step failed. If a test has no steps, create one synthetic step carrying
-the final status and duration so the status counts remain correct.
+is failed, except in the expected-failure rule above where every step is
+passed. A step without an error is passed, or skipped when the final result is
+skipped. If the final result failed, timed out or was interrupted and no step
+carries the error, append one synthetic failed `Error` step; do not mark every
+step failed. If a test has no steps, create one synthetic step carrying the
+final status and duration so the status counts remain correct. An unexpected
+pass appends a synthetic failed step even when the normal steps passed.
 
 Durations are milliseconds in Playwright and nanoseconds in the legacy
 normalizer; multiply by 1,000,000. The report model sums visible step
