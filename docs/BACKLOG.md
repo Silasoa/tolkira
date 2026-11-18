@@ -65,9 +65,10 @@ the benchmark path and budget.
 
 ## Resolved
 
-- **B-001 Playwright JSON adapter** — shipped on 2026-11-18. The native adapter
-  covers projects, file/describe rules, retries, steps, attachments and
-  run-level errors; see [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
+- **B-001 Playwright JSON adapter** — implemented in `main` on 2026-11-18, not
+  yet released. The native adapter covers projects, file/describe rules,
+  retries, steps, attachments and run-level errors; see
+  [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
   [#4](https://github.com/Silasoa/tolkira/issues/4) is resolved.
 - **B-003 Seed-Test 2.0 group sidecar** — resolved for Tolkira on 2026-11-13.
   The 0.3.0 smoke proved that Seed-Test owns the ~10-line sidecar pre-merge and

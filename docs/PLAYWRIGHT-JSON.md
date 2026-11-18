@@ -54,9 +54,10 @@ unsupported input and never with a partial report.
 | `stdout` / `stderr` | `text/plain` and `application/octet-stream` attachments |
 | run-level `errors` | one failed `Playwright` feature, one scenario per error |
 
-Features use `playwright://<idPrefix>/<project>`; a report without a project name
-uses `playwright://<idPrefix>/file/<normalised-file>`. Each scenario keeps the
-spec file as its URI, so directory merging and provenance stay per file.
+Features use `playwright://<idPrefix>/<project>`; a report with neither a
+project name nor a project id uses
+`playwright://<idPrefix>/file/<normalised-file>`. Each scenario keeps the spec
+file as its URI, so directory merging and provenance stay per file.
 
 ### Status
 
@@ -97,7 +98,9 @@ codes are stripped, and absolute local paths in the message, value, stack and
 snippet are replaced by a relative path or basename. That includes common POSIX
 roots (`/Users`, `/home`, `/tmp`, `/var`, `/opt`, `/etc`, `/usr`, `/private`,
 `/mnt`, `/srv`, `/root`, `/workspace`), while normal text and URLs stay intact.
-No absolute local path is embedded in the report.
+No absolute local path is embedded in Playwright error text. Annotation
+descriptions and `stdout`/`stderr` payloads are user-supplied text and are not
+path-scrubbed.
 
 ## Attachments
 
