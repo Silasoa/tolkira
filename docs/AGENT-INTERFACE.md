@@ -34,6 +34,40 @@ stderr. Exit codes are about report generation, not test status:
 Always read `status` from the JSON summary for the test outcome. A failed test
 suite is exit code 0 by design.
 
+## CI output
+
+Format the same summary for CI instead of, or alongside, HTML and JSON:
+
+```shell
+# GitHub Actions workflow commands on stdout; no HTML required
+tolkira test-results/ --ci github
+
+# Markdown on stdout, or in a standalone file
+tolkira test-results/ --ci markdown
+tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
+```
+
+- `--ci github` writes `::error` and `::notice` workflow commands. It needs no
+  `--out` and rejects `--ci-out`: GitHub only reads workflow commands from
+  stdout.
+- `--ci markdown` writes deterministic Markdown with complete counts, a failed
+  list and skipped names. `--title` sets the heading.
+- Without `--ci-out`, CI text is the only stdout and the human confirmation is
+  suppressed. With `--ci-out`, the file receives the CI text and stdout keeps
+  its normal confirmation; with `--json`, stdout stays JSON only.
+- `--ci-out` requires `--ci markdown`, is written atomically as a standalone
+  file, and must not overwrite an input, the logo or `--out`. To add to
+  `$GITHUB_STEP_SUMMARY`, append stdout with `>>`; do not point `--ci-out` at a
+  shared file.
+- Exit codes are unchanged. A failed test run still exits 0; invalid
+  combinations exit 2 before any file is written.
+- Messages are copied verbatim and are not redacted. See [`CI.md`](CI.md).
+
+GitHub mode caps at 50 error and 20 notice annotations and states the
+remainder; the final count notice keeps the exact totals. Markdown caps the
+failed list at 50 scenarios, each message at 500 raw characters and the skipped
+name list at 20, while the counts stay complete.
+
 ## API
 
 ```ts
@@ -63,6 +97,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
+| CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
 The CLI validates logo bytes and rejects unsupported types or a size over
 2 MB. The API only accepts a `data:image/...;base64,...` logo; anything else is

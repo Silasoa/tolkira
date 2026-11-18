@@ -7,6 +7,15 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- CI summary output. `--ci github` emits GitHub Actions annotations for failed,
+  undefined and ambiguous scenarios, notices for skipped, pending and unknown
+  scenarios, and a final notice with every non-zero bucket and the unexecuted
+  count. `--ci markdown` emits deterministic Markdown with complete counts, an
+  inert failed-scenario list and skipped names; `--ci-out` writes it to a
+  standalone file. Output is offline and capped at 50 error / 20 notice
+  annotations, 50 failed scenarios, 500 message characters and 20 skipped
+  names, with omitted counts stated and exact totals kept. `--json` and
+  `--ci` share stdout only with `--ci-out`. See [`docs/CI.md`](CI.md).
 - Native Playwright JSON reporter input. Detection recognises a report with
   `config` and `stats` objects plus `suites` or `errors`; the adapter maps one
   feature per project, file/describe rules, one scenario per test and project,

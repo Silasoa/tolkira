@@ -128,6 +128,32 @@ outcome. Upload report.html as the human-facing artifact.
 See [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md)
 for the full schema and exit codes.
 
+### CI annotations and step summaries
+
+GitHub turns Tolkira's workflow commands into annotations without `--out`:
+
+```shell
+npx tolkira test-results/ --ci github
+```
+
+For a GitHub step summary, append Markdown so earlier steps survive:
+
+```shell
+npx tolkira test-results/ --ci markdown >> "$GITHUB_STEP_SUMMARY"
+```
+
+GitLab and other CI systems can keep the Markdown as a file:
+
+```shell
+npx tolkira test-results/ --out report.html --ci markdown --ci-out tolkira-summary.md
+```
+
+`--ci github` writes to stdout only; `--ci-out` requires `--ci markdown`, is
+written atomically and must not overwrite an input, the logo or `--out`. Exit
+codes do not change: a failed test run still exits 0. See
+[`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) for the
+GitHub and GitLab examples, output caps and the unredacted-message warning.
+
 ## What you get
 
 - **One file that works offline.** CSS, JavaScript and attachments are inline.
@@ -365,6 +391,8 @@ remaining Behave real-run gap.
 - [`llms.txt`](https://github.com/Silasoa/tolkira/blob/main/llms.txt) — short entry point for AI agents.
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema, CLI
   contract and exit codes.
+- [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) — GitHub annotations, GitLab and step-summary
+  output.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
   (last verified 2026-11-11).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested

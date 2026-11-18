@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { formatCiOutput, type CiFormat } from './ci.js';
 import { generateReport, summarizeReport, version } from './index.js';
 import { outputOverwritesInput, writeAtomic } from './output.js';
 import { ACCENT_PATTERN } from './validation.js';
@@ -25,6 +26,8 @@ Generate one self-contained HTML report from Cucumber JSON, Messages, JUnit XML 
 Options:
   -o, --out <file>     Output HTML file
       --json           Print a stable JSON summary to stdout
+      --ci <format>    Print a CI summary: github or markdown
+      --ci-out <file>  Write the CI summary to a file instead of stdout
       --title <text>   Report title
       --meta key=value Add metadata (repeatable)
       --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo
@@ -33,9 +36,9 @@ Options:
   -h, --help           Show this help
   -v, --version        Show the version
 
-Without --out, --json is required. With --out, --json prints the summary
-instead of the human-readable confirmation. Failing tests do not change the
-exit code.`;
+Without --out, --json or --ci is required. With --out, --json prints the
+summary instead of the human-readable confirmation. --ci writes only the CI
+summary to stdout. Failing tests do not change the exit code.`;
 
 export interface CliIO {
   stdout: (text: string) => void;
@@ -54,6 +57,8 @@ function parseCliArgs(argv: string[]) {
       accent: { type: 'string' },
       'max-size': { type: 'string' },
       json: { type: 'boolean' },
+      ci: { type: 'string' },
+      'ci-out': { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -79,6 +84,12 @@ function parseMaxSize(value: string | undefined): number {
     throw new Error(`Invalid --max-size "${value}". Use a positive number of MB.`);
   }
   return megabytes;
+}
+
+function parseCiFormat(value: string | undefined): CiFormat | undefined {
+  if (value === undefined) return undefined;
+  if (value === 'github' || value === 'markdown') return value;
+  throw new Error(`Invalid --ci "${value}". Use github or markdown.`);
 }
 
 function parseAccent(value: string | undefined): string | undefined {
@@ -162,13 +173,49 @@ export async function runCli(
   const inputs = parsed.positionals;
   const output = parsed.values.out;
   const wantsJson = parsed.values.json;
+  const ciOut = parsed.values['ci-out'];
 
   if (parsed.values.out === '') {
     io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
     return 2;
   }
 
-  if (inputs.length === 0 || (!output && !wantsJson)) {
+  let ci: CiFormat | undefined;
+  try {
+    ci = parseCiFormat(parsed.values.ci);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (ciOut === '') {
+    io.stderr(`tolkira: --ci-out requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (ciOut !== undefined && ci === undefined) {
+    io.stderr(`tolkira: --ci-out requires --ci\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (ci === 'github' && ciOut !== undefined) {
+    io.stderr(
+      `tolkira: --ci github writes annotations to stdout; ` +
+        `--ci-out is only for --ci markdown\n\n${USAGE}`,
+    );
+    return 2;
+  }
+
+  if (wantsJson && ci !== undefined && ciOut === undefined) {
+    io.stderr(
+      `tolkira: --json and --ci both write to stdout; ` +
+        `add --ci-out or drop one\n\n${USAGE}`,
+    );
+    return 2;
+  }
+
+  if (inputs.length === 0 || (!output && !wantsJson && ci === undefined)) {
     io.stderr(USAGE);
     return 2;
   }
@@ -186,6 +233,20 @@ export async function runCli(
   if (output && (await outputOverwritesInput(inputs, output, parsed.values.logo))) {
     io.stderr(`tolkira: --out must not overwrite an input file\n\n${USAGE}`);
     return 2;
+  }
+
+  if (ciOut !== undefined) {
+    if (output && path.resolve(ciOut) === path.resolve(output)) {
+      io.stderr(`tolkira: --ci-out must not overwrite --out\n\n${USAGE}`);
+      return 2;
+    }
+    if (await outputOverwritesInput(inputs, ciOut, parsed.values.logo)) {
+      io.stderr(
+        `tolkira: --ci-out must not overwrite an input file or the logo` +
+          `\n\n${USAGE}`,
+      );
+      return 2;
+    }
   }
 
   let metadata: Record<string, string>;
@@ -206,7 +267,18 @@ export async function runCli(
   try {
     if (!output) {
       const summary = await summarizeReport(inputs);
-      io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
+      const ciText =
+        ci !== undefined
+          ? formatCiOutput(summary, ci, { title: parsed.values.title })
+          : undefined;
+      if (ciText !== undefined && ciOut !== undefined) {
+        await writeAtomic(ciOut, ciText);
+      }
+      if (wantsJson) {
+        io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
+      } else if (ciText !== undefined && ciOut === undefined) {
+        io.stdout(ciText);
+      }
       return 0;
     }
 
@@ -228,8 +300,18 @@ export async function runCli(
       );
     }
 
+    const ciText =
+      ci !== undefined
+        ? formatCiOutput(summary, ci, { title: parsed.values.title })
+        : undefined;
+    if (ciText !== undefined && ciOut !== undefined) {
+      await writeAtomic(ciOut, ciText);
+    }
+
     if (wantsJson) {
       io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
+    } else if (ciText !== undefined && ciOut === undefined) {
+      io.stdout(ciText);
     } else {
       io.stdout(`Report written to ${output}\n`);
     }

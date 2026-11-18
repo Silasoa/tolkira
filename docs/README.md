@@ -9,6 +9,7 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [JUnit XML](JUNIT-XML.md) — basic-mode mapping and limits.
 - [Playwright JSON](PLAYWRIGHT-JSON.md) — native adapter mapping, path roots and limits.
 - [Agent interface](AGENT-INTERFACE.md) — JSON summary schema and CLI contract.
+- [CI output](CI.md) — GitHub annotations, GitLab and step-summary output.
 - [Limitations](LIMITATIONS.md) — dated known gaps.
 - [Research](research/) — background notes; the [archive](research/archive/) is historical.
 - [Specs](../openspec/) — change contracts and spec history.

@@ -101,16 +101,26 @@ and is covered by real producer fixtures.
 - Schema version 2 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
   bump the version.
 
+### `src/ci`
+
+- Formats the summary as GitHub Actions workflow commands or deterministic
+  Markdown for GitLab and step summaries.
+- Pure and offline: no network, no report-model access and no schema change.
+- Caps annotations and lists while keeping the exact counts.
+
 ### `src/cli`
 
-- `tolkira <input...> [--out <file>] [--json] [--title <title>] [--meta key=value]`
-  `[--logo <file>] [--accent <hex>] [--max-size <mb>]`.
+- `tolkira <input...> [--out <file>] [--json] [--ci github|markdown]`
+  `[--ci-out <file>] [--title <title>] [--meta key=value] [--logo <file>]`
+  `[--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
   content; duplicate paths are resolved and read once.
 - Exit codes: 0 success, 1 parse/render error, 2 usage error.
 - Failing tests do not fail report generation; malformed input does.
 - Writes atomically through a temporary file in the output directory.
+- `--ci` may run without `--out`; `--ci-out` is a standalone atomic Markdown
+  file and is rejected for GitHub annotations.
 - Warns when the report exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 

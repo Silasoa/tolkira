@@ -24,19 +24,19 @@
 
 ## 3. Implement
 
-- [ ] 3.1 Add `src/ci.ts` pure formatters and the dispatcher.
-- [ ] 3.2 Add `--ci`/`--ci-out` parsing, validation and CLI flow.
-- [ ] 3.3 Write `--ci-out` atomically and reject input/logo/HTML overwrites.
-- [ ] 3.4 Keep `--json`, HTML, exit codes and the summary schema unchanged.
+- [x] 3.1 Add `src/ci.ts` pure formatters and the dispatcher.
+- [x] 3.2 Add `--ci`/`--ci-out` parsing, validation and CLI flow.
+- [x] 3.3 Write `--ci-out` atomically and reject input/logo/HTML overwrites.
+- [x] 3.4 Keep `--json`, HTML, exit codes and the summary schema unchanged.
 
 ## 4. Docs
 
-- [ ] 4.1 Add `docs/CI.md` with GitHub Actions and GitLab examples, the
+- [x] 4.1 Add `docs/CI.md` with GitHub Actions and GitLab examples, the
   stdout-only GitHub rule, `>> "$GITHUB_STEP_SUMMARY"` for Markdown, GHES notice
   limits and the unredacted-message warning.
-- [ ] 4.2 Update CLI usage, `README.md`, `docs/AGENT-INTERFACE.md`,
+- [x] 4.2 Update CLI usage, `README.md`, `docs/AGENT-INTERFACE.md`,
   `docs/README.md`, `llms.txt` and `package.json` `files`.
-- [ ] 4.3 Add the CI-output contract to the `cli-api` spec.
+- [x] 4.3 Add the CI-output contract to the `cli-api` spec.
 
 ## 5. Verification and review
 

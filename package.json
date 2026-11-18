@@ -65,6 +65,7 @@
     "LICENSE",
     "SECURITY.md",
     "docs/AGENT-INTERFACE.md",
+    "docs/CI.md",
     "docs/COMPATIBILITY.md",
     "docs/CUCUMBER-COMPATIBILITY.md",
     "docs/JUNIT-XML.md",
