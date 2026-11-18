@@ -1,0 +1,149 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [
+      {
+        "id": "chromium",
+        "name": "chromium",
+        "retries": 0,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": ["**/*.spec.ts"],
+        "timeout": 30000,
+        "metadata": {}
+      }
+    ]
+  },
+  "suites": [
+    {
+      "title": "sample-a.spec.ts",
+      "file": "sample-a.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "passes in a",
+          "ok": true,
+          "tags": [],
+          "id": "two-files-spec-a",
+          "file": "sample-a.spec.ts",
+          "line": 3,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 4,
+                  "retry": 0,
+                  "startTime": "2026-11-19T10:00:00.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "sample-b.spec.ts",
+      "file": "sample-b.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "passes in b",
+          "ok": true,
+          "tags": [],
+          "id": "two-files-spec-b-pass",
+          "file": "sample-b.spec.ts",
+          "line": 3,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 6,
+                  "retry": 0,
+                  "startTime": "2026-11-19T10:00:01.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "fails in b",
+          "ok": false,
+          "tags": [],
+          "id": "two-files-spec-b-fail",
+          "file": "sample-b.spec.ts",
+          "line": 7,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 2,
+                  "retry": 0,
+                  "startTime": "2026-11-19T10:00:02.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Expected b to pass",
+                    "location": {
+                      "file": "sample-b.spec.ts",
+                      "line": 9,
+                      "column": 5
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T10:00:00.000Z",
+    "duration": 12,
+    "expected": 2,
+    "unexpected": 1,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

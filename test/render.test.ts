@@ -530,13 +530,14 @@ describe('messages rendering', () => {
     expect(html).toContain('aria-label="Agent summary JSON"');
     expect(html).toContain('<p class="detailLabel">Steps</p>');
     expect(html).toContain('class="stepMarker');
-    expect(html).toContain('Cucumber environment');
+    expect(html).toContain('Run environment');
+    expect(html).not.toContain('Cucumber environment');
     expect(html).toContain('Producer');
     expect(html).toContain('id="view-analysis"');
     expect(html).toContain('data-view="report"');
     expect(html).toContain('data-view="analysis"');
     expect(html).toContain('1 feature');
-    expect(html).toContain('2 executed scenarios');
+    expect(html).toContain('2 scenarios with results');
     expect(html).toContain('Executed scenarios only.');
     expect(html).toContain('>1</b> passed');
     expect(html).toContain('>1</b> failed');
@@ -1207,7 +1208,7 @@ describe('feature overview and matrix', () => {
       'Undefined',
       'Pending',
       'Passed',
-      'Duration',
+      'Scenario time',
     ]);
 
     const names = [
@@ -1241,7 +1242,7 @@ describe('feature overview and matrix', () => {
     const headers = [...matrixTable(html).matchAll(/<th>(.*?)<\/th>/g)].map(
       (match) => match[1],
     );
-    expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Duration']);
+    expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Scenario time']);
   });
 });
 
@@ -2069,7 +2070,7 @@ describe('empty-run rendering', () => {
     expect(header).toContain(
       '<span aria-hidden="true">0 / 0</span><span class="sr">0 / 0 passed</span>',
     );
-    expect(html).toContain('<span>0 executed scenarios</span>');
+    expect(html).toContain('<span>0 scenarios with results</span>');
     expect(html).toContain('<strong>0%</strong>');
     expect(html).not.toContain('Needs attention');
 
@@ -2113,7 +2114,8 @@ describe('empty-run rendering', () => {
     expect(html).toContain('1 / 1');
     expect(html).not.toContain('1 of 2 passed');
     expect(html).toContain('<strong>100%</strong>');
-    expect(html).toContain('<span>1 executed scenario</span>');
+    expect(html).toContain('<span>1 scenario with results</span>');
+    expect(html).toContain('<span>1 unexecuted</span>');
     expect(html).not.toContain('Needs attention');
 
     const list = featureList(html);
@@ -2214,7 +2216,7 @@ describe('empty-run rendering', () => {
     const headers = [...matrix.matchAll(/<th>(.*?)<\/th>/g)].map(
       (match) => match[1],
     );
-    expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Duration']);
+    expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Scenario time']);
 
     const blankRow = matrix.slice(
       matrix.indexOf('All unexecuted'),

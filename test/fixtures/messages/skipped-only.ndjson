@@ -1,0 +1,8 @@
+{"gherkinDocument":{"feature":{"tags":[],"location":{"line":1,"column":1},"language":"en","keyword":"Feature","name":"Skipped only","description":"Every reported scenario is skipped.","children":[{"scenario":{"id":"skipped-scenario-one","tags":[],"location":{"line":4,"column":3},"keyword":"Scenario","name":"Skipped scenario","description":"","steps":[{"id":"skipped-step-one","location":{"line":5,"column":5},"keyword":"When ","keywordType":"Action","text":"the check is skipped"}],"examples":[]}}]},"comments":[],"uri":"samples/skipped-only/skipped-only.feature"}}
+{"pickle":{"id":"skipped-pickle-one","uri":"samples/skipped-only/skipped-only.feature","location":{"line":4,"column":3},"astNodeIds":["skipped-scenario-one"],"tags":[],"name":"Skipped scenario","language":"en","steps":[{"id":"skipped-pickle-step-one","text":"the check is skipped","type":"Action","astNodeIds":["skipped-step-one"]}]}}
+{"testRunStarted":{"id":"skipped-run","timestamp":{"seconds":0,"nanos":0}}}
+{"testCase":{"id":"skipped-test-case-one","pickleId":"skipped-pickle-one","testSteps":[{"id":"skipped-test-step-one","pickleStepId":"skipped-pickle-step-one"}]}}
+{"testCaseStarted":{"id":"skipped-started-one","testCaseId":"skipped-test-case-one","timestamp":{"seconds":0,"nanos":1000000},"attempt":0}}
+{"testStepFinished":{"testCaseStartedId":"skipped-started-one","testStepId":"skipped-test-step-one","testStepResult":{"status":"SKIPPED","duration":{"seconds":0,"nanos":1000000}},"timestamp":{"seconds":0,"nanos":2000000}}}
+{"testCaseFinished":{"testCaseStartedId":"skipped-started-one","timestamp":{"seconds":0,"nanos":3000000},"willBeRetried":false}}
+{"testRunFinished":{"testRunStartedId":"skipped-run","timestamp":{"seconds":0,"nanos":4000000},"success":true}}

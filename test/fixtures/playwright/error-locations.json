@@ -1,0 +1,282 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [
+      {
+        "id": "chromium",
+        "name": "chromium",
+        "retries": 0,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": ["**/*.spec.ts"],
+        "timeout": 30000,
+        "metadata": {}
+      }
+    ]
+  },
+  "suites": [
+    {
+      "title": "errors.spec.ts",
+      "file": "errors.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "expected failure ends with location",
+          "ok": true,
+          "tags": [],
+          "id": "errors-spec-expected-location",
+          "file": "errors.spec.ts",
+          "line": 4,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [{ "type": "fail" }],
+              "expectedStatus": "failed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 8,
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:00:00.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Error: expected failure\n  at tests/a.spec.ts:44:81",
+                    "location": {
+                      "file": "tests/a.spec.ts",
+                      "line": 44,
+                      "column": 81
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "message contains the location mid-sentence",
+          "ok": false,
+          "tags": [],
+          "id": "errors-spec-mid-sentence",
+          "file": "errors.spec.ts",
+          "line": 8,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 5,
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:00:01.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Click failed at tests/b.spec.ts:12:4 after a retry",
+                    "location": {
+                      "file": "tests/b.spec.ts",
+                      "line": 12,
+                      "column": 4
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "backslash message path",
+          "ok": false,
+          "tags": [],
+          "id": "errors-spec-backslash",
+          "file": "errors.spec.ts",
+          "line": 12,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 5,
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:00:02.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Failure in tests\\c.spec.ts:20:2 while loading",
+                    "location": {
+                      "file": "tests/c.spec.ts",
+                      "line": 20,
+                      "column": 2
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "two errors keep both locations",
+          "ok": false,
+          "tags": [],
+          "id": "errors-spec-two-errors",
+          "file": "errors.spec.ts",
+          "line": 16,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 9,
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:00:03.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "errors": [
+                    {
+                      "message": "First failure",
+                      "location": {
+                        "file": "tests/d.spec.ts",
+                        "line": 10,
+                        "column": 1
+                      }
+                    },
+                    {
+                      "message": "Second failure",
+                      "location": {
+                        "file": "tests/e.spec.ts",
+                        "line": 11,
+                        "column": 2
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "location without a column",
+          "ok": false,
+          "tags": [],
+          "id": "errors-spec-line-only",
+          "file": "errors.spec.ts",
+          "line": 20,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 4,
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:00:04.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Plain failure without a path",
+                    "location": {
+                      "file": "tests/f.spec.ts",
+                      "line": 30
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "line prefix is not the location",
+          "ok": false,
+          "tags": [],
+          "id": "errors-spec-line-prefix",
+          "file": "errors.spec.ts",
+          "line": 24,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 4,
+                  "retry": 0,
+                  "startTime": "2026-11-19T11:00:05.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Failure at tests/g.spec.ts:12 only",
+                    "location": {
+                      "file": "tests/g.spec.ts",
+                      "line": 1
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T11:00:00.000Z",
+    "duration": 35,
+    "expected": 1,
+    "unexpected": 5,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

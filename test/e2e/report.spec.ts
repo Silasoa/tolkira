@@ -35,6 +35,8 @@ const emptyFixture = messagesFixture('empty.ndjson');
 const emptyNoneFixture = messagesFixture('empty-none.ndjson');
 const emptyMixedFixture = messagesFixture('empty-mixed.ndjson');
 const emptyStatusesFixture = messagesFixture('empty-statuses.ndjson');
+const runRatioFixture = messagesFixture('run-ratio.ndjson');
+const twoFilesFixture = playwrightFixture('two-files.json');
 
 async function writeFailedTagsFixture(dir: string): Promise<string> {
   const input = path.join(dir, 'failed-tags.ndjson');
@@ -2204,8 +2206,10 @@ test('renders an empty run without outcomes or triage', async ({ page }) => {
       page.getByRole('tabpanel', { name: 'Report' }).locator('.healthTop .sr'),
     ).toHaveText('0 / 0 passed');
     await expect(
-      page.getByRole('tabpanel', { name: 'Report' }).getByText('0 executed scenarios'),
-    ).toBeVisible();
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .locator('.runHead .meta'),
+    ).toContainText('0 scenarios with results');
     await expect(page.locator('details.feature')).toHaveAttribute('open', '');
     await expect(
       page.getByRole('navigation', { name: 'Needs attention' }),
@@ -2242,8 +2246,15 @@ test('keeps a blank row searchable in a mixed run', async ({ page }) => {
         .getByText('1 / 1', { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole('tabpanel', { name: 'Report' }).getByText('1 executed scenario'),
-    ).toBeVisible();
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .locator('.runHead .meta'),
+    ).toContainText('1 scenario with results');
+    await expect(
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .locator('.runHead .meta'),
+    ).toContainText('1 unexecuted');
     const feature = page.locator('details.feature');
     await expect(feature).not.toHaveAttribute('open', '');
     await expect(
@@ -2293,7 +2304,12 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
       report.getByText('1 / 2', { exact: true }),
     ).toBeVisible();
     await expect(report.getByText('50%', { exact: true })).toBeVisible();
-    await expect(report.getByText('2 executed scenarios')).toBeVisible();
+    await expect(report.locator('.runHead .meta')).toContainText(
+      '2 scenarios with results',
+    );
+    await expect(report.locator('.runHead .meta')).toContainText(
+      '1 unexecuted',
+    );
     await expect(page.getByText('1 of 2 passed · 1 failed')).toBeVisible();
     await expect(page.locator('button.filter[data-filter-status="unknown"]')).toHaveCount(
       0,
@@ -2311,6 +2327,99 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
     await expect(blank).toBeVisible();
     await expect(blank.locator('.statusText')).toHaveCount(0);
     await expect(blank.locator('.statusCell .sr')).toHaveText('Not executed');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('computes the attempted scenario ratio for a run with a skip', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-run-ratio-e2e-'));
+  const output = path.join(dir, 'run-ratio.html');
+
+  try {
+    const code = await runCli(
+      [runRatioFixture, '--out', output, '--title', 'Run ratio'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const report = page.getByRole('tabpanel', { name: 'Report' });
+    const health = report.locator('.healthTop');
+
+    await expect(health.locator('strong')).toHaveText('50%');
+    await expect(health).toContainText('1 / 2 attempted');
+    await expect(health.locator('.sr')).toHaveText(
+      '1 of 2 attempted scenarios passed',
+    );
+    await expect(report.locator('.runHead .meta')).toContainText(
+      '3 scenarios with results',
+    );
+    await expect(report.locator('.runHead .meta')).not.toContainText(
+      'executed scenario',
+    );
+    await expect(report.locator('.featureCounts')).toHaveText(
+      '1 passed of 2 attempted · 1 failed, 1 skipped',
+    );
+    await expect(report.locator('.counts')).toContainText('1 skipped');
+    await expect(report.locator('.health .bar i.skipped')).toHaveCount(1);
+
+    await page.getByRole('tab', { name: 'Details' }).click();
+    const details = page.locator('#analysis-view');
+    await expect(details.locator('.healthTop strong')).toHaveText('50%');
+    await expect(details.locator('.healthTop')).toContainText('1 / 2 attempted');
+    await expect(details).toContainText(
+      'Pass rate counts attempted (non-skipped) scenarios; counts and bars include skipped.',
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('labels a feature from two spec files at every width', async ({ page }) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-two-files-e2e-'));
+  const output = path.join(dir, 'two-files.html');
+
+  try {
+    const code = await runCli(
+      [twoFilesFixture, '--out', output, '--title', 'Two files'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pathToFileURL(output).href);
+    const rowSource = page.locator('details.feature .featureUri').first();
+    const triageTitle = page
+      .getByRole('navigation', { name: 'Needs attention' })
+      .locator('a.triageFeature')
+      .first();
+
+    await expect(rowSource).toBeVisible();
+    await expect(rowSource).toHaveText('2 spec files');
+    await expect(triageTitle).toHaveAttribute('title', '2 spec files');
+    await expect(rowSource).not.toContainText('sample-a.spec.ts');
+    await expect(rowSource).not.toContainText('sample-b.spec.ts');
+
+    await page.getByRole('tab', { name: 'Details' }).click();
+    const matrixSource = page.locator('.matrixUri').first();
+    await expect(matrixSource).toBeVisible();
+    await expect(matrixSource).toHaveText('2 spec files');
+
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.getByRole('tab', { name: 'Report' }).click();
+    await expect(rowSource).toBeVisible();
+
+    for (const width of [768, 390, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.getByRole('tab', { name: 'Report' }).click();
+      await expect(rowSource).toBeHidden();
+      await page.getByRole('tab', { name: 'Details' }).click();
+      await expect(matrixSource).toBeVisible();
+      await expect(matrixSource).toHaveText('2 spec files');
+    }
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -2335,8 +2444,10 @@ test('renders the empty state when there are no scenarios', async ({ page }) => 
     ).toBeVisible();
     await expect(page.getByText('No scenarios in this report.')).toBeVisible();
     await expect(
-      page.getByRole('tabpanel', { name: 'Report' }).getByText('0 executed scenarios'),
-    ).toBeVisible();
+      page
+        .getByRole('tabpanel', { name: 'Report' })
+        .locator('.runHead .meta'),
+    ).toContainText('0 scenarios with results');
     await expect(page.locator('details.feature')).toHaveCount(0);
     await expect(
       page.getByRole('navigation', { name: 'Needs attention' }),

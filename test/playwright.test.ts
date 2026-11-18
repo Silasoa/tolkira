@@ -31,6 +31,9 @@ const stepsFixture = playwrightFixture('steps.json');
 const outputFixture = playwrightFixture('output.json');
 const errorsFixture = playwrightFixture('errors.json');
 const emptyFixture = playwrightFixture('empty.json');
+const skippedNoStepsFixture = playwrightFixture('skipped-no-steps.json');
+const twoFilesFixture = playwrightFixture('two-files.json');
+const errorLocationsFixture = playwrightFixture('error-locations.json');
 
 const tempDirs: string[] = [];
 
@@ -470,6 +473,104 @@ describe('Playwright JSON input', () => {
       passed: 1,
       skipped: 1,
     });
+  });
+
+  it('counts a statically skipped test without steps as a reported skip', async () => {
+    const summary = await summarizeReport(skippedNoStepsFixture);
+    const html = await renderReport(skippedNoStepsFixture, {
+      title: 'Skipped without steps',
+    });
+
+    const skipped = scenario(summary, 'skips without results');
+    const passed = scenario(summary, 'passes');
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(skipped).toMatchObject({
+      status: 'skipped',
+      executed: true,
+      uri: 'skip.spec.ts',
+    });
+    expect(skipped.steps).toHaveLength(1);
+    expect(skipped.steps[0]?.status).toBe('skipped');
+    expect(Object.keys(skipped).sort()).toEqual(Object.keys(passed).sort());
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 3,
+      passed: 1,
+      failed: 1,
+      skipped: 1,
+    });
+    expect(html).toContain('skips without results');
+    expect(html).toContain('>1</b> skipped');
+  });
+
+  it('labels a feature sourced from two spec files with a file count', async () => {
+    const html = await renderReport(twoFilesFixture, { title: 'Two files' });
+    const featureLabels = [...html.matchAll(/<span class="featureUri">(.*?)<\/span>/g)].map(
+      (match) => match[1],
+    );
+    const matrixLabels = [...html.matchAll(/<span class="matrixUri">(.*?)<\/span>/g)].map(
+      (match) => match[1],
+    );
+    const triageTitles = [
+      ...html.matchAll(/<a class="triageFeature"[^>]*title="([^"]*)"/g),
+    ].map((match) => match[1]);
+
+    expect(featureLabels).toEqual(['2 spec files']);
+    expect(matrixLabels).toEqual(['2 spec files']);
+    expect(triageTitles).toEqual(['2 spec files']);
+    expect(featureLabels.join(' ')).not.toContain('sample-a.spec.ts');
+    expect(featureLabels.join(' ')).not.toContain('sample-b.spec.ts');
+    expect(matrixLabels.join(' ')).not.toContain('sample-a.spec.ts');
+    expect(matrixLabels.join(' ')).not.toContain('sample-b.spec.ts');
+    expect(triageTitles.join(' ')).not.toContain('sample-a.spec.ts');
+    expect(triageTitles.join(' ')).not.toContain('sample-b.spec.ts');
+
+    const oneFileHtml = await renderReport(realRun, { title: 'One file' });
+    const oneFileLabels = [
+      ...oneFileHtml.matchAll(/<span class="featureUri">(.*?)<\/span>/g),
+    ].map((match) => match[1]);
+    expect(oneFileLabels).toHaveLength(2);
+    expect(oneFileLabels.every((label) => label === 'sample.spec.ts')).toBe(
+      true,
+    );
+  });
+
+  it('includes each Playwright error location at most once', async () => {
+    const summary = await summarizeReport(errorLocationsFixture);
+    const model = buildReportModel(await loadEnvelopes(errorLocationsFixture));
+    const description = (name: string): string =>
+      model.scenarios.find((entry) => entry.name === name)?.description ?? '';
+    const messages = (name: string): string =>
+      (summary.scenarios.find((entry) => entry.name === name)?.steps ?? [])
+        .map((step) => step.message ?? '')
+        .join('\n');
+    const normalized = (text: string): string => text.replace(/\\/g, '/');
+    const occurrences = (text: string, token: string): number =>
+      text.split(token).length - 1;
+
+    const expectedFailure = normalized(
+      description('expected failure ends with location'),
+    );
+    expect(occurrences(expectedFailure, 'at tests/a.spec.ts:44:81')).toBe(1);
+
+    const midSentence = normalized(
+      messages('message contains the location mid-sentence'),
+    );
+    expect(occurrences(midSentence, 'tests/b.spec.ts:12:4')).toBe(1);
+
+    const backslash = normalized(messages('backslash message path'));
+    expect(occurrences(backslash, 'tests/c.spec.ts:20:2')).toBe(1);
+
+    const twoErrors = normalized(messages('two errors keep both locations'));
+    expect(occurrences(twoErrors, 'at tests/d.spec.ts:10:1')).toBe(1);
+    expect(occurrences(twoErrors, 'at tests/e.spec.ts:11:2')).toBe(1);
+
+    const noColumn = normalized(messages('location without a column'));
+    expect(occurrences(noColumn, 'at tests/f.spec.ts:30')).toBe(1);
+
+    const linePrefix = normalized(messages('line prefix is not the location'));
+    expect(linePrefix).toContain('tests/g.spec.ts:12');
+    expect(occurrences(linePrefix, 'at tests/g.spec.ts:1')).toBe(1);
   });
 
   it('uses step errors for step status and keeps other steps passed', async () => {
