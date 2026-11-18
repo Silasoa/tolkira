@@ -1,0 +1,62 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": []
+  },
+  "suites": [
+    {
+      "title": "broken.spec.ts",
+      "file": "broken.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "broken attachment",
+          "tags": [],
+          "id": "broken-attachment",
+          "file": "broken.spec.ts",
+          "line": 1,
+          "column": 1,
+          "tests": [
+            {
+              "projectName": "chromium",
+              "projectId": "chromium",
+              "status": "expected",
+              "expectedStatus": "passed",
+              "annotations": [],
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:26:03.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "broken",
+                      "contentType": 42,
+                      "body": "eA=="
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T18:26:03.000Z",
+    "duration": 1,
+    "expected": 1,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [
+      {
+        "id": "chromium",
+        "name": "chromium",
+        "retries": 0,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": ["**/*.spec.ts"],
+        "timeout": 30000,
+        "metadata": {}
+      }
+    ]
+  },
+  "suites": [
+    {
+      "title": "checkout.spec.ts @payments",
+      "file": "checkout.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "cart @cart",
+          "file": "checkout.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "payment @slow",
+              "file": "checkout.spec.ts",
+              "line": 8,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "pays @smoke",
+                  "ok": true,
+                  "tags": ["payments", "cart", "slow", "smoke"],
+                  "id": "nested-describes-spec-1",
+                  "file": "checkout.spec.ts",
+                  "line": 10,
+                  "column": 3,
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "issue",
+                          "description": "TOL-9"
+                        }
+                      ],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "status": "expected",
+                      "results": [
+                        {
+                          "status": "passed",
+                          "duration": 12,
+                          "retry": 0,
+                          "startTime": "2026-11-18T18:20:00.000Z",
+                          "stdout": [],
+                          "stderr": [],
+                          "annotations": [],
+                          "attachments": [],
+                          "steps": [
+                            {
+                              "title": "open cart",
+                              "duration": 5,
+                              "steps": [
+                                {
+                                  "title": "click pay",
+                                  "subtitle": "card",
+                                  "duration": 4
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "profile.spec.ts",
+      "file": "profile.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "profile loads",
+          "ok": true,
+          "tags": [],
+          "id": "nested-describes-spec-2",
+          "file": "profile.spec.ts",
+          "line": 2,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 3,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:20:01.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T18:20:00.000Z",
+    "duration": 15,
+    "expected": 2,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

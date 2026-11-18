@@ -1,0 +1,18 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": []
+  },
+  "suites": [],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T18:25:00.000Z",
+    "duration": 0,
+    "expected": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

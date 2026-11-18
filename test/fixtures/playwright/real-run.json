@@ -1,0 +1,828 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [
+      {
+        "id": "alpha",
+        "name": "alpha",
+        "retries": 1,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000,
+        "metadata": {}
+      },
+      {
+        "id": "beta",
+        "name": "beta",
+        "retries": 0,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000,
+        "metadata": {}
+      }
+    ]
+  },
+  "suites": [
+    {
+      "title": "sample.spec.ts",
+      "file": "sample.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "checkout @checkout",
+          "file": "sample.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "passes with steps @smoke",
+              "ok": true,
+              "tags": [
+                "checkout",
+                "smoke"
+              ],
+              "id": "b92766bcf73bd5c029a8-fbcd45f1de11d75f8ba4",
+              "file": "sample.spec.ts",
+              "line": 5,
+              "column": 3,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "issue",
+                      "description": "TOL-1"
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "expected",
+                  "results": [
+                    {
+                      "status": "passed",
+                      "duration": 8,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:18.953Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "note",
+                          "contentType": "text/plain",
+                          "body": "aGVsbG8gZnJvbSBwbGF5d3JpZ2h0"
+                        },
+                        {
+                          "name": "note-file",
+                          "contentType": "text/plain",
+                          "path": "attachments/note-file.txt"
+                        }
+                      ],
+                      "steps": [
+                        {
+                          "title": "outer step",
+                          "duration": 3,
+                          "steps": [
+                            {
+                              "title": "inner step",
+                              "duration": 2
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "issue",
+                      "description": "TOL-1"
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "expected",
+                  "results": [
+                    {
+                      "status": "passed",
+                      "duration": 8,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:21.847Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "note",
+                          "contentType": "text/plain",
+                          "body": "aGVsbG8gZnJvbSBwbGF5d3JpZ2h0"
+                        },
+                        {
+                          "name": "note-file",
+                          "contentType": "text/plain",
+                          "path": "attachments/note-file.txt"
+                        }
+                      ],
+                      "steps": [
+                        {
+                          "title": "outer step",
+                          "duration": 3,
+                          "steps": [
+                            {
+                              "title": "inner step",
+                              "duration": 2
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "fails",
+              "ok": false,
+              "tags": [
+                "checkout"
+              ],
+              "id": "b92766bcf73bd5c029a8-56b611370d0feff09ce6",
+              "file": "sample.spec.ts",
+              "line": 22,
+              "column": 3,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "status": "failed",
+                      "duration": 3,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:18.981Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "shot",
+                          "contentType": "image/png",
+                          "body": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lK3Q6wAAAABJRU5ErkJggg=="
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 2\nReceived: 1",
+                        "location": {
+                          "file": "sample.spec.ts",
+                          "line": 30,
+                          "column": 15
+                        },
+                        "snippet": "  28 |       contentType: 'image/png',\n  29 |     });\n> 30 |     expect(1).toBe(2);\n     |               ^\n  31 |   });\n  32 |\n  33 |   test.skip('skipped', async () => {});"
+                      },
+                      "errorLocation": {
+                        "file": "sample.spec.ts",
+                        "line": 30,
+                        "column": 15
+                      }
+                    },
+                    {
+                      "status": "failed",
+                      "duration": 6,
+                      "retry": 1,
+                      "startTime": "2026-11-18T18:12:19.296Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "shot",
+                          "contentType": "image/png",
+                          "body": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lK3Q6wAAAABJRU5ErkJggg=="
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 2\nReceived: 1",
+                        "location": {
+                          "file": "sample.spec.ts",
+                          "line": 30,
+                          "column": 15
+                        },
+                        "snippet": "  28 |       contentType: 'image/png',\n  29 |     });\n> 30 |     expect(1).toBe(2);\n     |               ^\n  31 |   });\n  32 |\n  33 |   test.skip('skipped', async () => {});"
+                      },
+                      "errorLocation": {
+                        "file": "sample.spec.ts",
+                        "line": 30,
+                        "column": 15
+                      }
+                    }
+                  ]
+                },
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "status": "failed",
+                      "duration": 2,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:21.873Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "shot",
+                          "contentType": "image/png",
+                          "body": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lK3Q6wAAAABJRU5ErkJggg=="
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 2\nReceived: 1",
+                        "location": {
+                          "file": "sample.spec.ts",
+                          "line": 30,
+                          "column": 15
+                        },
+                        "snippet": "  28 |       contentType: 'image/png',\n  29 |     });\n> 30 |     expect(1).toBe(2);\n     |               ^\n  31 |   });\n  32 |\n  33 |   test.skip('skipped', async () => {});"
+                      },
+                      "errorLocation": {
+                        "file": "sample.spec.ts",
+                        "line": 30,
+                        "column": 15
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "skipped",
+              "ok": true,
+              "tags": [
+                "checkout"
+              ],
+              "id": "b92766bcf73bd5c029a8-12bc8a260fb962fbf2bf",
+              "file": "sample.spec.ts",
+              "line": 33,
+              "column": 8,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "sample.spec.ts",
+                        "line": 33,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "skipped",
+                  "results": [
+                    {
+                      "status": "skipped",
+                      "duration": 0,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:19.656Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ]
+                },
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "sample.spec.ts",
+                        "line": 33,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "skipped",
+                  "results": [
+                    {
+                      "status": "skipped",
+                      "duration": 0,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:22.191Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "flaky",
+              "ok": true,
+              "tags": [
+                "checkout"
+              ],
+              "id": "b92766bcf73bd5c029a8-6c5ad8575bcd5643b6f6",
+              "file": "sample.spec.ts",
+              "line": 35,
+              "column": 3,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "flaky",
+                  "results": [
+                    {
+                      "status": "failed",
+                      "duration": 2,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:19.657Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Error: first attempt",
+                        "location": {
+                          "file": "sample.spec.ts",
+                          "line": 36,
+                          "column": 37
+                        },
+                        "snippet": "  34 |\n  35 |   test('flaky', async ({}, testInfo) => {\n> 36 |     if (testInfo.retry === 0) throw new Error('first attempt');\n     |                                     ^\n  37 |   });\n  38 |\n  39 |   test('expected failure', async () => {"
+                      },
+                      "errorLocation": {
+                        "file": "sample.spec.ts",
+                        "line": 36,
+                        "column": 37
+                      }
+                    },
+                    {
+                      "status": "passed",
+                      "duration": 1,
+                      "retry": 1,
+                      "startTime": "2026-11-18T18:12:20.001Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ]
+                },
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "status": "failed",
+                      "duration": 1,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:22.191Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Error: first attempt",
+                        "location": {
+                          "file": "sample.spec.ts",
+                          "line": 36,
+                          "column": 37
+                        },
+                        "snippet": "  34 |\n  35 |   test('flaky', async ({}, testInfo) => {\n> 36 |     if (testInfo.retry === 0) throw new Error('first attempt');\n     |                                     ^\n  37 |   });\n  38 |\n  39 |   test('expected failure', async () => {"
+                      },
+                      "errorLocation": {
+                        "file": "sample.spec.ts",
+                        "line": 36,
+                        "column": 37
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "expected failure",
+              "ok": true,
+              "tags": [
+                "checkout"
+              ],
+              "id": "b92766bcf73bd5c029a8-6bcc93de830ab7f1211f",
+              "file": "sample.spec.ts",
+              "line": 39,
+              "column": 3,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "location": {
+                        "file": "sample.spec.ts",
+                        "line": 40,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "failed",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "expected",
+                  "results": [
+                    {
+                      "status": "failed",
+                      "duration": 5,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:20.025Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 2\nReceived: 1",
+                        "location": {
+                          "file": "sample.spec.ts",
+                          "line": 41,
+                          "column": 15
+                        },
+                        "snippet": "  39 |   test('expected failure', async () => {\n  40 |     test.fail();\n> 41 |     expect(1).toBe(2);\n     |               ^\n  42 |   });\n  43 |\n  44 |   test('unexpected pass', async () => {"
+                      },
+                      "errorLocation": {
+                        "file": "sample.spec.ts",
+                        "line": 41,
+                        "column": 15
+                      }
+                    }
+                  ]
+                },
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "location": {
+                        "file": "sample.spec.ts",
+                        "line": 40,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "failed",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "expected",
+                  "results": [
+                    {
+                      "status": "failed",
+                      "duration": 5,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:22.519Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 2\nReceived: 1",
+                        "location": {
+                          "file": "sample.spec.ts",
+                          "line": 41,
+                          "column": 15
+                        },
+                        "snippet": "  39 |   test('expected failure', async () => {\n  40 |     test.fail();\n> 41 |     expect(1).toBe(2);\n     |               ^\n  42 |   });\n  43 |\n  44 |   test('unexpected pass', async () => {"
+                      },
+                      "errorLocation": {
+                        "file": "sample.spec.ts",
+                        "line": 41,
+                        "column": 15
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "unexpected pass",
+              "ok": false,
+              "tags": [
+                "checkout"
+              ],
+              "id": "b92766bcf73bd5c029a8-cc8a3a326db37cd8477e",
+              "file": "sample.spec.ts",
+              "line": 44,
+              "column": 3,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "location": {
+                        "file": "sample.spec.ts",
+                        "line": 45,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "failed",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "status": "passed",
+                      "duration": 1,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:20.042Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    },
+                    {
+                      "status": "passed",
+                      "duration": 4,
+                      "retry": 1,
+                      "startTime": "2026-11-18T18:12:20.394Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ]
+                },
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "location": {
+                        "file": "sample.spec.ts",
+                        "line": 45,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "failed",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "status": "passed",
+                      "duration": 1,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:22.545Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "timed out",
+              "ok": false,
+              "tags": [
+                "checkout"
+              ],
+              "id": "b92766bcf73bd5c029a8-9e26a13467146791678a",
+              "file": "sample.spec.ts",
+              "line": 49,
+              "column": 3,
+              "tests": [
+                {
+                  "timeout": 50,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "status": "timedOut",
+                      "duration": 59,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:20.738Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Test timeout of 50ms exceeded."
+                      }
+                    },
+                    {
+                      "status": "timedOut",
+                      "duration": 60,
+                      "retry": 1,
+                      "startTime": "2026-11-18T18:12:21.129Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Test timeout of 50ms exceeded."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "timeout": 50,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "unexpected",
+                  "results": [
+                    {
+                      "status": "timedOut",
+                      "duration": 61,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:22.865Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "attachments/error-context.md"
+                        }
+                      ],
+                      "error": {
+                        "message": "Test timeout of 50ms exceeded."
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "profile",
+          "file": "sample.spec.ts",
+          "line": 55,
+          "column": 6,
+          "specs": [
+            {
+              "title": "profile loads",
+              "ok": true,
+              "tags": [],
+              "id": "b92766bcf73bd5c029a8-e3590e2bffa211761a65",
+              "file": "sample.spec.ts",
+              "line": 56,
+              "column": 3,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "alpha",
+                  "projectName": "alpha",
+                  "status": "expected",
+                  "results": [
+                    {
+                      "status": "passed",
+                      "duration": 4,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:21.518Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ]
+                },
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "beta",
+                  "projectName": "beta",
+                  "status": "expected",
+                  "results": [
+                    {
+                      "status": "passed",
+                      "duration": 4,
+                      "retry": 0,
+                      "startTime": "2026-11-18T18:12:23.274Z",
+                      "stdout": [],
+                      "stderr": [],
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T18:12:18.635Z",
+    "duration": 4676.419000000001,
+    "expected": 6,
+    "skipped": 2,
+    "unexpected": 7,
+    "flaky": 1
+  }
+}

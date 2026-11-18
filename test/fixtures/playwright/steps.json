@@ -1,0 +1,139 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [
+      {
+        "id": "chromium",
+        "name": "chromium",
+        "retries": 0,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": ["**/*.spec.ts"],
+        "timeout": 30000,
+        "metadata": {}
+      }
+    ]
+  },
+  "suites": [
+    {
+      "title": "steps.spec.ts",
+      "file": "steps.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "one step failed",
+          "ok": false,
+          "tags": [],
+          "id": "steps-spec-one-failed",
+          "file": "steps.spec.ts",
+          "line": 4,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 6,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:22:00.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Error: click failed",
+                    "location": {
+                      "file": "steps.spec.ts",
+                      "line": 8,
+                      "column": 5
+                    }
+                  },
+                  "steps": [
+                    {
+                      "title": "setup",
+                      "duration": 1
+                    },
+                    {
+                      "title": "click submit",
+                      "subtitle": "button",
+                      "duration": 2,
+                      "error": {
+                        "message": "Error: click failed",
+                        "location": {
+                          "file": "steps.spec.ts",
+                          "line": 8,
+                          "column": 5
+                        }
+                      }
+                    },
+                    {
+                      "title": "cleanup",
+                      "duration": 3
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "skipped with steps",
+          "ok": true,
+          "tags": [],
+          "id": "steps-spec-skipped",
+          "file": "steps.spec.ts",
+          "line": 14,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "skipped",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "skipped",
+              "results": [
+                {
+                  "status": "skipped",
+                  "duration": 0,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:22:01.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "steps": [
+                    {
+                      "title": "not run",
+                      "duration": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T18:22:00.000Z",
+    "duration": 6,
+    "expected": 0,
+    "unexpected": 1,
+    "flaky": 0,
+    "skipped": 1
+  }
+}

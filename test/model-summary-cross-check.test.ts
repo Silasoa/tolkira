@@ -4,7 +4,9 @@ import type { Envelope } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
 import { parseJUnitXml } from '../src/input/junit.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
+import { loadEnvelopes } from '../src/input/load.js';
 import { parseMessages } from '../src/input/messages.js';
+import { playwrightFixture } from './fixtures.js';
 import { buildReportModel, type ReportModel } from '../src/report/model.js';
 import { type ReportStatus, statusSeverity, worstExecutedStatus } from '../src/report/status.js';
 import { displayUri, summarizeEnvelopes, type ReportSummary } from '../src/summary.js';
@@ -72,6 +74,14 @@ const cases: CrossCheckCase[] = [
         await readFile(fixture('junit/basic.xml'), 'utf8'),
         'basic.xml',
       ),
+  },
+  {
+    name: 'playwright/real-run',
+    load: async () => loadEnvelopes(playwrightFixture('real-run.json')),
+  },
+  {
+    name: 'playwright/statuses',
+    load: async () => loadEnvelopes(playwrightFixture('statuses.json')),
   },
 ];
 

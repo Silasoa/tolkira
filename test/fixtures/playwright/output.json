@@ -1,0 +1,85 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [
+      {
+        "id": "chromium",
+        "name": "chromium",
+        "retries": 0,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": ["**/*.spec.ts"],
+        "timeout": 30000,
+        "metadata": {}
+      }
+    ]
+  },
+  "suites": [
+    {
+      "title": "output.spec.ts",
+      "file": "output.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "logs output",
+          "ok": true,
+          "tags": ["logs"],
+          "id": "output-spec-logs",
+          "file": "output.spec.ts",
+          "line": 4,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 4,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:23:00.000Z",
+                  "stdout": [
+                    {
+                      "text": "stdout line\n"
+                    },
+                    {
+                      "buffer": "PGI+YnVmZmVyIG91dDwvYj4="
+                    }
+                  ],
+                  "stderr": [
+                    {
+                      "text": "stderr line\n"
+                    },
+                    {
+                      "buffer": "PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="
+                    }
+                  ],
+                  "annotations": [],
+                  "attachments": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T18:23:00.000Z",
+    "duration": 4,
+    "expected": 1,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

@@ -17,3 +17,7 @@ export function legacyFixture(name: string): string {
 export function junitFixture(name: string): string {
   return fixturePath('junit', name);
 }
+
+export function playwrightFixture(name: string): string {
+  return fixturePath('playwright', name);
+}

@@ -7,6 +7,8 @@ const JUNIT =
   '<?xml version="1.0"?><testsuites><testsuite name="suite"><testcase name="case"/></testsuite></testsuites>';
 const MESSAGES =
   '{"meta":{"protocolVersion":"1","implementation":{},"runtime":{},"os":{},"cpu":{}}}';
+const PLAYWRIGHT =
+  '{"config":{"version":"1.65.0"},"suites":[],"stats":{"expected":0}}';
 
 interface Case {
   case: string;
@@ -116,6 +118,64 @@ describe('input detection decision table', () => {
         file: 'report.xml',
         explicit: false,
         kind: 'skip',
+      },
+      {
+        case: 'selects Playwright for a Playwright JSON report',
+        content: PLAYWRIGHT,
+        file: 'report.json',
+        explicit: true,
+        kind: 'playwright',
+      },
+      {
+        case: 'accepts Playwright JSON with a BOM and leading whitespace',
+        content: `\uFEFF  \n${PLAYWRIGHT}`,
+        file: 'report.json',
+        explicit: true,
+        kind: 'playwright',
+      },
+      {
+        case: 'selects Playwright for run-level errors without suites',
+        content:
+          '{"config":{},"errors":[{"message":"no tests"}],"stats":{"expected":0}}',
+        file: 'report.json',
+        explicit: true,
+        kind: 'playwright',
+      },
+      {
+        case: 'routes a non-array suites value to Playwright validation',
+        content:
+          '{"config":{},"suites":{},"stats":{"expected":0},"errors":[]}',
+        file: 'report.json',
+        explicit: true,
+        kind: 'playwright',
+      },
+      {
+        case: 'rejects a suites-only object without stats as generic JSON',
+        content: '{"suites":[]}',
+        file: 'report.json',
+        explicit: true,
+        kind: 'json-validation',
+      },
+      {
+        case: 'rejects Playwright-like JSON without stats as generic JSON',
+        content: '{"config":{},"suites":[]}',
+        file: 'report.json',
+        explicit: true,
+        kind: 'json-validation',
+      },
+      {
+        case: 'rejects Playwright-like JSON with a non-object config',
+        content: '{"config":[],"suites":[],"stats":{}}',
+        file: 'report.json',
+        explicit: true,
+        kind: 'json-validation',
+      },
+      {
+        case: 'rejects malformed Playwright JSON',
+        content: '{"config":{',
+        file: 'report.json',
+        explicit: true,
+        kind: 'json-validation',
       },
       {
         case: 'does not treat a multi-key JSON object as Messages',
@@ -318,6 +378,28 @@ describe('input detection decision table', () => {
         file: 'report.ndjson',
         explicit: true,
         kind: 'json-validation',
+      },
+      {
+        case: 'Playwright content wins over a Messages extension',
+        content: PLAYWRIGHT,
+        file: 'report.ndjson',
+        explicit: true,
+        kind: 'playwright',
+      },
+      {
+        case: 'Playwright content wins over an XML extension',
+        content: PLAYWRIGHT,
+        file: 'report.xml',
+        explicit: true,
+        kind: 'playwright',
+      },
+      {
+        case: 'legacy content wins over a Playwright-looking object',
+        content:
+          '[{"name":"A","elements":[],"config":{},"stats":{},"suites":[]}]',
+        file: 'report.json',
+        explicit: true,
+        kind: 'legacy',
       },
     ];
 

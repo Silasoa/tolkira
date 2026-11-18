@@ -1,0 +1,219 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [
+      {
+        "id": "chromium",
+        "name": "chromium",
+        "retries": 0,
+        "testDir": "tests",
+        "outputDir": "test-results",
+        "repeatEach": 1,
+        "testIgnore": [],
+        "testMatch": ["**/*.spec.ts"],
+        "timeout": 30000,
+        "metadata": {}
+      }
+    ]
+  },
+  "suites": [
+    {
+      "title": "statuses.spec.ts",
+      "file": "statuses.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "interrupted",
+          "ok": false,
+          "tags": [],
+          "id": "statuses-spec-interrupted",
+          "file": "statuses.spec.ts",
+          "line": 4,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "interrupted",
+                  "duration": 7,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:21:00.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Test interrupted by SIGINT",
+                    "location": {
+                      "file": "statuses.spec.ts",
+                      "line": 6,
+                      "column": 1
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "skipped without results",
+          "ok": true,
+          "tags": [],
+          "id": "statuses-spec-skipped-no-results",
+          "file": "statuses.spec.ts",
+          "line": 10,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "covered by a manual check"
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "skipped",
+              "results": []
+            }
+          ]
+        },
+        {
+          "title": "unexecuted without results",
+          "ok": true,
+          "tags": [],
+          "id": "statuses-spec-unexecuted-no-results",
+          "file": "statuses.spec.ts",
+          "line": 14,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": []
+            }
+          ]
+        },
+        {
+          "title": "failed without a step error",
+          "ok": false,
+          "tags": [],
+          "id": "statuses-spec-failed-no-step-error",
+          "file": "statuses.spec.ts",
+          "line": 18,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 9,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:21:01.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Error: assertion failed",
+                    "location": {
+                      "file": "statuses.spec.ts",
+                      "line": 20,
+                      "column": 5
+                    }
+                  },
+                  "steps": [
+                    {
+                      "title": "call the API",
+                      "duration": 9
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "expected timeout",
+          "ok": true,
+          "tags": ["slow"],
+          "id": "statuses-spec-expected-timeout",
+          "file": "statuses.spec.ts",
+          "line": 24,
+          "column": 3,
+          "tests": [
+            {
+              "timeout": 50,
+              "annotations": [
+                {
+                  "type": "fail",
+                  "description": "known slow path"
+                }
+              ],
+              "expectedStatus": "failed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "timedOut",
+                  "duration": 50,
+                  "retry": 0,
+                  "startTime": "2026-11-18T18:21:02.000Z",
+                  "stdout": [],
+                  "stderr": [],
+                  "annotations": [],
+                  "attachments": [],
+                  "error": {
+                    "message": "Test timeout of 50ms exceeded.",
+                    "location": {
+                      "file": "statuses.spec.ts",
+                      "line": 26,
+                      "column": 5
+                    }
+                  },
+                  "steps": [
+                    {
+                      "title": "wait for the slow path",
+                      "duration": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-18T18:21:00.000Z",
+    "duration": 66,
+    "expected": 2,
+    "unexpected": 2,
+    "flaky": 0,
+    "skipped": 1
+  }
+}

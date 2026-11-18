@@ -1,0 +1,717 @@
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import { runCli } from '../src/cli.js';
+import { renderReport, summarizeReport } from '../src/index.js';
+import { loadEnvelopes, loadInputs } from '../src/input/load.js';
+import { buildReportModel } from '../src/report/model.js';
+import type { ReportSummary, SummaryScenario } from '../src/summary.js';
+import {
+  junitFixture,
+  legacyFixture,
+  messagesFixture,
+  playwrightFixture,
+} from './fixtures.js';
+
+const realRun = playwrightFixture('real-run.json');
+const nestedDescribes = playwrightFixture('nested-describes.json');
+const statuses = playwrightFixture('statuses.json');
+const stepsFixture = playwrightFixture('steps.json');
+const outputFixture = playwrightFixture('output.json');
+const errorsFixture = playwrightFixture('errors.json');
+const emptyFixture = playwrightFixture('empty.json');
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
+});
+
+async function tempDir(prefix = 'tolkira-playwright-'): Promise<string> {
+  const dir = await mkdtemp(path.join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+
+function scenario(
+  summary: ReportSummary,
+  name: string,
+  feature?: string,
+): SummaryScenario {
+  const found = summary.scenarios.find(
+    (entry) =>
+      entry.name === name && (feature === undefined || entry.feature === feature),
+  );
+  if (!found) {
+    throw new Error(
+      `missing scenario ${JSON.stringify(name)}${
+        feature ? ` in feature ${JSON.stringify(feature)}` : ''
+      }`,
+    );
+  }
+  return found;
+}
+
+function reportWithAttachments(attachments: unknown[]): unknown {
+  return {
+    config: {
+      version: '1.65.0',
+      configFile: 'playwright.config.ts',
+      rootDir: 'tests',
+      projects: [{ id: 'chromium', name: 'chromium', retries: 0 }],
+    },
+    suites: [
+      {
+        title: 'paths.spec.ts',
+        file: 'paths.spec.ts',
+        line: 0,
+        column: 0,
+        specs: [
+          {
+            title: 'uses attachments',
+            ok: true,
+            tags: [],
+            id: 'paths-spec-1',
+            file: 'paths.spec.ts',
+            line: 1,
+            column: 1,
+            tests: [
+              {
+                timeout: 30000,
+                annotations: [],
+                expectedStatus: 'passed',
+                projectId: 'chromium',
+                projectName: 'chromium',
+                status: 'expected',
+                results: [
+                  {
+                    status: 'passed',
+                    duration: 1,
+                    retry: 0,
+                    startTime: '2026-11-18T18:30:00.000Z',
+                    stdout: [],
+                    stderr: [],
+                    annotations: [],
+                    attachments,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    errors: [],
+    stats: {
+      startTime: '2026-11-18T18:30:00.000Z',
+      duration: 1,
+      expected: 1,
+      unexpected: 0,
+      flaky: 0,
+      skipped: 0,
+    },
+  };
+}
+
+async function writeReport(dir: string, value: unknown): Promise<string> {
+  const file = path.join(dir, 'report.json');
+  await writeFile(file, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  return file;
+}
+
+describe('Playwright JSON input', () => {
+  it('maps projects, hierarchy, tags, statuses and attempts from a real run', async () => {
+    const summary = await summarizeReport(realRun);
+    const model = buildReportModel(await loadEnvelopes(realRun));
+
+    expect(summary.counts.features).toBe(2);
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 16,
+      passed: 7,
+      failed: 7,
+      skipped: 2,
+    });
+
+    const features = new Set(summary.scenarios.map((entry) => entry.feature));
+    expect([...features].sort()).toEqual(['alpha', 'beta']);
+    expect(
+      summary.scenarios.filter((entry) => entry.feature === 'alpha'),
+    ).toHaveLength(8);
+    expect(
+      summary.scenarios.filter((entry) => entry.feature === 'beta'),
+    ).toHaveLength(8);
+    expect(
+      summary.scenarios.every((entry) => !entry.name.includes('@')),
+    ).toBe(true);
+
+    const passes = scenario(summary, 'passes with steps', 'alpha');
+    expect(passes).toMatchObject({
+      status: 'passed',
+      attempt: 0,
+      uri: 'sample.spec.ts',
+    });
+    expect(passes.durationMs).toBe(5);
+    expect(passes.tags).toEqual(
+      expect.arrayContaining(['@checkout', '@smoke']),
+    );
+    expect(passes.steps.map((step) => step.durationMs)).toEqual([3, 2]);
+    expect(passes.steps.map((step) => step.status)).toEqual([
+      'passed',
+      'passed',
+    ]);
+    expect(passes.steps[0]?.text).toContain('outer step');
+    expect(passes.steps[1]?.text).toContain('inner step');
+    expect(passes.steps[1]?.text).toContain('›');
+
+    const modelPasses = model.scenarios.find(
+      (entry) => entry.name === 'passes with steps' && entry.featureName === 'alpha',
+    );
+    if (!modelPasses) throw new Error('missing model scenario passes with steps');
+    const ruleText = [
+      modelPasses.ruleName,
+      modelPasses.rule?.name,
+      modelPasses.rule?.description,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    expect(ruleText).toContain('sample.spec.ts');
+    expect(ruleText).toContain('checkout');
+    expect(ruleText).not.toContain('@checkout');
+    expect(modelPasses.description).toContain('Annotation: issue - TOL-1');
+
+    const fails = scenario(summary, 'fails', 'alpha');
+    expect(fails.status).toBe('failed');
+    expect(fails.attempt).toBe(1);
+    const failure = fails.steps.find((step) => step.status === 'failed');
+    expect(failure?.message).toContain('Expected: 2');
+    expect(failure?.message).toContain('Received: 1');
+    expect(failure?.message).toContain('sample.spec.ts:30');
+
+    const expectedFailure = scenario(summary, 'expected failure', 'alpha');
+    expect(expectedFailure.status).toBe('passed');
+    expect(expectedFailure.tags).toEqual(
+      expect.arrayContaining(['@expected-failure', '@fail']),
+    );
+    expect(expectedFailure.steps.map((step) => step.status)).toEqual([
+      'passed',
+    ]);
+    const expectedModel = model.scenarios.find(
+      (entry) =>
+        entry.name === 'expected failure' && entry.featureName === 'alpha',
+    );
+    expect(expectedModel?.description).toContain('Expected: 2');
+    expect(expectedModel?.description).toContain('Received: 1');
+
+    const unexpectedPass = scenario(summary, 'unexpected pass', 'alpha');
+    expect(unexpectedPass.status).toBe('failed');
+    expect(unexpectedPass.tags).toContain('@unexpected-pass');
+    expect(unexpectedPass.steps).toHaveLength(1);
+    expect(unexpectedPass.steps[0]?.status).toBe('failed');
+    expect(unexpectedPass.steps[0]?.message).toMatch(/unexpected pass/i);
+
+    const flaky = scenario(summary, 'flaky', 'alpha');
+    expect(flaky.status).toBe('passed');
+    expect(flaky.attempt).toBe(1);
+    expect(flaky.tags).toContain('@flaky');
+    expect(scenario(summary, 'flaky', 'beta').status).toBe('failed');
+
+    const timedOut = scenario(summary, 'timed out', 'alpha');
+    expect(timedOut.status).toBe('failed');
+    expect(timedOut.attempt).toBe(1);
+    expect(
+      timedOut.steps.some(
+        (step) =>
+          step.status === 'failed' && step.message?.includes('Test timeout'),
+      ),
+    ).toBe(true);
+
+    const skipped = scenario(summary, 'skipped', 'alpha');
+    expect(skipped.status).toBe('skipped');
+    expect(skipped.tags).toContain('@skip');
+  });
+
+  it('lists one feature per input and project with the loader prefix', async () => {
+    const documents = (await loadEnvelopes(realRun))
+      .filter((envelope) => envelope.gherkinDocument)
+      .map((envelope) => envelope.gherkinDocument?.uri)
+      .filter((uri): uri is string => typeof uri === 'string');
+
+    expect(documents).toHaveLength(2);
+    expect(documents.every((uri) => /^playwright:\/\/[^/]+\/(alpha|beta)$/.test(uri))).toBe(
+      true,
+    );
+    expect(
+      new Set(documents.map((uri) => uri.split('/').slice(0, 3).join('/'))).size,
+    ).toBe(1);
+    expect(documents.map((uri) => uri.split('/').at(-1)).sort()).toEqual([
+      'alpha',
+      'beta',
+    ]);
+  });
+
+  it('renders the Playwright producer version in the HTML', async () => {
+    const html = await renderReport(realRun, { title: 'Playwright producer' });
+
+    expect(html).toContain('<dt>Producer</dt><dd>Playwright 1.65.0</dd>');
+  });
+
+  it('keeps nested describes in the rule path and strips tags from titles', async () => {
+    const summary = await summarizeReport(nestedDescribes);
+    const envelopes = await loadEnvelopes(nestedDescribes);
+    const model = buildReportModel(envelopes);
+
+    expect(summary.counts.features).toBe(1);
+    expect(summary.counts.scenarios.total).toBe(2);
+    const documents = envelopes
+      .filter((envelope) => envelope.gherkinDocument)
+      .map((envelope) => envelope.gherkinDocument?.uri)
+      .filter((uri): uri is string => typeof uri === 'string');
+    expect(documents).toHaveLength(1);
+    expect(documents[0]).toMatch(/^playwright:\/\/[^/]+\/chromium$/);
+
+    const pays = model.scenarios.find((entry) => entry.name === 'pays');
+    if (!pays) throw new Error('missing nested describe scenario');
+    const ruleText = [pays.ruleName, pays.rule?.name, pays.rule?.description]
+      .filter(Boolean)
+      .join(' ');
+    expect(ruleText).toContain('checkout.spec.ts');
+    expect(ruleText).toContain('cart');
+    expect(ruleText).toContain('payment');
+    expect(ruleText).not.toContain('@cart');
+    expect(ruleText).not.toContain('@slow');
+    expect(ruleText).not.toContain('@payments');
+    expect(pays.tags).toEqual(
+      expect.arrayContaining(['@payments', '@cart', '@slow', '@smoke']),
+    );
+    expect(pays.description).toContain('Annotation: issue - TOL-9');
+
+    const paysSummary = scenario(summary, 'pays');
+    expect(paysSummary.steps.map((step) => step.status)).toEqual([
+      'passed',
+      'passed',
+    ]);
+    expect(paysSummary.steps[0]?.text).toContain('open cart');
+    expect(paysSummary.steps[1]?.text).toContain('click pay');
+    expect(paysSummary.steps[1]?.text).toContain('card');
+    expect(paysSummary.steps[1]?.text).toContain('›');
+  });
+
+  it('maps status edge cases without silently passing them', async () => {
+    const summary = await summarizeReport(statuses);
+    const model = buildReportModel(await loadEnvelopes(statuses));
+    const html = await renderReport(statuses, { title: 'Statuses' });
+
+    const interrupted = scenario(summary, 'interrupted');
+    expect(interrupted.status).toBe('failed');
+    expect(
+      interrupted.steps.some((step) =>
+        step.message?.includes('Test interrupted by SIGINT'),
+      ),
+    ).toBe(true);
+
+    const skippedWithoutResults = scenario(summary, 'skipped without results');
+    expect(skippedWithoutResults.status).toBe('skipped');
+    expect(skippedWithoutResults.executed).toBe(true);
+    expect(skippedWithoutResults.steps).toHaveLength(1);
+    expect(skippedWithoutResults.steps[0]?.status).toBe('skipped');
+    expect(skippedWithoutResults.tags).toContain('@skip');
+    const skippedModel = model.scenarios.find(
+      (entry) => entry.name === 'skipped without results',
+    );
+    expect(skippedModel?.description).toContain(
+      'Annotation: skip - covered by a manual check',
+    );
+
+    const unexecuted = scenario(summary, 'unexecuted without results');
+    expect(unexecuted.executed).toBe(false);
+    expect(unexecuted.status).not.toBe('passed');
+    expect(unexecuted.steps).toEqual([]);
+    expect(html).toContain('unexecuted without results');
+
+    const failedWithoutStepError = scenario(
+      summary,
+      'failed without a step error',
+    );
+    expect(failedWithoutStepError.status).toBe('failed');
+    const ordinaryStep = failedWithoutStepError.steps.find((step) =>
+      step.text.includes('call the API'),
+    );
+    expect(ordinaryStep?.status).toBe('passed');
+    const syntheticFailure = failedWithoutStepError.steps.filter(
+      (step) => step.status === 'failed',
+    );
+    expect(syntheticFailure).toHaveLength(1);
+    expect(syntheticFailure[0]?.message).toContain('assertion failed');
+
+    const expectedTimeout = scenario(summary, 'expected timeout');
+    expect(expectedTimeout.status).toBe('passed');
+    expect(expectedTimeout.tags).toEqual(
+      expect.arrayContaining(['@expected-failure', '@fail']),
+    );
+    expect(expectedTimeout.steps.map((step) => step.status)).toEqual([
+      'passed',
+    ]);
+    const expectedTimeoutModel = model.scenarios.find(
+      (entry) => entry.name === 'expected timeout',
+    );
+    expect(expectedTimeoutModel?.description).toContain(
+      'Annotation: fail - known slow path',
+    );
+    expect(expectedTimeoutModel?.description).toContain(
+      'Test timeout of 50ms exceeded.',
+    );
+
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 4,
+      failed: 2,
+      passed: 1,
+      skipped: 1,
+    });
+  });
+
+  it('uses step errors for step status and keeps other steps passed', async () => {
+    const summary = await summarizeReport(stepsFixture);
+    const failed = scenario(summary, 'one step failed');
+
+    expect(failed.status).toBe('failed');
+    expect(failed.steps.map((step) => step.status)).toEqual([
+      'passed',
+      'failed',
+      'passed',
+    ]);
+    expect(failed.steps.map((step) => step.durationMs)).toEqual([1, 2, 3]);
+    expect(failed.steps[0]?.text).toContain('setup');
+    expect(failed.steps[1]?.text).toContain('click submit');
+    expect(failed.steps[1]?.text).toContain('button');
+    expect(failed.steps[1]?.message).toContain('click failed');
+    expect(failed.steps[2]?.text).toContain('cleanup');
+
+    const skipped = scenario(summary, 'skipped with steps');
+    expect(skipped.status).toBe('skipped');
+    expect(skipped.steps.map((step) => step.status)).toEqual(['skipped']);
+  });
+
+  it('embeds inline and safe path attachments with declared content types', async () => {
+    const summary = await summarizeReport(realRun);
+    const html = await renderReport(realRun, { title: 'Attachments' });
+
+    expect(scenario(summary, 'passes with steps', 'alpha').attachments).toBe(2);
+    expect(scenario(summary, 'fails', 'alpha').attachments).toBe(2);
+    expect(summary.attachments.bytes).toBeGreaterThan(0);
+
+    expect(html).toContain('hello from playwright');
+    expect(html).toContain('path attachment for the Playwright adapter fixture');
+    expect(html).toContain('data:image/png;base64,');
+    expect(html).toContain('(image/png)');
+    expect(html).toContain('text/plain');
+  });
+
+  it('renders a markdown error context as readable plain text', async () => {
+    const html = await renderReport(realRun, { title: 'Error context' });
+
+    expect(html).toContain('Page snapshot');
+    expect(html).toContain('&lt;img');
+    expect(html).not.toContain('text/markdown');
+    expect(html).not.toContain('<img src="x"');
+  });
+
+  it('maps stdout and stderr entries to attachments without rendering HTML', async () => {
+    const summary = await summarizeReport(outputFixture);
+    const html = await renderReport(outputFixture, { title: 'Output' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(4);
+    expect(summary.attachments.total).toBe(4);
+    expect(html).toContain('stdout line');
+    expect(html).toContain('stderr line');
+    expect(html.match(/\(text\/plain\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(
+      html.match(/\(application\/octet-stream/g)?.length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).not.toContain('<b>buffer out</b>');
+  });
+
+  it('accepts an empty Playwright run with zero scenarios', async () => {
+    const summary = await summarizeReport(emptyFixture);
+    const html = await renderReport(emptyFixture, { title: 'Empty' });
+
+    expect(summary.counts.features).toBe(0);
+    expect(summary.counts.scenarios.total).toBe(0);
+    expect(summary.scenarios).toEqual([]);
+    expect(html).toContain('No scenarios in this report.');
+  });
+
+  it('renders run-level errors as a failed Playwright feature', async () => {
+    const summary = await summarizeReport(errorsFixture);
+    const html = await renderReport(errorsFixture, { title: 'Run errors' });
+
+    expect(summary.counts.features).toBe(1);
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 1,
+      failed: 1,
+      passed: 0,
+    });
+    const failure = summary.scenarios[0];
+    expect(failure?.feature).toContain('Playwright');
+    expect(failure?.status).toBe('failed');
+    expect(failure?.steps[0]?.message).toContain('No tests found');
+    expect(failure?.steps[0]?.message).toContain('playwright.config.ts:3');
+    expect(html).toContain('No tests found');
+    expect(html).toContain('playwright.config.ts');
+  });
+
+  it('rejects malformed Playwright shapes with a file-specific error', async () => {
+    const cases: Array<[string, RegExp]> = [
+      ['malformed-suites.json', /suites/],
+      ['malformed-specs.json', /suites\[0\]\.specs/],
+      ['malformed-results.json', /results/],
+      ['malformed-attachment.json', /attachment/i],
+    ];
+
+    for (const [name, detail] of cases) {
+      const file = playwrightFixture(name);
+      await expect(renderReport(file, { title: 'Broken' })).rejects.toThrow(
+        new RegExp(`Invalid Playwright JSON in .*${name}`),
+      );
+      await expect(renderReport(file, { title: 'Broken' })).rejects.toThrow(
+        detail,
+      );
+    }
+  });
+
+  it('normalizes absolute error locations to relative paths', async () => {
+    const dir = await tempDir();
+    const outside = path.join(tmpdir(), 'tolkira-outside-locations', 'sample.spec.ts');
+    const report = JSON.parse(await readFile(realRun, 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    const visit = (value: unknown): void => {
+      if (Array.isArray(value)) {
+        for (const child of value) visit(child);
+        return;
+      }
+      if (!value || typeof value !== 'object') return;
+      const record = value as Record<string, unknown>;
+      for (const [key, child] of Object.entries(record)) {
+        if (key === 'location' && child && typeof child === 'object') {
+          const location = child as Record<string, unknown>;
+          if (typeof location.file === 'string') location.file = outside;
+        } else if (key === 'errorLocation' && child && typeof child === 'object') {
+          const location = child as Record<string, unknown>;
+          if (typeof location.file === 'string') location.file = outside;
+        } else {
+          visit(child);
+        }
+      }
+    };
+    visit(report);
+    const input = await writeReport(dir, report);
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Locations' });
+    const fails = scenario(summary, 'fails', 'alpha');
+    const message = fails.steps.find((step) => step.status === 'failed')?.message;
+
+    expect(message).toContain('sample.spec.ts');
+    expect(message).not.toContain(outside);
+    expect(html).not.toContain(outside);
+  });
+
+  it('embeds an absolute attachment path inside the process working directory', async () => {
+    const dir = await tempDir();
+    const cwdFile = path.resolve(
+      'test/fixtures/playwright/attachments/note-file.txt',
+    );
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        { name: 'cwd-note', contentType: 'text/plain', path: cwdFile },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'CWD attachment' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(1);
+    expect(html).toContain('path attachment for the Playwright adapter fixture');
+  });
+
+  it('skips missing, outside-tree and non-regular attachment paths', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const secret = path.join(outside, 'secret.md');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    await mkdir(path.join(dir, 'folder'));
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        {
+          name: 'absolute-outside',
+          contentType: 'text/plain',
+          path: secret,
+        },
+        {
+          name: 'relative-outside',
+          contentType: 'text/plain',
+          path: path.relative(dir, secret),
+        },
+        { name: 'missing', contentType: 'text/plain', path: 'missing.md' },
+        { name: 'folder', contentType: 'text/plain', path: 'folder' },
+      ]),
+    );
+
+    const summary = await summarizeReport(input);
+    const html = await renderReport(input, { title: 'Unsafe attachments' });
+
+    expect(summary.scenarios[0]?.attachments).toBe(0);
+    expect(summary.attachments.total).toBe(0);
+    expect(html).not.toContain('outside secret must not be read');
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'skips symlinked attachment paths',
+    async () => {
+      const dir = await tempDir();
+      const outside = await tempDir('tolkira-playwright-outside-');
+      const secret = path.join(outside, 'secret.md');
+      await writeFile(secret, 'symlink secret must not be read', 'utf8');
+      const link = path.join(dir, 'link.md');
+      await symlink(secret, link, 'file');
+      const input = await writeReport(
+        dir,
+        reportWithAttachments([
+          { name: 'symlink', contentType: 'text/plain', path: 'link.md' },
+        ]),
+      );
+
+      const summary = await summarizeReport(input);
+      const html = await renderReport(input, { title: 'Symlink attachment' });
+
+      expect(summary.scenarios[0]?.attachments).toBe(0);
+      expect(html).not.toContain('symlink secret must not be read');
+    },
+  );
+
+  it('rejects a path attachment above the size limit before writing output', async () => {
+    const dir = await tempDir();
+    const large = path.join(dir, 'large.bin');
+    const handle = await open(large, 'w');
+    await handle.truncate(50 * 1024 * 1024 + 1);
+    await handle.close();
+    const input = await writeReport(
+      dir,
+      reportWithAttachments([
+        { name: 'large', contentType: 'application/octet-stream', path: 'large.bin' },
+      ]),
+    );
+    const output = path.join(dir, 'report.html');
+    let stderr = '';
+
+    const code = await runCli([input, '--out', output], {
+      stdout: () => undefined,
+      stderr: (text) => {
+        stderr += text;
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(stderr).toMatch(/50 MB/);
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
+  it('deduplicates a Playwright file passed twice or through its directory', async () => {
+    const dir = await tempDir();
+    const copy = path.join(dir, 'real-run.json');
+    await copyFile(realRun, copy);
+
+    expect(await loadInputs([realRun, realRun])).toHaveLength(1);
+    expect(await loadInputs([dir, copy])).toHaveLength(1);
+    const doubled = await summarizeReport([realRun, realRun]);
+    const directoryAndFile = await summarizeReport([dir, copy]);
+    expect(doubled.counts.scenarios.total).toBe(16);
+    expect(directoryAndFile.counts.scenarios.total).toBe(16);
+  });
+
+  it('merges Playwright with Cucumber and JUnit inputs with stable unique ids', async () => {
+    const inputs = {
+      playwright: realRun,
+      legacy: legacyFixture('happy.json'),
+      junit: junitFixture('basic.xml'),
+      messages: messagesFixture('second.ndjson'),
+    };
+    const parts = await Promise.all(
+      Object.values(inputs).map((file) => summarizeReport(file)),
+    );
+    const mergedInputs = [
+      inputs.playwright,
+      inputs.legacy,
+      inputs.junit,
+      inputs.messages,
+    ];
+    const merged = await summarizeReport(mergedInputs);
+    const again = await summarizeReport(mergedInputs);
+    const envelopes = await loadEnvelopes(mergedInputs);
+    const ids = envelopes
+      .flatMap((envelope) => [
+        envelope.pickle?.id,
+        envelope.testCase?.id,
+        envelope.testCaseStarted?.id,
+      ])
+      .filter((id): id is string => typeof id === 'string');
+
+    expect(merged.counts.scenarios.total).toBe(
+      parts.reduce((sum, part) => sum + part.counts.scenarios.total, 0),
+    );
+    expect(merged.counts.features).toBe(
+      parts.reduce((sum, part) => sum + part.counts.features, 0),
+    );
+    expect(merged.scenarios.map((entry) => entry.name)).toEqual(
+      expect.arrayContaining([
+        'passes with steps',
+        'expired coupon',
+        'Attach a screenshot',
+        'Fred wants to see passing scenarios in the HTML report',
+      ]),
+    );
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(JSON.stringify(again)).toBe(JSON.stringify(merged));
+  });
+
+  it('exits non-zero and writes no output for a malformed Playwright file', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+    let stderr = '';
+
+    const code = await runCli(
+      [playwrightFixture('malformed-suites.json'), '--out', output],
+      {
+        stdout: () => undefined,
+        stderr: (text) => {
+          stderr += text;
+        },
+      },
+    );
+
+    expect(code).toBe(1);
+    expect(stderr).toMatch(/Invalid Playwright JSON in .*malformed-suites\.json/);
+    expect(stderr).not.toContain('Unsupported input');
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+});

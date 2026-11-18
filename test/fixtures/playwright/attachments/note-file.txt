@@ -1,0 +1,1 @@
+path attachment for the Playwright adapter fixture
