@@ -149,7 +149,8 @@ appended to a description is stripped before it is stored.
 Playwright attachments have `name`, `contentType`, and either a base64 `body`
 or a `path`.
 
-- Inline `body` becomes an attachment with its content type.
+- A non-empty inline `body` becomes an attachment with its content type and
+  takes precedence; an empty `body` falls back to `path`.
 - `path` may be relative or absolute. Accept it only when its real path stays
   inside the input file's directory or the process working directory. Use
   `realpath` and `path.relative` for both roots, with case-insensitive
