@@ -129,10 +129,11 @@ does not write that file.
 
 ## Limits
 
-- The shim accepts legacy Cucumber JSON. It does not turn Messages into legacy
-  JSON or vice versa. Legacy JSON arrives with expanded outline examples, so the
-  shim renders them as flat scenarios. The core CLI and API additionally accept
-  Playwright JSON natively; the shim does not.
+- The shim accepts legacy Cucumber JSON and passes `jsonFile` through the core
+  loader; its documented contract remains legacy JSON. It does not turn
+  Messages into legacy JSON or vice versa. Legacy JSON arrives with expanded
+  outline examples, so the shim renders them as flat scenarios. The core CLI
+  and API additionally accept Playwright JSON natively.
 - The usual Tolkira limits apply: 100 MB total input, 50 MB per attachment,
   100 MB total attachments.
 - The shim is experimental. The option set is frozen; new features are added to
