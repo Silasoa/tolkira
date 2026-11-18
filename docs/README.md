@@ -7,6 +7,7 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [Compatibility](COMPATIBILITY.md) — migration from `cucumber-html-reporter`.
 - [Cucumber compatibility](CUCUMBER-COMPATIBILITY.md) — tested producers and versions.
 - [JUnit XML](JUNIT-XML.md) — basic-mode mapping and limits.
+- [Playwright JSON](PLAYWRIGHT-JSON.md) — native adapter mapping, path roots and limits.
 - [Agent interface](AGENT-INTERFACE.md) — JSON summary schema and CLI contract.
 - [Limitations](LIMITATIONS.md) — dated known gaps.
 - [Research](research/) — background notes; the [archive](research/archive/) is historical.

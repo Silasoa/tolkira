@@ -3,6 +3,21 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Native Playwright JSON reporter input. Detection recognises a report with
+  `config` and `stats` objects plus `suites` or `errors`; the adapter maps one
+  feature per project, file/describe rules, one scenario per test and project,
+  retries as separate attempts with the final attempt visible, nested steps,
+  expected failures, unexpected passes and flaky outcomes. Inline base64
+  attachments and safe in-tree path attachments are embedded, `stdout`/`stderr`
+  become text attachments, `text/markdown` error context renders as escaped
+  text, and run-level errors become a failed Playwright feature. Trace viewer
+  and HTML-report replay are not claimed. See
+  [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
+
 ## [0.3.0] - 2026-11-13
 
 ### Added

@@ -7,6 +7,7 @@ import { parseLegacyJson, parseLegacyValue } from './legacy.js';
 import { collectReportFiles } from './files.js';
 import { parseJUnitXml } from './junit.js';
 import { parseMessages } from './messages.js';
+import { parsePlaywrightJson } from './playwright.js';
 
 export const MAX_TOTAL_INPUT_BYTES = 100 * 1024 * 1024;
 
@@ -149,6 +150,11 @@ export async function loadInputs(
       case 'messages-validation':
         // Validation-only fallback; valid Messages are handled above.
         parseMessages(content, input.file);
+        break;
+      case 'playwright':
+        parsed = await parsePlaywrightJson(decision.parsed, input.file, {
+          idPrefix: `playwright-${index}`,
+        });
         break;
       case 'json-validation':
         invalidJson(content, input.file);

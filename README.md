@@ -1,6 +1,6 @@
 # Tolkira
 
-**Cucumber reports that stay readable: legacy JSON, Messages and JUnit XML in one self-contained HTML file.**
+**Cucumber reports that stay readable: legacy JSON, Messages, JUnit XML and Playwright JSON in one self-contained HTML file.**
 
 Tolkira turns test results into a single HTML file you can open offline, attach
 to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
@@ -177,11 +177,13 @@ for the full schema and exit codes.
 | **Legacy Cucumber JSON** | cucumber-js 2.3.1–13.3.0, Behave 1.3.3, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 are covered by producer fixtures. Behave's real run does not yet include attachments or doc strings; see the [dated limitations table](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md). Other producers often work; the adapter follows the Cucumber legacy dialect. |
 | **Cucumber Messages (NDJSON)** | cucumber-js 11.2, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 fixtures. This is the modern, implementation-independent format. |
 | **JUnit XML** | Basic mode: suites, test cases, statuses, durations, failures, skipped cases and system output. JUnit has no Gherkin steps or screenshots; each test case is shown as one synthetic step. |
+| **Playwright JSON** | Native adapter for the Playwright JSON reporter: projects, file/describe rules, retries (the final attempt is visible), nested steps, expected/unexpected outcomes, tags, annotations, inline and in-tree path attachments, `stdout`/`stderr` and run-level errors. No trace viewer or HTML-report replay. |
 
 Multiple files and mixed formats can be merged into one run. See
 [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) for the
-tested producer matrix and
-[`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) for the JUnit limits.
+tested producer matrix,
+[`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) for the JUnit limits and
+[`docs/PLAYWRIGHT-JSON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PLAYWRIGHT-JSON.md) for the Playwright mapping.
 
 ## Why Tolkira exists
 
@@ -346,8 +348,8 @@ for the mapping.
 - Test names, metadata and attachments are treated as untrusted input.
 - Default limits: 100 MB total input, 50 MB per attachment and 100 MB total
   attachments. A warning appears when a report grows beyond 10 MB.
-- JUnit XML is intentionally basic; it is not a replacement for a native
-  Playwright, Jest or Allure report.
+- JUnit XML is intentionally basic; use the native Playwright JSON adapter for
+  Playwright projects that can write the JSON reporter.
 - One report is one file. External attachments for very large media are a
   future option.
 
@@ -367,6 +369,8 @@ remaining Behave real-run gap.
   Cucumber producers and versions.
 - [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and
   limits.
+- [`docs/PLAYWRIGHT-JSON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PLAYWRIGHT-JSON.md) — native Playwright
+  JSON mapping and limits.
 - [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) — migration from
   cucumber-html-reporter.
 - [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md) — Seed-Test comparison and

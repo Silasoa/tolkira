@@ -893,14 +893,22 @@ test('renders a Playwright JSON report in the browser', async ({ page }) => {
       page.getByRole('heading', { name: 'alpha', level: 2 }),
     ).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'passes with steps' }),
+      page.getByRole('heading', { name: 'beta', level: 2 }),
+    ).toBeVisible();
+
+    const alphaFeature = page.locator('details.feature').filter({
+      has: page.getByRole('heading', { name: 'alpha', level: 2 }),
+    });
+    await expect(alphaFeature).toHaveCount(1);
+    await expect(
+      alphaFeature.getByRole('heading', { name: 'passes with steps' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'timed out' }),
+      alphaFeature.getByRole('heading', { name: 'timed out' }),
     ).toBeVisible();
-    await expect(
-      page.locator('.tag').filter({ hasText: '@smoke' }).first(),
-    ).toBeVisible();
+    const smokeTag = alphaFeature.locator('.tag').filter({ hasText: '@smoke' });
+    await expect(smokeTag).toHaveCount(1);
+    await expect(smokeTag).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

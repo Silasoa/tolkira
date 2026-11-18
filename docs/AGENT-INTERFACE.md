@@ -230,7 +230,9 @@ Field contract:
   neither scenario nor examples tags. The summary does not expose rules,
   backgrounds or the own/inherited distinction.
 - `attempt` is the latest started Cucumber attempt for that scenario, even when
-  that attempt reported no result. An earlier retried attempt is ignored.
+  that attempt reported no result. An earlier retried attempt is ignored. For a
+  Playwright JSON input it is the Playwright retry index of the final result;
+  earlier attempts are not exposed as scenario rows.
 - `attachments.bytes` is the decoded size, not the base64 length.
 - `steps[].message` is present only when the step result has a message. For
   hooks, `keyword` is `"Hook"`, `text` is the hook type and `name` is present
@@ -299,9 +301,16 @@ outside `features/`).
 - Inputs are capped at 100 MB in total; attachments at 50 MB each and 100 MB
   total.
 - The HTML report includes a hash-based CSP and never executes attachments.
-- History, trends, retries beyond the latest attempt and a native Playwright
-  adapter are not supported. JUnit XML is a basic input mode; see
-  [`LIMITATIONS.md`](LIMITATIONS.md).
+- History, trends, retries beyond the latest attempt and a trace viewer are not
+  supported. Playwright JSON has a native adapter; the final attempt is the
+  rendered one. JUnit XML is a basic input mode; see
+  [`LIMITATIONS.md`](LIMITATIONS.md). Playwright producer metadata and
+  annotation descriptions are HTML-only and do not change schema version 2.
+- Playwright path attachments are embedded only when the resolved regular file
+  is inside the input file's directory or the process working directory.
+  Symlinked, missing, non-regular and outside-tree paths are skipped; inline
+  base64 attachments are always preferred. Trace zips and HTML-report replays
+  are not read.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave-shaped durations are
   interpreted as nanoseconds, like cucumber-js.

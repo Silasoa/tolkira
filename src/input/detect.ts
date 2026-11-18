@@ -16,6 +16,7 @@ export type InputDecision =
   | { kind: 'junit-validation' }
   | { kind: 'messages' }
   | { kind: 'messages-validation' }
+  | { kind: 'playwright'; parsed: unknown }
   | { kind: 'json-validation' }
   | { kind: 'skip' };
 
@@ -67,6 +68,22 @@ function looksLikeMessages(content: string): boolean {
   }
 }
 
+function sniffPlaywright(content: string): unknown {
+  const trimmed = content.replace(/^\uFEFF/, '').trimStart();
+  if (!trimmed.startsWith('{')) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return undefined;
+  }
+  if (!isObject(parsed)) return undefined;
+  if (!isObject(parsed.config) || !isObject(parsed.stats)) return undefined;
+  return Object.hasOwn(parsed, 'suites') || Array.isArray(parsed.errors)
+    ? parsed
+    : undefined;
+}
+
 /**
  * Pure decision table over content and file identity. It performs no I/O and
  * throws no validation errors; the loader runs the selected adapter.
@@ -82,6 +99,9 @@ export function detectInput(
   if (legacy?.kind === 'malformed') return { kind: 'legacy-validation' };
   if (looksLikeJUnit(content)) return { kind: 'junit' };
   if (looksLikeMessages(content)) return { kind: 'messages' };
+
+  const playwright = sniffPlaywright(content);
+  if (playwright !== undefined) return { kind: 'playwright', parsed: playwright };
 
   const extension = path.extname(identity.file).toLowerCase();
 

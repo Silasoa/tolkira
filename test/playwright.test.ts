@@ -652,7 +652,7 @@ describe('Playwright JSON input', () => {
       playwright: realRun,
       legacy: legacyFixture('happy.json'),
       junit: junitFixture('basic.xml'),
-      messages: messagesFixture('second.ndjson'),
+      messages: messagesFixture('screenshot.ndjson'),
     };
     const parts = await Promise.all(
       Object.values(inputs).map((file) => summarizeReport(file)),

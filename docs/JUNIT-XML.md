@@ -3,7 +3,9 @@
 Tolkira accepts JUnit XML from any framework or CI system that can write it.
 This is a **basic** input mode: suites, test cases, statuses, durations,
 failures and `system-out`/`system-err`. It does not claim Gherkin steps,
-screenshots, videos or traces.
+screenshots, videos or traces. Playwright results have a native JSON adapter;
+see [`PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md) and prefer that over Playwright's
+JUnit output.
 
 ## Usage
 
@@ -86,7 +88,9 @@ one.
 - A document with no test cases is rejected with a clear error instead of
   rendered as an empty run.
 - JUnit XML dialects differ; Tolkira handles the common Jenkins/Gradle/Maven/
-  pytest/Playwright shape and fails clearly otherwise.
+  pytest/Playwright shape and fails clearly otherwise. Playwright JSON is the
+  richer Playwright path; this JUnit mode cannot recover projects, retries,
+  nested steps or attachments.
 - The existing 100 MB total input limit applies.
 
 ## Why a parser dependency

@@ -20,7 +20,7 @@ const LOGO_MIME: Record<string, string> = {
 
 const USAGE = `Usage: tolkira <input...> [--out <file>] [options]
 
-Generate one self-contained HTML report from Cucumber JSON or Messages.
+Generate one self-contained HTML report from Cucumber JSON, Messages, JUnit XML or Playwright JSON.
 
 Options:
   -o, --out <file>     Output HTML file
