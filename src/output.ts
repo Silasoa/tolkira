@@ -13,25 +13,63 @@ export async function outputOverwritesInput(
   const outputPath = path.resolve(output);
   const outputInfo = await stat(outputPath).catch(() => undefined);
   if (!outputInfo?.isFile()) return false;
-  const outputReal = realpathSync(outputPath);
 
   if (logo) {
     const logoInfo = await stat(logo).catch(() => undefined);
-    if (logoInfo?.isFile() && realpathSync(logo) === outputReal) return true;
+    if (logoInfo?.isFile() && samePath(logo, outputPath)) return true;
   }
 
   for (const input of inputs) {
     const inputInfo = await stat(input).catch(() => undefined);
     if (!inputInfo) continue;
-    if (inputInfo.isFile() && realpathSync(input) === outputReal) return true;
+    if (inputInfo.isFile() && samePath(input, outputPath)) return true;
     if (inputInfo.isDirectory()) {
-      const directory = realpathSync(input);
-      for (const file of await collectReportFiles(directory)) {
-        if (realpathSync(file) === outputReal) return true;
+      for (const file of await collectReportFiles(input)) {
+        if (samePath(file, outputPath)) return true;
       }
     }
   }
   return false;
+}
+
+function foldCase(value: string): string {
+  return process.platform === 'win32' || process.platform === 'darwin'
+    ? value.toLowerCase()
+    : value;
+}
+
+function existingRealPath(file: string): string | undefined {
+  try {
+    return realpathSync(file);
+  } catch {
+    return undefined;
+  }
+}
+
+// Canonicalizes a path even when the file itself is missing: resolve the
+// nearest existing ancestor through symlinks, keep the rest as given, then
+// fold case on case-insensitive filesystems.
+function canonicalPath(file: string): string {
+  const resolved = path.resolve(file);
+  let current = resolved;
+  const tail: string[] = [];
+  for (;;) {
+    const real = existingRealPath(current);
+    if (real !== undefined) return foldCase(path.join(real, ...tail));
+    const parent = path.dirname(current);
+    if (parent === current) return foldCase(resolved);
+    tail.unshift(path.basename(current));
+    current = parent;
+  }
+}
+
+/**
+ * True when both paths name the same file. Windows and macOS compare
+ * case-insensitively; symlinked or junctioned parents resolve even when the
+ * target file does not exist yet.
+ */
+export function samePath(a: string, b: string): boolean {
+  return canonicalPath(a) === canonicalPath(b);
 }
 
 export async function writeAtomic(

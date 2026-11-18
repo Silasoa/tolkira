@@ -104,7 +104,7 @@ function unexecutedCount(summary: ReportSummary): number {
 function expectTableCount(
   markdown: string,
   label: string,
-  value: number,
+  value: number | string,
 ): void {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   expect(markdown, `${label} row`).toMatch(
@@ -350,9 +350,42 @@ describe('GitHub annotations', () => {
     );
     expect(unexecutedLines).toHaveLength(1);
     expect(unexecutedLines[0]).toContain('::notice title=Tolkira::');
-    expect(unexecutedLines[0]).toContain('0 scenarios');
+    expect(unexecutedLines[0]).toContain('0 executed scenarios');
     expect(unexecutedLines[0]).toContain('1 unexecuted');
     expect(unexecutedLines[0]).not.toContain('No scenarios');
+  });
+
+  it('emits the run error and the empty notice for a failed empty run', () => {
+    const summary = makeSummary([]);
+    summary.status = 'failed';
+
+    expect(annotationLines(formatGitHubAnnotations(summary))).toEqual([
+      '::error title=Tolkira::Run failed: The report summary is failed ' +
+        'but no scenario-level error was emitted.',
+      '::notice title=Tolkira::No scenarios',
+    ]);
+  });
+
+  it('emits a run error when the run failed without a scenario error', () => {
+    const summary = makeSummary([scenario({ name: 'Passes' })]);
+    summary.status = 'failed';
+
+    const lines = annotationLines(formatGitHubAnnotations(summary));
+    const errors = lines.filter((line) => line.startsWith('::error '));
+    const notices = lines.filter((line) => line.startsWith('::notice '));
+
+    expect(errors).toEqual([
+      '::error title=Tolkira::Run failed: The report summary is failed ' +
+        'but no scenario-level error was emitted.',
+    ]);
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toContain('run failed');
+    expect(notices[0]).not.toMatch(
+      /^::notice title=Tolkira::1 scenarios: 1 passed, 0 unexecuted$/,
+    );
+    expect(formatMarkdownSummary(summary)).toMatch(
+      /\|[ \t]*Status[ \t]*\|[ \t]*failed[ \t]*\|/,
+    );
   });
 
   it('caps error annotations at 50 and states the remainder', () => {
@@ -430,6 +463,62 @@ describe('GitHub annotations', () => {
     );
   });
 
+  it('truncates a notice identity before escaping', () => {
+    const name = `${'a'.repeat(3995)}${'%'.repeat(10)}`;
+    const summary = makeSummary([
+      scenario({ feature: '', name, status: 'skipped' }),
+    ]);
+
+    const [line] = annotationLines(formatGitHubAnnotations(summary));
+
+    expect(line.startsWith('::notice title=Skipped::')).toBe(true);
+    expect(annotationMessage(line)).toBe(
+      `${'a'.repeat(3995)}${'%25'.repeat(5)}[truncated]`,
+    );
+  });
+
+  it('never splits a surrogate pair when truncating', () => {
+    const message = `${'a'.repeat(3999)}\u{1F600}tail`;
+    const summary = makeSummary([
+      scenario({
+        status: 'failed',
+        steps: [step({ status: 'failed', message })],
+      }),
+    ]);
+
+    const [line] = annotationLines(formatGitHubAnnotations(summary));
+
+    expect(annotationMessage(line)).toBe(
+      `${'a'.repeat(3999)}\u{1F600}[truncated]`,
+    );
+  });
+
+  it('never reports a skipped step message as the failure', () => {
+    const summary = makeSummary([
+      scenario({
+        status: 'failed',
+        steps: [
+          step({ status: 'failed' }),
+          step({ status: 'skipped', message: 'skipped out' }),
+        ],
+      }),
+      scenario({
+        name: 'Message wins',
+        status: 'failed',
+        steps: [
+          step({ status: 'skipped', message: 'not it' }),
+          step({ status: 'failed', message: 'the failure' }),
+        ],
+      }),
+    ]);
+
+    const messages = annotationLines(formatGitHubAnnotations(summary))
+      .filter((line) => line.startsWith('::error '))
+      .map((line) => annotationMessage(line));
+
+    expect(messages).toEqual(['Scenario failed', 'the failure']);
+  });
+
   it('dispatches both formats and forwards options', () => {
     const summary = makeSummary([scenario({ name: 'Passes' })]);
 
@@ -449,6 +538,7 @@ describe('Markdown CI summary', () => {
     const unexecuted = unexecutedCount(summary);
 
     expect(markdown.startsWith('## Tolkira report')).toBe(true);
+    expectTableCount(markdown, 'Status', summary.status);
     expectTableCount(markdown, 'Scenarios', summary.counts.scenarios.total);
     expectTableCount(markdown, 'Passed', summary.counts.scenarios.passed);
     expectTableCount(markdown, 'Failed', summary.counts.scenarios.failed);
@@ -479,6 +569,74 @@ describe('Markdown CI summary', () => {
 
     expect(markdown.startsWith('## Checkout regression\n')).toBe(true);
     expect(markdown).not.toContain('## Tolkira report');
+  });
+
+  it('escapes a hostile title into one inert heading line', () => {
+    const title =
+      'Evil\n# heading [link](https://e) ![img](https://e) ' +
+      '<script>alert(1)</script> `tick` *star* _under_ |pipe| \\';
+    const summary = makeSummary([scenario()]);
+
+    const markdown = formatMarkdownSummary(summary, { title });
+
+    expect(markdown.split('\n')[0]).toBe(
+      '## Evil \\# heading \\[link\\](https://e) \\!\\[img\\](https://e) ' +
+        '\\<script\\>alert(1)\\</script\\> \\`tick\\` \\*star\\* ' +
+        '\\_under\\_ \\|pipe\\| \\\\',
+    );
+    const active = stripCode(markdown);
+    expect(active).not.toMatch(/(?<!\\)]\(/);
+    expect(active).not.toContain('![');
+    expect(active).not.toMatch(/(?<!\\)<script/i);
+  });
+
+  it('collapses line breaks in names, URIs and features', () => {
+    const summary = makeSummary([
+      scenario({
+        feature: 'Feature\n\n# injected heading',
+        name: 'Name\r\n---\r\n[link](https://evil)',
+        uri: 'features/evil.feature\u2028![img](https://evil/x.png)',
+        status: 'failed',
+        steps: [step({ status: 'failed', message: 'boom' })],
+      }),
+    ]);
+
+    const markdown = formatMarkdownSummary(summary);
+
+    expect(markdown).toContain('Feature # injected heading');
+    expect(markdown).toContain('Name --- [link](https://evil)');
+    expect(markdown).toContain(
+      'features/evil.feature ![img](https://evil/x.png)',
+    );
+    expect(markdown).not.toMatch(/[\r\u2028\u2029]/);
+    const active = stripCode(markdown);
+    expect(active).not.toContain('injected heading');
+    expect(active).not.toContain('](');
+    expect(active).not.toContain('![');
+  });
+
+  it('falls back to Unknown feature for an empty feature name', () => {
+    const summary = makeSummary([
+      scenario({
+        feature: '',
+        name: 'Boom',
+        status: 'failed',
+        steps: [step({ status: 'failed', message: 'x' })],
+      }),
+    ]);
+
+    expect(formatMarkdownSummary(summary)).toContain(
+      '#### `Unknown feature` - `Boom`',
+    );
+  });
+
+  it('pluralizes a single skipped scenario', () => {
+    const summary = makeSummary([scenario({ status: 'skipped' })]);
+
+    const markdown = formatMarkdownSummary(summary);
+
+    expect(markdown).toContain('1 skipped scenario.');
+    expect(markdown).not.toContain('1 skipped scenarios');
   });
 
   it('states an empty run with zero counts', async () => {

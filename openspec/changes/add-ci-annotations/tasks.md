@@ -7,20 +7,23 @@
 
 ## 2. TDD-Red
 
-- [ ] 2.1 Add formatter tests for property/message escaping, injection,
+- [x] 2.1 Add formatter tests for property/message escaping, injection,
   failed/undefined/ambiguous/pending/skipped/unexecuted/empty runs, caps,
   truncation and deterministic output.
-- [ ] 2.2 Add Markdown tests for counts, failed list, skipped and empty runs,
+- [x] 2.2 Add Markdown tests for counts, failed list, skipped and empty runs,
   inert code rendering, `--title`, truncation and the caps.
-- [ ] 2.3 Add CLI tests for `--ci` without `--out`, `--ci` with `--out`,
+- [x] 2.3 Add CLI tests for `--ci` without `--out`, `--ci` with `--out`,
   `--ci-out`, `--ci ''`, case-mismatched values, `--ci-out ''`,
   `--ci github --ci-out`, missing `--ci`, `--json` conflict, overwrite
   rejection (including `--out` collision with no files yet), missing
   directories, unwritable output, failed-run exit 0 and HTML unchanged with
   `--ci`.
-- [ ] 2.4 Use existing fixtures `messages/ci-full`, `ci-mixed`, `ci-partial`,
-  `ci-unsafe`, `ci-ssh`, `ci-url-only` and `empty`; no duplicate fixture family.
-- [ ] 2.5 Confirm the new tests fail for the right reason before implementation.
+- [x] 2.4 Use the existing fixtures `messages/all-statuses.ndjson`,
+  `messages/empty.ndjson`, `messages/empty-none.ndjson`,
+  `messages/empty-all-unexecuted.ndjson`, `legacy/failed.json` and
+  `messages/screenshot.ndjson`; use in-memory summaries for caps, truncation
+  and hostile Markdown; no duplicate fixture family.
+- [x] 2.5 Confirm the new tests fail for the right reason before implementation.
 
 ## 3. Implement
 
@@ -40,8 +43,15 @@
 
 ## 5. Verification and review
 
-- [ ] 5.1 Run `npm run hygiene`, `npm run check`, `npm run test:e2e` and a
+- [x] 5.1 Run `npm run hygiene`, `npm run check`, `npm run test:e2e` and a
   manual GitHub-annotation probe from the CLI.
-- [ ] 5.2 Run the review swarm: SCR, CR, DAR, CMP, SEC.
-- [ ] 5.3 Fix findings and record deferred decisions in `docs/BACKLOG.md`.
-- [ ] 5.4 Commit and push with the issue and change reference.
+- [x] 5.2 Run the review swarm: SCR, CR, DAR, CMP, SEC.
+- [x] 5.3 Fix findings and record deferred decisions in `docs/BACKLOG.md`.
+- [x] 5.4 Commit and push with the issue and change reference.
+
+## Gate record
+
+2026-11-18: `npm run hygiene` ok; `npm run check` 590 passed, 1 skipped;
+`npm run test:e2e` 231 passed (Chromium, Firefox, WebKit). Review swarm:
+SCR, CR, DAR, CMP, SEC and STR pass after fixes. Deferred CI polish items are
+recorded in `docs/BACKLOG.md`.

@@ -4,6 +4,7 @@ import type {
   SummaryScenario,
   SummaryStatus,
 } from './summary.js';
+import { stripAnsi } from './text.js';
 
 export type CiFormat = 'github' | 'markdown';
 
@@ -38,6 +39,9 @@ const GITHUB_NOTICE_LIMIT = 20;
 const MARKDOWN_MESSAGE_LIMIT = 500;
 const MARKDOWN_FAILED_LIMIT = 50;
 const MARKDOWN_SKIPPED_LIMIT = 20;
+const RUN_FAILED_ANNOTATION =
+  '::error title=Tolkira::Run failed: The report summary is failed ' +
+  'but no scenario-level error was emitted.';
 
 function escapeGitHubProperty(value: string): string {
   return value
@@ -56,7 +60,17 @@ function escapeGitHubMessage(value: string): string {
 }
 
 function truncate(text: string, limit: number): string {
-  return text.length > limit ? `${text.slice(0, limit)}[truncated]` : text;
+  if (text.length <= limit) return text;
+  let end = 0;
+  let codePoints = 0;
+  // Truncate by code point so a surrogate pair is never split.
+  while (end < text.length && codePoints < limit) {
+    end += (text.codePointAt(end) ?? 0) > 0xffff ? 2 : 1;
+    codePoints += 1;
+  }
+  return end >= text.length
+    ? text
+    : `${text.slice(0, end)}[truncated]`;
 }
 
 function scenarioIdentity(scenario: SummaryScenario): string {
@@ -66,9 +80,13 @@ function scenarioIdentity(scenario: SummaryScenario): string {
 }
 
 function failureMessage(scenario: SummaryScenario): string {
-  const step = scenario.steps.find(
-    (entry) => entry.status !== 'passed' && entry.message,
-  );
+  const messages = scenario.steps.filter((entry) => entry.message);
+  // A skipped step's message is never the failure.
+  const step =
+    messages.find((entry) => ERROR_STATUSES.has(entry.status)) ??
+    messages.find(
+      (entry) => entry.status !== 'passed' && entry.status !== 'skipped',
+    );
   return step?.message ?? 'Scenario failed';
 }
 
@@ -90,55 +108,80 @@ function nonZeroBuckets(counts: StatusCounts): string[] {
   return buckets;
 }
 
-function finalGitHubNotice(summary: ReportSummary): string {
+function finalGitHubNotice(
+  summary: ReportSummary,
+  runFailed: boolean,
+): string {
+  const unexecuted = unexecutedCount(summary);
+  const suffix = runFailed ? '; run failed' : '';
+  if (summary.counts.scenarios.total === 0) {
+    return (
+      '::notice title=Tolkira::0 executed scenarios: ' +
+      `${unexecuted} unexecuted${suffix}`
+    );
+  }
   const parts = nonZeroBuckets(summary.counts.scenarios);
-  parts.push(`${unexecutedCount(summary)} unexecuted`);
+  parts.push(`${unexecuted} unexecuted`);
   return (
     `::notice title=Tolkira::${summary.counts.scenarios.total} scenarios: ` +
-    parts.join(', ')
+    `${parts.join(', ')}${suffix}`
   );
 }
 
 /** Formats the summary as GitHub Actions workflow commands. */
-export function formatGitHubAnnotations(
-  summary: ReportSummary,
-  _options?: CiFormatOptions,
-): string {
+export function formatGitHubAnnotations(summary: ReportSummary): string {
+  const emptyRunFailed = summary.status === 'failed';
   if (isEmptyRun(summary)) {
-    return '::notice title=Tolkira::No scenarios\n';
+    const lines = emptyRunFailed
+      ? [RUN_FAILED_ANNOTATION, '::notice title=Tolkira::No scenarios']
+      : ['::notice title=Tolkira::No scenarios'];
+    return `${lines.join('\n')}\n`;
   }
 
-  const errors: string[] = [];
-  const notices: string[] = [];
+  const lines: string[] = [];
+  let errorCount = 0;
+  let noticeCount = 0;
+  let omitted = 0;
   for (const scenario of summary.scenarios) {
     if (!scenario.executed) continue;
     if (ERROR_STATUSES.has(scenario.status)) {
+      if (errorCount >= GITHUB_ERROR_LIMIT) {
+        omitted += 1;
+        continue;
+      }
+      errorCount += 1;
       const title = escapeGitHubProperty(scenarioIdentity(scenario));
       const message = escapeGitHubMessage(
         truncate(failureMessage(scenario), GITHUB_MESSAGE_LIMIT),
       );
-      errors.push(`::error title=${title}::${message}`);
+      lines.push(`::error title=${title}::${message}`);
     } else if (NOTICE_STATUSES.has(scenario.status)) {
+      if (noticeCount >= GITHUB_NOTICE_LIMIT) {
+        omitted += 1;
+        continue;
+      }
+      noticeCount += 1;
       const message = escapeGitHubMessage(
-        `${scenarioIdentity(scenario)} was ${scenario.status}`,
+        truncate(
+          `${scenarioIdentity(scenario)} was ${scenario.status}`,
+          GITHUB_MESSAGE_LIMIT,
+        ),
       );
       const title =
         scenario.status.charAt(0).toUpperCase() + scenario.status.slice(1);
-      notices.push(`::notice title=${title}::${message}`);
+      lines.push(`::notice title=${title}::${message}`);
     }
   }
 
-  const lines = [
-    ...errors.slice(0, GITHUB_ERROR_LIMIT),
-    ...notices.slice(0, GITHUB_NOTICE_LIMIT),
-  ];
-  const omitted =
-    Math.max(0, errors.length - GITHUB_ERROR_LIMIT) +
-    Math.max(0, notices.length - GITHUB_NOTICE_LIMIT);
+  // A failed run-level result (for example a global hook) has no scenario.
+  const runFailed = summary.status === 'failed' && errorCount === 0;
+  if (runFailed) {
+    lines.push(RUN_FAILED_ANNOTATION);
+  }
   if (omitted > 0) {
     lines.push(`::notice title=Tolkira::${omitted} more annotations omitted`);
   }
-  lines.push(finalGitHubNotice(summary));
+  lines.push(finalGitHubNotice(summary, runFailed));
   return `${lines.join('\n')}\n`;
 }
 
@@ -150,10 +193,23 @@ function longestBacktickRun(text: string): number {
   return longest;
 }
 
+// ANSI, controls and any line ending would end the code span and let the
+// dynamic text become active Markdown.
+function inlineText(value: string): string {
+  return stripAnsi(value).replace(/[\r\n\u2028\u2029]+/g, ' ');
+}
+
+const MARKDOWN_SPECIALS = /[\\`*_[\]<>|!#]/g;
+
+function markdownText(value: string): string {
+  return inlineText(value).replace(MARKDOWN_SPECIALS, '\\$&');
+}
+
 function codeSpan(text: string): string {
-  const fence = '`'.repeat(longestBacktickRun(text) + 1);
-  const pad = text.startsWith('`') || text.endsWith('`') ? ' ' : '';
-  return `${fence}${pad}${text}${pad}${fence}`;
+  const safe = inlineText(text);
+  const fence = '`'.repeat(longestBacktickRun(safe) + 1);
+  const pad = safe.startsWith('`') || safe.endsWith('`') ? ' ' : '';
+  return `${fence}${pad}${safe}${pad}${fence}`;
 }
 
 function fencedBlock(text: string): string[] {
@@ -167,6 +223,7 @@ function markdownCountRows(
 ): Array<[string, string]> {
   const scenarioCounts = summary.counts.scenarios;
   return [
+    ['Status', summary.status],
     ['Scenarios', String(scenarioCounts.total)],
     ['Passed', String(scenarioCounts.passed)],
     ['Failed', String(scenarioCounts.failed)],
@@ -182,6 +239,10 @@ function markdownCountRows(
     ['Attachments', String(summary.attachments.total)],
     ['Attachment bytes', String(summary.attachments.bytes)],
   ];
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 function markdownFailedSection(
@@ -208,9 +269,10 @@ function markdownFailedSection(
     );
   }
   if (failed.length > MARKDOWN_FAILED_LIMIT) {
+    const omitted = failed.length - MARKDOWN_FAILED_LIMIT;
     lines.push(
-      `${failed.length - MARKDOWN_FAILED_LIMIT} more failed scenarios ` +
-        'are not listed.',
+      `${plural(omitted, 'more failed scenario')} ` +
+        `${omitted === 1 ? 'is' : 'are'} not listed.`,
       '',
     );
   }
@@ -226,7 +288,11 @@ function markdownSkippedSection(
   const skippedCount = summary.counts.scenarios.skipped;
   if (skippedCount === 0) return;
 
-  lines.push('### Skipped scenarios', '', `${skippedCount} skipped scenarios.`);
+  lines.push(
+    '### Skipped scenarios',
+    '',
+    `${plural(skippedCount, 'skipped scenario')}.`,
+  );
   const shown = skipped.slice(0, MARKDOWN_SKIPPED_LIMIT);
   if (shown.length > 0) {
     lines.push('');
@@ -236,7 +302,11 @@ function markdownSkippedSection(
   }
   const omitted = skippedCount - shown.length;
   if (omitted > 0) {
-    lines.push('', `${omitted} more skipped scenarios are not listed.`);
+    lines.push(
+      '',
+      `${plural(omitted, 'more skipped scenario')} ` +
+        `${omitted === 1 ? 'is' : 'are'} not listed.`,
+    );
   }
   lines.push('');
 }
@@ -248,7 +318,7 @@ export function formatMarkdownSummary(
 ): string {
   const unexecuted = unexecutedCount(summary);
   const lines = [
-    `## ${options.title ?? 'Tolkira report'}`,
+    `## ${markdownText(options.title ?? 'Tolkira report')}`,
     '',
     '| Metric | Value |',
     '| --- | --- |',
@@ -280,6 +350,6 @@ export function formatCiOutput(
   options: CiFormatOptions = {},
 ): string {
   return format === 'github'
-    ? formatGitHubAnnotations(summary, options)
+    ? formatGitHubAnnotations(summary)
     : formatMarkdownSummary(summary, options);
 }

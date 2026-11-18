@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { formatCiOutput, type CiFormat } from './ci.js';
 import { generateReport, summarizeReport, version } from './index.js';
-import { outputOverwritesInput, writeAtomic } from './output.js';
+import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { ACCENT_PATTERN } from './validation.js';
 
 const DEFAULT_MAX_SIZE_MB = 10;
@@ -27,18 +27,18 @@ Options:
   -o, --out <file>     Output HTML file
       --json           Print a stable JSON summary to stdout
       --ci <format>    Print a CI summary: github or markdown
-      --ci-out <file>  Write the CI summary to a file instead of stdout
-      --title <text>   Report title
+      --ci-out <file>  Write the markdown CI summary to a file
+      --title <text>   Report title and Markdown CI heading
       --meta key=value Add metadata (repeatable)
-      --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo
+      --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo; needs --out
       --accent <color> Header accent as a hex colour, e.g. #1b5e20
       --max-size <mb>  Warn when the report exceeds this size (default 10)
   -h, --help           Show this help
   -v, --version        Show the version
 
-Without --out, --json or --ci is required. With --out, --json prints the
-summary instead of the human-readable confirmation. --ci writes only the CI
-summary to stdout. Failing tests do not change the exit code.`;
+Without --out, --json or --ci is required. --ci-out requires --ci markdown.
+Without --ci-out, --ci writes only the CI summary to stdout. --json and --ci
+share stdout only with --ci-out. Failing tests do not change the exit code.`;
 
 export interface CliIO {
   stdout: (text: string) => void;
@@ -208,9 +208,13 @@ export async function runCli(
   }
 
   if (wantsJson && ci !== undefined && ciOut === undefined) {
+    const alternative =
+      ci === 'github'
+        ? 'drop --json or --ci github'
+        : 'add --ci-out for the Markdown summary or drop one';
     io.stderr(
-      `tolkira: --json and --ci both write to stdout; ` +
-        `add --ci-out or drop one\n\n${USAGE}`,
+      `tolkira: --json and --ci ${ci} both write to stdout; ` +
+        `${alternative}\n\n${USAGE}`,
     );
     return 2;
   }
@@ -236,7 +240,7 @@ export async function runCli(
   }
 
   if (ciOut !== undefined) {
-    if (output && path.resolve(ciOut) === path.resolve(output)) {
+    if (output && samePath(ciOut, output)) {
       io.stderr(`tolkira: --ci-out must not overwrite --out\n\n${USAGE}`);
       return 2;
     }

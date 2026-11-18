@@ -22,9 +22,13 @@ tolkira test-results/ --out report.html --ci markdown --ci-out tolkira-summary.m
 | `--ci github` | Print GitHub Actions workflow commands to stdout. |
 | `--ci markdown` | Print a deterministic Markdown summary to stdout or `--ci-out`. |
 | `--ci-out <file>` | Write the Markdown summary to a standalone file instead of stdout. Requires `--ci markdown`. |
+| `--title <text>` | Report title; also the Markdown heading, escaped so it stays one inert heading. |
+| `--logo <file>` | Embed a logo in the HTML report. Requires `--out`. |
 
 `--ci` does not require `--out`. Without `--ci-out`, the CI text is the only
 thing on stdout, so a redirect or a step summary receives clean output.
+`--json` and `--ci` share stdout only when `--ci-out` keeps the CI text out of
+stdout.
 
 ## GitHub Actions
 
@@ -42,10 +46,15 @@ step and do not redirect its stdout:
 ```
 
 The first step adds an error annotation for every failed, undefined and
-ambiguous scenario and a notice for skipped, pending and unknown scenarios.
-A final `::notice title=Tolkira::` line reports the exact scenario counts and
-the unexecuted count. An empty run produces one `No scenarios` notice.
-Unexecuted scenarios are counted, never annotated individually.
+ambiguous scenario and a notice for executed skipped, pending and unknown
+scenarios. A final `::notice title=Tolkira::` line reports the exact scenario
+counts and the unexecuted count. An empty run produces one `No scenarios`
+notice; when the run status is failed, the run error is emitted before it.
+Unexecuted scenarios are counted, never annotated individually. When the run
+status is failed but no scenario produced an error, for example because a
+global hook failed, Tolkira emits one
+`::error title=Tolkira::Run failed: ...` annotation and marks the final notice
+as `run failed`.
 
 The second step appends Markdown to the job summary. Use `>>`, not `>`, so the
 content from earlier steps survives. Do not point `--ci-out` at
@@ -62,24 +71,31 @@ exact numbers.
 
 The summary URI is report-relative, not a CI workspace path, so annotations
 carry no `file=` property. The feature, scenario name and first failure message
-provide the identity.
+provide the identity. Scenarios that share a feature and name are therefore
+indistinguishable in annotations; the final count notice still includes them.
 
 ## GitLab
 
-GitLab does not understand GitHub workflow commands. Use Markdown in the job
-log or keep it as an artifact:
+GitLab does not understand GitHub workflow commands. Keep the Markdown summary
+as an artifact:
 
 ```yaml
 cucumber:
   script:
-    - npx tolkira test-results/ --out report.html --ci markdown
+    - npx tolkira test-results/ --out report.html --ci markdown --ci-out tolkira-summary.md
   artifacts:
     when: always
     paths:
       - report.html
+      - tolkira-summary.md
 ```
 
-To keep the summary as its own artifact:
+A GitLab job that only runs Tolkira stays green even when tests failed, because
+the report command exits 0 by design. Do not read the job status as the test
+outcome: read the counts from the artifact, or let the test runner fail the job
+separately.
+
+Or without HTML, keep only the summary as the artifact:
 
 ```yaml
 cucumber-summary:
@@ -91,12 +107,14 @@ cucumber-summary:
       - tolkira-summary.md
 ```
 
-Markdown mode writes a heading, a complete counts table, the failed scenarios
-and the skipped scenario names. Dynamic names, URIs and messages are rendered
-as inert code spans or fenced blocks, never as links, images or raw HTML. The
-failed list is capped at 50 scenarios, each failure message at 500 raw
-characters before formatting, and the skipped name list at 20 names. The counts
-stay complete and every omitted count is stated.
+Markdown mode writes a heading, a complete counts table including the overall
+status, the failed scenarios and the skipped scenario names. Dynamic names,
+URIs and messages are rendered as inert code spans or fenced blocks, never as
+links, images or raw HTML; line breaks in a name, URI or feature collapse to a
+space so they cannot start a new Markdown block. The failed list is capped at
+50 scenarios, each failure message at 500 raw characters before formatting, and
+the skipped name list at 20 names. The counts stay complete and every omitted
+count is stated.
 
 ## stdout contract
 
@@ -114,9 +132,12 @@ The human `Report written to ...` line is suppressed whenever CI text goes to
 stdout, so annotations and Markdown are never mixed with other output.
 
 `--ci-out` must not overwrite an input file, the logo or the `--out` file. The
-check uses resolved paths and runs before report generation, so a rejected
-combination writes neither HTML nor the CI file. The CI file is written
-atomically as a standalone file: the contents are replaced, not appended.
+check resolves each path through its nearest existing ancestor, so a symlinked
+or junctioned directory cannot hide a target that does not exist yet, and it
+treats paths as the same file regardless of case on Windows and macOS. It runs
+before report generation, so a rejected combination writes neither HTML nor the
+CI file. The CI file is written atomically as a standalone file: the contents
+are replaced, not appended.
 
 ## Exit codes
 
@@ -136,11 +157,11 @@ written.
 ## Messages are not redacted
 
 Failure messages, scenario names and URIs are copied from the input verbatim.
-Tolkira does not redact secrets. GitHub masks registered secrets in annotations
-and summaries, but GitLab does not, and a local Markdown file does not either.
-Keep credentials out of test data, or review the raw results before enabling CI
-output on a public repository. If a message may contain secret material, write
-the CI output to a restricted artifact instead of the job log.
+Tolkira does not redact secrets. Do not rely on CI masking for annotations:
+keep credentials out of test data. GitLab does not mask them, a local Markdown
+file never does, and GitHub masking applies to registered secrets in the job
+log, not as a guarantee for every annotation. If a message may contain secret
+material, write the CI output to a restricted artifact instead of the job log.
 
 The formatter never fetches a remote asset and never calls a CI provider API.
 The text is derived from the in-memory summary only.

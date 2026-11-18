@@ -40,7 +40,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
-| B-002 | CLI/API | P1 | CI annotations and PR summary from `--json` | [#5](https://github.com/Silasoa/tolkira/issues/5) |
 | B-004 | Report | P2 | Reflow and split `html.ts` at view seams | [#7](https://github.com/Silasoa/tolkira/issues/7) |
 | B-005 | Test | P2 | Split render/e2e suites and finish fixture helpers | [#8](https://github.com/Silasoa/tolkira/issues/8) |
 | B-006 | Input | P2 | Consolidate attachment byte counting and presentation lookup | [#9](https://github.com/Silasoa/tolkira/issues/9) |
@@ -71,6 +70,13 @@ the benchmark path and budget.
   retries, steps, attachments and run-level errors; see
   [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
   [#4](https://github.com/Silasoa/tolkira/issues/4) is resolved.
+- **B-002 CI annotations and Markdown/PR-step summary text** — implemented in
+  `main` on 2026-11-18, not yet released. `--ci github` emits capped GitHub
+  Actions annotations and `--ci markdown` writes deterministic summary text for
+  stdout, `$GITHUB_STEP_SUMMARY`, a PR-step summary or `--ci-out`; see
+  [`docs/CI.md`](CI.md). Posting a PR comment or calling a CI provider API
+  remains out of scope. [#5](https://github.com/Silasoa/tolkira/issues/5) is
+  resolved.
 - **B-003 Seed-Test 2.0 group sidecar** — resolved for Tolkira on 2026-11-13.
   The 0.3.0 smoke proved that Seed-Test owns the ~10-line sidecar pre-merge and
   needs no Tolkira change. [#6](https://github.com/Silasoa/tolkira/issues/6) is
@@ -134,6 +140,10 @@ the benchmark path and budget.
   filter waits for a real report with >30 steps per scenario, and a project
   filter is only useful for multi-project reports. Do not copy the trace
   viewer, report folder, JS-only SPA, snapshot diff or worker gantt.
+- **CI output polish.** Add file/line annotations when the summary exposes
+  source lines, aggregate skipped notices, add a flaky warning, expose run-hook
+  detail beyond one run error, and clarify the attachment-count label. Trigger:
+  the next CI usability request or a provider annotation-limit incident.
 
 ## Ideas (not scheduled)
 

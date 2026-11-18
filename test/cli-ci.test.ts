@@ -1,9 +1,11 @@
 import {
   copyFile,
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
   rm,
+  symlink,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -65,8 +67,6 @@ async function missing(file: string): Promise<boolean> {
 
 describe('CLI CI output', () => {
   it('emits GitHub annotations on stdout without writing HTML', async () => {
-    const dir = await tempDir();
-
     const run = await cli([failed, '--ci', 'github']);
 
     expect(run.code).toBe(0);
@@ -77,12 +77,9 @@ describe('CLI CI output', () => {
     expect(run.stdout).toContain('::error ');
     expect(run.stdout).toContain('::notice title=Tolkira::');
     expect(run.stdout).not.toContain('Report written to');
-    await expect(readdir(dir)).resolves.toEqual([]);
   });
 
   it('writes Markdown to stdout without --out', async () => {
-    const dir = await tempDir();
-
     const run = await cli([allStatuses, '--ci', 'markdown']);
 
     expect(run.code).toBe(0);
@@ -90,7 +87,6 @@ describe('CLI CI output', () => {
     expect(run.stdout.startsWith('## Tolkira report')).toBe(true);
     expect(run.stdout).not.toContain('::error');
     expect(run.stdout).not.toContain('Report written to');
-    await expect(readdir(dir)).resolves.toEqual([]);
   });
 
   it('writes Markdown to --ci-out and creates missing directories', async () => {
@@ -109,8 +105,7 @@ describe('CLI CI output', () => {
     const markdown = await readFile(ciFile, 'utf8');
     expect(markdown.startsWith('## Tolkira report')).toBe(true);
     expect(markdown).toContain('Happy HTML reporting');
-    expect(run.stdout).not.toContain('## ');
-    expect(run.stdout).not.toContain('::');
+    expect(run.stdout).toBe('');
     await expect(readdir(dir)).resolves.toEqual(['nested']);
   });
 
@@ -123,9 +118,17 @@ describe('CLI CI output', () => {
     expect(run.code).toBe(0);
     expect(run.stderr).toBe('');
     expect(run.stdout.startsWith('## Tolkira report')).toBe(true);
-    expect(run.stdout).not.toContain('::');
+    expect(run.stdout).not.toMatch(/^::/m);
     expect(run.stdout).not.toContain('Report written to');
     await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+  });
+
+  it('forwards --title to the Markdown heading', async () => {
+    const run = await cli([failed, '--ci', 'markdown', '--title', 'Nightly']);
+
+    expect(run.code).toBe(0);
+    expect(run.stdout.startsWith('## Nightly\n')).toBe(true);
+    expect(run.stdout).not.toContain('## Tolkira report');
   });
 
   it('rejects GitHub annotations bound to --ci-out before writing anything', async () => {
@@ -188,7 +191,14 @@ describe('CLI CI output', () => {
     expect(conflict.code).toBe(2);
     expect(conflict.stdout).toBe('');
     expect(conflict.stderr).toContain('--json');
-    expect(conflict.stderr).toContain('--ci-out');
+    const [conflictError] = conflict.stderr.split('\n');
+    expect(conflictError).not.toContain('--ci-out');
+    expect(conflictError).toMatch(/drop/);
+
+    const markdownConflict = await cli([screenshot, '--json', '--ci', 'markdown']);
+    expect(markdownConflict.code).toBe(2);
+    const [markdownError] = markdownConflict.stderr.split('\n');
+    expect(markdownError).toContain('--ci-out');
 
     const dir = await tempDir();
     const ciFile = path.join(dir, 'summary.md');
@@ -266,6 +276,70 @@ describe('CLI CI output', () => {
     expect(sameAsLogo.stderr).toMatch(/logo|overwrite/);
     await expect(readFile(logo)).resolves.toEqual(logoBefore);
     expect(await missing(logoOutput)).toBe(true);
+  });
+
+  it.skipIf(process.platform === 'linux')(
+    'rejects case-only --ci-out collisions with --out and an input',
+    async () => {
+      const outDir = await tempDir();
+      const sameAsOut = await cli([
+        screenshot,
+        '--out',
+        path.join(outDir, 'Report.html'),
+        '--ci',
+        'markdown',
+        '--ci-out',
+        path.join(outDir, 'report.html'),
+      ]);
+      expect(sameAsOut.code).toBe(2);
+      expect(sameAsOut.stderr).toContain('--ci-out');
+      expect(sameAsOut.stderr).toMatch(/--out|overwrite/);
+      await expect(readdir(outDir)).resolves.toEqual([]);
+
+      const inputDir = await tempDir();
+      const upper = path.join(inputDir, 'INPUT.NDJSON');
+      await copyFile(screenshot, upper);
+      const before = await readFile(upper, 'utf8');
+      const sameAsInput = await cli([
+        upper,
+        '--ci',
+        'markdown',
+        '--ci-out',
+        path.join(inputDir, 'input.ndjson'),
+      ]);
+      expect(sameAsInput.code).toBe(2);
+      expect(sameAsInput.stderr).toContain('--ci-out');
+      expect(sameAsInput.stderr).toMatch(/input|overwrite/);
+      await expect(readFile(upper, 'utf8')).resolves.toBe(before);
+      await expect(readdir(inputDir)).resolves.toEqual(['INPUT.NDJSON']);
+    },
+  );
+
+  it('rejects a --ci-out alias through a symlinked directory', async (context) => {
+    const dir = await tempDir();
+    const real = path.join(dir, 'real');
+    const link = path.join(dir, 'link');
+    await mkdir(real);
+    try {
+      await symlink(real, link, process.platform === 'win32' ? 'junction' : 'dir');
+    } catch {
+      context.skip('directory symlinks are not supported here');
+    }
+
+    const run = await cli([
+      screenshot,
+      '--out',
+      path.join(link, 'report.html'),
+      '--ci',
+      'markdown',
+      '--ci-out',
+      path.join(real, 'report.html'),
+    ]);
+
+    expect(run.code).toBe(2);
+    expect(run.stderr).toContain('--ci-out');
+    expect(run.stderr).toMatch(/--out|overwrite/);
+    await expect(readdir(real)).resolves.toEqual([]);
   });
 
   it('keeps HTML byte-identical with --ci and exits 0 for a failed run', async () => {

@@ -1,12 +1,14 @@
 # Tolkira for agents
 
-Tolkira produces two things from the same input:
+Tolkira produces three things from the same input:
 
 - a self-contained HTML report for humans;
-- a stable JSON summary for programs and AI agents.
+- a stable JSON summary for programs and AI agents;
+- deterministic CI text: GitHub Actions annotations or a Markdown summary.
 
-The HTML report is the artifact. The JSON summary is the interface. Do not parse
-the HTML to decide whether a test run passed.
+The HTML report is the artifact. The JSON summary is the interface. The CI text
+is a presentation of that same summary. Do not parse the HTML to decide whether
+a test run passed.
 
 ## CLI
 
@@ -64,9 +66,11 @@ tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
 - Messages are copied verbatim and are not redacted. See [`CI.md`](CI.md).
 
 GitHub mode caps at 50 error and 20 notice annotations and states the
-remainder; the final count notice keeps the exact totals. Markdown caps the
-failed list at 50 scenarios, each message at 500 raw characters and the skipped
-name list at 20, while the counts stay complete.
+remainder; the final count notice keeps the exact totals. A failed run status
+without a scenario-level error produces one run-level error annotation.
+Markdown caps the failed list at 50 scenarios, each message at 500 raw
+characters and the skipped name list at 20, while the counts and the overall
+`Status` row stay complete.
 
 ## API
 

@@ -97,19 +97,24 @@ it. The gap is the combination.
   the final attempt visible, nested steps, expected/unexpected outcomes,
   attachments and run-level errors.
 
+### CI output (in main)
+
+- `--ci github` annotations and `--ci markdown` summary text for stdout,
+  `$GITHUB_STEP_SUMMARY`, a PR step or `--ci-out`; see [`CI.md`](CI.md).
+
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media.
 - History/trends via an optional history file.
 - PDF/email summary.
 - German UI/localisation.
-- CI annotations/PR summary.
 - Deeper dashboard and custom themes.
 
 ### Non-goals
 
 - Test management, live server, trace viewer, screenshot diffing, AI analysis.
 - A plugin marketplace or a SaaS.
+- Posting PR comments or calling a CI provider API on the user's behalf.
 - A 1:1 visual clone of the old Bootstrap themes.
 - Owning a Gherkin parser. Messages remain the model; the report shell and
   presentation are ours.
