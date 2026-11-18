@@ -91,7 +91,7 @@ it. The gap is the combination.
 - Source strip for multi-file runs with real provenance.
 - Batched CLI edge fixes from the 0.1.2 audit.
 
-### v0.3 — Playwright input (shipped)
+### v0.4 — Playwright input (in main)
 
 - Native Playwright JSON adapter: projects, file/describe rules, retries with
   the final attempt visible, nested steps, expected/unexpected outcomes,

@@ -220,7 +220,7 @@ claim is credible Messages report parity, not full formatter parity.
 
 ### How it compares
 
-Last checked 2026-11-11 against the current package docs. Trade-offs are
+Last checked 2026-11-18 against the current package docs. Trade-offs are
 deliberate; pick the tool that fits the job.
 
 | Tool | Offline | Legacy JSON | Messages | JUnit | Playwright JSON | JSON summary | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
