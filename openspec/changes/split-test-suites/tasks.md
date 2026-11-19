@@ -47,7 +47,7 @@
 
 ## 4. Browser split
 
-- [ ] 4.1 Add `test/e2e/helpers.ts` (`writeReport`, `removeReport`,
+- [x] 4.1 Add `test/e2e/helpers.ts` (`writeReport`, `removeReport`,
   `reportUrl`, `stubClipboard`, `stubClipboardFailure`, `readClipboard`) and
   `test/ansi-payload.ts`; set Playwright `testMatch` to `**/*.spec.ts`; move
   `test/ansi-stripping.test.ts` to the shared payload. Record the ANSI
@@ -55,18 +55,18 @@
   both tests keep the forbidden-family checks (ESC, `]52;`, `]8;;`, DCS, APC,
   charset, C1 OSC/DCS/CSI, C0/C1 control range). The failing clipboard stub
   keeps `document.execCommand`.
-- [ ] 4.2 Move the core report, search/filter, triage and attachment tests;
+- [x] 4.2 Move the core report, search/filter, triage and attachment tests;
   every standard report uses `writeReport`/`removeReport`.
-- [ ] 4.3 Move the clipboard, hooks, outlines and diagnostics tests; every
+- [x] 4.3 Move the clipboard, hooks, outlines and diagnostics tests; every
   standard report uses `writeReport`/`removeReport` (the diagnostic markup test
   calls it twice).
-- [ ] 4.4 Move the rules, empty-run, keyboard, no-JS and performance tests;
+- [x] 4.4 Move the rules, empty-run, keyboard, no-JS and performance tests;
   move the 200 % zoom test into `responsive.spec.ts`; every standard report
   uses `writeReport`/`removeReport`. Move the `without scripting` wrapper and
   its `test.use({ javaScriptEnabled: false })` with the four tests; grep
   `no-js.spec.ts` for the `test.use` line and `performance.spec.ts` for
   `test.slow()`. Leave the no-JS block in `parity-metadata.spec.ts` untouched.
-- [ ] 4.5 Point `search-state.spec.ts`, `failed-only.spec.ts` and
+- [x] 4.5 Point `search-state.spec.ts`, `failed-only.spec.ts` and
   `parity-metadata.spec.ts` at the shared `writeReport` helper; in
   `parity-metadata.spec.ts`, replace the local `navigator.clipboard` init
   script with `stubClipboard(page)` and read the copied text with
@@ -76,23 +76,23 @@
 
 ## 5. Docs
 
-- [ ] 5.1 Add a `Changed` entry to `docs/CHANGELOG.md` describing the suite
+- [x] 5.1 Add a `Changed` entry to `docs/CHANGELOG.md` describing the suite
   split and helper consolidation.
-- [ ] 5.2 If a review finding is deferred, record the reason and trigger in
+- [x] 5.2 If a review finding is deferred, record the reason and trigger in
   `docs/BACKLOG.md`; keep shared-doc edits to the B-005 entry. Do not close #8
   or archive the change.
-- [ ] 5.3 Mark the Test split item in `docs/architecture/rewrite-list.md` as
+- [x] 5.3 Mark the Test split item in `docs/architecture/rewrite-list.md` as
   done in #8, with the change reference; it is the item's own status line.
 
 ## 6. Verification and review
 
-- [ ] 6.1 Run `npm run hygiene`.
-- [ ] 6.2 Run `npm run check`; record the collected unit total (expect 47
-  files / 659 tests), the sorted title multiset and the `expect(` inventory.
-  Compare with the baseline; ignore the platform-specific pass/skip split.
-  Confirm zero diff in `test/render-characterization.test.ts` and both golden
-  files.
-- [ ] 6.3 Run `npm run test:e2e`; record the collected browser total (expect
+- [x] 6.1 Run `npm run hygiene`.
+- [x] 6.2 Run `npm run check`; record the collected unit total (expect 47
+  files / 659 tests), the sorted title multiset and the `expect(` inventory
+  (485 unit; 417 split browser specs + 1 in `writeReport` = 418). Compare with
+  the baseline; ignore the platform-specific pass/skip split. Confirm zero diff
+  in `test/render-characterization.test.ts` and both golden files.
+- [x] 6.3 Run `npm run test:e2e`; record the collected browser total (expect
   273 runs), compare the 91 project-excluded definition titles and the 273
   per-project entries, and compare wall clock plus the per-test duration sum on
   the same machine. A >20 % increase is investigated; the in-test performance
@@ -125,4 +125,17 @@
 
 ## Gate record
 
-To be filled after implementation.
+2026-11-19 implementation:
+
+- Unit split: 47 files, 659 collected, 485 `expect(` preserved; 92 original
+  render tests with exact title parity.
+- Browser split: 273 runs in 18 files, 70.0 s final `npm run test:e2e`; earlier
+  JSON run 82.4 s / 410.9 s per-test sum against the 79.7 s / 409.6 s baseline
+  (+0.3 % sum). Exact 91-definition and 273 per-project title parity.
+- Assertion inventory: 417 split browser specs + 1 `writeReport` = 418, after
+  49 inline setup checks collapsed into the helper. ANSI value changed in
+  place. No matcher loosened.
+- `npm run hygiene` ok; `npm run check` 47 files / 657 passed / 2 skipped
+  (659); characterization hashes and both golden files unchanged.
+- Review swarm: pending.
+- Commit and push: pending.

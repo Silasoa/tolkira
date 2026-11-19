@@ -4,21 +4,7 @@ import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
 import { buildReportModel } from '../src/report/model.js';
 import { summarizeEnvelopes } from '../src/summary.js';
-
-const ESC = '\u001b';
-
-const HOSTILE =
-  `${ESC}]8;;https://evil.example/${ESC}\\link${ESC}]8;;${ESC}\\` +
-  `${ESC}]52;c;cHduZWQ=\u0007clip` +
-  `${ESC}Pdcs payload${ESC}\\` +
-  `${ESC}_apc payload${ESC}\\` +
-  `${ESC}(Btwo-byte` +
-  `\u009d52;c;c1-osc\u0007c1clip` +
-  `\u0090c1-dcs\u009c` +
-  `\u009b1mc1-csi\u009b0m` +
-  `\u0000\u0007\u007f\u0085\u009f`;
-
-const VISIBLE = 'linkcliptwo-bytec1clipc1-csi';
+import { ESC, HOSTILE_ANSI, VISIBLE_ANSI } from './ansi-payload.js';
 
 function envelopes(): Envelope[] {
   const lines: unknown[] = [
@@ -112,7 +98,7 @@ function envelopes(): Envelope[] {
         result: {
           status: 'FAILED',
           duration: { seconds: 0, nanos: 1 },
-          message: HOSTILE,
+          message: HOSTILE_ANSI,
         },
       },
     },
@@ -131,7 +117,7 @@ function envelopes(): Envelope[] {
         testStepResult: {
           status: 'FAILED',
           duration: { seconds: 0, nanos: 1 },
-          message: HOSTILE,
+          message: HOSTILE_ANSI,
         },
         timestamp: { seconds: 0, nanos: 4 },
       },
@@ -143,7 +129,7 @@ function envelopes(): Envelope[] {
         testStepResult: {
           status: 'FAILED',
           duration: { seconds: 0, nanos: 1 },
-          message: HOSTILE,
+          message: HOSTILE_ANSI,
         },
         timestamp: { seconds: 0, nanos: 5 },
       },
@@ -171,9 +157,9 @@ describe('ANSI escape stripping in report text', () => {
     const model = buildReportModel(envelopes());
     const scenario = model.scenarios[0];
 
-    expect(scenario?.steps[0]?.message).toBe(VISIBLE);
-    expect(scenario?.hooks[0]?.message).toBe(VISIBLE);
-    expect(model.runHooks[0]?.message).toBe(VISIBLE);
+    expect(scenario?.steps[0]?.message).toBe(VISIBLE_ANSI);
+    expect(scenario?.hooks[0]?.message).toBe(VISIBLE_ANSI);
+    expect(model.runHooks[0]?.message).toBe(VISIBLE_ANSI);
   });
 
   it('strips step and hook messages in the machine-readable summary', () => {
@@ -181,8 +167,8 @@ describe('ANSI escape stripping in report text', () => {
     const steps = summary.scenarios[0]?.steps ?? [];
     const hook = steps.find((step) => step.keyword === 'Hook');
 
-    expect(hook?.message).toBe(VISIBLE);
-    expect(steps.find((step) => step.keyword === 'Given')?.message).toBe(VISIBLE);
+    expect(hook?.message).toBe(VISIBLE_ANSI);
+    expect(steps.find((step) => step.keyword === 'Given')?.message).toBe(VISIBLE_ANSI);
   });
 
   it('never emits escape sequences or terminal payloads into HTML', async () => {
@@ -196,6 +182,6 @@ describe('ANSI escape stripping in report text', () => {
     expect(html).not.toContain('apc payload');
     // oxlint-disable-next-line no-control-regex
     expect(html).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/);
-    expect(html).toContain(VISIBLE);
+    expect(html).toContain(VISIBLE_ANSI);
   });
 });

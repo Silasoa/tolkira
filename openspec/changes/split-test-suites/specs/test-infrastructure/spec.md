@@ -66,10 +66,11 @@ two named moves in the change tasks. No matcher SHALL be loosened.
 - **THEN** the render suite stays at 485 static `expect(` lines, unchanged;
   it contains no `expect(code)` setup lines
 - **AND** the browser report spec has 466 static `expect(` lines before; after,
-  the split spec files contain 419 and the shared `writeReport` helper contains
-  1, for 420 across the moved suite
-- **AND** the 47 inline `expect(code).toBe(0)` lines collapse into the helper's
-  one check
+  the split spec files contain 417 and the shared `writeReport` helper contains
+  1, for 418 across the moved suite
+- **AND** the 49 inline report-creation checks (47 `expect(code).toBe(0)` plus
+  the diagnostic test's `expect(undefinedCode)` and `expect(ambiguousCode)`)
+  collapse into the helper's one check
 - **AND** the ANSI expected string changes value in place, so its count is
   unchanged
 - **AND** no matcher changes from a strong form to a weaker one

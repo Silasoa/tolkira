@@ -59,6 +59,10 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- Test-only: the render unit suite is split by report flow and the browser
+  report spec by user journey. Fixture paths, report creation, clipboard stubs
+  and the hostile ANSI payload now have one shared helper. No product behaviour
+  change.
 - Attachment byte accounting, the 50 MB/100 MB attachment caps, fallback names,
   kind and JSON/URI-list/ANSI/plain text presentation now come from one shared
   `src/attachment` module. Caps, summary schema version 2, the summary values and

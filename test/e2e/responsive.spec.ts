@@ -5,6 +5,9 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
+import { removeReport, reportUrl, writeReport } from './helpers.js';
+
+const fixture = messagesFixture('screenshot.ndjson');
 
 const fixtures = ['failed.json', 'minimal.json', 'behave.json'].map((name) =>
   legacyFixture(name),
@@ -606,5 +609,114 @@ test('keeps rule and background headings readable at 320px and 200% zoom', async
     );
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('reflows at 200% page zoom', async ({ page }) => {
+  const { dir, output } = await writeReport(
+    [fixture],
+    'Zoom E2E',
+    'tolkira-zoom-e2e-',
+  );
+
+  try {
+    await page.setViewportSize({ width: 720, height: 450 });
+    await page.goto(reportUrl(output));
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+
+    expect(overflow).toBeLessThanOrEqual(1);
+    await expect(
+      page.getByRole('heading', { name: 'Zoom E2E', level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible();
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    const textOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+
+    expect(textOverflow).toBeLessThanOrEqual(1);
+    await expect(
+      page.getByRole('heading', { name: 'Zoom E2E', level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Details' })).toBeVisible();
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    const phone = await page.evaluate(() => {
+      const right = (selector: string) => {
+        const element = document.querySelector(selector);
+        return element ? element.getBoundingClientRect().right : 0;
+      };
+      const title = document.querySelector('.scenarioMain');
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        h1: right('.runHead h1'),
+        health: right('.health'),
+        titleWidth: title ? title.getBoundingClientRect().width : 0,
+      };
+    });
+
+    expect(phone.overflow).toBeLessThanOrEqual(1);
+    expect(phone.h1).toBeLessThanOrEqual(320);
+    expect(phone.health).toBeLessThanOrEqual(320);
+    expect(phone.titleWidth).toBeGreaterThan(100);
+
+    await page.locator('.shotButton').first().click();
+    await expect(page.locator('#tolkira-lightbox img')).toBeVisible();
+    const imageBounds = await page.evaluate(() => {
+      const image = document.querySelector('#tolkira-lightbox img');
+      const dialog = document.getElementById('tolkira-lightbox');
+      if (!image || !dialog) return null;
+      const imageRect = image.getBoundingClientRect();
+      const dialogRect = dialog.getBoundingClientRect();
+      return {
+        left: imageRect.left,
+        right: imageRect.right,
+        dialogLeft: dialogRect.left,
+        dialogRight: dialogRect.right,
+      };
+    });
+    expect(imageBounds).not.toBeNull();
+    expect(imageBounds!.left).toBeGreaterThanOrEqual(
+      imageBounds!.dialogLeft - 0.5,
+    );
+    expect(imageBounds!.right).toBeLessThanOrEqual(
+      imageBounds!.dialogRight + 0.5,
+    );
+    expect(imageBounds!.right).toBeLessThanOrEqual(320);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tolkira-lightbox')).toBeHidden();
+
+    await page.getByRole('tab', { name: 'Details' }).click();
+    expect(
+      await page
+        .locator('#analysis-view')
+        .evaluate((element) => element.getBoundingClientRect().right),
+    ).toBeLessThanOrEqual(320);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(1);
+    const tableWrap = page.locator('#analysis-view .tableWrap');
+    await expect(tableWrap).toHaveAttribute('tabindex', '0');
+    expect(
+      await tableWrap.evaluate(
+        (element) => element.scrollWidth > element.clientWidth,
+      ),
+    ).toBe(true);
+    await tableWrap.focus();
+    await expect(tableWrap).toBeFocused();
+    await expect(page.locator('#analysis-view pre.json')).toHaveAttribute(
+      'tabindex',
+      '0',
+    );
+  } finally {
+    await removeReport(dir);
   }
 });

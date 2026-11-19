@@ -16,9 +16,10 @@ Statuses are coordinator decisions, not approved interfaces yet.
 - **Pure input detection.** Promote sniffing out of the async file loop into a
   pure decision table over `(content, identity)`; keep the 100 MB cap and
   content-hash dedupe in the loader.
-- **Test split + fixture helper.** Widen the scope to `test/render.test.ts`
-  (2,286 lines / 92 tests) as well as the 2,400-line e2e spec; reuse
-  clipboard/ANSI/fixture helpers.
+- **Test split + fixture helper.** Done in #8: `test/render.test.ts` is split by
+  report flow and the browser report spec by user journey; fixture paths,
+  report creation, clipboard stubs and the hostile ANSI payload use shared
+  helpers.
 
 ## Explore (Worth exploring)
 
