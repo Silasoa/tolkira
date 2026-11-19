@@ -190,11 +190,13 @@ immediately, even while a tag expression is active.
 
 The report stores `query`, every repeated lowercase `hide` value and `tag` in
 the URL, restores them on load and synchronises the search input, status
-buttons and tag select. Updates use `replaceState` and preserve the hash and
-unrelated parameters. Empty, unknown and uppercase parameters are ignored.
-When `replaceState` is unavailable or throws (for example on `file://`),
-filtering keeps working. URL state and tag expressions are progressive
-enhancements; the static report stays readable without JavaScript.
+buttons and tag select. `?hide=` also accepts the `unexecuted` pseudo-status,
+restored only with the preset chip state; a pruned value is removed from the
+URL. Updates use `replaceState` and preserve the hash and unrelated parameters.
+Empty, unknown and uppercase parameters are ignored. When `replaceState` is
+unavailable or throws (for example on `file://`), filtering keeps working. URL
+state and tag expressions are progressive enhancements; the static report stays
+readable without JavaScript.
 
 ## Auto-expansion
 

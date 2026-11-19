@@ -73,7 +73,9 @@ and is covered by real producer fixtures.
   source strip for multi-file runs with unambiguous provenance, feature
   counts/proportion bars, fixed thumbnail gutter and scenario details. Scenario
   counts, bars, triage entries and matrix cells cover reported (executed)
-  scenarios, including skipped; unexecuted rows stay visible without an outcome.
+  scenarios, including skipped; unexecuted rows stay visible without an outcome,
+  except that the failed-only preset's `hide=unexecuted` sentinel hides them
+  while the preset chip state is active.
   The run percentage and feature pass text use attempted (non-skipped)
   scenarios. Below 560 px the triage collapses and the source strip hides.
 - Details tab: feature-by-status matrix, status distribution, environment and

@@ -120,6 +120,10 @@ the benchmark path and budget.
   needing attention while the pass ratio treats them as not attempted.
   Revisit when a user reports the triage as noisy or misleading; changing its
   membership is a separate report-rendering decision.
+- **Failed-only preset hides triage and sources.** The preset hides the triage
+  index and source strip so only failed rows and their controls remain; both
+  return when the preset is undone. Revisit if users use the preset as a triage
+  surface.
 - **CI summary labels.** `--ci markdown` keeps `Duration` and the GitHub notice
   says `executed scenarios`; align them with the report's `Test time` when the
   CI surface is next touched.

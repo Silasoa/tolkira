@@ -97,11 +97,12 @@ gets the shortcut for the rows it can hide.
 
 ## Styling
 
-`.filter[data-filter-preset="failed"][aria-pressed="true"]` reuses the failed
-tokens (`--fail`, `--fail-soft`) like the failed chip. The preset uses the same
-flex gap as the chips; no extra margin, so a wrapped row at 320 px stays
-aligned. `styles.ts` and the generated `client-bundle.ts` are rebuilt by the
-normal build.
+`.filter.presetFilter[data-filter-preset="failed"][aria-pressed="true"]` uses
+the ink mode style: paper text on an ink pill, not the failed status colour.
+Unpressed, it keeps the dashed chip style. The preset uses the same flex gap as
+the chips; no extra margin, so a wrapped row at 320 px stays aligned.
+`styles.ts` and the generated `client-bundle.ts` are rebuilt by the normal
+build.
 
 The existing DOM-contract test matches only `class="filter"` exactly. Extend it
 so every `button.filter` has exactly one of `data-filter-status` or

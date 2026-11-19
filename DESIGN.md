@@ -103,7 +103,7 @@ describe the viewport, not the font.
 | Top bar / tabs | `.topbar`, `.view` | Report and Details; active tab is a text state, not a card |
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
 | Attachment notice | `.noticeShell`, `.attachmentWarning` | One shared warning above both tabs when path attachments were skipped; uses the pending tokens; hidden when the count is zero |
-| Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features and scenarios; filters only for present statuses |
+| Toolbar | `.toolbar`, `.search`, `.filter`, `.presetFilter` | Search and status filters; search opens matching features and scenarios; status chips only for present statuses; the `Failed only` preset appears when failed plus another present status, or when an unexecuted row can be hidden |
 | Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure |
 | Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar; hidden at 560 px or narrower. The Report row's source badge hides at 900 px or narrower, so the Details matrix keeps the source label |
 | Feature | `details.feature` | Native disclosure; status, name, counts, proportion bar, source badge (file path or `N spec files`), URI |
@@ -120,6 +120,12 @@ describe the viewport, not the font.
 - Search and filters: hide non-matches and open matching features; search also
   opens matching scenarios, update a polite live region, show an empty state
   when nothing matches.
+- `Failed only` turns off every other present status chip and adds the
+  `unexecuted` sentinel to `hide`, so statusless rows hide too; pressing it again
+  restores every chip and drops the sentinel. Any manual chip change drops the
+  sentinel, and the toggle is pressed only for the exact preset state. Pressed,
+  it uses the ink mode style (paper text on ink, pill radius), not the failed
+  status colour.
 - Switching tabs scrolls to the top; the previous panel's scroll position is
   not restored.
 - The lightbox locks background scrolling, restores focus to its trigger on

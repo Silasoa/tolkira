@@ -348,8 +348,11 @@ outside `features/`).
   loads no external asset. JUnit `description` attributes are a best-effort,
   non-standard mapping; they never appear in the summary.
 - Tag-expression search, the tag dropdown and `?query=`/`?hide=`/`?tag=` URL
-  state are HTML-only progressive enhancements. The summary schema, counts and
-  no-JS report are unchanged.
+  state are HTML-only progressive enhancements. `?hide=` also accepts
+  `unexecuted`, a pseudo-status for the failed-only preset that hides rows
+  without an outcome; it is restored only with the preset chip state and a
+  pruned value is removed from the URL. The summary schema and counts are
+  unchanged; the static no-JS report keeps the inert control and all rows.
 - Inputs are capped at 100 MB in total; attachments at 50 MB each and 100 MB
   total.
 - The HTML report includes a hash-based CSP and never executes attachments.

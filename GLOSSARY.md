@@ -101,9 +101,21 @@ results but no attempt states `No scenarios attempted` instead of a percentage.
 
 **Unexecuted scenario** — a scenario whose selected test case started but
 reported no raw step result, including a started-but-unfinished case. It stays
-visible without an outcome, keeps `status: "unknown"` and `executed: false` in
-the summary, and leaves every count surface. Any attachment emitted for it is
-dropped. A never-started pickle produces no row at all.
+visible without an outcome unless the failed-only preset is active, keeps
+`status: "unknown"` and `executed: false` in the summary, and leaves every count
+surface. Any attachment emitted for it is dropped. A never-started pickle
+produces no row at all.
+
+**Failed-only preset** — the toolbar toggle that turns off every other present
+status chip and adds the `unexecuted` sentinel, so only failed scenarios remain.
+It is pressed only for the exact preset chip state, disappears when it could hide
+nothing, and any manual chip change clears the sentinel. Header counts and the
+`N unexecuted` label stay unchanged.
+
+**`hide=unexecuted`** — the URL value for the failed-only preset's sentinel. It
+is not a status and has no chip: it hides rows without an outcome and is restored
+only together with the preset chip state. It is dropped unless it is the exact
+preset state (failed with unexecuted rows and no other status).
 
 **Rule** — a Gherkin grouping of scenarios and outlines under a named business
 rule. The report renders a rule section with its keyword, name, description and
@@ -122,8 +134,8 @@ block container; images become alt text and raw HTML stays escaped.
 whole query is tag-shaped; mixed text and tags fall back to substring search.
 
 **URL state** — the shareable `?query=`, repeated lowercase `?hide=` and `?tag=`
-parameters. The report restores them and updates them with `replaceState`
-without adding history entries.
+parameters, including the `hide=unexecuted` pseudo-status. The report restores
+them and updates them with `replaceState` without adding history entries.
 
 **Own tag** — a tag written on the scenario itself; for an outline row, the
 examples-block tags. A standalone scenario row shows its own tags. Outline

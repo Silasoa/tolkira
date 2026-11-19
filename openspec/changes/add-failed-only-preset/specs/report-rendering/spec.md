@@ -60,7 +60,10 @@ with the preset chip state.
 - **AND** the chip states match
 - **AND** only failed and no statusless rows are visible
 - **WHEN** the URL carries `unexecuted` without the preset chip state
-- **THEN** the sentinel is dropped and statusless rows stay visible
+- **THEN** the sentinel is dropped unless it is the exact preset state (failed
+  plus unexecuted with no other present status)
+- **AND** a pruned URL is rewritten without the stale sentinel
+- **AND** statusless rows stay visible
 
 #### Scenario: Search and tag combination
 
@@ -68,6 +71,7 @@ with the preset chip state.
 - **THEN** only failed scenarios matching both remain visible
 - **AND** a matching unexecuted row stays hidden
 - **AND** the empty state appears when nothing matches
+- **AND** the empty state names the preset when it is active
 
 #### Scenario: Keyboard and no JavaScript
 

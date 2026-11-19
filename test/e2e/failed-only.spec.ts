@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -61,10 +61,22 @@ test('activates and deactivates the failed-only preset', async ({ page }) => {
     await expect(heading(page, 'Passed scenario')).toBeVisible();
     await expect(heading(page, 'Failed scenario')).toBeVisible();
     await expect(heading(page, 'Blank unexecuted scenario')).toBeVisible();
+    await expect(page.locator('#report-view .runHead .meta')).toContainText(
+      '2 scenarios with results',
+    );
+    await expect(page.locator('#report-view .runHead .meta')).toContainText(
+      '1 unexecuted',
+    );
 
     await preset(page).click();
 
     await expect(preset(page)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#report-view .runHead .meta')).toContainText(
+      '2 scenarios with results',
+    );
+    await expect(page.locator('#report-view .runHead .meta')).toContainText(
+      '1 unexecuted',
+    );
     await expect(heading(page, 'Failed scenario')).toBeVisible();
     await expect(heading(page, 'Passed scenario')).toBeHidden();
     await expect(heading(page, 'Blank unexecuted scenario')).toBeHidden();
@@ -160,6 +172,25 @@ test('a partial chip state does not press the preset', async ({ page }) => {
     await expect
       .poll(async () => (await hiddenStatuses(page)).sort())
       .toEqual(['passed']);
+
+    await preset(page).click();
+
+    await expect(preset(page)).toHaveAttribute('aria-pressed', 'true');
+    await expect(heading(page, 'Blank unexecuted scenario')).toBeHidden();
+
+    await preset(page).click();
+
+    await expect(preset(page)).toHaveAttribute('aria-pressed', 'false');
+    const chips = page.locator('button.filter[data-filter-status]');
+    const chipCount = await chips.count();
+    for (let index = 0; index < chipCount; index += 1) {
+      await expect(chips.nth(index)).toHaveAttribute('aria-pressed', 'true');
+    }
+    await expect(heading(page, 'Blank unexecuted scenario')).toBeVisible();
+    await expect(page.locator('#tolkira-live')).toHaveText(
+      '3 of 3 scenarios visible',
+    );
+    await expect.poll(() => hiddenStatuses(page)).toEqual([]);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -196,6 +227,7 @@ test('restores the preset from the URL and prunes a lone sentinel', async ({
 
     await page.goto(reportUrl(output, '?hide=unexecuted'));
 
+    await expect(page).not.toHaveURL(/unexecuted/);
     await expect(preset(page)).toBeVisible();
     await expect(preset(page)).toHaveAttribute('aria-pressed', 'false');
     await expect(heading(page, 'Passed scenario')).toBeVisible();
@@ -226,6 +258,9 @@ test('combines the preset with search and keeps blank rows hidden', async ({
       '0 of 3 scenarios visible',
     );
     await expect(page.locator('#empty-results')).toBeVisible();
+    await expect(page.locator('#empty-results')).toHaveText(
+      'No failed scenarios match the current search or filters. Unexecuted rows are hidden by Failed only.',
+    );
 
     await search.fill('Failed scenario');
     await expect(heading(page, 'Failed scenario')).toBeVisible();
@@ -302,6 +337,7 @@ test('toggles the preset with the keyboard', async ({ page }) => {
   try {
     await page.goto(reportUrl(output));
     await preset(page).focus();
+    await expect(preset(page)).toBeFocused();
 
     await page.keyboard.press('Space');
 
@@ -309,6 +345,56 @@ test('toggles the preset with the keyboard', async ({ page }) => {
     await expect(page.locator('#tolkira-live')).toHaveText(
       '1 of 3 scenarios visible',
     );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('offers the preset for a derived failed and unexecuted run', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(
+    path.join(tmpdir(), 'tolkira-failed-only-derived-'),
+  );
+
+  try {
+    const lines = (await readFile(emptyStatusesFixture, 'utf8'))
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0)
+      .filter((line) => {
+        const envelope = JSON.parse(line) as {
+          pickle?: { name?: string };
+        };
+        return envelope.pickle?.name !== 'Passed scenario';
+      });
+    const input = path.join(dir, 'failed-and-unexecuted.ndjson');
+    await writeFile(input, lines.join('\n'));
+    const output = path.join(dir, 'report.html');
+    const code = await runCli(
+      [input, '--out', output, '--title', 'Derived failed and unexecuted'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(reportUrl(output));
+
+    await expect(statusChip(page, 'passed')).toHaveCount(0);
+    await expect(preset(page)).toBeVisible();
+    await expect(heading(page, 'Failed scenario')).toBeVisible();
+    await expect(heading(page, 'Blank unexecuted scenario')).toBeVisible();
+
+    await preset(page).click();
+
+    await expect(heading(page, 'Failed scenario')).toBeVisible();
+    await expect(heading(page, 'Blank unexecuted scenario')).toBeHidden();
+    await expect(page.locator('#tolkira-live')).toHaveText(
+      '1 of 2 scenarios visible',
+    );
+
+    await preset(page).click();
+
+    await expect(preset(page)).toHaveAttribute('aria-pressed', 'false');
+    await expect(heading(page, 'Blank unexecuted scenario')).toBeVisible();
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

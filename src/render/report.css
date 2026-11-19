@@ -102,6 +102,7 @@ img, video { max-width: 100%; height: auto; }
 .filter[aria-pressed="false"] { color: var(--muted); background: transparent; border-style: dashed; }
 .filter[data-filter-status="passed"][aria-pressed="true"] { color: var(--pass); border-color: color-mix(in oklab, var(--pass) 30%, var(--line)); background: var(--pass-soft); }
 .filter[data-filter-status="failed"][aria-pressed="true"] { color: var(--fail); border-color: color-mix(in oklab, var(--fail) 30%, var(--line)); background: var(--fail-soft); }
+.filter.presetFilter[data-filter-preset="failed"][aria-pressed="true"] { color: var(--paper); background: var(--ink); border-color: var(--ink); border-radius: 999px; }
 .filter[data-filter-status="pending"][aria-pressed="true"] { color: var(--pending); border-color: color-mix(in oklab, var(--pending) 30%, var(--line)); background: var(--pending-soft); }
 .filter[data-filter-status="undefined"][aria-pressed="true"] { color: var(--undefined); border-color: color-mix(in oklab, var(--undefined) 30%, var(--line)); background: var(--undefined-soft); }
 .expand { display: flex; gap: 0.25rem; margin-left: auto; }

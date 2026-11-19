@@ -170,7 +170,8 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
   files are preserved through the input adapters where available; skipped path
   attachments are named in the report.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by
-  status and tag; open matching features automatically and highlight matches.
+  status and tag; a `Failed only` preset hides other statuses and unexecuted
+  rows; open matching features automatically and highlight matches.
 - **Rendered descriptions.** Feature, rule, background, scenario and examples
   descriptions render a safe GFM subset - headings, emphasis, code, lists,
   tables, quotes and http(s)/mailto links - from Messages, legacy JSON, JUnit
@@ -178,8 +179,9 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
 - **Tag expressions.** Search accepts the official Cucumber grammar
   (`@a and not @b`, parentheses, escaped tags). Mixed text and tags fall back to
   plain substring search.
-- **Shareable filtered views.** Search, hidden statuses and the tag filter live
-  in `?query=`, repeated `?hide=` and `?tag=`, so a URL reproduces the same view.
+- **Shareable filtered views.** Search, hidden statuses (including the failed-only
+  preset's `hide=unexecuted`) and the tag filter live in `?query=`, repeated
+  `?hide=` and `?tag=`, so a URL reproduces the same view.
 - **Parameter highlighting.** Matched step arguments render with their Cucumber
   parameter type from Messages; ambiguous or unmatched steps stay plain.
 - **Messages stream adapter.** `CucumberHtmlStream` is shape-compatible with the

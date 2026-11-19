@@ -2,6 +2,33 @@ import { parse } from '@cucumber/tag-expressions';
 
 export const SEARCH_OPEN_CAP = 20;
 
+// Not a status: the sentinel hides rows without an outcome while the failed-only
+// preset is active. `parseUrlState` stays generic and accepts it as a value.
+export const UNEXECUTED_HIDE = 'unexecuted';
+
+export function isFailedOnlyState(
+  hidden: readonly string[],
+  present: readonly string[],
+): boolean {
+  return (
+    present.includes('failed') &&
+    !hidden.includes('failed') &&
+    present
+      .filter((status) => status !== 'failed')
+      .every((status) => hidden.includes(status)) &&
+    hidden.includes(UNEXECUTED_HIDE)
+  );
+}
+
+export function pruneFailedOnly(
+  hidden: readonly string[],
+  present: readonly string[],
+): string[] {
+  return hidden.includes(UNEXECUTED_HIDE) && !isFailedOnlyState(hidden, present)
+    ? hidden.filter((value) => value !== UNEXECUTED_HIDE)
+    : [...hidden];
+}
+
 function isSpace(character: string): boolean {
   return /\s/.test(character);
 }

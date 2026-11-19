@@ -1,5 +1,6 @@
 import {
   DOM_IDS,
+  FILTER_PRESET_ATTRIBUTE,
   FILTER_STATUS_ATTRIBUTE,
   SCENARIO_ATTRIBUTE,
   STATUS_ATTRIBUTE,
@@ -8,8 +9,11 @@ import {
 } from './dom-contract.js';
 import {
   SEARCH_OPEN_CAP,
+  UNEXECUTED_HIDE,
   compileTagExpression,
+  isFailedOnlyState,
   parseUrlState,
+  pruneFailedOnly,
   rememberHiddenOpen,
   rowsToOpen,
   serializeUrlState,
@@ -206,7 +210,14 @@ function apply(): void {
     }
   }
   const empty = document.getElementById(DOM_IDS.emptyResults);
-  if (empty) empty.hidden = visible !== 0;
+  if (empty) {
+    empty.hidden = visible !== 0;
+    if (visible === 0) {
+      empty.textContent = presetActive()
+        ? 'No failed scenarios match the current search or filters. Unexecuted rows are hidden by Failed only.'
+        : 'No scenarios match the current search or filters.';
+    }
+  }
   if (triage) triage.hidden = Boolean(query || tag || state.hidden.size);
   if (sources) sources.hidden = Boolean(query || tag || state.hidden.size);
   highlightSearch();
@@ -308,6 +319,31 @@ const statusButtons = [
     `button.filter[${FILTER_STATUS_ATTRIBUTE}]`,
   ),
 ];
+const presentStatuses = statusButtons.map(
+  (button) => button.getAttribute(FILTER_STATUS_ATTRIBUTE) ?? '',
+);
+const presetButton = document.querySelector<HTMLButtonElement>(
+  `button[${FILTER_PRESET_ATTRIBUTE}]`,
+);
+
+function presetActive(): boolean {
+  return isFailedOnlyState([...state.hidden], presentStatuses);
+}
+
+function syncFilterUi(): void {
+  for (const button of statusButtons) {
+    button.setAttribute(
+      'aria-pressed',
+      state.hidden.has(button.getAttribute(FILTER_STATUS_ATTRIBUTE) ?? '')
+        ? 'false'
+        : 'true',
+    );
+  }
+  presetButton?.setAttribute(
+    'aria-pressed',
+    presetActive() ? 'true' : 'false',
+  );
+}
 
 function syncUrl(): void {
   try {
@@ -323,9 +359,7 @@ function syncUrl(): void {
 }
 
 function restoreUrlState(): void {
-  const knownStatuses = statusButtons.map(
-    (button) => button.getAttribute(FILTER_STATUS_ATTRIBUTE) ?? '',
-  );
+  const knownStatuses = [...presentStatuses, UNEXECUTED_HIDE];
   const knownTags = tagFilter
     ? Array.from(tagFilter.options)
         .map((option) => option.value)
@@ -341,18 +375,20 @@ function restoreUrlState(): void {
     state.query = parsed.query;
     if (search) search.value = parsed.query;
   }
-  for (const status of parsed.hidden) state.hidden.add(status);
-  for (const button of statusButtons) {
-    button.setAttribute(
-      'aria-pressed',
-      state.hidden.has(button.getAttribute(FILTER_STATUS_ATTRIBUTE) ?? '')
-        ? 'false'
-        : 'true',
-    );
+  const hidden = pruneFailedOnly(parsed.hidden, presentStatuses);
+  for (const status of hidden) {
+    state.hidden.add(status);
   }
+  syncFilterUi();
   if (parsed.tag && tagFilter) {
     state.tag = parsed.tag;
     tagFilter.value = parsed.tag;
+  }
+  if (
+    hidden.length !== parsed.hidden.length ||
+    hidden.some((status, index) => status !== parsed.hidden[index])
+  ) {
+    syncUrl();
   }
   if (state.query || state.hidden.size || state.tag) apply();
 }
@@ -370,18 +406,28 @@ tagFilter?.addEventListener('change', () => {
 for (const button of statusButtons) {
   button.addEventListener('click', () => {
     const status = button.getAttribute(FILTER_STATUS_ATTRIBUTE) ?? '';
+    state.hidden.delete(UNEXECUTED_HIDE);
     const active = button.getAttribute('aria-pressed') !== 'false';
-    if (active) {
-      state.hidden.add(status);
-      button.setAttribute('aria-pressed', 'false');
-    } else {
-      state.hidden.delete(status);
-      button.setAttribute('aria-pressed', 'true');
-    }
+    if (active) state.hidden.add(status);
+    else state.hidden.delete(status);
+    syncFilterUi();
     apply();
     syncUrl();
   });
 }
+presetButton?.addEventListener('click', () => {
+  const active = presetActive();
+  state.hidden.clear();
+  if (!active) {
+    for (const status of presentStatuses) {
+      if (status !== 'failed') state.hidden.add(status);
+    }
+    state.hidden.add(UNEXECUTED_HIDE);
+  }
+  syncFilterUi();
+  apply();
+  syncUrl();
+});
 for (const button of document.querySelectorAll<HTMLButtonElement>(
   '[data-expand]',
 )) {

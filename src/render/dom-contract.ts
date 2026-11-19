@@ -1,10 +1,12 @@
 import type { ReportStatus } from '../report/status.js';
+import { UNEXECUTED_HIDE } from './search.js';
 
 // Shared server/client DOM facts. CSS class hooks stay in report.css; this
 // module owns scenario data attributes and the ids the client looks up.
 export const SCENARIO_ATTRIBUTE = 'data-scenario';
 export const STATUS_ATTRIBUTE = 'data-status';
 export const FILTER_STATUS_ATTRIBUTE = 'data-filter-status';
+export const FILTER_PRESET_ATTRIBUTE = 'data-filter-preset';
 
 export const DOM_IDS = {
   reportView: 'report-view',
@@ -89,7 +91,11 @@ export function scenarioVisible(
   facts: ScenarioFacts,
   filter: ScenarioVisibility,
 ): boolean {
-  if (facts.status && filter.hidden.has(facts.status)) return false;
+  if (facts.status) {
+    if (filter.hidden.has(facts.status)) return false;
+  } else if (filter.hidden.has(UNEXECUTED_HIDE)) {
+    return false;
+  }
   if (filter.tag && !facts.tags.includes(filter.tag)) return false;
   if (filter.expression && !filter.expression(facts.tags)) return false;
   const query = filter.query.toLowerCase();

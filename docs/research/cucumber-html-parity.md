@@ -97,8 +97,8 @@ Legend: **Match** = equivalent for the user; **Exceeds** = Tolkira does more;
 | Attachments | Inline base64 and external `attachment.url`; image, video, log, text, `text/uri-list`, JSON, binary; image/video collapsed in `<details>`; download button | Inline images or external screenshot files; text/JSON/binary; no video/audio special handling | Inline only; image (lightbox), video, audio, text, binary; JSON, URI-list and ANSI logs rendered; 50 MB each / 100 MB total; rejects remote URLs | **Match, except external URLs** |
 | Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else deterministic `attachment.<ext>` for known types, else `application/octet-stream` / `attachment.bin` | **Match** |
 | Metadata | `meta.implementation/runtime/os`; `meta.ci` job link and git revision/branch/tag | Arbitrary `metadata` key/value; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; `meta` producer/runtime/OS/CPU/protocol; `meta.ci` job link and git revision/branch/tag | **Match** |
-| Search | Full-text Gherkin index; text or tag expression; 500 ms debounce; URL query state. The index covers feature/scenario/rule/background names and descriptions and steps, but not examples block names, examples table values, substituted pickle names, errors or attachments | None | Substring over scenario/feature/URI/keyword/description/tags/steps incl. error messages; single-tag dropdown; no URL state | **Partial** |
-| Status filters | Checkboxes that hide statuses; counts; only shown when more than one status exists | None | Toggle buttons per status with counts | **Match** |
+| Search | Full-text Gherkin index; text or tag expression; 500 ms debounce; URL query state. The index covers feature/scenario/rule/background names and descriptions and steps, but not examples block names, examples table values, substituted pickle names, errors or attachments | None | Substring over scenario/feature/URI/keyword/description/tags/steps incl. error messages; single-tag dropdown; `?query=`/`?hide=`/`?tag=` URL state | **Partial** |
+| Status filters | Checkboxes that hide statuses; counts; only shown when more than one status exists | None | Toggle buttons per status with counts; a `Failed only` preset hides other statuses and unexecuted rows | **Match** |
 | Status counts | Scenario counts by worst final status; pie chart; pass rate | Feature and scenario counts; pass/fail/pending/undefined/ambiguous/skipped/rerun; pie chart | Feature, scenario and step counts; pass rate; attachments; duration | **Exceeds** |
 | Retries / attempts | Final attempt only (`testCaseFinished.willBeRetried` filtered); no attempt history | No real retry model; `rerun` comes from a LambdaTest `META_FILE` side channel | Latest attempt by `attempt` number; attempt number shown; no attempt history | **Match** in outcome, **Exceeds** in display |
 | Scenario outlines / examples | Gherkin outline rendered once; Examples headings and tags; executed example rows numbered `#1.1`, `#1.2` with outcomes; unexecuted rows and blocks are pruned | Legacy JSON arrives expanded; no outline reconstruction | One flat scenario row per executed example; the first outline's rows share one pickle name; no examples grouping or numbering; description repeats per row | **Missing** |
@@ -322,8 +322,9 @@ Tolkira:
   description, tags and step text plus the first 2,000 characters of each step
   message/error;
 - single-tag dropdown, exact tag match;
-- status toggle buttons;
-- no URL state;
+- status toggle buttons plus a `Failed only` preset;
+- `?query=`/`?hide=`/`?tag=` URL state, including the preset's
+  `hide=unexecuted`;
 - caps auto-opened search results at 20.
 
 Tolkira is better at finding an error string; official is better at tag

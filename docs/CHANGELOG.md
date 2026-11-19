@@ -7,6 +7,13 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Failed-only preset. A `Failed only` toolbar toggle appears when the run has
+  failures plus another present status or an unexecuted row; it keeps the failed
+  chip on, hides other statuses and statusless rows, and is encoded as the other
+  `hide` statuses plus `hide=unexecuted`. The `unexecuted` value is a
+  pseudo-status without a chip, restored only with the preset chip state, and
+  cleared by any manual chip change. Header counts and the `N unexecuted` label
+  are unchanged.
 - CI summary output. `--ci github` emits GitHub Actions annotations for failed,
   undefined and ambiguous scenarios, notices for skipped, pending and unknown
   scenarios, and a final notice with every non-zero bucket and the unexecuted
