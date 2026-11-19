@@ -23,7 +23,7 @@ const passedOnlyFixture = legacyFixture('behave.json');
 
 describe('parity rules rendering', () => {
   it('renders feature and rule tags once and keeps inherited tags off rows', async () => {
-    const html = await renderMessagesFile(tagsFixture);
+    const html = await renderMessagesFile(tagsFixture, 'Rules');
 
     expect(html.match(/class="tag">@feature-tag/g)).toHaveLength(1);
     expect(html.match(/class="tag">@rule-tag/g)).toHaveLength(1);
@@ -56,7 +56,7 @@ describe('parity rules rendering', () => {
   });
 
   it('renders rule sections with heading and their scenarios', async () => {
-    const html = await renderMessagesFile(rulesFixture);
+    const html = await renderMessagesFile(rulesFixture, 'Rules');
 
     expect(html.match(/<section class="rule" data-rule/g)).toHaveLength(2);
     expect(html).toContain(
@@ -184,7 +184,7 @@ describe('parity rules rendering', () => {
   });
 
   it('omits empty background headings and keeps background steps once', async () => {
-    const html = await renderMessagesFile(backgroundsFixture);
+    const html = await renderMessagesFile(backgroundsFixture, 'Rules');
 
     expect(html).not.toContain('<section class="background"');
     expect(
@@ -284,7 +284,7 @@ describe('parity rules rendering', () => {
   });
 
   it('leaves rule and background keywords out of the search index', async () => {
-    const html = await renderMessagesFile(rulesBackgroundsFixture);
+    const html = await renderMessagesFile(rulesBackgroundsFixture, 'Rules');
 
     const ruleSearch =
       html.match(

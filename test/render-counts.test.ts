@@ -1,22 +1,13 @@
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { renderReport } from '../src/index.js';
+import { messagesFixture } from './fixtures.js';
+import { featureList } from './render-helpers.js';
 
-const runRatioFixture = fileURLToPath(
-  new URL('./fixtures/messages/run-ratio.ndjson', import.meta.url),
-);
-const skippedOnlyFixture = fileURLToPath(
-  new URL('./fixtures/messages/skipped-only.ndjson', import.meta.url),
-);
-const emptyFixture = fileURLToPath(
-  new URL('./fixtures/messages/empty.ndjson', import.meta.url),
-);
-const emptyStatusesFixture = fileURLToPath(
-  new URL('./fixtures/messages/empty-statuses.ndjson', import.meta.url),
-);
-const screenshotFixture = fileURLToPath(
-  new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
-);
+const runRatioFixture = messagesFixture('run-ratio.ndjson');
+const skippedOnlyFixture = messagesFixture('skipped-only.ndjson');
+const emptyFixture = messagesFixture('empty.ndjson');
+const emptyStatusesFixture = messagesFixture('empty-statuses.ndjson');
+const screenshotFixture = messagesFixture('screenshot.ndjson');
 
 function reportMeta(html: string): string {
   const start = html.indexOf('<p class="meta">');
@@ -26,13 +17,6 @@ function reportMeta(html: string): string {
 function healthTops(html: string): string[] {
   return [...html.matchAll(/<div class="healthTop">([\s\S]*?)<\/div>/g)].map(
     (match) => match[1] ?? '',
-  );
-}
-
-function featureList(html: string): string {
-  return html.slice(
-    html.indexOf('id="feature-list"'),
-    html.indexOf('id="empty-results"'),
   );
 }
 

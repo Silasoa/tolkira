@@ -17,7 +17,12 @@ export async function writeInput(
 ): Promise<{ dir: string; file: string }> {
   const dir = await mkdtemp(path.join(tmpdir(), prefix));
   const file = path.join(dir, name);
-  await writeFile(file, content, 'utf8');
+  try {
+    await writeFile(file, content, 'utf8');
+  } catch (error) {
+    await rm(dir, { recursive: true, force: true });
+    throw error;
+  }
   return { dir, file };
 }
 
@@ -30,11 +35,19 @@ export async function writeReport(
   const output = path.join(dir, 'report.html');
   const args = [...inputs, '--out', output];
   if (title) args.push('--title', title);
-  const code = await runCli(args, {
-    stdout: () => undefined,
-    stderr: () => undefined,
-  });
-  expect(code).toBe(0);
+  let stderr = '';
+  try {
+    const code = await runCli(args, {
+      stdout: () => undefined,
+      stderr: (text) => {
+        stderr += text;
+      },
+    });
+    expect(code, stderr).toBe(0);
+  } catch (error) {
+    await rm(dir, { recursive: true, force: true });
+    throw error;
+  }
   return { dir, output };
 }
 

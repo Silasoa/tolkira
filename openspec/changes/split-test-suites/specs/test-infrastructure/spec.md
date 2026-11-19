@@ -44,7 +44,8 @@ its enclosing `test.describe` wrapper and every block-level modifier
 - **THEN** the file contains `test.use({ javaScriptEnabled: false })` around
   all four tests
 - **AND** the performance test keeps `test.slow()` and its own budgets
-- **AND** `parity-metadata.spec.ts` keeps its own no-JS block untouched
+- **AND** the no-JS block in `parity-metadata.spec.ts` stays in place with its
+  `test.use` wrapper intact
 
 #### Scenario: Every original test survives
 
@@ -63,8 +64,8 @@ two named moves in the change tasks. No matcher SHALL be loosened.
 
 - **WHEN** the old render suite and browser report spec are compared with the
   split files
-- **THEN** the render suite stays at 485 static `expect(` lines, unchanged;
-  it contains no `expect(code)` setup lines
+- **THEN** the render suite stays at 485 static `expect(` lines: 484 in the
+  ten split files plus 1 in `test/render-helpers.ts`
 - **AND** the browser report spec has 466 static `expect(` lines before; after,
   the split spec files contain 417 and the shared `writeReport` helper contains
   1, for 418 across the moved suite
@@ -73,6 +74,9 @@ two named moves in the change tasks. No matcher SHALL be loosened.
   collapse into the helper's one check
 - **AND** the ANSI expected string changes value in place, so its count is
   unchanged
+- **AND** the 417 figure covers only the moved report-spec assertions; the 14
+  touched browser specs total 472 because `responsive.spec.ts` already had 55
+  viewport assertions
 - **AND** no matcher changes from a strong form to a weaker one
 - **AND** a reviewer verifies every moved assertion
 

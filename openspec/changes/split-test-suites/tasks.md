@@ -40,10 +40,13 @@
   `parity diagnostics rendering` and `default open state` to their own files.
 - [x] 3.5 Move `source strip`, `parity rules rendering` and
   `empty-run rendering` to their own files; remove `test/render.test.ts`.
-- [x] 3.6 Confirm every unit file is below 800 lines and every original test
-  title appears once. If a file exceeds 800 lines, record its single flow and
-  why in this task. Largest new file: `render-rules.test.ts`, 389 lines; no
-  exception.
+- [x] 3.6 Confirm every split render file is below 800 lines and every
+  original test title appears once. If a file exceeds 800 lines, record its
+  single flow and why in this task. Largest new file: `render-rules.test.ts`,
+  389 lines; no exception. Inventory: 484 expects in the ten files + 1 in
+  `render-helpers.ts` = 485. Pre-existing `model.test.ts` and
+  `playwright.test.ts` are outside this split and remain one coherent flow
+  each.
 
 ## 4. Browser split
 
@@ -89,22 +92,28 @@
 - [x] 6.1 Run `npm run hygiene`.
 - [x] 6.2 Run `npm run check`; record the collected unit total (expect 47
   files / 659 tests), the sorted title multiset and the `expect(` inventory
-  (485 unit; 417 split browser specs + 1 in `writeReport` = 418). Compare with
-  the baseline; ignore the platform-specific pass/skip split. Confirm zero diff
-  in `test/render-characterization.test.ts` and both golden files.
+  (485 unit: 484 split files + 1 helper; 418 browser: 395 in the 13 new journey
+  specs + 22 zoom in `responsive.spec.ts` + 1 in `writeReport`). The 14 touched
+  journey specs total 472 because `responsive.spec.ts` keeps 55 pre-existing
+  assertions. Compare with the baseline; ignore the platform-specific
+  pass/skip split. Confirm zero diff in `test/render-characterization.test.ts`
+  and both golden files.
 - [x] 6.3 Run `npm run test:e2e`; record the collected browser total (expect
   273 runs), compare the 91 project-excluded definition titles and the 273
   per-project entries, and compare wall clock plus the per-test duration sum on
   the same machine. A >20 % increase is investigated; the in-test performance
   budgets are the hard guard.
-- [ ] 6.4 Run the review swarm: SCR, CR, DAR, STR and PCA. SEC, UXR and CMP
+- [x] 6.4 Run the review swarm: SCR, CR, DAR, STR and PCA. SEC, UXR and CMP
   are not triggered. The CR brief must name the security/parity assertions
   that stay byte-identical: CSP meta, no external scripts/styles, XSS escaping,
   remote-logo rejection, malicious attachment name, HTML-attachment inertness
-  and no-external-request checks.
-- [ ] 6.5 Fix findings, re-run the gate, and commit on the worktree branch with
+  and no-external-request checks. Result: SCR, CR, DAR, STR and PCA PASS after
+  the fixer pass; the only blocker (dead helper copies in the feature-matrix
+  test) was removed and the inventory corrected.
+- [x] 6.5 Fix findings, re-run the gate, and commit on the worktree branch with
   #8 and the change reference. Do not merge, close, tag, stage, publish or
-  archive.
+  archive. Committed on `openchamber/split-test-suites`; refs #8,
+  split-test-suites.
 
 ## Baseline record
 
@@ -127,15 +136,22 @@
 
 2026-11-19 implementation:
 
-- Unit split: 47 files, 659 collected, 485 `expect(` preserved; 92 original
-  render tests with exact title parity.
-- Browser split: 273 runs in 18 files, 70.0 s final `npm run test:e2e`; earlier
+- Unit split: 47 files, 659 collected, 485 `expect(` preserved (484 in the ten
+  split files + 1 helper); 92 original render tests with exact title parity.
+- Browser split: 273 runs in 18 files, 66.3 s final `npm run test:e2e`; earlier
   JSON run 82.4 s / 410.9 s per-test sum against the 79.7 s / 409.6 s baseline
   (+0.3 % sum). Exact 91-definition and 273 per-project title parity.
-- Assertion inventory: 417 split browser specs + 1 `writeReport` = 418, after
-  49 inline setup checks collapsed into the helper. ANSI value changed in
-  place. No matcher loosened.
+- Assertion inventory: 395 in the 13 new journey specs + 22 zoom + 1
+  `writeReport` = 418 after the 49 setup checks collapsed; the 14 touched
+  journey specs total 472 because `responsive.spec.ts` keeps 55 pre-existing
+  assertions. The existing `failed-only`, `parity-metadata` and `search-state`
+  helpers also lost six `expect(code)` setup checks to the shared check; no
+  test assertion was affected. ANSI value changed in place. No matcher
+  loosened.
 - `npm run hygiene` ok; `npm run check` 47 files / 657 passed / 2 skipped
   (659); characterization hashes and both golden files unchanged.
-- Review swarm: pending.
-- Commit and push: pending.
+- Review swarm: SCR, CR, DAR, STR and PCA PASS after the fixer pass. The dead
+  helper copies in `render-feature-matrix.test.ts` were removed; the render
+  inventory is 484 + 1 = 485 and the browser inventory 395 + 22 + 1 = 418.
+- Commit and push: done on `openchamber/split-test-suites`; no merge, close,
+  archive, tag, stage or publish.
