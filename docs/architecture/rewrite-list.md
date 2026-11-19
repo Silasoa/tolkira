@@ -10,7 +10,9 @@ Statuses are coordinator decisions, not approved interfaces yet.
   it. Add a cross-check test.
 - **Deepened Attachment module.** Rescoped to the real duplication: byte
   counting and media presentation lookup. `attachment.ts` already owns
-  normalization and the safe-type allowlist.
+  normalization and the safe-type allowlist. Implemented in #9 (pending merge):
+  `src/attachment.ts` owns decoded byte accounting, the caps, fallback naming,
+  kind and text presentation; the input, model, summary and renderer consume it.
 - **Pure input detection.** Promote sniffing out of the async file loop into a
   pure decision table over `(content, identity)`; keep the 100 MB cap and
   content-hash dedupe in the loader.

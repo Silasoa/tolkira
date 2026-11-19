@@ -1,7 +1,4 @@
-import {
-  MAX_TEXT_ATTACHMENT_BYTES,
-  normalizedMediaType,
-} from '../report/attachment.js';
+import { MAX_TEXT_ATTACHMENT_BYTES } from '../attachment.js';
 import type { ReportAttachment } from '../report/model.js';
 import { renderAnsiLog } from './ansi.js';
 import { escapeHtml } from './escape.js';
@@ -111,18 +108,17 @@ function uriListBody(text: string): string {
 
 function textAttachmentBody(attachment: ReportAttachment): string {
   const text = attachment.text ?? '';
-  const mediaType = normalizedMediaType(attachment.mediaType);
-  if (mediaType.startsWith('application/json')) {
+  if (attachment.textFormat === 'json') {
     const body =
       Buffer.byteLength(text, 'utf8') > MAX_TEXT_ATTACHMENT_BYTES
         ? text
         : jsonBody(text);
     return `<pre>${escapeHtml(body)}</pre>`;
   }
-  if (mediaType === 'text/uri-list') {
+  if (attachment.textFormat === 'uri-list') {
     return `<pre>${uriListBody(text)}</pre>`;
   }
-  if (mediaType === 'text/x.cucumber.log+plain') {
+  if (attachment.textFormat === 'log') {
     return `<div class="logTools"><button class="copyLog" type="button" data-copy-log aria-label="Copy log ${escapeHtml(attachment.fileName)}" hidden>Copy log</button></div><pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
   }
   return `<pre>${escapeHtml(text)}</pre>`;

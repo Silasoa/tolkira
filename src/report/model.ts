@@ -10,10 +10,14 @@ import type {
   Step,
 } from '@cucumber/messages';
 
+import {
+  attachmentMetadata,
+  type AttachmentKind,
+  type AttachmentTextFormat,
+} from '../attachment.js';
 import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
-import { MEDIA_EXTENSIONS, normalizedMediaType, safeMediaType } from './attachment.js';
 import {
   indexRun,
   type RunIndex,
@@ -26,7 +30,9 @@ export type { ReportStatus } from './status.js';
 export interface ReportAttachment {
   fileName: string;
   mediaType: string;
-  kind: 'image' | 'video' | 'audio' | 'text' | 'binary';
+  kind: AttachmentKind;
+  /** Internal text presentation; never written to HTML or the summary. */
+  textFormat: AttachmentTextFormat;
   dataUri?: string;
   text?: string;
   bytes: number;
@@ -280,38 +286,18 @@ function hookLabel(type: string | undefined): string {
   }
 }
 
-function attachmentFileName(fileName: string | undefined, mediaType: string): string {
-  if (fileName) return fileName;
-  const extension = MEDIA_EXTENSIONS[normalizedMediaType(mediaType)];
-  return extension ? `attachment.${extension}` : 'attachment';
-}
-
-function attachmentKind(mediaType: string): ReportAttachment['kind'] {
-  const base = normalizedMediaType(mediaType);
-  if (base.startsWith('image/')) return 'image';
-  if (base.startsWith('video/')) return 'video';
-  if (base.startsWith('audio/')) return 'audio';
-  if (base.startsWith('text/') || base.includes('json')) {
-    return 'text';
-  }
-  return 'binary';
-}
-
 function toAttachment(attachment: Attachment): ReportAttachment {
   const body = attachment.body ?? '';
-  const mediaType = safeMediaType(attachment.mediaType || 'application/octet-stream');
-  const kind = attachmentKind(mediaType);
-  const fileName = attachmentFileName(attachment.fileName, mediaType);
+  const { fileName, mediaType, kind, bytes, textFormat } =
+    attachmentMetadata(attachment);
   const isBase64 = attachment.contentEncoding === 'BASE64';
-  const bytes = isBase64
-    ? Math.max(0, Math.floor((body.length * 3) / 4) - (body.endsWith('==') ? 2 : body.endsWith('=') ? 1 : 0))
-    : Buffer.byteLength(body, 'utf8');
 
   if (kind === 'image' || kind === 'video' || kind === 'audio') {
     return {
       fileName,
       mediaType,
       kind,
+      textFormat,
       bytes,
       ...(body
         ? {
@@ -329,6 +315,7 @@ function toAttachment(attachment: Attachment): ReportAttachment {
       fileName,
       mediaType,
       kind,
+      textFormat,
       bytes,
       text: kind === 'text' ? decoded : undefined,
       dataUri: kind === 'binary' ? `data:${mediaType};base64,${body}` : undefined,
@@ -339,6 +326,7 @@ function toAttachment(attachment: Attachment): ReportAttachment {
     fileName,
     mediaType,
     kind,
+    textFormat,
     bytes,
     text: body,
   };

@@ -1,4 +1,7 @@
+import { AttachmentContentEncoding } from '@cucumber/messages';
+import type { Envelope } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
+import { MAX_ATTACHMENT_BYTES } from '../src/attachment.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { sanitizeEnvelopes } from '../src/input/sanitize.js';
@@ -116,5 +119,104 @@ describe('input sanitisation', () => {
         'duration.ndjson',
       ),
     ).toThrow('duration');
+  });
+});
+
+const MIB = 1024 * 1024;
+
+// One large allocation per boundary family; the exact-50-MiB values are cheap
+// derivations (a zero-copy slice for identity, a padding swap for base64). The
+// arithmetic counts them without decoding.
+const BASE64_BOUNDARY_LENGTH = Math.ceil(MAX_ATTACHMENT_BYTES / 3) * 4;
+const BASE64_50_MIB_PLUS_ONE = 'A'.repeat(BASE64_BOUNDARY_LENGTH);
+const BASE64_50_MIB = `${BASE64_50_MIB_PLUS_ONE.slice(0, -1)}=`;
+const IDENTITY_50_MIB_PLUS_ONE = 'a'.repeat(50 * MIB + 1);
+const IDENTITY_50_MIB = IDENTITY_50_MIB_PLUS_ONE.slice(0, -1);
+
+function attachmentEnvelope(
+  body: string,
+  contentEncoding: AttachmentContentEncoding = AttachmentContentEncoding.IDENTITY,
+): Envelope {
+  return {
+    attachment: {
+      body,
+      contentEncoding,
+      fileName: 'cap.bin',
+      mediaType: 'application/octet-stream',
+    },
+  };
+}
+
+function rejectionMessage(envelopes: Envelope[]): string {
+  try {
+    sanitizeEnvelopes(envelopes);
+    return '';
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
+describe('attachment caps', () => {
+  it('accepts a base64 attachment at exactly 50 MB', () => {
+    expect(() =>
+      sanitizeEnvelopes([
+        attachmentEnvelope(BASE64_50_MIB, AttachmentContentEncoding.BASE64),
+      ]),
+    ).not.toThrow();
+  });
+
+  it('rejects a base64 attachment at 50 MB + 1 with the exact message', () => {
+    expect(
+      rejectionMessage([
+        attachmentEnvelope(
+          BASE64_50_MIB_PLUS_ONE,
+          AttachmentContentEncoding.BASE64,
+        ),
+      ]),
+    ).toBe('Attachment is larger than 50 MB. Use a smaller asset.');
+  });
+
+  it('accepts an identity attachment at exactly 50 MB', () => {
+    expect(() => sanitizeEnvelopes([attachmentEnvelope(IDENTITY_50_MIB)])).not.toThrow();
+  });
+
+  it('rejects an identity attachment at 50 MB + 1 with the exact message', () => {
+    expect(rejectionMessage([attachmentEnvelope(IDENTITY_50_MIB_PLUS_ONE)])).toBe(
+      'Attachment is larger than 50 MB. Use a smaller asset.',
+    );
+  });
+
+  it('accepts exactly 100 MB in total across attachments', () => {
+    expect(() =>
+      sanitizeEnvelopes([
+        attachmentEnvelope(BASE64_50_MIB, AttachmentContentEncoding.BASE64),
+        attachmentEnvelope(BASE64_50_MIB, AttachmentContentEncoding.BASE64),
+      ]),
+    ).not.toThrow();
+  });
+
+  it('rejects 100 MB + 1 in total with the exact message', () => {
+    expect(
+      rejectionMessage([
+        attachmentEnvelope(BASE64_50_MIB, AttachmentContentEncoding.BASE64),
+        attachmentEnvelope(BASE64_50_MIB, AttachmentContentEncoding.BASE64),
+        attachmentEnvelope('a'),
+      ]),
+    ).toBe(
+      'Attachments exceed 100 MB in total. Split the report or use smaller assets.',
+    );
+  });
+
+  it('reports the per-attachment error when both caps are exceeded', () => {
+    expect(
+      rejectionMessage([
+        attachmentEnvelope(BASE64_50_MIB, AttachmentContentEncoding.BASE64),
+        attachmentEnvelope(BASE64_50_MIB, AttachmentContentEncoding.BASE64),
+        attachmentEnvelope(
+          BASE64_50_MIB_PLUS_ONE,
+          AttachmentContentEncoding.BASE64,
+        ),
+      ]),
+    ).toBe('Attachment is larger than 50 MB. Use a smaller asset.');
   });
 });

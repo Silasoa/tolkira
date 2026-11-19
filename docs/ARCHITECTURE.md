@@ -56,13 +56,23 @@ and is covered by real producer fixtures.
 - Uses `fast-xml-parser`, loaded on demand only for XML input.
 - No Gherkin steps or screenshots; this is breadth, not Cucumber depth.
 
+### `src/attachment`
+
+- Shared leaf module used by the input layer, the report model, the summary and
+  the renderer. It imports only Messages attachment types and no project module.
+- Owns decoded attachment byte accounting, the 50 MB per-attachment and 100 MB
+  total attachment caps, the MIME allowlist, fallback naming, attachment kind and
+  the JSON/URI-list/ANSI/plain text presentation lookup.
+- The encoded base64 length and padding are counted without decoding the body.
+
 ### `src/report`
 
 - Builds a `ReportModel` from Messages: features, scenarios, steps, statuses,
   durations, tags, descriptions, doc strings, data tables, errors and
   attachments.
 - Selects the latest attempt per scenario and normalises attachment payloads
-  into data URIs or decoded text.
+  into data URIs or decoded text. Attachment bytes, names, kinds and text
+  presentation come from `src/attachment`.
 - Keeps the report view model separate from the machine-readable summary.
 
 ### `src/render`
@@ -93,7 +103,8 @@ and is covered by real producer fixtures.
   helpers; `types.ts` owns `RenderOptions`, `DisplayStatus` and
   `OrderedFeature`. `escape.ts`, `dom-contract.ts`, `markdown.ts`, `ansi.ts`,
   `styles.ts`, `client-bundle.ts`, `search.ts` and `report-client.ts` are shared
-  foundation, importable from every layer.
+  foundation, importable from every layer. `src/attachment.ts` is a shared leaf
+  below the renderer; `render/attachments.ts` reads the `textFormat` it produced.
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
   generates `src/render/styles.ts` for the inline report.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
@@ -165,7 +176,10 @@ Test names, metadata, file names and attachments are untrusted input.
 - Parse JUnit XML without DTD/external entity resolution; parser errors fail
   closed and `system-out`/`system-err` remain text attachments.
 - Validate attachment media type and size fields, and enforce input/attachment
-  limits (100 MB input, 50 MB per attachment, 100 MB total attachments).
+  limits (100 MB input, 50 MB per attachment, 100 MB total attachments). Decoded
+  attachment byte accounting and both attachment caps are owned in
+  `src/attachment.ts` and enforced by the sanitizer and Playwright adapter; the
+  loader keeps its separate total-input cap.
 - No network requests, telemetry or remote fonts.
 - No path traversal when writing output or external attachments.
 - A restrictive CSP is injected into every report; v0.1 defaults to inline
@@ -175,6 +189,9 @@ Test names, metadata, file names and attachments are untrusted input.
 
 - Messages are accumulated and validated before rendering; the renderer builds
   the view model and writes one HTML string.
+- Attachment sizes are counted without decoding: base64 by encoded length and
+  padding, identity by UTF-8 length, and Playwright path attachments by `stat`
+  size before they are read.
 - Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
 - Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
@@ -185,7 +202,10 @@ Test names, metadata, file names and attachments are untrusted input.
 
 ## Testing
 
-- Unit tests: Vitest.
+- Unit tests: Vitest. Attachment byte counting, cap boundaries, the allowlist,
+  fallback names, kinds and text presentation are pinned in
+  `test/attachment.test.ts` and `test/sanitize.test.ts`; the model/summary
+  cross-check keeps both consumers equal.
 - Fixtures: cucumber-js legacy JSON, a Behave-shaped legacy report and a
   hand-built Messages stream with passing/failing scenarios and attachments.
   cucumber-jvm/ruby fixtures are follow-ups.

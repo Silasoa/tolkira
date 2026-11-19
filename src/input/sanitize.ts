@@ -8,13 +8,17 @@ import type {
   Scenario,
 } from '@cucumber/messages';
 
+import {
+  MAX_ATTACHMENT_BYTES,
+  MAX_TOTAL_ATTACHMENT_BYTES,
+  attachmentBytes,
+} from '../attachment.js';
+
 const REMOTE_MARKDOWN_IMAGE =
   /!\[([^\]]*)\]\(\s*(?:https?:)?\/\/[^)\s]+(?:\s+["'][^"']*["'])?\s*\)/gi;
 const REMOTE_ANGLE_IMAGE =
   /!\[([^\]]*)\]\(\s*<(?:https?:)?\/\/[^>]+>\s*\)/gi;
 const RAW_IMAGE_TAG = /<img\b[^>]*>/gi;
-const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
-const MAX_TOTAL_ATTACHMENT_BYTES = 100 * 1024 * 1024;
 
 // The Markdown renderer owns images and emits alt text only. Neutralise remote
 // image destinations here so no image URL survives into the report. Reference
@@ -26,11 +30,6 @@ function stripRemoteImages(value: string | undefined): string {
     .replace(REMOTE_ANGLE_IMAGE, '![$1]()')
     .replace(REMOTE_MARKDOWN_IMAGE, '![$1]()')
     .replace(RAW_IMAGE_TAG, '');
-}
-
-function base64Bytes(value: string): number {
-  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
-  return Math.max(0, Math.floor((value.length * 3) / 4) - padding);
 }
 
 function sanitizeScenario(scenario: Scenario): void {
@@ -89,11 +88,7 @@ export function sanitizeEnvelopes(envelopes: Envelope[]): Envelope[] {
       );
     }
     if (envelope.attachment) {
-      const body = envelope.attachment.body ?? '';
-      const bytes =
-        envelope.attachment.contentEncoding === 'BASE64'
-          ? base64Bytes(body)
-          : Buffer.byteLength(body, 'utf8');
+      const bytes = attachmentBytes(envelope.attachment);
       if (bytes > MAX_ATTACHMENT_BYTES) {
         throw new Error('Attachment is larger than 50 MB. Use a smaller asset.');
       }

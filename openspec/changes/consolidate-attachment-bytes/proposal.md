@@ -32,9 +32,7 @@ Out of scope:
 - changing attachment behaviour, naming rules, kinds, payloads or presentation;
 - changing the summary schema version 2, the HTML output, public exports,
   dependencies or the CSP;
-- the 100 MB total-input cap in the input loader and the `CucumberHtmlStream`
-  entry point, which does not run `sanitizeEnvelopes`; both keep current
-  behaviour;
+- the separate 100 MB total-input cap in the input loader, which is unchanged;
 - external or split assets (B-008) and any new report feature.
 
 ## Capabilities
@@ -52,9 +50,11 @@ behaviour changes, so no capability delta is written and the change carries
 - `input-formats` — **Preserve legacy embeddings as attachments**;
 - `report-rendering` — **Render attachments safely**, **Improve attachment
   naming**, **Render JSON and URI-list attachments**, **Render Cucumber ANSI
-  logs safely**, **Escape user-controlled content** and **Keep the offline and
-  count contracts**;
-- `cli-api` — **Provide a machine-readable summary**.
+  logs safely**, **Escape user-controlled content**, **Keep the offline and
+  count contracts**, **Preserve the summary and fallback contracts** and
+  **Show a skipped-attachment notice**;
+- `cli-api` — **Provide a machine-readable summary** and **Stream Cucumber
+  Messages into a report**.
 
 The 50 MB per-attachment and 100 MB total attachment caps are documented in
 `docs/ARCHITECTURE.md` (Security) and `docs/AGENT-INTERFACE.md` (Current
@@ -80,8 +80,9 @@ MIME allowlist are pinned by tests, not by a capability requirement.
   per-attachment and total attachment caps, the report model's attachment bytes
   and the summary's `attachments.bytes` consume that function. The Playwright
   path caps share `MAX_ATTACHMENT_BYTES`/`MAX_TOTAL_ATTACHMENT_BYTES` and keep
-  their pre-read `stat` check; the 100 MB total-input cap in `src/input/load.ts`
-  and the `CucumberHtmlStream` path are unchanged and out of scope. No duplicate
+  their pre-read `stat` check; the separate 100 MB total-input cap in
+  `src/input/load.ts` is unchanged. The `CucumberHtmlStream` path already
+  sanitizes through `renderHtml` and keeps the same attachment caps. No duplicate
   base64 byte formula or cap literal remains under `src/`.
 - Unit tests pin base64 and identity byte counts, padding, empty bodies, the
   exact 50 MB and 100 MB boundaries with the current error messages, the

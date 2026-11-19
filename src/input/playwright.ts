@@ -23,10 +23,12 @@ import type {
   TestStepResult,
   Timestamp,
 } from '@cucumber/messages';
+import {
+  MAX_ATTACHMENT_BYTES,
+  MAX_TOTAL_ATTACHMENT_BYTES,
+} from '../attachment.js';
 import { stripAnsi } from '../text.js';
 
-const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
-const MAX_TOTAL_ATTACHMENT_BYTES = 100 * 1024 * 1024;
 const FAILED_STATUSES = new Set(['failed', 'timedOut', 'interrupted']);
 const KNOWN_ANNOTATIONS = new Set(['skip', 'fixme', 'fail', 'slow']);
 
@@ -884,8 +886,8 @@ async function resolveAttachmentPath(
   return undefined;
 }
 
-// Only folds Playwright's documented markdown case here; the report layer
-// normalises and allow-lists media types in report/attachment.ts.
+// Only folds Playwright's documented markdown case here; the shared
+// `src/attachment` module normalises and allow-lists media types.
 function playwrightMediaType(mediaType: string): string {
   return mediaType.split(';', 1)[0]?.trim().toLowerCase() === 'text/markdown'
     ? 'text/plain'
