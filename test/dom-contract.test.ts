@@ -17,6 +17,10 @@ import { REPORT_CSS } from '../src/render/styles.js';
 
 const COLORED_FILTER_STATUSES = ['passed', 'failed', 'pending', 'undefined'];
 
+// Trends is conditional: only a report generated with at least two history
+// entries carries it. Every other id is always present.
+const CONDITIONAL_DOM_IDS = new Set(['trendsView']);
+
 const examplesFixture = fileURLToPath(
   new URL('./fixtures/messages/examples-tables.ndjson', import.meta.url),
 );
@@ -285,9 +289,24 @@ describe('rendered scenario contract', () => {
       expect(ids, target).toContain(target);
     }
 
-    for (const id of Object.values(DOM_IDS)) {
+    for (const [name, id] of Object.entries(DOM_IDS)) {
+      if (CONDITIONAL_DOM_IDS.has(name)) continue;
       expect(ids, id).toContain(id);
     }
+  });
+
+  it('keeps the conditional Trends id out of a report without history', async () => {
+    expect(DOM_IDS.trendsView).toBe('trends-view');
+
+    const html = await renderHtml(
+      [
+        ...(await parsedFixture(examplesFixture)),
+        ...(await parsedFixture(emptyMixedFixture)),
+      ],
+      { title: 'No trends' },
+    );
+
+    expect(idsOf(html)).not.toContain(DOM_IDS.trendsView);
   });
 
   it('keeps data-status for results and data-filter-status for controls', async () => {

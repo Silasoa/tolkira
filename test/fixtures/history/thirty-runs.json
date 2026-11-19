@@ -1,0 +1,1025 @@
+{
+  "schemaVersion": 1,
+  "runs": [
+    {
+      "id": "0000000000000000000000000000000000000000000000000000000000000000",
+      "recordedAt": "2026-01-01T08:00:00.000Z",
+      "title": "Nightly run 1",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1000,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0101010101010101010101010101010101010101010101010101010101010101",
+      "recordedAt": "2026-01-02T08:00:00.000Z",
+      "title": "Nightly run 2",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1001,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0202020202020202020202020202020202020202020202020202020202020202",
+      "recordedAt": "2026-01-03T08:00:00.000Z",
+      "title": "Nightly run 3",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1002,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0303030303030303030303030303030303030303030303030303030303030303",
+      "recordedAt": "2026-01-04T08:00:00.000Z",
+      "title": "Nightly run 4",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1003,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0404040404040404040404040404040404040404040404040404040404040404",
+      "recordedAt": "2026-01-05T08:00:00.000Z",
+      "title": "Nightly run 5",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1004,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0505050505050505050505050505050505050505050505050505050505050505",
+      "recordedAt": "2026-01-06T08:00:00.000Z",
+      "title": "Nightly run 6",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1005,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0606060606060606060606060606060606060606060606060606060606060606",
+      "recordedAt": "2026-01-07T08:00:00.000Z",
+      "title": "Nightly run 7",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1006,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0707070707070707070707070707070707070707070707070707070707070707",
+      "recordedAt": "2026-01-08T08:00:00.000Z",
+      "title": "Nightly run 8",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1007,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0808080808080808080808080808080808080808080808080808080808080808",
+      "recordedAt": "2026-01-09T08:00:00.000Z",
+      "title": "Nightly run 9",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1008,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0909090909090909090909090909090909090909090909090909090909090909",
+      "recordedAt": "2026-01-10T08:00:00.000Z",
+      "title": "Nightly run 10",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1009,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+      "recordedAt": "2026-01-11T08:00:00.000Z",
+      "title": "Nightly run 11",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1010,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "recordedAt": "2026-01-12T08:00:00.000Z",
+      "title": "Nightly run 12",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1011,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+      "recordedAt": "2026-01-13T08:00:00.000Z",
+      "title": "Nightly run 13",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1012,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+      "recordedAt": "2026-01-14T08:00:00.000Z",
+      "title": "Nightly run 14",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1013,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
+      "recordedAt": "2026-01-15T08:00:00.000Z",
+      "title": "Nightly run 15",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1014,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+      "recordedAt": "2026-01-16T08:00:00.000Z",
+      "title": "Nightly run 16",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1015,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1010101010101010101010101010101010101010101010101010101010101010",
+      "recordedAt": "2026-01-17T08:00:00.000Z",
+      "title": "Nightly run 17",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1016,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "recordedAt": "2026-01-18T08:00:00.000Z",
+      "title": "Nightly run 18",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1017,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1212121212121212121212121212121212121212121212121212121212121212",
+      "recordedAt": "2026-01-19T08:00:00.000Z",
+      "title": "Nightly run 19",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1018,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1313131313131313131313131313131313131313131313131313131313131313",
+      "recordedAt": "2026-01-20T08:00:00.000Z",
+      "title": "Nightly run 20",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1019,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1414141414141414141414141414141414141414141414141414141414141414",
+      "recordedAt": "2026-01-21T08:00:00.000Z",
+      "title": "Nightly run 21",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1020,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1515151515151515151515151515151515151515151515151515151515151515",
+      "recordedAt": "2026-01-22T08:00:00.000Z",
+      "title": "Nightly run 22",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1021,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1616161616161616161616161616161616161616161616161616161616161616",
+      "recordedAt": "2026-01-23T08:00:00.000Z",
+      "title": "Nightly run 23",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1022,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1717171717171717171717171717171717171717171717171717171717171717",
+      "recordedAt": "2026-01-24T08:00:00.000Z",
+      "title": "Nightly run 24",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1023,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1818181818181818181818181818181818181818181818181818181818181818",
+      "recordedAt": "2026-01-25T08:00:00.000Z",
+      "title": "Nightly run 25",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1024,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1919191919191919191919191919191919191919191919191919191919191919",
+      "recordedAt": "2026-01-26T08:00:00.000Z",
+      "title": "Nightly run 26",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1025,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+      "recordedAt": "2026-01-27T08:00:00.000Z",
+      "title": "Nightly run 27",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1026,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b",
+      "recordedAt": "2026-01-28T08:00:00.000Z",
+      "title": "Nightly run 28",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1027,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c",
+      "recordedAt": "2026-01-29T08:00:00.000Z",
+      "title": "Nightly run 29",
+      "status": "failed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 9,
+          "failed": 1,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 36,
+          "failed": 4,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1028,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "id": "1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d",
+      "recordedAt": "2026-01-30T08:00:00.000Z",
+      "title": "Nightly run 30",
+      "status": "passed",
+      "counts": {
+        "features": 2,
+        "scenarios": {
+          "total": 10,
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 40,
+          "passed": 40,
+          "failed": 0,
+          "skipped": 0,
+          "pending": 0,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        }
+      },
+      "durationMs": 1029,
+      "attachments": {
+        "total": 0,
+        "bytes": 0
+      }
+    }
+  ]
+}

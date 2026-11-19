@@ -55,6 +55,34 @@ export async function removeReport(dir: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
 }
 
+// Writes one report that reads and appends the shared history sidecar; call it
+// twice with different inputs to build a multi-run file.
+export async function writeReportWithHistory(
+  inputs: string[],
+  history: string,
+  title = '',
+  prefix = 'tolkira-history-e2e-',
+): Promise<ReportFile> {
+  const dir = await mkdtemp(path.join(tmpdir(), prefix));
+  const output = path.join(dir, 'report.html');
+  const args = [...inputs, '--out', output, '--history', history];
+  if (title) args.push('--title', title);
+  let stderr = '';
+  try {
+    const code = await runCli(args, {
+      stdout: () => undefined,
+      stderr: (text) => {
+        stderr += text;
+      },
+    });
+    expect(code, stderr).toBe(0);
+  } catch (error) {
+    await rm(dir, { recursive: true, force: true });
+    throw error;
+  }
+  return { dir, output };
+}
+
 export function reportUrl(output: string, search = ''): string {
   return `${pathToFileURL(output).href}${search}`;
 }

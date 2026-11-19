@@ -10,6 +10,7 @@ const layers: Record<string, number> = {
   html: 0,
   report: 1,
   details: 1,
+  trends: 1,
   triage: 2,
   matrix: 2,
   attachments: 2,
