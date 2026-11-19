@@ -57,8 +57,9 @@ passed on a later run.
    sections, and failure-first ordering interleaves files; native keeps one
    file group. A file-level view or toggle would help.
 
-Status after #25/#26 (2026-11-19): items 1, 2, 4 and 5 addressed in #25; item
-3 addressed in #26; item 6 remains a backlog decision with a trigger.
+Status after #25/#26/#27 (2026-11-19): items 1, 2, 4 and 5 addressed in #25;
+item 3 addressed in #26; the one-click failed-only limit addressed in #27;
+item 6 remains a backlog decision with a trigger.
 
 ### Documented basic-mode limits with real costs
 

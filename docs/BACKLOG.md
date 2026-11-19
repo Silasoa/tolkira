@@ -138,6 +138,11 @@ the benchmark path and budget.
   attachments are counted for the report warning; missing and unreadable files
   inside a root stay silent. Trigger: a user reports a missing attachment the
   report does not flag, or the CLI gains a general attachment diagnostic.
+- **Flaky status and retry history.** The #24 comparison found one incidental
+  flake in a teaching fixture, not a user need for flake forensics. Keep flaky
+  folded into passed with `@flaky`; a flaky count/status or first-attempt
+  evidence would need a schema v2 decision. Trigger: a user asks for flake
+  forensics or a reported flaky rate becomes a problem.
 - **Details matrix caption.** The caption still says `Executed scenarios only.`
   and 320 px can split `1` from `failed`; align the wording and the cell layout
   with the next vocabulary pass if users report it.
