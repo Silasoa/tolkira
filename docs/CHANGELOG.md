@@ -47,6 +47,11 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- Attachment byte accounting, the 50 MB/100 MB attachment caps, fallback names,
+  kind and JSON/URI-list/ANSI/plain text presentation now come from one shared
+  `src/attachment` module. Caps, summary schema version 2, the summary values and
+  the rendered HTML are unchanged. The separate 100 MB total-input cap and the
+  stream entry point are unchanged.
 - Report and Details pass rates now count attempted (non-skipped) scenarios
   while counts and bars still include skipped results. The header names
   `N scenarios with results` and any `N unexecuted` rows, a run with only

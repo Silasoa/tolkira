@@ -1,4 +1,4 @@
-import { MAX_TEXT_ATTACHMENT_BYTES } from '../report/attachment.js';
+import { MAX_TEXT_ATTACHMENT_BYTES } from '../attachment.js';
 import { isEscapeIntroducer, scanEscape } from '../text.js';
 import { escapeHtml } from './escape.js';
 

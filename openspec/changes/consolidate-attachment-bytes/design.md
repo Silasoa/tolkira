@@ -184,9 +184,11 @@ consolidation unifies the byte formula, not those populations.
      parameterised, unknown, XML, XHTML and comma-joined values; and a negative
      case that `audio/mpeg` still normalises to `application/octet-stream` and
      did not enter the allowlist;
-   - a source guard that the base64 byte formula and the 50 MB/100 MB literals
-     appear only in `src/attachment.ts`. It is a cheap structural check; the
-     behavioural unit tests and the cross-check are the real proof.
+   - a source guard that the base64 byte formula and the 50 MB literal appear
+     only in `src/attachment.ts`; the 100 MB attachment literal is also there,
+     and the separate `src/input/load.ts` total-input cap is explicitly
+     excluded. It is a cheap structural check; the behavioural unit tests and
+     the cross-check are the real proof.
    Add a model-level empty-fileName assertion to `test/model.test.ts`.
    Add `sanitizeEnvelopes` cap tests to `test/sanitize.test.ts`: exactly 50 MB
    accepted and 50 MB + 1 rejected with the exact current message; an identity

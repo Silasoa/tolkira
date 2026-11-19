@@ -158,6 +158,38 @@ describe('report model', () => {
     expect(attachment?.bytes).toBeGreaterThan(0);
   });
 
+  it('falls back to attachment.png when the Cucumber file name is empty', async () => {
+    const lines = (await readFile(messages, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const started = lines.find((line) => line.testCaseStarted)?.testCaseStarted as
+      | { id: string }
+      | undefined;
+    expect(started).toBeDefined();
+
+    lines.push({
+      attachment: {
+        body: 'cGF5bG9hZA==',
+        contentEncoding: 'BASE64',
+        fileName: '',
+        mediaType: 'image/png',
+        testCaseStartedId: started?.id,
+      },
+    });
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'empty-file-name.ndjson',
+    );
+    const model = buildReportModel(envelopes);
+    const attachment = model.scenarios[0]?.extraAttachments.find(
+      (entry) => entry.mediaType === 'image/png',
+    );
+
+    expect(attachment?.fileName).toBe('attachment.png');
+  });
+
   it('normalises and allowlists attachment media types', async () => {
     const lines = (await readFile(messages, 'utf8'))
       .trim()

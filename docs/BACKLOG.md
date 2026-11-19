@@ -49,6 +49,12 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-012 | Test | P3 | Real Behave run with attachments and doc strings | [#15](https://github.com/Silasoa/tolkira/issues/15) |
 | B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
 
+**B-006 in progress (2026-11-19).** Consolidated in change
+`consolidate-attachment-bytes`: one shared attachment module owns decoded byte
+accounting, caps, fallback naming, kind and text presentation. Caps, summary
+values and HTML output are unchanged; awaiting merge and archive.
+[#9](https://github.com/Silasoa/tolkira/issues/9)
+
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
 `priority:*` and one readiness label. `accepted` was added for triaged work

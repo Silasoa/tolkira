@@ -6,6 +6,7 @@ import type {
   Feature,
   TestStepResult,
 } from '@cucumber/messages';
+import { attachmentBytes } from './attachment.js';
 import { loadEnvelopes } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stripAnsi } from './text.js';
@@ -170,15 +171,6 @@ export function displayUri(uri: string): string {
     parts.splice(0, 2);
   }
   return parts.slice(-3).join('/') || uri;
-}
-
-function attachmentBytes(attachment: Attachment): number {
-  const body = attachment.body ?? '';
-  if (attachment.contentEncoding === 'BASE64') {
-    const padding = body.endsWith('==') ? 2 : body.endsWith('=') ? 1 : 0;
-    return Math.max(0, Math.floor((body.length * 3) / 4) - padding);
-  }
-  return Buffer.byteLength(body, 'utf8');
 }
 
 /**
