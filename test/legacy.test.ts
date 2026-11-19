@@ -1,3 +1,4 @@
+import { TestStepResultStatus } from '@cucumber/messages';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -351,6 +352,229 @@ describe('legacy JSON adapter', () => {
       'a',
       '1',
     ]);
+  });
+
+  it('keeps string-valued step text unchanged', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'String doc string',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'String argument',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a doc string',
+                  text: 'line one\nline two',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'string-text.json',
+    );
+
+    const content = envelopes.find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument?.feature?.children[0]?.scenario?.steps[0]?.docString
+      ?.content;
+    expect(content).toBe('line one\nline two');
+  });
+
+  it('rejects number, object and mixed-array text and error-message shapes', () => {
+    const cases: Array<['text' | 'error_message', unknown]> = [
+      ['text', 42],
+      ['text', { line: 'one' }],
+      ['text', ['ok', 1]],
+      ['error_message', 42],
+      ['error_message', { line: 'one' }],
+      ['error_message', ['ok', 1]],
+    ];
+
+    for (const [field, value] of cases) {
+      const result: Record<string, unknown> = {
+        status: 'failed',
+        duration: 1,
+      };
+      const step: Record<string, unknown> = {
+        keyword: 'Given ',
+        name: 'a step',
+      };
+      if (field === 'text') step.text = value;
+      else result.error_message = value;
+      step.result = result;
+
+      expect(
+        () =>
+          parseLegacyJson(
+            JSON.stringify([
+              {
+                name: 'Invalid shape',
+                elements: [
+                  {
+                    keyword: 'Scenario',
+                    name: 'Bad shape',
+                    steps: [step],
+                  },
+                ],
+              },
+            ]),
+            'invalid-shape.json',
+          ),
+        `${field}: ${JSON.stringify(value)}`,
+      ).toThrow(new RegExp(`Invalid legacy JSON[\\s\\S]*${field}`));
+    }
+  });
+
+  it('maps Behave hook and cleanup errors to failed', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'Crash statuses',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'Hook error',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a step',
+                  result: { status: 'hook_error', duration: 1 },
+                },
+              ],
+            },
+            {
+              keyword: 'Scenario',
+              name: 'Cleanup error',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a step',
+                  result: { status: 'cleanup_error', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'crash-statuses.json',
+    );
+
+    const statuses = envelopes.flatMap((envelope) =>
+      envelope.testStepFinished
+        ? [envelope.testStepFinished.testStepResult.status]
+        : [],
+    );
+    expect(statuses).toEqual([
+      TestStepResultStatus.FAILED,
+      TestStepResultStatus.FAILED,
+    ]);
+    expect(
+      envelopes.find((envelope) => envelope.testRunFinished)?.testRunFinished
+        ?.success,
+    ).toBe(false);
+  });
+
+  it('escapes HTML-like text in a line-array doc string', async () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'HTML doc string',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'Escaped argument',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a doc string',
+                  text: ['<img src=x onerror="alert(1)">'],
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'html-text.json',
+    );
+
+    const html = await renderHtml(envelopes, { title: 'Escaped doc string' });
+    expect(html).toContain('&lt;img');
+    expect(html).not.toContain('<img src=x onerror="alert(1)">');
+  });
+
+  it('escapes HTML-like text in a line-array error message', async () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'HTML error message',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'Escaped error',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a failing step',
+                  result: {
+                    status: 'failed',
+                    duration: 1,
+                    error_message: ['<img src=x onerror="alert(1)">'],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'html-error.json',
+    );
+
+    const html = await renderHtml(envelopes, { title: 'Escaped error' });
+    expect(html).toContain('&lt;img');
+    expect(html).not.toContain('<img src=x onerror="alert(1)">');
+  });
+
+  it('keeps unsupported Behave dry-run and xfail statuses rejected', () => {
+    for (const status of [
+      'untested',
+      'untested_pending',
+      'untested_undefined',
+      'pending_warn',
+      'xfailed',
+      'xpassed',
+    ]) {
+      expect(
+        () =>
+          parseLegacyJson(
+            JSON.stringify([
+              {
+                name: 'Unsupported status',
+                elements: [
+                  {
+                    keyword: 'Scenario',
+                    name: status,
+                    steps: [
+                      {
+                        keyword: 'Given ',
+                        name: 'a step',
+                        result: { status, duration: 1 },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ]),
+            `${status}.json`,
+          ),
+        status,
+      ).toThrow('result.status');
+    }
   });
 
   it('renders a minimal legacy fixture without attachments', async () => {

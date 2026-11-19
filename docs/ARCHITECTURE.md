@@ -206,9 +206,10 @@ Test names, metadata, file names and attachments are untrusted input.
   fallback names, kinds and text presentation are pinned in
   `test/attachment.test.ts` and `test/sanitize.test.ts`; the model/summary
   cross-check keeps both consumers equal.
-- Fixtures: cucumber-js legacy JSON, a Behave-shaped legacy report and a
-  hand-built Messages stream with passing/failing scenarios and attachments.
-  cucumber-jvm/ruby fixtures are follow-ups.
+- Fixtures: cucumber-js legacy JSON, Behave 1.3.3 real runs (statuses, doc
+  strings, tables and inline images), cucumber-jvm and cucumber-ruby real runs,
+  and a hand-built Messages stream with passing/failing scenarios and
+  attachments.
 - Browser test per critical flow: render, search, open a screenshot, verify an
   HTML attachment does not execute.
 - Security tests: XSS payloads in names/metadata, malicious attachment names,

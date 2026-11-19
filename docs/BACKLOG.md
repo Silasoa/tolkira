@@ -46,7 +46,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-008 | Input | P2 | Decide external or split-assets attachment mode | [#11](https://github.com/Silasoa/tolkira/issues/11) |
 | B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
-| B-012 | Test | P3 | Real Behave run with attachments and doc strings | [#15](https://github.com/Silasoa/tolkira/issues/15) |
 | B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
 
 **B-006 in progress (2026-11-19).** Consolidated in change
@@ -69,6 +68,15 @@ the benchmark path and budget.
 
 ## Resolved
 
+- **B-012 Real Behave run with attachments and doc strings** — implemented on
+  2026-11-19 in the `verify-real-behave-run` change. The recorded run covers a
+  multiline doc string, a data table, an inline PNG, a multiline error message
+  and an `error` status; the adapter joins Behave line arrays and maps the
+  `error` and `hook_error` step-result statuses to failed, while accepting
+  `cleanup_error` defensively in a step result. Dry-run/WIP statuses and
+  scenario-level hook failures without a step result remain documented limits.
+  [#15](https://github.com/Silasoa/tolkira/issues/15) is resolved by this
+  change.
 - **B-004 Renderer split** — implemented in `main` on 2026-11-19. `html.ts` is
   the shell, CSP and `renderHtml` assembly; `report`, `details`, `triage`,
   `matrix`, `attachments`, `ci`, `format` and `types` own the views behind a
@@ -163,6 +171,15 @@ the benchmark path and budget.
 - **Report scenario/step split.** Keep `report.ts` as one module while it stays
   under about 800 lines and has one consumer. Extract `scenarios.ts`/`steps.ts`
   when it exceeds that size or a second consumer needs scenario/step rendering.
+- **B-018 Unvalidated legacy argument and doc-string shapes.** Residual
+  unvalidated `arguments[].content` and `docString.content` shapes can still
+  throw a raw TypeError. It fails closed before any report is written and is
+  pre-existing. Trigger: the next legacy validation change, a user report, or
+  untrusted report exchange.
+- **B-019 Element-level Behave status is ignored for scenario status.** A
+  scenario-level hook failure without a step result can render as passed. It is
+  documented in `docs/LIMITATIONS.md`. Trigger: a user reports a Behave hook
+  failure rendered as passed, or before claiming full Behave hook support.
 
 ## Review follow-ups (2026-11-18)
 

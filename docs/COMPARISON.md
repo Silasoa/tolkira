@@ -86,7 +86,6 @@ Still open or intentionally deferred:
   reports show Rule names);
 - hide/show hooks and feature-level embeddings;
 - external screenshot directories and lazy loading of external image files;
-- real Behave attachments/doc strings;
 - full Seed-Test stack with MongoDB and live browser execution.
 
 ## Remaining parity gaps

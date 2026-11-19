@@ -1,0 +1,160 @@
+[
+{
+  "description": [
+    "As a maintainer",
+    "I want a real Behave report",
+    "So that Tolkira is verified against the producer"
+  ],
+  "elements": [
+    {
+      "keyword": "Scenario",
+      "location": "features/behave_rich.feature:6",
+      "name": "Doc string, data table and screenshot",
+      "status": "passed",
+      "steps": [
+        {
+          "keyword": "Given",
+          "location": "features/behave_rich.feature:7",
+          "match": {
+            "arguments": [],
+            "location": "features/steps/steps.py:6"
+          },
+          "name": "a doc string argument",
+          "result": {
+            "duration": 5.340576171875e-05,
+            "status": "passed"
+          },
+          "step_type": "given",
+          "text": [
+            "first line",
+            "second line"
+          ]
+        },
+        {
+          "keyword": "And",
+          "location": "features/behave_rich.feature:12",
+          "match": {
+            "arguments": [],
+            "location": "features/steps/steps.py:11"
+          },
+          "name": "a data table argument",
+          "result": {
+            "duration": 4.9114227294921875e-05,
+            "status": "passed"
+          },
+          "step_type": "given",
+          "table": {
+            "headings": [
+              "name",
+              "value"
+            ],
+            "rows": [
+              [
+                "alpha",
+                "1"
+              ],
+              [
+                "beta",
+                "2"
+              ]
+            ]
+          }
+        },
+        {
+          "embeddings": [
+            {
+              "data": "iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAYAAAB3AH1ZAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAuSURBVEhLY1BKW/V/IDEDugC98agDRh0w8A74P4BgcDgAPUjojUcdMOqAUQcAALhv0Wf/gp59AAAAAElFTkSuQmCC",
+              "mime_type": "image/png"
+            }
+          ],
+          "keyword": "When",
+          "location": "features/behave_rich.feature:16",
+          "match": {
+            "arguments": [],
+            "location": "features/steps/steps.py:20"
+          },
+          "name": "a screenshot is attached",
+          "result": {
+            "duration": 0.008718013763427734,
+            "status": "passed"
+          },
+          "step_type": "when"
+        },
+        {
+          "keyword": "Then",
+          "location": "features/behave_rich.feature:17",
+          "match": {
+            "arguments": [],
+            "location": "features/steps/steps.py:26"
+          },
+          "name": "the scenario passes",
+          "result": {
+            "duration": 5.841255187988281e-05,
+            "status": "passed"
+          },
+          "step_type": "then"
+        }
+      ],
+      "tags": [],
+      "type": "scenario"
+    },
+    {
+      "keyword": "Scenario",
+      "location": "features/behave_rich.feature:19",
+      "name": "Unexpected step error",
+      "status": "error",
+      "steps": [
+        {
+          "keyword": "Given",
+          "location": "features/behave_rich.feature:20",
+          "match": {
+            "arguments": [],
+            "location": "features/steps/steps.py:31"
+          },
+          "name": "a broken step",
+          "result": {
+            "duration": 0.005338907241821289,
+            "status": "error"
+          },
+          "step_type": "given"
+        }
+      ],
+      "tags": [],
+      "type": "scenario"
+    },
+    {
+      "keyword": "Scenario",
+      "location": "features/behave_rich.feature:22",
+      "name": "Failed assertion with a multiline message",
+      "status": "failed",
+      "steps": [
+        {
+          "keyword": "Given",
+          "location": "features/behave_rich.feature:23",
+          "match": {
+            "arguments": [],
+            "location": "features/steps/steps.py:36"
+          },
+          "name": "a failing assertion",
+          "result": {
+            "duration": 8.392333984375e-05,
+            "error_message": [
+              "ASSERT FAILED: first line",
+              "second line"
+            ],
+            "status": "failed"
+          },
+          "step_type": "given"
+        }
+      ],
+      "tags": [],
+      "type": "scenario"
+    }
+  ],
+  "keyword": "Feature",
+  "location": "features/behave_rich.feature:1",
+  "name": "Behave producer verification",
+  "status": "error",
+  "tags": []
+}
+]

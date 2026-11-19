@@ -7,6 +7,13 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Behave 1.3.3 real-run verification. A recorded producer fixture covers a
+  multiline doc string, a data table, an inline PNG, a multiline error message
+  and the `error` status. Legacy Behave line-array `text` and `error_message`
+  values are joined before rendering, invalid value shapes are rejected with a
+  file/field error, and the `error` and `hook_error` step-result statuses map
+  to failed, with `cleanup_error` accepted defensively. Dry-run/WIP statuses and
+  scenario-level hook failures without a step result remain documented limits.
 - Failed-only preset. A `Failed only` toolbar toggle appears when the run has
   failures plus another present status or an unexecuted row; it keeps the failed
   chip on, hides other statuses and statusless rows, and is encoded as the other

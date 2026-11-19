@@ -205,7 +205,7 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
 
 | Input | What works |
 | --- | --- |
-| **Legacy Cucumber JSON** | cucumber-js 2.3.1–13.3.0, Behave 1.3.3, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 are covered by producer fixtures. Behave's real run does not yet include attachments or doc strings; see the [dated limitations table](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md). Other producers often work; the adapter follows the Cucumber legacy dialect. |
+| **Legacy Cucumber JSON** | cucumber-js 2.3.1–13.3.0, Behave 1.3.3, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 are covered by producer fixtures. Behave's real run includes statuses, durations, a multiline doc string, a data table, an inline PNG, a multiline error message and an `error` status; see the [dated limitations table](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md). Other producers often work; the adapter follows the Cucumber legacy dialect. |
 | **Cucumber Messages (NDJSON)** | cucumber-js 11.2, cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1 fixtures. This is the modern, implementation-independent format. |
 | **JUnit XML** | Basic mode: suites, test cases, statuses, durations, failures, skipped cases and system output. JUnit has no Gherkin steps or screenshots; each test case is shown as one synthetic step. |
 | **Playwright JSON** | Native adapter for the Playwright JSON reporter: projects, file/describe rules, retries (the final attempt is visible), nested steps, expected/unexpected outcomes, tags, annotations, inline and in-tree path attachments, `stdout`/`stderr` and run-level errors. No trace viewer or HTML-report replay. |
@@ -386,8 +386,7 @@ for the mapping.
   future option.
 
 See [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md)
-for the dated limitations table (last verified 2026-11-11), including the
-remaining Behave real-run gap.
+for the dated limitations table (last verified 2026-11-19).
 
 ## Documentation
 
@@ -398,7 +397,7 @@ remaining Behave real-run gap.
 - [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) — GitHub annotations, GitLab and step-summary
   output.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
-  (last verified 2026-11-11).
+  (last verified 2026-11-19).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested
   Cucumber producers and versions.
 - [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and

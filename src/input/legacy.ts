@@ -50,7 +50,7 @@ interface LegacyEmbedding {
 interface LegacyResult {
   status?: string;
   duration?: number;
-  error_message?: string;
+  error_message?: string | string[];
 }
 
 interface LegacyDocString {
@@ -64,7 +64,7 @@ interface LegacyDocString {
 interface LegacyStep {
   keyword?: string;
   name?: string;
-  text?: string;
+  text?: string | string[];
   line?: number;
   hidden?: boolean;
   result?: LegacyResult;
@@ -121,10 +121,20 @@ const LEGACY_STATUSES = new Set([
   'undefined',
   'ambiguous',
   'unknown',
+  'error',
+  'hook_error',
+  'cleanup_error',
 ]);
 
 function invalidLegacy(source: string, detail: string): Error {
   return new Error(`Invalid legacy JSON in ${source}: ${detail}`);
+}
+
+function isTextValue(value: unknown): value is string | string[] {
+  return (
+    typeof value === 'string' ||
+    (Array.isArray(value) && value.every((line) => typeof line === 'string'))
+  );
 }
 
 function validateStep(
@@ -132,6 +142,12 @@ function validateStep(
   source: string,
   where: string,
 ): void {
+  if (step.text !== undefined && !isTextValue(step.text)) {
+    throw invalidLegacy(
+      source,
+      `${where}.text must be a string or an array of strings.`,
+    );
+  }
   if (step.embeddings !== undefined && !Array.isArray(step.embeddings)) {
     throw invalidLegacy(source, `${where}.embeddings must be an array.`);
   }
@@ -170,6 +186,15 @@ function validateStep(
         !LEGACY_STATUSES.has(step.result.status.toLowerCase()))
     ) {
       throw invalidLegacy(source, `${where}.result.status must be a known status.`);
+    }
+    if (
+      step.result.error_message !== undefined &&
+      !isTextValue(step.result.error_message)
+    ) {
+      throw invalidLegacy(
+        source,
+        `${where}.result.error_message must be a string or an array of strings.`,
+      );
     }
   }
   if (
@@ -348,6 +373,9 @@ function statusOf(value: string | undefined): TestStepResultStatus {
     case 'passed':
       return TestStepResultStatus.PASSED;
     case 'failed':
+    case 'error':
+    case 'hook_error':
+    case 'cleanup_error':
       return TestStepResultStatus.FAILED;
     case 'skipped':
       return TestStepResultStatus.SKIPPED;
@@ -453,7 +481,7 @@ function stepArgument(legacyStep: LegacyStep): {
   }
 
   if (legacyStep.text !== undefined) {
-    return { content: legacyStep.text, line: legacyStep.line };
+    return { content: normalizeText(legacyStep.text), line: legacyStep.line };
   }
 
   const rows = tableRows(legacyStep.rows ?? legacyStep.table);
@@ -517,7 +545,7 @@ function mapPickleArgument(
 
 function resultOf(legacyStep: LegacyStep, scale = 1): TestStepResult {
   const raw = legacyStep.result;
-  const message = raw?.error_message;
+  const message = normalizeText(raw?.error_message);
   const result: TestStepResult = {
     status: statusOf(raw?.status),
     duration: duration((raw?.duration ?? 0) * scale),

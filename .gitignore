@@ -20,6 +20,8 @@ report.html
 .vitest/
 .oxlintcache
 .eslintcache
+__pycache__/
+*.pyc
 .openchamber/
 .DS_Store
 Thumbs.db

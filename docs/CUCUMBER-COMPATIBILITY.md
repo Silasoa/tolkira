@@ -1,20 +1,23 @@
 # Cucumber input compatibility
 
-2026-11-04. "Tested" means a real producer output is checked in under
-`test/fixtures/legacy/` and parsed and rendered by the fixture tests (`test/legacy-version.test.ts`,
-`test/legacy-jvm.test.ts`, `test/legacy-ruby.test.ts` and
-`test/messages-producers.test.ts`). Each fixture is a two-scenario feature: one
-passes, one fails with `Error: boom`.
+2026-11-19. "Tested" means a real producer output is checked in under
+`test/fixtures/legacy/` or `test/fixtures/behave/` and parsed and rendered by the fixture tests
+(`test/legacy.test.ts`, `test/legacy-version.test.ts`, `test/legacy-jvm.test.ts`,
+`test/legacy-ruby.test.ts`, `test/behave-producers.test.ts` and
+`test/messages-producers.test.ts`). The cucumber-js, cucumber-jvm and
+cucumber-ruby fixtures are two-scenario features: one passes and one fails with
+a producer-specific error (the cucumber-js fixtures use `Error: boom`). The
+Behave producer fixture is a three-scenario real run described below.
 
 The dated cross-format limitations table is
-[`docs/LIMITATIONS.md`](LIMITATIONS.md) (last verified 2026-11-11).
+[`docs/LIMITATIONS.md`](LIMITATIONS.md) (last verified 2026-11-19).
 
 ## Legacy JSON
 
 | Producer | Tested | Notes |
 | --- | --- | --- |
 | cucumber-js | 2.3.1, 3.2.1, 4.2.1, 5.1.0, 6.0.7, 7.3.2, 13.3.0 | The shape is stable enough. 2.x has no `type` on elements and uses absolute URIs; duration units vary below 6.0.5. |
-| Behave | 1.3.3 real run (`behave-real.json`) | Duration is seconds and is normalised to milliseconds. A real run with attachments and doc strings is still outstanding; the synthetic `behave.json` covers those shapes. |
+| Behave | 1.3.3 real runs (`test/fixtures/legacy/behave-real.json`, `test/fixtures/behave/behave-real-attachments.json`) | Duration is seconds and is normalised to milliseconds. The rich real run covers a multiline doc string, a data table, an inline PNG, a multiline error message and the `error` status. `test/fixtures/legacy/behave.json` is hand-shaped regression coverage, not proof of producer detection. |
 | cucumber-jvm | 7.22.1 real run | The legacy `json` formatter still ships in 7.x/8.x. The fixture covers `classpath:` URIs, nanosecond durations and a Java assertion. |
 | cucumber-ruby | 12.0.1 real run | The legacy `json` formatter still ships; the fixture covers relative paths, nanosecond durations and a Ruby `RuntimeError`. |
 
@@ -231,9 +234,13 @@ legacy steps without a result remain executed.
 - **8.0–13.x:** Messages additions are additive for the fields Tolkira reads
   (`workerId`, `Hook.type`, `testRunStartedId`, test-run hooks, external
   attachments).
-- **Behave 1.3.3:** JSON duration is in seconds, and features/elements carry
-  `status` and `location` strings. The adapter detects that dialect and scales
-  durations; Behave has no Messages formatter.
+- **Behave 1.3.3:** JSON duration is in seconds; multiline `text` and
+  `error_message` are arrays of lines; step results use `error` for
+  non-assertion exceptions and `hook_error` for failing step hooks.
+  `cleanup_error` is recorded on the scenario/feature during context cleanup,
+  not on a step; the adapter accepts it defensively if a producer writes it as
+  a step result. The adapter detects that dialect, scales durations, joins line
+  arrays and maps those statuses to failed. Behave has no Messages formatter.
 - **cucumber-jvm 7.22.1:** legacy JSON uses `classpath:` URIs, nanosecond
   durations and Java stack traces. The shape matches the Cucumber legacy
   dialect and needs no adapter change.
@@ -258,10 +265,15 @@ legacy steps without a result remain executed.
 ## Reproduce
 
 ```shell
-npx vitest run test/legacy-version.test.ts
+npx vitest run test/legacy-version.test.ts test/legacy.test.ts test/behave-producers.test.ts
 ```
 
-The fixtures are generated from a minimal feature with:
+The Behave rich run is recorded in `test/fixtures/behave/`; its
+`PROVENANCE.md` has the container command that regenerates the JSON without
+touching the host Python installation.
+
+The cucumber-js, cucumber-jvm and cucumber-ruby fixtures are generated from a
+minimal feature with:
 
 ```gherkin
 Feature: Old cucumber compatibility
@@ -273,9 +285,11 @@ Feature: Old cucumber compatibility
     Given a failing step
 ```
 
-The step definitions are one empty function and one that throws `Error: boom`.
-The versions were installed in isolated temp projects; the checked-in JSON is
-the producer output, not a hand-written approximation.
+The step definitions are one empty function and one that fails with a
+producer-specific error: `Error: boom` for cucumber-js,
+`java.lang.AssertionError: boom` for cucumber-jvm and `boom (RuntimeError)` for
+cucumber-ruby. The versions were installed in isolated temp projects; the
+checked-in JSON is the producer output, not a hand-written approximation.
 
 ### Fixture toolchains
 
