@@ -11,20 +11,20 @@
 
 ## 2. Baseline
 
-- [ ] 2.1 Record the collected unit baseline: 38 files, 659 tests, and the
+- [x] 2.1 Record the collected unit baseline: 38 files, 659 tests, and the
   static `expect(` inventory of `test/render.test.ts` (485). Record the
   per-platform split for the conditional skips: Windows 657 passed / 2 skipped
   (`playwright.test.ts` ×2 win32), Linux 658 passed / 1 skipped
   (`cli-ci.test.ts` ×1 linux), macOS 659 passed / 0 skipped. The parity rule is
   the collected total, the full sorted title multiset (describe chain included)
   and the assertion inventory, never the pass/skip split.
-- [ ] 2.2 Record the browser baseline: 91 definitions × 3 projects = 273 runs
+- [x] 2.2 Record the browser baseline: 91 definitions × 3 projects = 273 runs
   in 6 files at 83.9 s; the static `expect(` inventory (466); `npx playwright
   test --list` normalized to 91 project-excluded definition titles and 273
   per-project entries; OS, core count, Playwright workers (6), `node -v`,
   Playwright/Vitest versions, exact command, and the per-test duration sum from
   `npx playwright test --reporter=json --outputFile=<file>`.
-- [ ] 2.3 Run `render-characterization` and `render-golden` on the clean
+- [x] 2.3 Run `render-characterization` and `render-golden` on the clean
   baseline; record the eight hashes and two golden files. Record
   `git ls-files --eol test/render-characterization.test.ts test/fixtures/render-golden/*.html`
   and `core.autocrlf`; require `i/lf w/lf`. A CRLF mismatch is diagnosed, never
@@ -32,17 +32,18 @@
 
 ## 3. Unit split
 
-- [ ] 3.1 Add `test/render-helpers.ts` and move the shared setup and HTML
+- [x] 3.1 Add `test/render-helpers.ts` and move the shared setup and HTML
   helpers; use `test/fixtures.ts` for paths.
-- [ ] 3.2 Move `messages rendering` to `test/render-report.test.ts`.
-- [ ] 3.3 Move `scenario outlines` and `hooks rendering` to their own files.
-- [ ] 3.4 Move `triage overview`, `feature overview and matrix`,
+- [x] 3.2 Move `messages rendering` to `test/render-report.test.ts`.
+- [x] 3.3 Move `scenario outlines` and `hooks rendering` to their own files.
+- [x] 3.4 Move `triage overview`, `feature overview and matrix`,
   `parity diagnostics rendering` and `default open state` to their own files.
-- [ ] 3.5 Move `source strip`, `parity rules rendering` and
+- [x] 3.5 Move `source strip`, `parity rules rendering` and
   `empty-run rendering` to their own files; remove `test/render.test.ts`.
-- [ ] 3.6 Confirm every unit file is below 800 lines and every original test
+- [x] 3.6 Confirm every unit file is below 800 lines and every original test
   title appears once. If a file exceeds 800 lines, record its single flow and
-  why in this task.
+  why in this task. Largest new file: `render-rules.test.ts`, 389 lines; no
+  exception.
 
 ## 4. Browser split
 
