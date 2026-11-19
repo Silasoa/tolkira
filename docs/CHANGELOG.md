@@ -47,6 +47,10 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- Test-only: the render unit suite is split by report flow and the browser
+  report spec by user journey. Fixture paths, report creation, clipboard stubs
+  and the hostile ANSI payload now have one shared helper. No product behaviour
+  change.
 - Report and Details pass rates now count attempted (non-skipped) scenarios
   while counts and bars still include skipped results. The header names
   `N scenarios with results` and any `N unexecuted` rows, a run with only

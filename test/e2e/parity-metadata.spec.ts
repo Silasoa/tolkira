@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { runCli } from '../../src/cli.js';
 import { messagesFixture } from '../fixtures.js';
+import {
+  readClipboard,
+  removeReport,
+  reportUrl,
+  stubClipboard,
+  writeReport,
+} from './helpers.js';
 
 const ciFull = messagesFixture('ci-full.ndjson');
 const presentation = messagesFixture('attachments-presentation.ndjson');
@@ -13,20 +15,6 @@ const large = messagesFixture('attachments-large.ndjson');
 const FULL_REVISION = 'abcdef1234567890abcdef1234567890abcdef12';
 const CI_URL = 'https://github.com/acme/tolkira/actions/runs/42';
 const CI_REMOTE = 'https://github.com/acme/tolkira';
-
-async function writeReport(
-  inputs: string[],
-  title: string,
-): Promise<{ dir: string; output: string }> {
-  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-metadata-e2e-'));
-  const output = path.join(dir, 'report.html');
-  const code = await runCli([...inputs, '--out', output, '--title', title], {
-    stdout: () => undefined,
-    stderr: () => undefined,
-  });
-  expect(code).toBe(0);
-  return { dir, output };
-}
 
 test('shows CI metadata and rich attachments without requests', async ({
   page,
@@ -38,22 +26,10 @@ test('shows CI metadata and rich attachments without requests', async ({
   const requests: string[] = [];
   page.on('request', (request) => requests.push(request.url()));
 
-  await page.addInitScript(() => {
-    (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied = '';
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: (text: string) => {
-          (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied =
-            text;
-          return Promise.resolve();
-        },
-      },
-    });
-  });
+  await stubClipboard(page);
 
   try {
-    await page.goto(pathToFileURL(output).href);
+    await page.goto(reportUrl(output));
 
     const ciLink = page.getByRole('link', { name: 'GitHub Actions' }).first();
     await expect(ciLink).toBeVisible();
@@ -122,11 +98,7 @@ test('shows CI metadata and rich attachments without requests', async ({
     await expect(page.locator('#tolkira-copy-live')).toHaveText(
       'Log copied to clipboard.',
     );
-    const copied = await page.evaluate(
-      () =>
-        (window as unknown as { __tolkiraCopied?: string }).__tolkiraCopied ??
-        '',
-    );
+    const copied = await readClipboard(page);
     expect(copied).toContain('ERROR');
     expect(copied).toContain('256-colour');
     expect(copied).not.toContain('\u001b');
@@ -161,7 +133,7 @@ test('shows CI metadata and rich attachments without requests', async ({
       ),
     ).toBe(true);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -169,7 +141,7 @@ test('falls back above the ANSI byte boundary', async ({ page }) => {
   const { dir, output } = await writeReport([large], 'Large logs');
 
   try {
-    await page.goto(pathToFileURL(output).href);
+    await page.goto(reportUrl(output));
     const limit = page
       .locator('details.attachmentText')
       .filter({ hasText: 'boundary-262144.log' });
@@ -183,7 +155,7 @@ test('falls back above the ANSI byte boundary', async ({ page }) => {
     expect(await over.locator('pre span').count()).toBe(0);
     await expect(over.locator('pre')).toContainText('xxxx');
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -191,7 +163,7 @@ test('keeps ANSI colours readable in light and dark themes', async ({ page }) =>
   const { dir, output } = await writeReport([presentation], 'ANSI contrast');
 
   try {
-    await page.goto(pathToFileURL(output).href);
+    await page.goto(reportUrl(output));
     const log = page
       .locator('details.attachmentText')
       .filter({ hasText: 'session.log' });
@@ -263,7 +235,7 @@ test('keeps ANSI colours readable in light and dark themes', async ({ page }) =>
     await page.emulateMedia({ colorScheme: 'dark' });
     expect(await minimumContrast()).toBeGreaterThanOrEqual(4.5);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -279,7 +251,7 @@ test.describe('without scripting', () => {
     page.on('request', (request) => requests.push(request.url()));
 
     try {
-      await page.goto(pathToFileURL(output).href);
+      await page.goto(reportUrl(output));
       const ciLink = page.getByRole('link', { name: 'GitHub Actions' }).first();
       await expect(ciLink).toBeVisible();
       await expect(ciLink).toHaveAttribute('href', CI_URL);
@@ -318,7 +290,7 @@ test.describe('without scripting', () => {
         ),
       ).toBe(true);
     } finally {
-      await rm(dir, { recursive: true, force: true });
+      await removeReport(dir);
     }
   });
 });

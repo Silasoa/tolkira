@@ -112,15 +112,18 @@ this change.
 2. Move exact `describe`/`test` blocks and their imports; do not retype an
    assertion. The only rewritten lines are imports, fixture constants that now
    come from `test/fixtures.ts`, and the shared setup calls.
-3. The `expect(code).toBe(0)` lines move into `writeReport`; the ANSI expected
-   visible text changes from `c1-red` to `c1-csi`. Those are the only two named
-   assertion moves. Every other `expect(` line and every matcher stays.
+3. The 49 inline report-creation checks (47 `expect(code).toBe(0)` plus the
+   diagnostic markup test's `expect(undefinedCode)` and
+   `expect(ambiguousCode)`) move into `writeReport`'s one check; the ANSI
+   expected visible text changes from `c1-red` to `c1-csi`. Those are the only
+   named assertion moves. Every other `expect(` line and every matcher stays.
 4. After the split, compare the sorted multiset of test titles with the
    baseline: unit titles (file path excluded) and 91 browser definitions
    (project excluded, describe chain included), plus the 273 per-project
-   entries. Also compare the collected totals and the `expect(` inventory. A
+   entries. Also compare the collected totals and the `expect(` inventory
+   (485 unit; 417 in the split browser specs + 1 in `writeReport` = 418). A
    missing, duplicated or renamed title, a missing `expect(` line outside the
-   two moves, or a loosened matcher is a blocker.
+   named moves, or a loosened matcher is a blocker.
 5. Run `render-characterization` and `render-golden` before and after; require
    zero diff in the characterization test and both golden files. A CRLF
    mismatch is diagnosed (`git ls-files --eol`, `core.autocrlf`), never

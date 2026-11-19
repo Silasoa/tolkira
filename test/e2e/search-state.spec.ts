@@ -1,32 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { runCli } from '../../src/cli.js';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
+import {
+  removeReport,
+  reportUrl,
+  writeInput,
+  writeReport,
+} from './helpers.js';
 
 const tagFixture = legacyFixture('tag-expressions.json');
 const markdownFixture = messagesFixture('markdown-descriptions.ndjson');
-
-async function writeReport(
-  inputs: string[],
-  title: string,
-  prefix: string,
-): Promise<{ dir: string; output: string }> {
-  const dir = await mkdtemp(path.join(tmpdir(), prefix));
-  const output = path.join(dir, 'report.html');
-  const code = await runCli(
-    [...inputs, '--out', output, '--title', title],
-    { stdout: () => undefined, stderr: () => undefined },
-  );
-  expect(code).toBe(0);
-  return { dir, output };
-}
-
-function reportUrl(output: string, search = ''): string {
-  return `${pathToFileURL(output).href}${search}`;
-}
 
 test('filters by a tag expression and hides empty groups', async ({ page }) => {
   const { dir, output } = await writeReport(
@@ -57,7 +39,7 @@ test('filters by a tag expression and hides empty groups', async ({ page }) => {
     );
     await expect(page.locator('details.scenario[open]')).toHaveCount(1);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -81,7 +63,7 @@ test('treats mixed text and tag tokens as substring text', async ({ page }) => {
     await expect(page.locator('#tolkira-search-note')).toBeHidden();
     expect(errors).toEqual([]);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -119,7 +101,7 @@ test('falls back to substring search for an invalid tag expression', async ({
     await expect(page.locator('#empty-results')).toBeHidden();
     expect(errors).toEqual([]);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -178,40 +160,36 @@ test('combines a tag expression with status and tag filters using AND', async ({
       page.getByRole('heading', { name: 'gamma three' }),
     ).toBeVisible();
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
 test('caps newly opened rows for a tag expression at 20', async ({ page }) => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-expression-cap-'));
-  const input = path.join(dir, 'many-tagged.json');
-  const output = path.join(dir, 'many-tagged.html');
+  const elements = Array.from({ length: 30 }, (_, index) => ({
+    keyword: 'Scenario',
+    type: 'scenario',
+    name: `Cap scenario ${index + 1}`,
+    tags: ['@a'],
+    steps: [
+      {
+        keyword: 'Given ',
+        name: 'a passing step',
+        result: { status: 'passed', duration: 1 },
+      },
+    ],
+  }));
+  const input = await writeInput(
+    'many-tagged.json',
+    JSON.stringify([{ name: 'Cap feature', elements }]),
+    'tolkira-expression-cap-input-',
+  );
+  const { dir, output } = await writeReport(
+    [input.file],
+    'Expression cap',
+    'tolkira-expression-cap-',
+  );
 
   try {
-    const elements = Array.from({ length: 30 }, (_, index) => ({
-      keyword: 'Scenario',
-      type: 'scenario',
-      name: `Cap scenario ${index + 1}`,
-      tags: ['@a'],
-      steps: [
-        {
-          keyword: 'Given ',
-          name: 'a passing step',
-          result: { status: 'passed', duration: 1 },
-        },
-      ],
-    }));
-    await writeFile(
-      input,
-      JSON.stringify([{ name: 'Cap feature', elements }]),
-      'utf8',
-    );
-    const code = await runCli(
-      [input, '--out', output, '--title', 'Expression cap'],
-      { stdout: () => undefined, stderr: () => undefined },
-    );
-    expect(code).toBe(0);
-
     await page.goto(reportUrl(output));
     const search = page.locator('input[data-search]');
     await search.fill('@a');
@@ -227,47 +205,44 @@ test('caps newly opened rows for a tag expression at 20', async ({ page }) => {
     await expect(page.locator('details.scenario[open]')).toHaveCount(0);
     await expect(page.locator('#tolkira-search-note')).toBeHidden();
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
+    await removeReport(input.dir);
   }
 });
 
 test('counts only newly opened rows against the search cap', async ({ page }) => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-newly-opened-cap-'));
-  const input = path.join(dir, 'partly-open.json');
-  const output = path.join(dir, 'partly-open.html');
+  const elements = Array.from({ length: 30 }, (_, index) => ({
+    keyword: 'Scenario',
+    type: 'scenario',
+    name: `Cap scenario ${index + 1}`,
+    tags: ['@a'],
+    steps: [
+      {
+        keyword: 'Given ',
+        name: 'a step',
+        result:
+          index < 10
+            ? {
+                status: 'failed',
+                duration: 1,
+                error_message: 'expected failure',
+              }
+            : { status: 'passed', duration: 1 },
+      },
+    ],
+  }));
+  const input = await writeInput(
+    'partly-open.json',
+    JSON.stringify([{ name: 'Partly open feature', elements }]),
+    'tolkira-newly-opened-cap-input-',
+  );
+  const { dir, output } = await writeReport(
+    [input.file],
+    'Newly opened cap',
+    'tolkira-newly-opened-cap-',
+  );
 
   try {
-    const elements = Array.from({ length: 30 }, (_, index) => ({
-      keyword: 'Scenario',
-      type: 'scenario',
-      name: `Cap scenario ${index + 1}`,
-      tags: ['@a'],
-      steps: [
-        {
-          keyword: 'Given ',
-          name: 'a step',
-          result:
-            index < 10
-              ? {
-                  status: 'failed',
-                  duration: 1,
-                  error_message: 'expected failure',
-                }
-              : { status: 'passed', duration: 1 },
-        },
-      ],
-    }));
-    await writeFile(
-      input,
-      JSON.stringify([{ name: 'Partly open feature', elements }]),
-      'utf8',
-    );
-    const code = await runCli(
-      [input, '--out', output, '--title', 'Newly opened cap'],
-      { stdout: () => undefined, stderr: () => undefined },
-    );
-    expect(code).toBe(0);
-
     await page.goto(reportUrl(output));
     await expect(page.locator('details.scenario[open]')).toHaveCount(10);
 
@@ -284,7 +259,8 @@ test('counts only newly opened rows against the search cap', async ({ page }) =>
     await search.fill('');
     await expect(page.locator('details.scenario[open]')).toHaveCount(10);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
+    await removeReport(input.dir);
   }
 });
 
@@ -320,7 +296,7 @@ test('restores query, hide and tag after a reload', async ({ page }) => {
     );
     expect(new URL(page.url()).hash).toBe('#scenario-1-1');
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -361,7 +337,7 @@ test('restores query, repeated hide and tag parameters and syncs controls', asyn
     );
     expect(hides).toEqual(['passed', 'failed']);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -383,7 +359,7 @@ test('restores a plus-encoded query from the URL', async ({ page }) => {
       '1 of 4 scenarios visible',
     );
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -439,7 +415,7 @@ test('updates query, repeated hide and tag with replaceState and preserves the h
     ).toBe('mail');
     expect(await page.evaluate(() => history.length)).toBe(historyBefore);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -481,7 +457,7 @@ test('keeps filtering working when replaceState throws', async ({ page }) => {
     );
     expect(errors).toEqual([]);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -511,7 +487,7 @@ test('ignores empty, unknown and uppercase URL parameters', async ({ page }) => 
     ).toHaveAttribute('aria-pressed', 'true');
     expect(errors).toEqual([]);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -551,7 +527,7 @@ test('keeps the static report readable without JavaScript', async ({
     ).toBeVisible();
   } finally {
     await context.close();
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -578,6 +554,6 @@ test('renders Markdown descriptions without JavaScript', async ({ browser }) => 
     );
   } finally {
     await context.close();
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });

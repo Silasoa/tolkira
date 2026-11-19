@@ -1,34 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { runCli } from '../../src/cli.js';
+import { readFile } from 'node:fs/promises';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
+import {
+  removeReport,
+  reportUrl,
+  writeInput,
+  writeReport,
+} from './helpers.js';
 
 const emptyStatusesFixture = messagesFixture('empty-statuses.ndjson');
 const allStatusesFixture = messagesFixture('all-statuses.ndjson');
 const runRatioFixture = messagesFixture('run-ratio.ndjson');
 const tagExpressionsFixture = legacyFixture('tag-expressions.json');
-
-async function writeReport(
-  inputs: string[],
-  title: string,
-  prefix: string,
-): Promise<{ dir: string; output: string }> {
-  const dir = await mkdtemp(path.join(tmpdir(), prefix));
-  const output = path.join(dir, 'report.html');
-  const code = await runCli(
-    [...inputs, '--out', output, '--title', title],
-    { stdout: () => undefined, stderr: () => undefined },
-  );
-  expect(code).toBe(0);
-  return { dir, output };
-}
-
-function reportUrl(output: string, search = ''): string {
-  return `${pathToFileURL(output).href}${search}`;
-}
 
 function preset(page: Page) {
   return page.locator('button[data-filter-preset="failed"]');
@@ -116,7 +99,7 @@ test('activates and deactivates the failed-only preset', async ({ page }) => {
     await expect.poll(() => hiddenStatuses(page)).toEqual([]);
     await expect(page.locator('[data-triage]')).toBeVisible();
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -147,7 +130,7 @@ test('a manual chip change clears the unexecuted sentinel', async ({ page }) => 
       .poll(async () => (await hiddenStatuses(page)).includes('unexecuted'))
       .toBe(false);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -192,7 +175,7 @@ test('a partial chip state does not press the preset', async ({ page }) => {
     );
     await expect.poll(() => hiddenStatuses(page)).toEqual([]);
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -234,7 +217,7 @@ test('restores the preset from the URL and prunes a lone sentinel', async ({
     await expect(heading(page, 'Failed scenario')).toBeVisible();
     await expect(heading(page, 'Blank unexecuted scenario')).toBeVisible();
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -269,7 +252,7 @@ test('combines the preset with search and keeps blank rows hidden', async ({
     );
     await expect(page.locator('#empty-results')).toBeHidden();
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -301,7 +284,7 @@ test('combines the preset with a tag on failed rows', async ({ page }) => {
       '1 of 4 scenarios visible',
     );
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -323,7 +306,7 @@ test('hides and restores the source strip with the preset', async ({ page }) => 
     await preset(page).click();
     await expect(sources).toBeVisible();
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -346,36 +329,34 @@ test('toggles the preset with the keyboard', async ({ page }) => {
       '1 of 3 scenarios visible',
     );
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
 test('offers the preset for a derived failed and unexecuted run', async ({
   page,
 }) => {
-  const dir = await mkdtemp(
-    path.join(tmpdir(), 'tolkira-failed-only-derived-'),
+  const lines = (await readFile(emptyStatusesFixture, 'utf8'))
+    .split(/\r?\n/)
+    .filter((line) => line.trim().length > 0)
+    .filter((line) => {
+      const envelope = JSON.parse(line) as {
+        pickle?: { name?: string };
+      };
+      return envelope.pickle?.name !== 'Passed scenario';
+    });
+  const input = await writeInput(
+    'failed-and-unexecuted.ndjson',
+    lines.join('\n'),
+    'tolkira-failed-only-derived-input-',
+  );
+  const { dir, output } = await writeReport(
+    [input.file],
+    'Derived failed and unexecuted',
+    'tolkira-failed-only-derived-',
   );
 
   try {
-    const lines = (await readFile(emptyStatusesFixture, 'utf8'))
-      .split(/\r?\n/)
-      .filter((line) => line.trim().length > 0)
-      .filter((line) => {
-        const envelope = JSON.parse(line) as {
-          pickle?: { name?: string };
-        };
-        return envelope.pickle?.name !== 'Passed scenario';
-      });
-    const input = path.join(dir, 'failed-and-unexecuted.ndjson');
-    await writeFile(input, lines.join('\n'));
-    const output = path.join(dir, 'report.html');
-    const code = await runCli(
-      [input, '--out', output, '--title', 'Derived failed and unexecuted'],
-      { stdout: () => undefined, stderr: () => undefined },
-    );
-    expect(code).toBe(0);
-
     await page.goto(reportUrl(output));
 
     await expect(statusChip(page, 'passed')).toHaveCount(0);
@@ -396,7 +377,8 @@ test('offers the preset for a derived failed and unexecuted run', async ({
     await expect(preset(page)).toHaveAttribute('aria-pressed', 'false');
     await expect(heading(page, 'Blank unexecuted scenario')).toBeVisible();
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
+    await removeReport(input.dir);
   }
 });
 
@@ -423,7 +405,7 @@ test('keeps the preset inert without JavaScript', async ({ browser }) => {
     await expect(page.locator('#tolkira-live')).toHaveText('');
   } finally {
     await context.close();
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
 
@@ -460,6 +442,6 @@ test('fits the preset without horizontal overflow across viewports', async ({
       1,
     );
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    await removeReport(dir);
   }
 });
