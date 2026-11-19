@@ -14,6 +14,10 @@ export function legacyFixture(name: string): string {
   return fixturePath('legacy', name);
 }
 
+export function behaveProducerFixture(name: string): string {
+  return fixturePath('behave', name);
+}
+
 export function junitFixture(name: string): string {
   return fixturePath('junit', name);
 }

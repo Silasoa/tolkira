@@ -153,6 +153,39 @@ describe('CLI input edge cases', () => {
     }
   });
 
+  it('does not write a report when a legacy value shape is invalid', async () => {
+    const dir = await tempDir();
+    const input = await writeLegacy(dir, 'invalid-shape.json', [
+      {
+        name: 'Invalid shape',
+        elements: [
+          {
+            keyword: 'Scenario',
+            name: 'Bad text',
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a step',
+                text: 42,
+                result: { status: 'passed', duration: 1 },
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    const output = path.join(dir, 'report.html');
+
+    const run = await cli([input, '--out', output]);
+
+    expect(run.code).toBe(1);
+    expect(run.stderr).toContain('Invalid legacy JSON in');
+    expect(run.stderr).toContain('text must be a string or an array of strings');
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
   it('accepts an empty legacy array but rejects empty Messages files', async () => {
     const dir = await tempDir();
     const emptyLegacy = await writeLegacy(dir, 'empty-legacy.json', []);

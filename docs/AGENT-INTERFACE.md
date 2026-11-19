@@ -370,8 +370,12 @@ outside `features/`).
   the other skipped causes are not counted. Trace zips and HTML-report replays
   are not read.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
-  outline `examples` table is not reconstructed. Behave-shaped durations are
-  interpreted as nanoseconds, like cucumber-js.
+  outline `examples` table is not reconstructed. Behave durations are seconds
+  and are normalised to milliseconds; multiline doc strings and error messages
+  arrive as line arrays and are joined with newlines. Behave's `error` and
+  `hook_error` step-result statuses map to failed; `cleanup_error`, which Behave
+  records on the scenario/feature during context cleanup, is accepted
+  defensively as a failed step result.
 - Rules and backgrounds are an HTML presentation feature. The version-2 summary
   keeps the flat scenario list; `scenarios[].tags` remains the inherited tag
   set. Legacy JSON and JUnit never invent rule or background structure.
@@ -379,5 +383,5 @@ outside `features/`).
   envelopes. An undefined or ambiguous legacy step still shows the status lead
   in HTML, but never invented snippets or definitions; JUnit renders no
   diagnostics.
-- cucumber-js, Behave-shaped, cucumber-jvm, cucumber-ruby and Messages inputs
-  are covered by fixtures.
+- cucumber-js, Behave, cucumber-jvm, cucumber-ruby and Messages inputs are
+  covered by fixtures.

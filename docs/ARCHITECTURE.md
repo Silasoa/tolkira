@@ -186,9 +186,9 @@ Test names, metadata, file names and attachments are untrusted input.
 ## Testing
 
 - Unit tests: Vitest.
-- Fixtures: cucumber-js legacy JSON, a Behave-shaped legacy report and a
-  hand-built Messages stream with passing/failing scenarios and attachments.
-  cucumber-jvm/ruby fixtures are follow-ups.
+- Fixtures: cucumber-js legacy JSON, Behave 1.3.3 real runs (statuses and rich
+  step arguments), cucumber-jvm and cucumber-ruby real runs, and a hand-built
+  Messages stream with passing/failing scenarios and attachments.
 - Browser test per critical flow: render, search, open a screenshot, verify an
   HTML attachment does not execute.
 - Security tests: XSS payloads in names/metadata, malicious attachment names,

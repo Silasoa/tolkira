@@ -34,8 +34,10 @@ not a backlog of questions.
    5.1.0, 6.0.7, 7.3.2 and 13.3.0 is tested with real producer output. Behave
    1.3.3 is tested with a real run; seconds are normalised. cucumber-jvm 7.22.1 and cucumber-ruby 12.0.1
    are tested with real runs. 1.x/0.x are best effort.
-8. **Behave.** A real Behave 1.3.3 fixture and the seconds-to-milliseconds fix
-   are in. A real run with attachments and doc strings is still outstanding.
+8. **Behave.** Real Behave 1.3.3 runs cover statuses, durations, a multiline
+   doc string, a data table, an inline PNG, a multiline error message and an
+   `error` status. The producer fixture and provenance are in
+   `test/fixtures/behave/`.
 9. **Release.** v0.1.0 was published on npm with provenance on 2026-11-04. A
    staged publish requires a maintainer 2FA approval; the workflow stages, the
    maintainer approves. The npm README is refreshed by 0.1.1.
@@ -48,7 +50,6 @@ not a backlog of questions.
 
 ## Remaining work
 
-- Real Behave run with attachments/doc strings.
 - Real-world large report (10k scenarios or a sanitized team report) and a
   browser search/filter timing check.
 - Visual regression baselines after the shell is stable; CI screenshot
