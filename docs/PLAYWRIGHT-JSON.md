@@ -140,7 +140,8 @@ The process working directory root supports the common CI layout where
 `reports/results.json` and `test-results/` are siblings. It is taken from the
 process, never from report data. A layout where the JSON and the referenced
 files live in unrelated trees is unsupported; those path attachments are
-skipped, while inline attachments still work.
+skipped, while inline attachments still work. The one-file decision and its
+revisit trigger are in [ADR 0006](adr/0006-inline-attachments.md).
 
 ### Skipped attachment count and notice
 

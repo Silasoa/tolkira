@@ -41,7 +41,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
 | B-007 | Report | P2 | Optional history file and trends | [#10](https://github.com/Silasoa/tolkira/issues/10) |
-| B-008 | Input | P2 | Decide external or split-assets attachment mode | [#11](https://github.com/Silasoa/tolkira/issues/11) |
 | B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | — |
@@ -60,6 +59,12 @@ the benchmark path and budget.
 
 ## Resolved
 
+- **B-008 External or split-assets attachment mode** — decided on 2026-11-19 in
+  [ADR 0006](adr/0006-inline-attachments.md): keep one inline HTML file, reject
+  remote URLs, `file:`, UNC and outside-root paths, and do not add a
+  split-assets mode. Revisit only when a user cannot share a report because of
+  media size or a CI artifact limit, then as a new opt-in design with its own
+  ADR. [#11](https://github.com/Silasoa/tolkira/issues/11) is resolved.
 - **B-005 Split render/e2e suites and fixture helpers** — implemented in `main`
   on 2026-11-19 in the `split-test-suites` change. The render suite is split by
   report flow, the browser report spec by journey, and fixture paths, report
@@ -132,9 +137,11 @@ the benchmark path and budget.
 
 ## Decisions (do not re-open without a trigger)
 
-- **G13 external attachments / split assets.** Deliberate conflict with the
-  one-file/offline promise. Product decision tracked in B-008; do not add
-  remote URLs or CDN defaults.
+- **G13 external attachments / split assets.** Resolved by
+  [ADR 0006](adr/0006-inline-attachments.md): one inline file only, no remote
+  URLs, CDN defaults or split-assets mode. Revisit only when a user cannot share
+  a report because of media size or a CI artifact limit, then as a new opt-in
+  design with its own ADR.
 - **G16 lazy rendering.** Deliberate no-JS trade-off. Revisit only after a
   measured large-run problem; the static report is much smaller.
 - **Themes/charts.** Deliberate non-goal. Branding is title, metadata, logo,

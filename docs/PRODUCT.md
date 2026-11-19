@@ -104,7 +104,7 @@ it. The gap is the combination.
 
 ### v0.3 and later
 
-- External attachments / split-assets mode for large media.
+- External attachments / split-assets mode for large media (ADR 0006).
 - History/trends via an optional history file.
 - PDF/email summary.
 - German UI/localisation.
