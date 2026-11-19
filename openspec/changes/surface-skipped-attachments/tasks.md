@@ -32,31 +32,40 @@
 
 ## 3. Implement
 
-- [ ] 3.1 Classify attachment candidates and count outside-root skips once per
+- [x] 3.1 Classify attachment candidates and count outside-root skips once per
   attachment; return the count from the Playwright adapter.
-- [ ] 3.2 Carry the summed count through the loader and `generateReport`; expose
+- [x] 3.2 Carry the summed count through the loader and `generateReport`; expose
   `skippedAttachments` on the result.
-- [ ] 3.3 Render the shared notice inside the shell-mirroring wrapper, use the
+- [x] 3.3 Render the shared notice inside the shell-mirroring wrapper, use the
   pending tokens, neutralise the footer sentence and rebuild the stylesheet.
-- [ ] 3.4 Write the CLI stderr warning after a successful HTML write without
+- [x] 3.4 Write the CLI stderr warning after a successful HTML write without
   touching stdout or exit codes; forward it from the compat shim.
-- [ ] 3.5 Keep the summary shape, JSON keys, schema version and HTML for clean
+- [x] 3.5 Keep the summary shape, JSON keys, schema version and HTML for clean
   reports free of notice markup.
 
 ## 4. Docs
 
-- [ ] 4.1 Document the count and notice in `docs/PLAYWRIGHT-JSON.md`, the skip
+- [x] 4.1 Document the count and notice in `docs/PLAYWRIGHT-JSON.md`, the skip
   paragraph in `docs/AGENT-INTERFACE.md`, and the limit in
   `docs/LIMITATIONS.md`; add the allowed-root and skipped-attachment entries to
   `GLOSSARY.md`.
-- [ ] 4.2 Add one `docs/CHANGELOG.md` entry.
-- [ ] 4.3 Keep the two deferred decisions in `docs/BACKLOG.md` with triggers and
-  widen the `--ci` trigger to cover `--ci github --out`.
+- [x] 4.2 Add one `docs/CHANGELOG.md` entry.
+- [x] 4.3 Keep the deferred decisions in `docs/BACKLOG.md` with triggers,
+  including the summary/annotation channel and per-attachment diagnosis.
 
 ## 5. Verification and review
 
-- [ ] 5.1 Run `npm run hygiene`, `npm run check` and `npm run test:e2e`.
-- [ ] 5.2 Run the review swarm: SCR, CR, DAR, UXR, CMP.
-- [ ] 5.3 Fix findings and record deferred decisions in `docs/BACKLOG.md`.
-- [ ] 5.4 Update the #24 checklist, commit and push with the issue and change
+- [x] 5.1 Run `npm run hygiene`, `npm run check` and `npm run test:e2e`.
+- [x] 5.2 Run the review swarm: SCR, CR, DAR, UXR, CMP and SEC.
+- [x] 5.3 Fix findings and record deferred decisions in `docs/BACKLOG.md`.
+- [x] 5.4 Update the #24 checklist, commit and push with the issue and change
   reference.
+
+## Gate record
+
+2026-11-19: `npm run hygiene` ok; `npm run check` 614 passed, 2 skipped;
+`npm run test:e2e` 240 passed (Chromium, Firefox, WebKit). Review swarm: SCR,
+CR, DAR, UXR, CMP and SEC pass; CMP's stderr-hint blocker and the SCR/CR test
+gaps were fixed and re-checked. Deferred with triggers in `docs/BACKLOG.md`:
+the warning in `--json`/`--ci` without HTML, missing or unreadable files, and
+per-attachment diagnosis.

@@ -58,11 +58,12 @@ ignored (not a root skip).
 
 ```
 1 path attachment was skipped: it is outside the allowed roots (its input file's
-folder and the working directory). The report may be missing screenshots or files.
+folder and Tolkira's working directory). The report may be missing screenshots
+or files.
 
 N path attachments were skipped: they are outside the allowed roots (each input
-file's folder and the working directory). The report may be missing screenshots
-or files.
+file's folder and Tolkira's working directory). The report may be missing
+screenshots or files.
 ```
 
 ## Rendering
@@ -83,9 +84,10 @@ or files.
   notice carries the outside-root detail.
 - CLI: inside the `if (output)` branch, after `generateReport` and the file
   write, if the count is above zero,
-  `io.stderr('tolkira: warning: ' + attachmentWarning(count) + ' Run from the folder that contains the referenced files, or move them next to the input.\n')`.
-- The compat shim pushes the same message into its existing `warnings` array
-  (`compat/cucumber-html-reporter.ts`), so drop-in callers see it too.
+  `io.stderr('tolkira: warning: ' + attachmentWarning(count) + ' ' + ATTACHMENT_HINT + '\n')`.
+- The compat shim pushes `attachmentWarning(count) + ' ' + ATTACHMENT_HINT` into
+  its existing `warnings` array (`compat/cucumber-html-reporter.ts`), so drop-in
+  callers see the notice and the same hint.
 
 ## Alternatives considered
 

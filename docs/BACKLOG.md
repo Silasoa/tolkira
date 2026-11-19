@@ -125,11 +125,15 @@ the benchmark path and budget.
   CI surface is next touched.
 - **Attachment warning in `--json` and `--ci` without HTML.** The HTML report
   and the HTML-writing CLI warn about outside-root path attachments; summary v2
-  has no warning field. Trigger: an agent or CI consumer needs the signal
-  without generating HTML.
-- **Missing-file attachment warning.** Only outside-root path attachments are
-  counted for the report warning. Trigger: a user reports a missing attachment
-  the report does not flag, or the CLI gains a general attachment diagnostic.
+  has no warning field. Trigger: an agent or CI consumer needs the signal in the
+  summary or annotations, including when HTML is also written.
+- **Per-attachment diagnosis.** The notice is run-level only; it does not name
+  which scenarios or attachments were skipped. Trigger: a user needs to know
+  which scenarios lost attachments after seeing the notice.
+- **Missing or unreadable attachment warning.** Only outside-root path
+  attachments are counted for the report warning; missing and unreadable files
+  inside a root stay silent. Trigger: a user reports a missing attachment the
+  report does not flag, or the CLI gains a general attachment diagnostic.
 - **Details matrix caption.** The caption still says `Executed scenarios only.`
   and 320 px can split `1` from `failed`; align the wording and the cell layout
   with the next vocabulary pass if users report it.

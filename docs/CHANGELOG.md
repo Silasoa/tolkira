@@ -26,6 +26,17 @@ Keep a Changelog and the project uses semantic versioning.
   text, and run-level errors become a failed Playwright feature. Trace viewer
   and HTML-report replay are not claimed. See
   [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
+- Skipped Playwright path attachments are surfaced. A path attachment that
+  exists as a regular file but resolves outside the input file's folder and the
+  working directory is counted once, summed across inputs and exposed as
+  `generateReport().skippedAttachments`. The report renders one escaped notice
+  in the shared shell, the CLI writes one stderr warning after a successful HTML
+  write, and the compat shim adds the same notice and hint to its `warnings`
+  array. The footer now says `Attachments are embedded when available.` for
+  every report.
+  Missing files, symlinks, URL/UNC paths, trace zips, earlier attempts, inline
+  bodies and the working-directory fallback are not counted. Summary schema
+  version 2, JSON keys, CI text and exit codes are unchanged.
 
 ### Changed
 

@@ -20,6 +20,18 @@ when an attachment has no Cucumber `fileName`. Known parameterised media types
 keep their extension; unknown types normalise to `application/octet-stream` and
 `attachment.bin`.
 
+**Allowed root** — one of the places Tolkira may read a Playwright path
+attachment from: the input file's folder and the process working directory.
+Both are resolved to real paths; a target outside every allowed root is not
+read.
+
+**Skipped attachment** — a Playwright path attachment that exists as a regular,
+non-symlink file but resolves outside every allowed root. It is not embedded,
+counts once in `generateReport().skippedAttachments`, and drives the report
+notice and the CLI stderr warning. Missing files, non-regular files, symlinks,
+URL schemes, UNC paths, trace zips and earlier attempts are skipped without
+being counted; an inline body always wins.
+
 **CI metadata** — the optional Messages `meta.ci` block: CI name and URL plus
 git remote, revision, branch and tag. It renders in the HTML header and Details
 and never in the JSON summary.

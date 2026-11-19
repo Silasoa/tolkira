@@ -63,6 +63,7 @@ function collectGherkinIds(value: unknown): string[] {
 export interface LoadedInput {
   file: string;
   envelopes: Envelope[];
+  skippedAttachments: number;
 }
 
 export async function loadInputs(
@@ -122,6 +123,7 @@ export async function loadInputs(
 
     const decision = detectInput(content, input);
     let parsed: Envelope[] = [];
+    let skippedAttachments = 0;
 
     switch (decision.kind) {
       case 'legacy':
@@ -152,9 +154,12 @@ export async function loadInputs(
         parseMessages(content, input.file);
         break;
       case 'playwright':
-        parsed = await parsePlaywrightJson(decision.parsed, input.file, {
+        ({
+          envelopes: parsed,
+          skippedAttachments,
+        } = await parsePlaywrightJson(decision.parsed, input.file, {
           idPrefix: `playwright-${index}`,
-        });
+        }));
         break;
       case 'json-validation':
         invalidJson(content, input.file);
@@ -163,7 +168,7 @@ export async function loadInputs(
         break;
     }
 
-    groups.push({ file: input.file, envelopes: parsed });
+    groups.push({ file: input.file, envelopes: parsed, skippedAttachments });
   }
 
   if (groups.every((group) => group.envelopes.length === 0)) {

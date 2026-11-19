@@ -142,6 +142,27 @@ process, never from report data. A layout where the JSON and the referenced
 files live in unrelated trees is unsupported; those path attachments are
 skipped, while inline attachments still work.
 
+### Skipped attachment count and notice
+
+A path attachment that exists as a regular, non-symlink file but resolves
+outside every allowed root (the input file's folder and the working directory)
+is counted once. The count is exposed as `skippedAttachments` by
+`generateReport`, rendered as one notice in the report shell on both the Report
+and Details tabs, and written as one stderr warning when the CLI writes HTML.
+The notice names the roots by role and never contains a local path.
+
+These never count:
+
+- an attachment with a non-empty inline body;
+- a missing path, a symlink, a non-regular file, a URL scheme or a UNC/device
+  path;
+- a trace zip or an earlier-attempt attachment;
+- a relative path that misses the input folder but resolves inside the working
+  directory.
+
+Multiple inputs are summed; a duplicate input removed by the content hash is
+counted once. The JSON summary, CI text and exit codes are unchanged.
+
 ## Run-level errors and empty runs
 
 A report with no suites but a non-empty `errors` array becomes a failed

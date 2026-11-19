@@ -20,7 +20,7 @@ claims screenshots are embedded, so it looks complete when it is not.
   embedded when available.” for every report.
 - Write one warning line to stderr when the CLI writes HTML with skipped
   attachments. stdout, `--json`, `--ci` and exit codes stay unchanged.
-- Push the same warning into the compat shim's existing `warnings` array.
+- Push the same notice and hint into the compat shim's existing `warnings` array.
 - Expose the count on the `generateReport` result and document the warning.
 
 Out of scope: external or split assets (#11), a `warnings` field in summary v2,

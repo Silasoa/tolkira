@@ -102,6 +102,7 @@ describe the viewport, not the font.
 | --- | --- | --- |
 | Top bar / tabs | `.topbar`, `.view` | Report and Details; active tab is a text state, not a card |
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
+| Attachment notice | `.noticeShell`, `.attachmentWarning` | One shared warning above both tabs when path attachments were skipped; uses the pending tokens; hidden when the count is zero |
 | Toolbar | `.toolbar`, `.search`, `.filter` | Search and status filters; search opens matching features and scenarios; filters only for present statuses |
 | Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure |
 | Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar; hidden at 560 px or narrower. The Report row's source badge hides at 900 px or narrower, so the Details matrix keeps the source label |

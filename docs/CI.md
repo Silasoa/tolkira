@@ -131,6 +131,9 @@ file:
 The human `Report written to ...` line is suppressed whenever CI text goes to
 stdout, so annotations and Markdown are never mixed with other output.
 
+Report warnings, such as skipped path attachments, go to stderr when HTML is
+written. They never enter stdout, the JSON summary or the CI text.
+
 `--ci-out` must not overwrite an input file, the logo or the `--out` file. The
 check resolves each path through its nearest existing ancestor, so a symlinked
 or junctioned directory cannot hide a target that does not exist yet, and it

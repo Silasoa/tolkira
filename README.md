@@ -4,7 +4,8 @@
 
 Tolkira turns test results into a single HTML file you can open offline, attach
 to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
-stay inside the file. There is no server, no CDN and no telemetry.
+are embedded where available; the report names any it had to skip. There is no
+server, no CDN and no telemetry.
 
 Current release: **v0.3.0** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
@@ -166,7 +167,8 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
   unambiguous. It is hidden at 560 px or narrower, and the Report row hides its
   source at 900 px or narrower; the Details matrix keeps the source label.
 - **Screenshots and attachments that survive.** Images, text, video, audio and
-  files are preserved through the input adapters.
+  files are preserved through the input adapters where available; skipped path
+  attachments are named in the report.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by
   status and tag; open matching features automatically and highlight matches.
 - **Rendered descriptions.** Feature, rule, background, scenario and examples
@@ -225,7 +227,7 @@ Tolkira keeps the old input working and fixes the parts that hurt:
 - one offline file instead of CDN dependencies;
 - legacy JSON, modern Messages and native Playwright JSON;
 - JUnit XML as cheap breadth for non-Cucumber teams;
-- screenshots and attachments that stay in the report;
+- screenshots and attachments embedded where available;
 - a stable JSON summary for agents and CI;
 - a small, reviewed dependency surface.
 

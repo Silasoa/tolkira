@@ -83,14 +83,22 @@ import {
 
 const inputs = ['test-results/'];
 const summary = await summarizeReport(inputs);
-const { html, summary: sameSummary } = await generateReport(inputs, {
-  title: 'Nightly',
-  metadata: { CI: 'true', Commit: process.env.GITHUB_SHA ?? '' },
-  logo: 'data:image/png;base64,...',
-  accent: '#1b5e20',
-});
+const { html, summary: sameSummary, skippedAttachments } = await generateReport(
+  inputs,
+  {
+    title: 'Nightly',
+    metadata: { CI: 'true', Commit: process.env.GITHUB_SHA ?? '' },
+    logo: 'data:image/png;base64,...',
+    accent: '#1b5e20',
+  },
+);
 const htmlOnly = await renderReport(inputs, { title: 'Nightly' });
 ```
+
+`skippedAttachments` is the number of Playwright path attachments skipped
+because they resolve outside every allowed root. It is a plain number, additive
+to the returned object; the HTML notice and the CLI stderr warning use it, while
+the summary document keeps schema version 2 and no warning field.
 
 The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 
@@ -353,7 +361,10 @@ outside `features/`).
 - Playwright path attachments are embedded only when the resolved regular file
   is inside the input file's directory or the process working directory.
   Symlinked, missing, non-regular and outside-tree paths are skipped; inline
-  base64 attachments are always preferred. Trace zips and HTML-report replays
+  base64 attachments are always preferred. An outside-tree path that exists as a
+  regular file is counted in `generateReport().skippedAttachments` and surfaces
+  as an HTML notice and a CLI stderr warning; later-missing files, symlinks and
+  the other skipped causes are not counted. Trace zips and HTML-report replays
   are not read.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave-shaped durations are

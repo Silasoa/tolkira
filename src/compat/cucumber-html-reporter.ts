@@ -1,5 +1,6 @@
 import { generateReport } from '../index.js';
 import { outputOverwritesInput, writeAtomic } from '../output.js';
+import { ATTACHMENT_HINT, attachmentWarning } from '../warnings.js';
 import {
   flattenMetadata,
   inputRoot,
@@ -26,8 +27,16 @@ async function run(
   const title = mapTitle(options, warnings);
   const metadata = flattenMetadata(options.metadata, warnings);
 
-  const { html, summary } = await generateReport(inputs, { title, metadata });
+  const { html, summary, skippedAttachments } = await generateReport(inputs, {
+    title,
+    metadata,
+  });
   await writeAtomic(output, html);
+  if (skippedAttachments > 0) {
+    warnings.push(
+      `${attachmentWarning(skippedAttachments)} ${ATTACHMENT_HINT}`,
+    );
+  }
 
   return { output, warnings, summary };
 }

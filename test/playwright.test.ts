@@ -11,12 +11,12 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { Envelope } from '@cucumber/messages';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli.js';
 import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadEnvelopes, loadInputs } from '../src/input/load.js';
 import { parsePlaywrightJson } from '../src/input/playwright.js';
+import type { PlaywrightParseResult } from '../src/input/playwright.js';
 import { buildReportModel } from '../src/report/model.js';
 import type { ReportSummary, SummaryScenario } from '../src/summary.js';
 import { attachmentTexts } from './attachments.js';
@@ -233,11 +233,8 @@ async function writeReport(
 async function parsePlaywright(
   value: unknown,
   source: string,
-): Promise<{ envelopes: Envelope[]; skippedAttachments: number }> {
-  return (await parsePlaywrightJson(value, source)) as unknown as {
-    envelopes: Envelope[];
-    skippedAttachments: number;
-  };
+): Promise<PlaywrightParseResult> {
+  return parsePlaywrightJson(value, source);
 }
 
 describe('Playwright JSON input', () => {
@@ -848,7 +845,7 @@ describe('Playwright JSON input', () => {
 
     expect(skippedAttachments).toBe(0);
     expect(attachmentTexts(envelopes)).toEqual([
-      'path attachment for the Playwright adapter fixture',
+      'path attachment for the Playwright adapter fixture\n',
     ]);
   });
 
@@ -893,6 +890,11 @@ describe('Playwright JSON input', () => {
           name: 'unc',
           contentType: 'text/plain',
           path: '\\\\server\\share\\secret.md',
+        },
+        {
+          name: 'unc-forward',
+          contentType: 'text/plain',
+          path: '//server/share/file.png',
         },
       ]),
       source,
@@ -967,7 +969,7 @@ describe('Playwright JSON input', () => {
     expect(attachmentTexts(envelopes)).toEqual([]);
   });
 
-  it('sums skipped attachments across inputs and counts a duplicate input once', async () => {
+  it('sums skipped attachments across inputs and counts same-content duplicates once', async () => {
     const dir = await tempDir();
     const outside = await tempDir('tolkira-playwright-outside-');
     const first = path.join(outside, 'first.md');
@@ -997,11 +999,13 @@ describe('Playwright JSON input', () => {
     expect(both.skippedAttachments).toBe(2);
     expect(both.html).toContain('2 path attachments were skipped');
 
-    const twice = await generateReport([firstInput, firstInput], {
+    const copy = path.join(dir, 'first-copy.json');
+    await copyFile(firstInput, copy);
+    const contentDuplicates = await generateReport([firstInput, copy], {
       title: 'Duplicate input',
     });
-    expect(twice.skippedAttachments).toBe(1);
-    expect(twice.html).toContain('1 path attachment was skipped');
+    expect(contentDuplicates.skippedAttachments).toBe(1);
+    expect(contentDuplicates.html).toContain('1 path attachment was skipped');
   });
 
   it('keeps source order when tests mix results and path attachments', async () => {

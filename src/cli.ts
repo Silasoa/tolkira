@@ -7,6 +7,7 @@ import { formatCiOutput, type CiFormat } from './ci.js';
 import { generateReport, summarizeReport, version } from './index.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { ACCENT_PATTERN } from './validation.js';
+import { ATTACHMENT_HINT, attachmentWarning } from './warnings.js';
 
 const DEFAULT_MAX_SIZE_MB = 10;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -286,7 +287,7 @@ export async function runCli(
       return 0;
     }
 
-    const { html, summary } = await generateReport(inputs, {
+    const { html, summary, skippedAttachments } = await generateReport(inputs, {
       title: parsed.values.title,
       metadata,
       logo,
@@ -301,6 +302,12 @@ export async function runCli(
         `tolkira: warning: report is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
           `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
           `inflate the single-file report.\n`,
+      );
+    }
+    if (skippedAttachments > 0) {
+      io.stderr(
+        `tolkira: warning: ${attachmentWarning(skippedAttachments)} ` +
+          `${ATTACHMENT_HINT}\n`,
       );
     }
 

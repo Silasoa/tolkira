@@ -23,6 +23,7 @@ export { CucumberHtmlStream } from './stream.js';
 export interface GeneratedReport {
   html: string;
   summary: ReportSummary;
+  skippedAttachments: number;
 }
 
 export async function generateReport(
@@ -35,14 +36,20 @@ export async function generateReport(
   );
   const index = indexRun(envelopes);
   const summary = summarizeIndex(index);
+  const skippedAttachments = groups.reduce(
+    (sum, group) => sum + group.skippedAttachments,
+    0,
+  );
   return {
     html: await renderHtml(envelopes, {
       ...renderOptions(options),
       summary,
       index,
       provenance: groups.length > 1 ? provenanceFor(groups) : undefined,
+      skippedAttachments,
     }),
     summary,
+    skippedAttachments,
   };
 }
 

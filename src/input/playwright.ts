@@ -109,6 +109,11 @@ export interface PlaywrightJsonOptions {
   idPrefix?: string;
 }
 
+export interface PlaywrightParseResult {
+  envelopes: Envelope[];
+  skippedAttachments: number;
+}
+
 interface CanonicalStep {
   text: string;
   durationMs: number;
@@ -162,6 +167,7 @@ interface PlanContext {
   featureOrder: FeaturePlan[];
   runId: string;
   runTimestamp: Timestamp;
+  skippedAttachments: number;
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -856,10 +862,25 @@ async function resolveAttachmentPath(
   const candidates = path.isAbsolute(file)
     ? [file]
     : [path.resolve(context.inputDir, file), path.resolve(process.cwd(), file)];
+  // Classify before reading: only a file that exists and resolves outside every
+  // root is a skip. readAttachment keeps its own checks; a swap between the two
+  // can only cause a false negative, never a read outside the roots.
+  let outside = 0;
+  let inside = 0;
   for (const candidate of candidates) {
+    const info = await lstat(candidate).catch(() => undefined);
+    if (!info || info.isSymbolicLink() || !info.isFile()) continue;
+    const target = await realpath(candidate).catch(() => undefined);
+    if (!target) continue;
+    if (!context.roots.some((root) => isInside(root, target))) {
+      outside += 1;
+      continue;
+    }
+    inside += 1;
     const attachment = await readAttachment(candidate, context);
     if (attachment) return attachment;
   }
+  if (outside > 0 && inside === 0) context.skippedAttachments += 1;
   return undefined;
 }
 
@@ -1273,7 +1294,7 @@ export async function parsePlaywrightJson(
   parsed: unknown,
   source: string,
   options: PlaywrightJsonOptions = {},
-): Promise<Envelope[]> {
+): Promise<PlaywrightParseResult> {
   if (!isObject(parsed)) {
     throw invalid(source, 'expected a Playwright report object.');
   }
@@ -1322,6 +1343,7 @@ export async function parsePlaywrightJson(
     featureOrder: [],
     runId,
     runTimestamp,
+    skippedAttachments: 0,
   };
 
   const suites = (parsed.suites ?? []) as unknown[];
@@ -1444,5 +1466,5 @@ export async function parsePlaywrightJson(
     },
   });
 
-  return envelopes;
+  return { envelopes, skippedAttachments: context.skippedAttachments };
 }

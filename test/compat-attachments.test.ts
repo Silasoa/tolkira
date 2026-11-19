@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { generate } from '../src/compat/cucumber-html-reporter.js';
-import { SINGULAR_NOTICE, writeAttachmentReport } from './attachments.js';
+import {
+  CLI_HINT,
+  SINGULAR_NOTICE,
+  writeAttachmentReport,
+} from './attachments.js';
 
 const tempDirs: string[] = [];
 
@@ -32,7 +36,7 @@ describe('cucumber-html-reporter compat attachments', () => {
 
     const result = await generate({ jsonFile: input, output });
 
-    expect(result.warnings).toContain(SINGULAR_NOTICE);
+    expect(result.warnings).toEqual([`${SINGULAR_NOTICE} ${CLI_HINT}`]);
   });
 
   it('adds no attachment warning for a clean run', async () => {

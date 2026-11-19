@@ -14,7 +14,7 @@ embedded when available and SHALL NOT claim that every screenshot is embedded.
 
 - **WHEN** exactly one path attachment was skipped
 - **THEN** the notice says that one path attachment was skipped
-- **AND** it names its input file's folder and the working directory as the
+- **AND** it names its input file's folder and Tolkira's working directory as the
   allowed roots
 - **AND** it does not contain an absolute path
 

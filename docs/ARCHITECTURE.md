@@ -131,7 +131,7 @@ Programmatic API:
 
 ```ts
 renderReport(inputs, options): Promise<string>
-generateReport(inputs, options): Promise<{ html, summary }>
+generateReport(inputs, options): Promise<{ html, summary, skippedAttachments }>
 summarizeReport(inputs): Promise<ReportSummary>
 ```
 
