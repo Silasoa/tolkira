@@ -185,6 +185,40 @@ describe('scenario DOM contract', () => {
     ).toBe(true);
   });
 
+  it('hides a statusless row only for the unexecuted sentinel', () => {
+    const statusless: ScenarioFacts = {
+      name: 'Blank unexecuted scenario',
+      uri: 'samples/a.feature',
+      tags: [],
+      search: 'Blank unexecuted scenario',
+    };
+    const open = { query: '', tag: '', hidden: new Set<string>() };
+
+    expect(scenarioVisible(statusless, open)).toBe(true);
+    expect(
+      scenarioVisible(statusless, {
+        ...open,
+        hidden: new Set(['passed', 'unexecuted']),
+      }),
+    ).toBe(false);
+    expect(
+      scenarioVisible(statusless, { ...open, hidden: new Set(['passed']) }),
+    ).toBe(true);
+
+    const passed: ScenarioFacts = { ...statusless, status: 'passed' };
+    expect(
+      scenarioVisible(passed, { ...open, hidden: new Set(['unexecuted']) }),
+    ).toBe(true);
+    expect(
+      scenarioVisible(passed, { ...open, hidden: new Set(['passed']) }),
+    ).toBe(false);
+
+    const failed: ScenarioFacts = { ...statusless, status: 'failed' };
+    expect(
+      scenarioVisible(failed, { ...open, hidden: new Set(['unexecuted']) }),
+    ).toBe(true);
+  });
+
   it('uses one definition for generated feature and scenario ids', () => {
     expect(featureId(0)).toBe('feature-1');
     expect(featureId(11)).toBe('feature-12');
@@ -264,13 +298,17 @@ describe('rendered scenario contract', () => {
       ],
       { title: 'Status attributes' },
     );
-    const filters = [...html.matchAll(/<button class="filter"([^>]*)>/g)].map(
-      (match) => attributesOf(match[1] ?? ''),
-    );
+    const filters = [
+      ...html.matchAll(/<button class="filter[^"]*"([^>]*)>/g),
+    ].map((match) => attributesOf(match[1] ?? ''));
 
     expect(filters.length).toBeGreaterThan(0);
     for (const attributes of filters) {
-      expect(attributes.has('data-filter-status')).toBe(true);
+      const kinds = [
+        attributes.has('data-filter-status'),
+        attributes.has('data-filter-preset'),
+      ];
+      expect(kinds.filter(Boolean)).toHaveLength(1);
       expect(attributes.has('data-status')).toBe(false);
     }
 

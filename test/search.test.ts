@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  UNEXECUTED_HIDE,
   evaluateTagExpression,
+  isFailedOnlyState,
   isTagExpression,
   parseUrlState,
+  pruneFailedOnly,
   rememberHiddenOpen,
   rowsToOpen,
   serializeUrlState,
@@ -156,6 +159,91 @@ describe('URL state', () => {
         new URL(next).search,
         ['passed', 'failed', 'skipped', 'pending'],
         tags,
+      ),
+    ).toEqual(state);
+  });
+});
+
+describe('failed-only preset state', () => {
+  it('uses the unexecuted sentinel value', () => {
+    expect(UNEXECUTED_HIDE).toBe('unexecuted');
+  });
+
+  it('recognises the exact preset state', () => {
+    expect(
+      isFailedOnlyState(['passed', UNEXECUTED_HIDE], ['passed', 'failed']),
+    ).toBe(true);
+    expect(
+      isFailedOnlyState(
+        ['skipped', 'passed', UNEXECUTED_HIDE],
+        ['passed', 'failed', 'skipped'],
+      ),
+    ).toBe(true);
+    expect(isFailedOnlyState([UNEXECUTED_HIDE], ['failed'])).toBe(true);
+    expect(
+      isFailedOnlyState([UNEXECUTED_HIDE, 'passed'], ['failed', 'passed']),
+    ).toBe(true);
+  });
+
+  it.each([
+    {
+      label: 'failed itself is hidden',
+      hidden: ['passed', 'failed', UNEXECUTED_HIDE],
+      present: ['passed', 'failed'],
+    },
+    {
+      label: 'another present status is still on',
+      hidden: [UNEXECUTED_HIDE],
+      present: ['passed', 'failed'],
+    },
+    {
+      label: 'the sentinel is missing',
+      hidden: ['passed'],
+      present: ['passed', 'failed'],
+    },
+    {
+      label: 'no failure is present',
+      hidden: ['passed', UNEXECUTED_HIDE],
+      present: ['passed'],
+    },
+    {
+      label: 'no status is present',
+      hidden: [UNEXECUTED_HIDE],
+      present: [],
+    },
+  ])('rejects the state where $label', ({ hidden, present }) => {
+    expect(isFailedOnlyState(hidden, present)).toBe(false);
+  });
+
+  it('drops the sentinel unless the chip state is the exact preset', () => {
+    expect(pruneFailedOnly([UNEXECUTED_HIDE], ['passed', 'failed'])).toEqual(
+      [],
+    );
+    expect(
+      pruneFailedOnly(['passed', UNEXECUTED_HIDE], ['passed', 'failed']),
+    ).toEqual(['passed', UNEXECUTED_HIDE]);
+    expect(pruneFailedOnly([UNEXECUTED_HIDE], ['failed'])).toEqual([
+      UNEXECUTED_HIDE,
+    ]);
+    expect(pruneFailedOnly(['passed'], ['passed', 'failed'])).toEqual([
+      'passed',
+    ]);
+  });
+
+  it('round-trips the sentinel through the URL', () => {
+    const state = {
+      query: '',
+      hidden: ['passed', UNEXECUTED_HIDE],
+      tag: '',
+    };
+    const next = serializeUrlState('https://example.test/report.html', state);
+
+    expect(next).toContain(`hide=${UNEXECUTED_HIDE}`);
+    expect(
+      parseUrlState(
+        new URL(next).search,
+        ['passed', 'failed', UNEXECUTED_HIDE],
+        [],
       ),
     ).toEqual(state);
   });
