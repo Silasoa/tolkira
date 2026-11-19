@@ -12,7 +12,7 @@ const globalHookAttachments = messagesFixture('global-hooks-attachments.ndjson')
 
 describe('hooks rendering', () => {
   it('renders per-scenario hooks separately from steps', async () => {
-    const html = await renderMessagesFile(hooksFixture);
+    const html = await renderMessagesFile(hooksFixture, 'Hooks');
 
     expect(html).toContain('class="hookGroup"');
     expect(html).toContain('class="hook"');
@@ -22,7 +22,7 @@ describe('hooks rendering', () => {
   });
 
   it('renders test-run hooks below the feature list', async () => {
-    const html = await renderMessagesFile(globalHooksFixture);
+    const html = await renderMessagesFile(globalHooksFixture, 'Hooks');
 
     expect(html).toContain('data-run-hooks');
     expect(html).toContain('BeforeAll');
@@ -33,7 +33,7 @@ describe('hooks rendering', () => {
   });
 
   it('renders run-hook attachments in the Hooks section', async () => {
-    const html = await renderMessagesFile(globalHookAttachments);
+    const html = await renderMessagesFile(globalHookAttachments, 'Hooks');
 
     expect(html).toContain('data-run-hooks');
     expect(html).toContain('class="attachmentText"');

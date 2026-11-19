@@ -115,16 +115,3 @@ describe('feature overview and matrix', () => {
     expect(headers).toEqual(['Feature', 'Total', 'Passed', 'Scenario time']);
   });
 });
-
-function scenarioOpeningTag(html: string, name: string): string {
-  const marker = `data-scenario-name="${name}"`;
-  const index = html.indexOf(marker);
-  expect(index, `scenario ${name}`).toBeGreaterThan(-1);
-  const start = html.lastIndexOf('<details class="scenario"', index);
-  return html.slice(start, html.indexOf('>', index) + 1);
-}
-
-function featureOpeningTag(html: string): string {
-  const start = html.indexOf('<details class="feature');
-  return html.slice(start, html.indexOf('>', start) + 1);
-}

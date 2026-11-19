@@ -35,12 +35,12 @@ dependencies, coverage policy, visual baselines and rewriting tests for style.
   that cover one flow or journey; no test file exceeds about 800 lines unless
   it covers one coherent flow, and any exception is named in `tasks.md`.
 - Every assertion in the original two files exists in exactly one new file.
-  The static `expect(` inventory is preserved: the render suite stays at 485;
-  the browser report spec's 466 lines become 417 across the split specs plus
-  one `expect(code)` in the shared `writeReport` helper, because 49 report
-  creation checks (47 `expect(code)` plus two diagnostic setup checks) move
-  into it. The ANSI expected string changes value, not count. No matcher is
-  loosened.
+  The static `expect(` inventory is preserved: the render suite is 484 in the
+  ten split files plus 1 in `test/render-helpers.ts`, for 485; the browser
+  report spec's 466 lines become 417 across the split specs plus one
+  `expect(code)` in the shared `writeReport` helper, because 49 report creation
+  checks (47 `expect(code)` plus two diagnostic setup checks) move into it. The
+  ANSI expected string changes value, not count. No matcher is loosened.
 - The collected unit and browser test totals and the sorted test-title
   multiset (describe chain included) match the baseline, or the difference is
   documented with the reason. Unit files rise from 38 to 47; the 91 browser
