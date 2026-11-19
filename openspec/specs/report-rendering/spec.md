@@ -145,12 +145,22 @@ matching scenario, and SHALL show an empty state when nothing matches.
 ### Requirement: Show the run environment in Details
 
 The Details view SHALL show the producer, runtime, OS, CPU and protocol version
-from the Messages meta envelope when available, plus user metadata.
+from the Messages meta envelope when available, plus user metadata, under the
+producer-neutral heading `Run environment`.
 
 #### Scenario: Messages meta is present
+
 - **WHEN** the input contains a meta envelope
-- **THEN** Details lists runtime, OS, CPU and protocol version
+- **THEN** Details lists the available runtime, OS, CPU and protocol values
 - **AND** user metadata is listed below them
+
+#### Scenario: Native-only input
+
+- **WHEN** a Playwright run provides environment metadata
+- **THEN** the environment heading is `Run environment`
+- **AND** the available producer, runtime, OS, CPU and protocol rows are listed
+- **AND** unavailable rows are omitted
+- **AND** the text `Cucumber environment` does not appear
 
 ### Requirement: Filter scenarios by tag
 
@@ -341,18 +351,19 @@ the scenario and its steps are visible.
 
 ### Requirement: Show the shape of each feature
 
-The Report view SHALL show on every feature row the passed/total executed
+The Report view SHALL show on every feature row the passed/total attempted
 scenario count and a segmented proportion bar using the run's status colours.
-The non-passing executed counts SHALL also be named as text. A feature with no
-executed scenarios SHALL state `0 of 0 passed`, omit the proportion bar and name
-no non-passing status.
+Attempted scenarios are reported results whose status is not `skipped`; skipped
+scenarios still appear in the bar and are named as text. The non-passing counts
+SHALL also be named as text. A feature with no attempt SHALL state
+`0 of 0 passed`; a feature with no reported result SHALL omit the proportion bar
+and name no status.
 
 #### Scenario: Mixed feature
 
 - **WHEN** a feature has passed, failed and unexecuted scenarios
-- **THEN** its row states the passed/total count for executed scenarios and the
-  failed count as text
-- **AND** the bar has one segment per present executed status in the same order
+- **THEN** its row states `1 passed of 2 attempted` and names the failed count
+- **AND** the bar has one segment per present reported status in the same order
   as the run bar
 
 #### Scenario: Feature without scenarios
@@ -366,6 +377,12 @@ no non-passing status.
 - **THEN** its row states `0 of 0 passed`
 - **AND** no proportion bar and no status counts are rendered
 - **AND** the feature stays visible
+
+#### Scenario: Only skipped results
+
+- **WHEN** every reported scenario in a feature is skipped
+- **THEN** its row states `0 of 0 passed` and names `1 skipped`
+- **AND** the bar has a skipped segment
 
 ### Requirement: Compare features in the Details matrix
 
@@ -1090,9 +1107,10 @@ SHALL NOT be rendered.
 
 Grouping by rule SHALL change presentation only. Counts, triage and the matrix
 SHALL use executed scenarios; search and tag filtering SHALL use all rows.
-Unexecuted rows stay visible and searchable but SHALL NOT count. Search SHALL
-index rule/background names and descriptions; a matching rule keeps its
-descendants visible.
+Unexecuted rows stay visible and searchable but SHALL NOT count, except that the
+failed-only preset's `unexecuted` sentinel MAY hide them. Search SHALL index
+rule/background names and descriptions; a matching rule keeps its descendants
+visible.
 
 #### Scenario: Counts unchanged
 
@@ -1128,19 +1146,20 @@ JavaScript.
 ### Requirement: Mark executed and unexecuted scenarios
 
 The model SHALL expose `executed` on every scenario row. A scenario is executed
-when its selected test case has at least one raw test-step result, including a
-hook result; otherwise it is unexecuted and renders without an outcome. The
+when the runner reported a result: its selected test case has at least one raw
+test-step result, including a hook result, or it was reported as skipped without
+raw step results. Otherwise it is unexecuted and renders without an outcome. The
 selected case is the latest started attempt; never-started pickles do not
 produce a row.
 
 #### Scenario: Scenario with no step results
 
 - **WHEN** the selected test case for a scenario started with zero raw test-step
-  results
+  results and was not reported as skipped
 - **THEN** the row exists with `executed: false` and `status: "unknown"`
 - **AND** the report shows it without an outcome
 - **AND** it is not counted as passed, failed, skipped or unknown
-- **AND** it is not listed in “Needs attention”
+- **AND** it is not listed in "Needs attention"
 
 #### Scenario: Started but unfinished
 
@@ -1156,6 +1175,12 @@ produce a row.
 - **AND** its status comes from the worst raw test-step result, including the
   hook
 
+#### Scenario: Reported skip
+
+- **WHEN** a skipped scenario produced no raw step result
+- **THEN** it has `executed: true` and `status: "skipped"`
+- **AND** it stays visible with the skipped outcome
+
 #### Scenario: Never-started pickle is pruned
 
 - **WHEN** a pickle or outline example has no started test case
@@ -1165,18 +1190,19 @@ produce a row.
 #### Scenario: Retry selection uses the latest attempt
 
 - **WHEN** an earlier attempt has results and the latest started attempt has no
-  results
+  results and was not reported as skipped
 - **THEN** the latest attempt is selected
 - **AND** the earlier retried attempt is ignored
 - **AND** the scenario is unexecuted
 
 ### Requirement: Handle empty features and runs
 
-A feature's status SHALL be the worst status among executed scenarios, or
-`unknown` when none executed. Its unexecuted rows stay visible without an
-outcome. The header SHALL show the executed passed/total count, including
-`0 / 0` for an empty run, and an empty run SHALL render no "Needs attention"
-index.
+A feature's status SHALL be the worst status among reported results, or
+`unknown` when none was reported. Its unexecuted rows stay visible without an
+outcome unless the failed-only preset is active. The header SHALL show the
+attempted passed/total count. When results exist but none is an attempt, it
+SHALL show `No scenarios attempted` and keep the status counts. An empty run
+SHALL show `0 / 0` and `0%` and SHALL render no "Needs attention" index.
 
 #### Scenario: All-unexecuted feature
 
@@ -1187,37 +1213,52 @@ index.
 
 #### Scenario: Mixed executed and unexecuted feature
 
-- **WHEN** a feature has one passed executed scenario and one unexecuted
+- **WHEN** a feature has one passed reported scenario and one unexecuted
   scenario
 - **THEN** the feature status is `passed`
-- **AND** its passed/total count and bar cover only the executed scenario
+- **AND** its passed/attempted count and bar cover only the reported scenario
 
 #### Scenario: Empty run
 
 - **WHEN** the input contains a feature with a blank scenario and no results
-- **THEN** the header shows `0 / 0` and `0 %`
+- **THEN** the header shows `0 / 0` and `0%`
 - **AND** the feature and the blank row remain visible without an outcome
-- **AND** no “Needs attention” index is rendered
+- **AND** no "Needs attention" index is rendered
 
 #### Scenario: No scenario rows at all
 
 - **WHEN** the input contains no scenario rows
 - **THEN** the header shows `0 / 0`
-- **AND** the existing “No scenarios in this report.” empty state remains
+- **AND** the existing "No scenarios in this report." empty state remains
+
+#### Scenario: Only skipped results
+
+- **WHEN** every reported scenario is skipped
+- **THEN** the header shows `No scenarios attempted`
+- **AND** the status counts remain visible
+
+#### Scenario: Preset active
+
+- **WHEN** the failed-only preset is active
+- **THEN** unexecuted rows are hidden
+- **AND** the feature status and header counts are unchanged
 
 ### Requirement: Count only executed scenarios on every count surface
 
 Scenario counts and outcome aggregates SHALL use executed scenarios only on the
 header, feature row and bar, triage index, source strip and Details matrix.
 Unexecuted rows SHALL remain visible and searchable but SHALL NOT contribute to
-counts, percentages, bars, triage membership or matrix cells.
+counts, percentages, bars, triage membership or matrix cells, except that the
+failed-only preset's `unexecuted` sentinel MAY hide them while the preset chip
+state is active.
 
 #### Scenario: Mixed run
 
 - **WHEN** a run contains executed and unexecuted scenarios
 - **THEN** the header, feature rows, triage, source strip and matrix include
   only executed scenarios
-- **AND** the unexecuted rows remain visible and searchable
+- **AND** the unexecuted rows remain visible and searchable unless the
+  failed-only preset is active
 
 #### Scenario: Header count
 
@@ -1256,19 +1297,19 @@ counts, percentages, bars, triage membership or matrix cells.
 #### Scenario: Search
 
 - **WHEN** the user searches for the name, source or tag of an unexecuted
-  scenario
+  scenario and the failed-only preset is not active
 - **THEN** the row remains visible
 - **AND** it still shows no outcome
 
 ### Requirement: Summary schema version 2
 
 The JSON summary SHALL set `schemaVersion` to 2 and add `executed` to each
-scenario. An unexecuted scenario SHALL remain in `scenarios` with
-`status: "unknown"` and `executed: false` but SHALL NOT be counted in
-`counts.scenarios`, so `counts.scenarios.total` MAY be less than
-`scenarios.length`. The overall `status` SHALL use executed scenarios and
-test-run hooks only. `counts.steps` and attachment counts SHALL keep their
-current meaning.
+scenario. A reported skip SHALL have `executed: true` and `status: "skipped"`
+and SHALL be counted. An unexecuted scenario SHALL keep `status: "unknown"` and
+`executed: false` and SHALL NOT be counted, so `counts.scenarios.total` MAY be
+less than `scenarios.length`. The overall `status` SHALL use executed scenarios
+and test-run hooks only. `counts.steps` and attachment counts keep their
+meaning.
 
 #### Scenario: Summary marks unexecuted
 
@@ -1277,6 +1318,12 @@ current meaning.
 - **AND** `counts.scenarios.total` excludes it and is less than
   `scenarios.length`
 - **AND** `schemaVersion` is 2
+
+#### Scenario: Reported skip
+
+- **WHEN** a skipped scenario produced no raw step result
+- **THEN** its summary entry has `executed: true` and `status: "skipped"`
+- **AND** `counts.scenarios.total` and `counts.scenarios.skipped` include it
 
 #### Scenario: Executed scenario
 
@@ -1704,3 +1751,225 @@ change the plain text, summary, search or copy text.
   match the step text or overlaps an earlier argument
 - **THEN** the report renders the full escaped step text without `span.param`
 - **AND** the original step text is emitted exactly once
+
+### Requirement: Compute pass ratios over attempted scenarios
+
+The Report and Details views SHALL compute the pass ratio over attempted
+scenarios: reported results whose status is not `skipped`. Skipped scenarios
+SHALL remain in counts, status pills, filters, proportion bars and the feature
+text. A run with results but no attempt SHALL show `No scenarios attempted`
+instead of a percentage or a passed fraction. An empty run SHALL keep the
+existing `0%` and `0 / 0`.
+
+#### Scenario: Mixed run with a skip
+
+- **WHEN** one scenario passed, one failed and one skipped, all in one feature
+- **THEN** the Report header shows `50%` and `1 / 2 attempted`
+- **AND** the feature row shows `1 passed of 2 attempted` and names `1 failed`
+  and `1 skipped`
+- **AND** the Details health shows `1 / 2 attempted`
+- **AND** the status pill still shows the skipped count
+- **AND** the proportion bar keeps a skipped segment
+
+#### Scenario: Only skipped results
+
+- **WHEN** every reported scenario is skipped
+- **THEN** the Report and Details views show `No scenarios attempted`
+- **AND** neither shows a percentage or a passed fraction
+- **AND** a screen-reader note states that skipped results are not pass attempts
+- **AND** the skipped count stays visible
+
+#### Scenario: Empty run
+
+- **WHEN** no scenario has a result
+- **THEN** the Report header keeps `0%` and `0 / 0`
+
+### Requirement: Show reported scenario counts
+
+The Report header SHALL show the number of scenarios with a reported result as
+`N scenario with results` or `N scenarios with results` and SHALL NOT label that
+count as executed. When the run also contains unexecuted rows, the header SHALL
+name them as `N unexecuted`.
+
+#### Scenario: Unexecuted row is named
+
+- **WHEN** two scenarios have results and one started test case has no result
+- **THEN** the header shows `2 scenarios with results` and `1 unexecuted`
+- **AND** the unexecuted scenario remains in the list
+
+#### Scenario: Every scenario has a result
+
+- **WHEN** every scenario row has a result
+- **THEN** no unexecuted label is shown
+
+### Requirement: Name a multi-file feature source
+
+For each feature, the Details matrix SHALL always show the source label. The
+Report row and the triage title SHALL use the same label whenever they render a
+source; the Report row hides its source below the existing 900 px breakpoint.
+The label is the file path when the display URIs of the feature's scenarios
+reduce to exactly one non-empty value, and `N spec files` when they reduce to
+more than one. No surface SHALL show one arbitrary file for a multi-file
+feature.
+
+#### Scenario: Project feature across files
+
+- **WHEN** a feature's scenarios come from two spec files
+- **THEN** its Report row, triage title and Details matrix row show
+  `2 spec files`
+- **AND** none of them shows either file path as the source
+
+#### Scenario: Narrow viewport
+
+- **WHEN** the viewport is too narrow for the Report row source
+- **THEN** the Report row may hide the source
+- **AND** the Details matrix still shows `2 spec files`
+
+#### Scenario: Single-file feature
+
+- **WHEN** all scenarios of a feature come from one spec file
+- **THEN** its Report row, triage title and Details matrix row show that file
+  path
+
+### Requirement: Label summed durations
+
+The Details view SHALL label the run duration `Test time` and the
+feature-matrix duration column `Scenario time`. It SHALL state that test time
+sums the final attempt per scenario and test-run hooks, that scenario time sums
+the final attempt per scenario, and that neither is wall-clock time. The Report
+header SHALL label its duration `Test time` and expose that explanation as its
+title.
+
+#### Scenario: Details labels
+
+- **WHEN** a report is rendered
+- **THEN** Details uses `Test time` for the run duration
+- **AND** the feature matrix column is `Scenario time`
+- **AND** Details states that neither value is wall-clock time
+- **AND** the header shows `Test time` and exposes the sum as a title
+
+### Requirement: Show a skipped-attachment notice
+
+When the run skipped path attachments, the report SHALL render one static,
+escaped notice in the shared shell, visible on both the Report and Details
+tabs. The notice SHALL name the count and the allowed roots by role and SHALL
+NOT contain an absolute local path. The footer SHALL say that attachments are
+embedded when available and SHALL NOT claim that every screenshot is embedded.
+
+#### Scenario: Singular notice
+
+- **WHEN** exactly one path attachment was skipped
+- **THEN** the notice says that one path attachment was skipped
+- **AND** it names its input file's folder and Tolkira's working directory as the
+  allowed roots
+- **AND** it does not contain an absolute path
+
+#### Scenario: Plural notice
+
+- **WHEN** two or more path attachments were skipped
+- **THEN** the notice names the count and uses the plural wording
+- **AND** it refers to each input file's folder
+
+#### Scenario: Both tabs
+
+- **WHEN** the notice is rendered
+- **THEN** it is visible on the Report tab and remains visible on Details
+- **AND** it needs no JavaScript
+
+#### Scenario: Alignment
+
+- **WHEN** the notice is rendered at 1440 or 320 px
+- **THEN** its left and right edges align with the run header
+
+#### Scenario: Clean report
+
+- **WHEN** no path attachment was skipped
+- **THEN** no notice is rendered
+- **AND** no warning markup appears in the body
+- **AND** the footer keeps the neutral sentence
+- **AND** only the shared stylesheet and the footer sentence differ from the
+  previous report bytes
+
+#### Scenario: Narrow viewport and text zoom
+
+- **WHEN** the report is viewed at 320 px or at 200 % text zoom
+- **THEN** the notice wraps without horizontal page overflow
+
+### Requirement: Provide a failed-only preset
+
+When the run has failed plus another present status or an unexecuted row, the
+Report toolbar SHALL render a `Failed only` toggle that reflects the preset
+state in `aria-pressed`. The toggle SHALL apply the failed-only chip state plus
+an `unexecuted` sentinel; the sentinel hides statusless rows. The preset SHALL
+be encoded as `hide` statuses plus `hide=unexecuted` and survive a reload only
+with the preset chip state.
+
+#### Scenario: Toggle presence
+
+- **WHEN** the run has failed plus another present status, or failed plus an
+  unexecuted row
+- **THEN** the toolbar renders a `Failed only` toggle with
+  `aria-pressed="false"`
+- **WHEN** the run has no failures, or failed with neither another status nor an
+  unexecuted row
+- **THEN** no toggle is rendered
+
+#### Scenario: Activate
+
+- **WHEN** the user presses `Failed only`
+- **THEN** only the failed chip stays on
+- **AND** scenarios with any other present status are hidden
+- **AND** rows without a status are hidden
+- **AND** the live count reflects the visible scenarios
+- **AND** the header counts and the `N unexecuted` label are unchanged
+- **AND** the triage index and source strip are hidden
+- **AND** the URL contains the other statuses and `hide=unexecuted`
+- **AND** the toggle is `aria-pressed="true"`
+
+#### Scenario: Deactivate
+
+- **WHEN** the user presses `Failed only` while it is active
+- **THEN** every chip is on again
+- **AND** statusless rows are visible again
+- **AND** the triage index and source strip return
+- **AND** the `hide` parameters are removed
+- **AND** the live count is updated
+- **AND** a previously hidden partial state is not restored
+
+#### Scenario: Manual chip change
+
+- **WHEN** the user changes any status chip while the preset is active
+- **THEN** the `unexecuted` sentinel is removed
+- **AND** statusless rows follow the chip-only behaviour again
+- **AND** the toggle is pressed only for the exact preset state
+- **AND** hiding every other chip without the sentinel leaves statusless rows
+  visible
+
+#### Scenario: Reload
+
+- **WHEN** the report is opened with the other statuses and `unexecuted` in the
+  `hide` parameters
+- **THEN** the toggle is pressed
+- **AND** the chip states match
+- **AND** only failed and no statusless rows are visible
+- **WHEN** the URL carries `unexecuted` without the preset chip state
+- **THEN** the sentinel is dropped unless it is the exact preset state (failed
+  plus unexecuted with no other present status)
+- **AND** a pruned URL is rewritten without the stale sentinel
+- **AND** statusless rows stay visible
+
+#### Scenario: Search and tag combination
+
+- **WHEN** a search query or tag is active with the preset
+- **THEN** only failed scenarios matching both remain visible
+- **AND** a matching unexecuted row stays hidden
+- **AND** the empty state appears when nothing matches
+- **AND** the empty state names the preset when it is active
+
+#### Scenario: Keyboard and no JavaScript
+
+- **WHEN** the toggle is reached with the keyboard
+- **THEN** it shows focus and toggles with Enter or Space
+- **WHEN** JavaScript is disabled
+- **THEN** the static rows and chips remain
+- **AND** the toggle is inert like the other filters

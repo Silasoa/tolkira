@@ -233,3 +233,93 @@ as data.
   `<!ENTITY>` text
 - **THEN** the document parses and the text stays available as data
 - **AND** the declaration content is still rejected outside CDATA
+
+### Requirement: Report each Playwright error location once
+
+The Playwright adapter SHALL include at most one `at <location>` line per error,
+where the location is `<file>[:<line>[:<column>]]`. When the message or snippet
+already contains that location as a complete token, the adapter SHALL NOT
+append another location line. A longer line or column that merely starts with
+the same digits SHALL NOT count as the same location.
+
+#### Scenario: Message ends with the location
+
+- **WHEN** an expected-failure message ends with the same
+  `at <file>:<line>:<column>` that the error carries
+- **THEN** the scenario description contains that location line exactly once
+
+#### Scenario: Location inside a message
+
+- **WHEN** the message or snippet contains the location inside another sentence
+- **THEN** the adapter does not append a second location line
+
+#### Scenario: Location prefix is not the location
+
+- **WHEN** the location is `file:1` and the message only contains `file:12`
+- **THEN** the adapter appends the `at file:1` line
+
+#### Scenario: Message has no location
+
+- **WHEN** the error carries a location and neither the message nor the snippet
+  contains it
+- **THEN** the adapter appends one location line
+
+#### Scenario: Location without a column
+
+- **WHEN** the error location has a file and line but no column
+- **THEN** the appended location is `at <file>:<line>`
+
+#### Scenario: Column in the text for a location without one
+
+- **WHEN** the error location has a file and line but no column, and the
+  message or snippet contains the same file and line followed by a column
+- **THEN** the adapter does not append a second location line
+
+### Requirement: Count Playwright path attachments skipped outside the roots
+
+The Playwright adapter SHALL count each path attachment that exists as a regular
+non-symlink file but resolves outside every allowed root. It SHALL count once per
+attachment and SHALL NOT count inline bodies, missing files, symlinks,
+non-regular files, URL schemes, UNC/device paths, trace zips, earlier attempts,
+or a relative path that resolves inside a root through the working-directory
+fallback. The adapter SHALL expose the count for its input; `generateReport`
+SHALL sum the inputs.
+
+#### Scenario: Outside every root
+
+- **WHEN** a final-attempt path attachment exists but its resolved target is
+  outside an input file's folder and the working directory
+- **THEN** the adapter counts it once
+- **AND** it is not embedded
+
+#### Scenario: Working-directory fallback
+
+- **WHEN** a relative path misses the input file's folder but exists inside the
+  working directory
+- **THEN** it is embedded
+- **AND** it is not counted
+
+#### Scenario: Inline body wins
+
+- **WHEN** an attachment has a non-empty body and a path outside the roots
+- **THEN** the body is embedded
+- **AND** the path is not counted
+
+#### Scenario: Unavailable paths
+
+- **WHEN** a path is missing, a symlink, a non-regular file, a URL scheme or a
+  UNC/device path
+- **THEN** it is skipped
+- **AND** it is not counted
+
+#### Scenario: Trace and earlier attempts
+
+- **WHEN** an attachment is a Playwright trace zip or belongs to an earlier
+  attempt
+- **THEN** it is not counted
+
+#### Scenario: Multiple inputs
+
+- **WHEN** two Playwright inputs each skip attachments
+- **THEN** `generateReport` sums their counts into one notice
+- **AND** an input included twice is counted once
