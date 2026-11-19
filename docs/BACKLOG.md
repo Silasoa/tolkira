@@ -40,20 +40,11 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
-| B-005 | Test | P2 | Split render/e2e suites and finish fixture helpers | [#8](https://github.com/Silasoa/tolkira/issues/8) |
-| B-006 | Input | P2 | Consolidate attachment byte counting and presentation lookup | [#9](https://github.com/Silasoa/tolkira/issues/9) |
 | B-007 | Report | P2 | Optional history file and trends | [#10](https://github.com/Silasoa/tolkira/issues/10) |
 | B-008 | Input | P2 | Decide external or split-assets attachment mode | [#11](https://github.com/Silasoa/tolkira/issues/11) |
 | B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
-| B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
 | B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | — |
-
-**B-006 in progress (2026-11-19).** Consolidated in change
-`consolidate-attachment-bytes`: one shared attachment module owns decoded byte
-accounting, caps, fallback naming, kind and text presentation. Caps, summary
-values and HTML output are unchanged; awaiting merge and archive.
-[#9](https://github.com/Silasoa/tolkira/issues/9)
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
@@ -69,6 +60,22 @@ the benchmark path and budget.
 
 ## Resolved
 
+- **B-005 Split render/e2e suites and fixture helpers** — implemented in `main`
+  on 2026-11-19 in the `split-test-suites` change. The render suite is split by
+  report flow, the browser report spec by journey, and fixture paths, report
+  creation, clipboard stubs and the hostile ANSI payload share one helper.
+  [#8](https://github.com/Silasoa/tolkira/issues/8) is resolved.
+- **B-006 Attachment byte consolidation** — implemented in `main` on 2026-11-19
+  in the `consolidate-attachment-bytes` change. `src/attachment.ts` owns decoded
+  byte accounting, the caps, the allowlist, fallback names, kind and text
+  presentation; the summary and rendered HTML are unchanged.
+  [#9](https://github.com/Silasoa/tolkira/issues/9) is resolved.
+- **B-014 `stripAnsi` benchmark** — implemented in `main` on 2026-11-19 in the
+  `benchmark-strip-ansi` change. `npm run bench:ansi` measures clean and
+  escape-laden corpora against scan-only and char-append references, runs in the
+  Node 22 CI check job, and keeps the fast path (about 9.6x on the clean corpus)
+  with identical output. [#17](https://github.com/Silasoa/tolkira/issues/17) is
+  resolved.
 - **B-012 Real Behave run with attachments and doc strings** — implemented on
   2026-11-19 in the `verify-real-behave-run` change. The recorded run covers a
   multiline doc string, a data table, an inline PNG, a multiline error message
