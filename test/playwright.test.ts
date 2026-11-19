@@ -11,12 +11,15 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { Envelope } from '@cucumber/messages';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli.js';
-import { renderReport, summarizeReport } from '../src/index.js';
+import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadEnvelopes, loadInputs } from '../src/input/load.js';
+import { parsePlaywrightJson } from '../src/input/playwright.js';
 import { buildReportModel } from '../src/report/model.js';
 import type { ReportSummary, SummaryScenario } from '../src/summary.js';
+import { attachmentTexts } from './attachments.js';
 import {
   junitFixture,
   legacyFixture,
@@ -216,10 +219,25 @@ async function realRunCopy(): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(realRun, 'utf8')) as Record<string, unknown>;
 }
 
-async function writeReport(dir: string, value: unknown): Promise<string> {
-  const file = path.join(dir, 'report.json');
+async function writeReport(
+  dir: string,
+  value: unknown,
+  name = 'report.json',
+): Promise<string> {
+  const file = path.join(dir, name);
   await writeFile(file, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
   return file;
+}
+
+// Pins the documented return shape from the change design.
+async function parsePlaywright(
+  value: unknown,
+  source: string,
+): Promise<{ envelopes: Envelope[]; skippedAttachments: number }> {
+  return (await parsePlaywrightJson(value, source)) as unknown as {
+    envelopes: Envelope[];
+    skippedAttachments: number;
+  };
 }
 
 describe('Playwright JSON input', () => {
@@ -793,6 +811,197 @@ describe('Playwright JSON input', () => {
     expect(summary.scenarios[0]?.attachments).toBe(0);
     expect(summary.attachments.total).toBe(0);
     expect(html).not.toContain('outside secret must not be read');
+  });
+
+  it('counts a final-attempt path attachment outside the input folder and cwd', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const secret = path.join(outside, 'secret.md');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        { name: 'absolute-outside', contentType: 'text/plain', path: secret },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(1);
+    expect(attachmentTexts(envelopes)).toEqual([]);
+  });
+
+  it('does not count a relative attachment that resolves through the working directory', async () => {
+    const dir = await tempDir();
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        {
+          name: 'cwd-relative',
+          contentType: 'text/plain',
+          path: 'test/fixtures/playwright/attachments/note-file.txt',
+        },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(0);
+    expect(attachmentTexts(envelopes)).toEqual([
+      'path attachment for the Playwright adapter fixture',
+    ]);
+  });
+
+  it('does not count an outside path when an inline body is present', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const secret = path.join(outside, 'secret.md');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        {
+          name: 'inline-first',
+          contentType: 'text/plain',
+          body: Buffer.from('from the body', 'utf8').toString('base64'),
+          path: secret,
+        },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(0);
+    expect(attachmentTexts(envelopes)).toEqual(['from the body']);
+  });
+
+  it('does not count missing, directory, URL-scheme or UNC attachment paths', async () => {
+    const dir = await tempDir();
+    await mkdir(path.join(dir, 'folder'));
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        { name: 'missing', contentType: 'text/plain', path: 'missing.md' },
+        { name: 'folder', contentType: 'text/plain', path: 'folder' },
+        {
+          name: 'http',
+          contentType: 'text/plain',
+          path: 'http://example.com/secret.txt',
+        },
+        {
+          name: 'unc',
+          contentType: 'text/plain',
+          path: '\\\\server\\share\\secret.md',
+        },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(0);
+    expect(attachmentTexts(envelopes)).toEqual([]);
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'does not count a symlinked attachment path',
+    async () => {
+      const dir = await tempDir();
+      const outside = await tempDir('tolkira-playwright-outside-');
+      const secret = path.join(outside, 'secret.md');
+      await writeFile(secret, 'symlink secret must not be read', 'utf8');
+      const link = path.join(dir, 'link.md');
+      await symlink(secret, link, 'file');
+      const source = path.join(dir, 'report.json');
+
+      const { envelopes, skippedAttachments } = await parsePlaywright(
+        reportWithAttachments([
+          { name: 'symlink', contentType: 'text/plain', path: 'link.md' },
+        ]),
+        source,
+      );
+
+      expect(skippedAttachments).toBe(0);
+      expect(attachmentTexts(envelopes)).toEqual([]);
+    },
+  );
+
+  it('does not count trace zips or earlier-attempt attachments', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const earlier = path.join(outside, 'earlier.png');
+    const trace = path.join(outside, 'trace.zip');
+    await writeFile(earlier, 'earlier attempt must not be read', 'utf8');
+    await writeFile(trace, 'trace path marker', 'utf8');
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      playwrightReport([
+        playwrightSpec(
+          'retried outside attachment',
+          [
+            passedResult({
+              retry: 0,
+              attachments: [
+                { name: 'earlier', contentType: 'image/png', path: earlier },
+              ],
+            }),
+            passedResult({
+              retry: 1,
+              attachments: [
+                {
+                  name: 'trace',
+                  contentType: 'application/zip',
+                  path: trace,
+                },
+              ],
+            }),
+          ],
+          'sample.spec.ts',
+          'flaky',
+        ),
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(0);
+    expect(attachmentTexts(envelopes)).toEqual([]);
+  });
+
+  it('sums skipped attachments across inputs and counts a duplicate input once', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const first = path.join(outside, 'first.md');
+    const second = path.join(outside, 'second.md');
+    await writeFile(first, 'first outside secret', 'utf8');
+    await writeFile(second, 'second outside secret', 'utf8');
+    const firstInput = await writeReport(
+      dir,
+      reportWithAttachments(
+        [{ name: 'first', contentType: 'text/plain', path: first }],
+        'first input',
+      ),
+      'first.json',
+    );
+    const secondInput = await writeReport(
+      dir,
+      reportWithAttachments(
+        [{ name: 'second', contentType: 'text/plain', path: second }],
+        'second input',
+      ),
+      'second.json',
+    );
+
+    const both = await generateReport([firstInput, secondInput], {
+      title: 'Two inputs',
+    });
+    expect(both.skippedAttachments).toBe(2);
+    expect(both.html).toContain('2 path attachments were skipped');
+
+    const twice = await generateReport([firstInput, firstInput], {
+      title: 'Duplicate input',
+    });
+    expect(twice.skippedAttachments).toBe(1);
+    expect(twice.html).toContain('1 path attachment was skipped');
   });
 
   it('keeps source order when tests mix results and path attachments', async () => {

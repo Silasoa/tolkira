@@ -1,9 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
+import { SINGULAR_NOTICE, attachmentReport } from '../attachments.js';
 import {
   legacyFixture,
   messagesFixture,
@@ -37,6 +38,25 @@ const emptyMixedFixture = messagesFixture('empty-mixed.ndjson');
 const emptyStatusesFixture = messagesFixture('empty-statuses.ndjson');
 const runRatioFixture = messagesFixture('run-ratio.ndjson');
 const twoFilesFixture = playwrightFixture('two-files.json');
+
+async function noticeMetrics(page: Page, headerSelector: string) {
+  const metrics = await page.evaluate((selector) => {
+    const notice = document.querySelector('.attachmentWarning');
+    const header = document.querySelector(selector);
+    if (!notice || !header) return null;
+    const noticeRect = notice.getBoundingClientRect();
+    const headerRect = header.getBoundingClientRect();
+    return {
+      noticeLeft: noticeRect.left,
+      noticeRight: noticeRect.right,
+      headerLeft: headerRect.left,
+      headerRight: headerRect.right,
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+    };
+  }, headerSelector);
+  expect(metrics).not.toBeNull();
+  return metrics!;
+}
 
 async function writeFailedTagsFixture(dir: string): Promise<string> {
   const input = path.join(dir, 'failed-tags.ndjson');
@@ -1142,6 +1162,105 @@ test('reflows at 200% page zoom', async ({ page }) => {
     );
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('shows an attachment warning on both tabs at 1440 and 320 px', async ({
+  page,
+}) => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-attachment-e2e-'));
+  const outside = await mkdtemp(
+    path.join(tmpdir(), 'tolkira-attachment-e2e-outside-'),
+  );
+  const input = path.join(dir, 'playwright.json');
+  const output = path.join(dir, 'attachments.html');
+  const secret = path.join(outside, 'screenshot.png');
+  await writeFile(secret, 'outside secret must not be read', 'utf8');
+  await writeFile(
+    input,
+    JSON.stringify(
+      attachmentReport([
+        { name: 'screenshot', contentType: 'image/png', path: secret },
+      ]),
+    ),
+    'utf8',
+  );
+
+  try {
+    const code = await runCli(
+      [input, '--out', output, '--title', 'Attachment warning E2E'],
+      { stdout: () => undefined, stderr: () => undefined },
+    );
+    expect(code).toBe(0);
+
+    await page.goto(pathToFileURL(output).href);
+    const warning = page.locator('.attachmentWarning');
+    await expect(warning).toBeVisible();
+    await expect(warning).toHaveText(SINGULAR_NOTICE);
+
+    for (const width of [1440, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+
+      await page.getByRole('tab', { name: 'Report' }).click();
+      await expect(warning).toBeVisible();
+      const report = await noticeMetrics(page, '#report-view .runHead');
+      expect(report.overflow, `report overflow at ${width}`).toBeLessThanOrEqual(
+        1,
+      );
+      expect(
+        Math.abs(report.noticeLeft - report.headerLeft),
+        `report left edge at ${width}`,
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(report.noticeRight - report.headerRight),
+        `report right edge at ${width}`,
+      ).toBeLessThanOrEqual(1);
+
+      await page.getByRole('tab', { name: 'Details' }).click();
+      await expect(warning).toBeVisible();
+      const details = await noticeMetrics(page, '#analysis-view .runHead');
+      expect(
+        details.overflow,
+        `details overflow at ${width}`,
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(details.noticeLeft - details.headerLeft),
+        `details left edge at ${width}`,
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(details.noticeRight - details.headerRight),
+        `details right edge at ${width}`,
+      ).toBeLessThanOrEqual(1);
+    }
+
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.getByRole('tab', { name: 'Report' }).click();
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    const zoomed = await page.evaluate(() => {
+      const notice = document.querySelector('.attachmentWarning');
+      if (!notice) return null;
+      const rect = notice.getBoundingClientRect();
+      const style = getComputedStyle(notice);
+      const lineHeight =
+        Number.parseFloat(style.lineHeight) ||
+        Number.parseFloat(style.fontSize) * 1.5;
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        right: rect.right,
+        lines: rect.height / lineHeight,
+      };
+    });
+
+    expect(zoomed).not.toBeNull();
+    expect(zoomed!.overflow).toBeLessThanOrEqual(1);
+    expect(zoomed!.right).toBeLessThanOrEqual(320);
+    expect(zoomed!.lines).toBeGreaterThan(1.5);
+    await expect(warning).toBeVisible();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(outside, { recursive: true, force: true });
   }
 });
 

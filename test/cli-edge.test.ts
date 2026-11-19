@@ -13,6 +13,11 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli.js';
 import { summarizeReport, type ReportSummary } from '../src/index.js';
+import {
+  CLI_HINT,
+  SINGULAR_NOTICE,
+  writeAttachmentReport,
+} from './attachments.js';
 
 const legacy = fileURLToPath(
   new URL('./fixtures/legacy/happy.json', import.meta.url),
@@ -75,6 +80,16 @@ function minimalMessages(testStepFinished: string): string {
     testStepFinished,
     '{"testCaseFinished":{"testCaseStartedId":"tcs","timestamp":{"seconds":1,"nanos":0}}}',
   ].join('\n');
+}
+
+async function skippedAttachmentInput(): Promise<string> {
+  const dir = await tempDir('tolkira-cli-attachment-');
+  const outside = await tempDir('tolkira-cli-attachment-outside-');
+  const secret = path.join(outside, 'secret.png');
+  await writeFile(secret, 'outside secret must not be read', 'utf8');
+  return writeAttachmentReport(dir, [
+    { name: 'secret', contentType: 'image/png', path: secret },
+  ]);
 }
 
 describe('CLI input edge cases', () => {
@@ -510,6 +525,57 @@ describe('CLI input edge cases', () => {
     expect(withHtml.stderr).toBe('');
     expect(parseSummary(withHtml.stdout).status).toBe('failed');
     await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+  });
+
+  it('warns once on stderr when HTML skips an attachment', async () => {
+    const input = await skippedAttachmentInput();
+    const output = path.join(await tempDir(), 'report.html');
+
+    const run = await cli([input, '--out', output]);
+
+    expect(run.code).toBe(0);
+    expect(run.stdout).toBe(`Report written to ${output}\n`);
+    expect(run.stderr).toBe(
+      `tolkira: warning: ${SINGULAR_NOTICE} ${CLI_HINT}\n`,
+    );
+  });
+
+  it('keeps stdout JSON-only with --out --json while warning on stderr', async () => {
+    const input = await skippedAttachmentInput();
+    const output = path.join(await tempDir(), 'report.html');
+
+    const run = await cli([input, '--out', output, '--json']);
+    const summary = parseSummary(run.stdout);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toContain('1 path attachment was skipped');
+    expect(run.stderr.startsWith('tolkira: warning: ')).toBe(true);
+    expect(run.stdout).toBe(`${JSON.stringify(summary, null, 2)}\n`);
+  });
+
+  it('does not warn for a JSON-only run with a skipped attachment', async () => {
+    const input = await skippedAttachmentInput();
+
+    const run = await cli([input, '--json']);
+    const summary = parseSummary(run.stdout);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toBe('');
+    expect(run.stdout).toBe(`${JSON.stringify(summary, null, 2)}\n`);
+  });
+
+  it('does not warn when every attachment is embedded', async () => {
+    const dir = await tempDir();
+    await writeFile(path.join(dir, 'note.txt'), 'local note', 'utf8');
+    const input = await writeAttachmentReport(dir, [
+      { name: 'note', contentType: 'text/plain', path: 'note.txt' },
+    ]);
+    const output = path.join(dir, 'report.html');
+
+    const run = await cli([input, '--out', output]);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toBe('');
   });
 
   it(
