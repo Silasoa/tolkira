@@ -40,7 +40,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
-| B-004 | Report | P2 | Reflow and split `html.ts` at view seams | [#7](https://github.com/Silasoa/tolkira/issues/7) |
 | B-005 | Test | P2 | Split render/e2e suites and finish fixture helpers | [#8](https://github.com/Silasoa/tolkira/issues/8) |
 | B-006 | Input | P2 | Consolidate attachment byte counting and presentation lookup | [#9](https://github.com/Silasoa/tolkira/issues/9) |
 | B-007 | Report | P2 | Optional history file and trends | [#10](https://github.com/Silasoa/tolkira/issues/10) |
@@ -49,7 +48,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-012 | Test | P3 | Real Behave run with attachments and doc strings | [#15](https://github.com/Silasoa/tolkira/issues/15) |
 | B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
-| B-017 | Report | P2 | Playwright OSS comparison findings (meta batch) | [#24](https://github.com/Silasoa/tolkira/issues/24) |
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
@@ -65,6 +63,16 @@ the benchmark path and budget.
 
 ## Resolved
 
+- **B-004 Renderer split** — implemented in `main` on 2026-11-19. `html.ts` is
+  the shell, CSP and `renderHtml` assembly; `report`, `details`, `triage`,
+  `matrix`, `attachments`, `ci`, `format` and `types` own the views behind a
+  one-way layer test. Output stayed byte-identical against the characterization
+  hashes and golden snapshots. [#7](https://github.com/Silasoa/tolkira/issues/7)
+  is resolved.
+- **B-017 Playwright OSS comparison findings** — addressed on 2026-11-19 via
+  #25 (presentation clarity), #26 (attachment warning) and #27 (failed-only
+  preset); remaining items have backlog decisions with triggers.
+  [#24](https://github.com/Silasoa/tolkira/issues/24) is resolved.
 - **B-001 Playwright JSON adapter** — implemented in `main` on 2026-11-18, not
   yet released. The native adapter covers projects, file/describe rules,
   retries, steps, attachments and run-level errors; see
