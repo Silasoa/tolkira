@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { formatCiOutput, type CiFormat } from './ci.js';
+import { readHistory, writeHistory, type HistoryRun } from './history.js';
 import { generateReport, summarizeReport, version } from './index.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { ACCENT_PATTERN } from './validation.js';
@@ -29,6 +30,7 @@ Options:
       --json           Print a stable JSON summary to stdout
       --ci <format>    Print a CI summary: github or markdown
       --ci-out <file>  Write the markdown CI summary to a file
+      --history <file> Read and append an aggregate run history; needs --out
       --title <text>   Report title and Markdown CI heading
       --meta key=value Add metadata (repeatable)
       --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo; needs --out
@@ -38,8 +40,9 @@ Options:
   -v, --version        Show the version
 
 Without --out, --json or --ci is required. --ci-out requires --ci markdown.
-Without --ci-out, --ci writes only the CI summary to stdout. --json and --ci
-share stdout only with --ci-out. Failing tests do not change the exit code.`;
+--history requires --out. Without --ci-out, --ci writes only the CI summary to
+stdout. --json and --ci share stdout only with --ci-out. Failing tests do not
+change the exit code.`;
 
 export interface CliIO {
   stdout: (text: string) => void;
@@ -60,6 +63,7 @@ function parseCliArgs(argv: string[]) {
       json: { type: 'boolean' },
       ci: { type: 'string' },
       'ci-out': { type: 'string' },
+      history: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -99,6 +103,35 @@ function parseAccent(value: string | undefined): string | undefined {
     throw new Error(`Invalid --accent "${value}". Use a hex colour such as #1b5e20.`);
   }
   return value;
+}
+
+/** True when `file` names `parent` or sits inside it, even when `file` is missing. */
+function isInside(parent: string, file: string): boolean {
+  let current = path.resolve(file);
+  for (;;) {
+    if (samePath(current, parent)) return true;
+    const next = path.dirname(current);
+    if (next === current) return false;
+    current = next;
+  }
+}
+
+async function historyConflicts(
+  file: string,
+  inputs: string[],
+  logo: string | undefined,
+  output: string | undefined,
+  ciOut: string | undefined,
+): Promise<boolean> {
+  if (output && samePath(file, output)) return true;
+  if (ciOut && samePath(file, ciOut)) return true;
+  if (logo && samePath(file, logo)) return true;
+  for (const input of inputs) {
+    if (samePath(file, input)) return true;
+    const info = await stat(input).catch(() => undefined);
+    if (info?.isDirectory() && isInside(input, file)) return true;
+  }
+  return false;
 }
 
 async function readLogo(file: string): Promise<string> {
@@ -175,6 +208,7 @@ export async function runCli(
   const output = parsed.values.out;
   const wantsJson = parsed.values.json;
   const ciOut = parsed.values['ci-out'];
+  const historyFile = parsed.values.history;
 
   if (parsed.values.out === '') {
     io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
@@ -235,6 +269,33 @@ export async function runCli(
     return 2;
   }
 
+  if (historyFile === '') {
+    io.stderr(`tolkira: --history requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (historyFile !== undefined && !output) {
+    io.stderr(`tolkira: --history requires --out\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (
+    historyFile !== undefined &&
+    (await historyConflicts(
+      historyFile,
+      inputs,
+      parsed.values.logo,
+      output,
+      ciOut,
+    ))
+  ) {
+    io.stderr(
+      `tolkira: --history must not overwrite an input file, the logo, ` +
+        `--out or --ci-out\n\n${USAGE}`,
+    );
+    return 2;
+  }
+
   if (output && (await outputOverwritesInput(inputs, output, parsed.values.logo))) {
     io.stderr(`tolkira: --out must not overwrite an input file\n\n${USAGE}`);
     return 2;
@@ -270,6 +331,11 @@ export async function runCli(
   }
 
   try {
+    let history: HistoryRun[] | undefined;
+    if (historyFile !== undefined) {
+      history = await readHistory(historyFile);
+    }
+
     if (!output) {
       const summary = await summarizeReport(inputs);
       const ciText =
@@ -287,14 +353,19 @@ export async function runCli(
       return 0;
     }
 
-    const { html, summary, skippedAttachments } = await generateReport(inputs, {
+    const generated = await generateReport(inputs, {
       title: parsed.values.title,
       metadata,
       logo,
       accent,
+      ...(history === undefined ? {} : { history }),
     });
+    const { html, summary, skippedAttachments } = generated;
 
     await writeAtomic(output, html);
+    if (historyFile !== undefined && generated.history) {
+      await writeHistory(historyFile, generated.history);
+    }
     const bytes = Buffer.byteLength(html, 'utf8');
     const maxBytes = maxSizeMb * 1024 * 1024;
     if (bytes > maxBytes) {

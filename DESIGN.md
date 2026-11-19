@@ -100,9 +100,9 @@ describe the viewport, not the font.
 
 | Component | File / selector | Rule |
 | --- | --- | --- |
-| Top bar / tabs | `.topbar`, `.view` | Report and Details; active tab is a text state, not a card |
+| Top bar / tabs | `.topbar`, `.views`, `.view` | Report and Details, plus Trends when the report carries two or more history runs; active tab is a text state, not a card; one scrollable tab row on narrow screens |
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
-| Attachment notice | `.noticeShell`, `.attachmentWarning` | One shared warning above both tabs when path attachments were skipped; uses the pending tokens; hidden when the count is zero |
+| Attachment notice | `.noticeShell`, `.attachmentWarning` | One shared warning above all views when path attachments were skipped; uses the pending tokens; hidden when the count is zero |
 | Toolbar | `.toolbar`, `.search`, `.filter`, `.presetFilter` | Search and status filters; search opens matching features and scenarios; status chips only for present statuses; the `Failed only` preset appears when failed plus another present status, or when an unexecuted row can be hidden |
 | Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure |
 | Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar; hidden at 560 px or narrower. The Report row's source badge hides at 900 px or narrower, so the Details matrix keeps the source label |
@@ -111,6 +111,7 @@ describe the viewport, not the font.
 | Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
 | Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Run environment / Custom metadata blocks, agent summary |
+| Trends | `.trendsTable`, `.tableWrap`, `.spark` | Opt-in third view with two or more history runs: newest-first table of recorded time, title, status, passed/failed/skipped counts, scenario total, attempted pass rate and duration, plus a decorative pass-rate sparkline oldest to newest. The newest row is marked `Current`; the table sits in a labelled, focusable region, spans the panel and scrolls at 320 px; the sparkline is `aria-hidden` and skips runs without attempts |
 
 ### Renderer modules
 
@@ -118,6 +119,7 @@ describe the viewport, not the font.
 - `report.ts` - report header, toolbar, features, scenarios, steps, hooks and
   feature-row chrome.
 - `details.ts` - Details header, run/environment panels and analysis layout.
+- `trends.ts` - Trends header, recorded-runs table and pass-rate sparkline.
 - `triage.ts` - needs-attention index and source strip.
 - `matrix.ts` - feature-by-status matrix.
 - `attachments.ts` - image, text, video, log and file rendering.
@@ -125,8 +127,9 @@ describe the viewport, not the font.
 - `format.ts` - status, duration, date, bar, count, health and tag helpers.
 - `types.ts` - `RenderOptions`, `DisplayStatus` and `OrderedFeature`.
 
-`report.ts` and `details.ts` are peers, as are `triage.ts`, `matrix.ts`,
-`attachments.ts` and `ci.ts`; a module imports only from a lower layer.
+`report.ts`, `details.ts` and `trends.ts` are peers, as are `triage.ts`,
+`matrix.ts`, `attachments.ts` and `ci.ts`; a module imports only from a lower
+layer.
 
 ## Interaction rules
 
@@ -143,7 +146,12 @@ describe the viewport, not the font.
   it uses the ink mode style (paper text on ink, pill radius), not the failed
   status colour.
 - Switching tabs scrolls to the top; the previous panel's scroll position is
-  not restored.
+  not restored. Each tab toggles the panel named by its `aria-controls`, so
+  Report, Details and the conditional Trends tab share one path; a missing panel
+  is ignored.
+- Trends shows attempted (non-skipped) pass rates and `—` when a run had no
+  attempt. The sparkline is decorative and skips those runs; two points form a
+  line only when they are adjacent in time.
 - The lightbox locks background scrolling, restores focus to its trigger on
   Escape, Close, backdrop click and padding click, and reserves header space so
   Close never covers the screenshot.
@@ -191,13 +199,15 @@ Direction A is implemented in production:
 - feature counts/proportion bars and a feature-by-status matrix in Details;
 - `undefined` is a distinct status, not a neutral one;
 - Details tab with producer, runtime, OS, CPU, protocol and user metadata;
+- Trends tab with an aggregate run table and pass-rate sparkline when the report
+  carries two or more history runs;
 - empty state for search/filter results;
 - screenshot lightbox with a close button and Escape support.
 
 CSS lives in `src/render/report.css`; `scripts/build-styles.mjs` generates
 `src/render/styles.ts` for the inline report.
 
-Still open: charts/trends in Details and optional map/compact lenses.
+Still open: chart lenses in Details and optional map/compact lenses.
 
 ## Non-goals
 

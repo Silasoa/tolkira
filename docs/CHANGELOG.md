@@ -7,6 +7,19 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Opt-in run history and a Trends view. `--history <file>` reads, appends and
+  atomically writes a schema-version-1 aggregate sidecar, keeps the newest 30
+  runs, rejects invalid, oversized or unsupported files before writing, and
+  dedupes an identical last run by its aggregate id while keeping the old
+  timestamp. The report adds a third `Trends` tab from the second run with a
+  newest-first table and a decorative pass-rate sparkline; the attempted
+  pass-rate helper is now shared with the health banner, so a Trends row with no
+  attempts shows `—` while the health banner keeps `No scenarios attempted`.
+  `generateReport` accepts `history`, appends the current run and returns the
+  list; `renderReport` only renders it as given. The sidecar stores counts,
+  status, the resolved title (capped at 200 characters), duration and attachment
+  totals only, and the tablist label is now `Report views`. See
+  [`docs/AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
 - Behave 1.3.3 real-run verification. A recorded producer fixture covers a
   multiline doc string, a data table, an inline PNG, a multiline error message
   and the `error` status. Legacy Behave line-array `text` and `error_message`

@@ -102,10 +102,15 @@ it. The gap is the combination.
 - `--ci github` annotations and `--ci markdown` summary text for stdout,
   `$GITHUB_STEP_SUMMARY`, a PR step or `--ci-out`; see [`CI.md`](CI.md).
 
+### History and trends (in main)
+
+- Opt-in `--history <file>` sidecar with up to 30 aggregate runs and a Trends
+  tab from the second run; aggregate-only data, one CLI writer, no server and no
+  scenario-level history.
+
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media (ADR 0006).
-- History/trends via an optional history file.
 - PDF/email summary.
 - German UI/localisation.
 - Deeper dashboard and custom themes.

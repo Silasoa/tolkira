@@ -125,6 +125,67 @@ test('shows the Trends tab from the second run and switches by keyboard', async 
   }
 });
 
+test('keeps one tab row and an anchored scenario visible at 320 and 200% text zoom', async ({
+  page,
+}) => {
+  let first: ReportFile | undefined;
+  let second: ReportFile | undefined;
+  let historyDir = '';
+  try {
+    ({ historyDir, first, second } = await twoRunHistory());
+    const url = reportUrl(second.output, '#scenario-1-1');
+
+    async function expectTabRowAndAnchor(
+      label: string,
+      maxBarHeight: number,
+    ): Promise<void> {
+      const views = page.locator('.views');
+      expect(
+        await views.evaluate((element) => getComputedStyle(element).flexWrap),
+        `${label} tab wrap`,
+      ).toBe('nowrap');
+
+      const tabs = page.getByRole('tab');
+      const boxes = await tabs.evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect().top),
+      );
+      expect(boxes.length, label).toBeGreaterThanOrEqual(3);
+      for (const top of boxes) {
+        expect(Math.abs(top - (boxes[0] ?? 0)), `${label} tab row`).toBeLessThan(
+          1.5,
+        );
+      }
+
+      const bar = await page.locator('.topbar').boundingBox();
+      expect(bar, `${label} topbar`).not.toBeNull();
+      expect(bar!.height, `${label} topbar height`).toBeLessThanOrEqual(
+        maxBarHeight,
+      );
+
+      await expect
+        .poll(async () => {
+          const target = await page.locator('#scenario-1-1').boundingBox();
+          return target ? target.y - (bar!.y + bar!.height) : -999;
+        }, `${label} anchor below the bar`)
+        .toBeGreaterThanOrEqual(-1);
+    }
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(url);
+    await expect(page.locator('#scenario-1-1')).toBeVisible();
+    await expectTabRowAndAnchor('320', 120);
+
+    await page.addInitScript(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    await page.goto(url);
+    await expect(page.locator('#scenario-1-1')).toBeVisible();
+    await expectTabRowAndAnchor('320 at 200%', 240);
+  } finally {
+    await removeAll(historyDir, [first, second]);
+  }
+});
+
 test('keeps the Trends table usable at 320, 1440 and 200% text zoom', async ({
   page,
 }) => {

@@ -18,7 +18,7 @@ requires `--out`; there is no summary-only recording path. ADR 0005
 ```
 HISTORY_SCHEMA_VERSION = 1
 HISTORY_LIMIT = 30
-HISTORY_MAX_BYTES = 1 MB
+HISTORY_MAX_BYTES = 1 MiB
 
 interface HistoryRun {
   id: string;                 // sha256 of the aggregates, excluding recordedAt

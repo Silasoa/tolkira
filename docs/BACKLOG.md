@@ -40,7 +40,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
-| B-007 | Report | P2 | Optional history file and trends | [#10](https://github.com/Silasoa/tolkira/issues/10) |
 | B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | — |
@@ -59,6 +58,13 @@ the benchmark path and budget.
 
 ## Resolved
 
+- **B-007 Optional history file and trends** — implemented in `main` on
+  2026-11-19 in the `add-history-trends` change: opt-in `--history <file>`,
+  aggregate-only `schemaVersion: 1` sidecar with a 30-run cap, dedupe,
+  atomic write and strict validation, plus a Trends tab with a table and
+  sparkline from two runs. The one-file default is unchanged.
+  [#10](https://github.com/Silasoa/tolkira/issues/10) is resolved. The change
+  remains active for the archive pass.
 - **B-008 External or split-assets attachment mode** — decided on 2026-11-19 in
   [ADR 0006](adr/0006-inline-attachments.md): keep one inline HTML file, reject
   remote URLs, `file:`, UNC and outside-root paths, and do not add a
@@ -164,6 +170,15 @@ the benchmark path and budget.
 - **CI summary labels.** `--ci markdown` keeps `Duration` and the GitHub notice
   says `executed scenarios`; align them with the report's `Test time` when the
   CI surface is next touched.
+- **History `revision?` field.** The aggregate entry has no source revision
+  because the stable summary has none. Add an additive optional `revision?` to
+  schema version 1 when the summary gains a commit or source revision; readers
+  ignore unknown fields, so no schema bump is needed. Trigger: `--json` exposes
+  a revision that a trend should carry.
+- **Recording history from `--json`/`--ci` without HTML.** `--history` requires
+  `--out`, so a summary-only or CI-only run records nothing. Trigger: an agent
+  or CI consumer wants trend data without a report file; then decide whether the
+  sidecar is read-only, written, or both, and specify the flow.
 - **Attachment warning in `--json` and `--ci` without HTML.** The HTML report
   and the HTML-writing CLI warn about outside-root path attachments; summary v2
   has no warning field. Trigger: an agent or CI consumer needs the signal in the

@@ -1,11 +1,14 @@
+import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   HISTORY_LIMIT,
   HISTORY_MAX_BYTES,
+  HISTORY_MAX_TITLE,
   HISTORY_SCHEMA_VERSION,
   appendHistory,
   buildHistoryRun,
@@ -16,6 +19,7 @@ import {
 import { summarizeReport } from '../src/index.js';
 import type { StatusCounts } from '../src/summary.js';
 
+const execFileAsync = promisify(execFile);
 const fixtures = fileURLToPath(new URL('./fixtures/history/', import.meta.url));
 const messages = fileURLToPath(
   new URL('./fixtures/messages/second.ndjson', import.meta.url),
@@ -116,6 +120,28 @@ describe('reading the history sidecar', () => {
     await expect(readHistory(file)).resolves.toStrictEqual(clean.runs);
   });
 
+  it('ignores prototype-shaped keys without polluting Object.prototype', async () => {
+    const raw = sidecar([makeRun(0)])
+      .replace('{"schemaVersion":1,', '{"__proto__":{"polluted":true},"schemaVersion":1,')
+      .replace('"features":1,', '"features":1,"__proto__":{"polluted":true},');
+    const file = await writeRaw('prototype.json', raw);
+
+    await expect(readHistory(file)).resolves.toStrictEqual([makeRun(0)]);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  // A FIFO is cheap on POSIX; Windows has no equivalent worth the setup.
+  it.skipIf(process.platform === 'win32')(
+    'rejects a non-regular file without reading it',
+    async () => {
+      const dir = await tempDir();
+      const fifo = path.join(dir, 'history.fifo');
+      await execFileAsync('mkfifo', [fifo]);
+
+      await expect(readHistory(fifo)).rejects.toThrow(/not a regular file/);
+    },
+  );
+
   it.each([
     ['invalid JSON', async () => fixture('corrupt.json')],
     ['a wrong schema version', async () => fixture('wrong-schema.json')],
@@ -147,6 +173,57 @@ describe('reading the history sidecar', () => {
 
   it.each([
     ['a bad ISO time', async () => fixture('malformed-entry.json')],
+    [
+      'a year-only time',
+      async () =>
+        writeRaw(
+          'year-only.json',
+          sidecar([makeRun(0, { recordedAt: '2026' })]),
+        ),
+    ],
+    [
+      'a local date time',
+      async () =>
+        writeRaw(
+          'local-date.json',
+          sidecar([makeRun(0, { recordedAt: '01/02/2026' })]),
+        ),
+    ],
+    [
+      'a prototype-shaped status',
+      async () =>
+        writeRaw(
+          'proto-status.json',
+          sidecar([makeRun(0)]).replace(
+            '"status":"passed"',
+            '"status":"__proto__"',
+          ),
+        ),
+    ],
+    [
+      'an inconsistent scenario total',
+      async () =>
+        writeRaw(
+          'inconsistent-total.json',
+          sidecar([makeRun(0)]).replace('"total":1', '"total":2'),
+        ),
+    ],
+    [
+      'a scenario bucket above total',
+      async () =>
+        writeRaw(
+          'bucket-above-total.json',
+          sidecar([makeRun(0)]).replace('"passed":1', '"passed":2'),
+        ),
+    ],
+    [
+      'a non-finite attachment size',
+      async () =>
+        writeRaw(
+          'non-finite-attachment.json',
+          sidecar([makeRun(0)]).replace('"bytes":0', '"bytes":1e999'),
+        ),
+    ],
     [
       'a non-finite duration',
       async () =>
@@ -251,6 +328,14 @@ describe('building history runs', () => {
     }
   });
 
+  it('caps a long title at 200 characters with an ellipsis', async () => {
+    const summary = await summarizeReport(messages);
+    const run = buildHistoryRun(summary, 'x'.repeat(500));
+
+    expect(Array.from(run.title)).toHaveLength(HISTORY_MAX_TITLE);
+    expect(run.title.endsWith('…')).toBe(true);
+  });
+
   it('changes the aggregate id when an aggregate or the title changes', async () => {
     const summary = await summarizeReport(messages);
     const base = buildHistoryRun(summary, 'Nightly build');
@@ -336,5 +421,24 @@ describe('writing the history sidecar', () => {
       runs,
     });
     expect(await readdir(dir)).toEqual(['history.json']);
+  });
+
+  it('keeps the newest 30 runs and caps titles on write', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'history.json');
+    const runs = Array.from({ length: 31 }, (_, index) =>
+      makeRun(index, { title: 'y'.repeat(500) }),
+    );
+
+    await writeHistory(file, runs);
+
+    const written = JSON.parse(await readFile(file, 'utf8')) as {
+      runs: HistoryRun[];
+    };
+    expect(written.runs).toHaveLength(HISTORY_LIMIT);
+    expect(written.runs[0]?.id).toBe(runs[1]?.id);
+    expect(Array.from(written.runs[0]?.title ?? '')).toHaveLength(
+      HISTORY_MAX_TITLE,
+    );
   });
 });

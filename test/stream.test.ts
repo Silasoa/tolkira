@@ -1,8 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { Readable } from 'node:stream';
+import { fileURLToPath } from 'node:url';
 import type { Envelope } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
-import { CucumberHtmlStream, renderReport, type RenderReportOptions } from '../src/index.js';
+import {
+  CucumberHtmlStream,
+  readHistory,
+  renderReport,
+  type RenderReportOptions,
+} from '../src/index.js';
 import { parseMessages } from '../src/input/messages.js';
 import { messagesFixture } from './fixtures.js';
 
@@ -54,6 +60,21 @@ describe('CucumberHtmlStream', () => {
 
     expect(html).toBe(await renderReport(fixture, { title: 'Stream logo', logo }));
     expect(html).toContain('class="logo"');
+  });
+
+  it('renders the same history as renderReport without appending a run', async () => {
+    const history = await readHistory(
+      fileURLToPath(
+        new URL('./fixtures/history/two-runs.json', import.meta.url),
+      ),
+    );
+    const options = { history };
+    const html = await streamHtml('Stream history', options);
+
+    expect(html).toBe(
+      await renderReport(fixture, { title: 'Stream history', ...options }),
+    );
+    expect(html).toContain('data-view="trends"');
   });
 
   it('forwards renderer errors without emitting partial HTML', async () => {

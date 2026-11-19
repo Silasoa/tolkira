@@ -21,16 +21,15 @@ import {
 } from './search.js';
 
 const views = [...document.querySelectorAll<HTMLElement>('[data-view]')];
-const report = document.getElementById(DOM_IDS.reportView);
-const analysis = document.getElementById(DOM_IDS.analysisView);
 
 function showView(name: string | null): void {
-  if (!report || !analysis) return;
-  report.hidden = name !== 'report';
-  analysis.hidden = name !== 'analysis';
   for (const button of views) {
     const active = button.getAttribute('data-view') === name;
     button.setAttribute('aria-selected', active ? 'true' : 'false');
+    const panel = document.getElementById(
+      button.getAttribute('aria-controls') ?? '',
+    );
+    if (panel) panel.hidden = !active;
   }
   window.scrollTo(0, 0);
 }

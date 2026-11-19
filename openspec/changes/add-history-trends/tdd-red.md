@@ -76,7 +76,7 @@ contract; do not change them to fit an implementation.
 3. `--history` usage errors name the option and exit 2: empty value gives
    `--history requires a file path`; without `--out` names both options. The
    usage text lists `--history <file>`.
-4. Sidecar read failures (invalid JSON, wrong schema, above 1 MB, malformed
+4. Sidecar read failures (invalid JSON, wrong schema, above 1 MiB, malformed
    entry) exit 1, name the file and write nothing: no HTML, no file change.
 5. The first run stores the resolved title (`Tolkira report` when `--title` is
    absent) and the summary aggregates. The second run renders both entries, the

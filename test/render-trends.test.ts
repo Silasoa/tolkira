@@ -1,27 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import type { HistoryRun } from '../src/history.js';
 import { renderHtml } from '../src/render/html.js';
 import type { RenderOptions } from '../src/render/types.js';
-import type { StatusCounts, SummaryStatus } from '../src/summary.js';
+import type { StatusCounts } from '../src/summary.js';
 import { syntheticRun } from './render-helpers.js';
-
-// The history entry schema is documented in design.md. The test declares it
-// locally so the render suite fails on the missing Trends view, not on a
-// missing import.
-interface TrendRun {
-  id: string;
-  recordedAt: string;
-  title: string;
-  status: SummaryStatus;
-  counts: {
-    features: number;
-    scenarios: StatusCounts;
-    steps: StatusCounts;
-  };
-  durationMs: number;
-  attachments: { total: number; bytes: number };
-}
-
-type TrendsOptions = RenderOptions & { history?: TrendRun[] };
 
 const envelopes = syntheticRun([
   { name: 'Trends feature', scenarios: [{ name: 'Passes', status: 'passed' }] },
@@ -41,7 +23,7 @@ function counts(overrides: Partial<StatusCounts> = {}): StatusCounts {
   };
 }
 
-function run(overrides: Partial<TrendRun> = {}): TrendRun {
+function run(overrides: Partial<HistoryRun> = {}): HistoryRun {
   return {
     id: 'run-1',
     recordedAt: '2026-01-01T00:00:00.000Z',
@@ -58,8 +40,8 @@ function run(overrides: Partial<TrendRun> = {}): TrendRun {
   };
 }
 
-function renderTrends(history?: TrendRun[]): Promise<string> {
-  const options: TrendsOptions = {
+function renderTrends(history?: HistoryRun[]): Promise<string> {
+  const options: RenderOptions = {
     title: 'Trends report',
     ...(history === undefined ? {} : { history }),
   };
@@ -163,6 +145,97 @@ describe('Trends view', () => {
     expect(rows[0]).toContain('March run');
     expect(rows[1]).toContain('February run');
     expect(rows[2]).toContain('January run');
+  });
+
+  it('renders status counts, the full-width table and the narrow-screen hint', async () => {
+    const panel = trendsPanel(
+      await renderTrends([
+        run({ id: 'a' }),
+        run({
+          id: 'b',
+          recordedAt: '2026-02-01T00:00:00.000Z',
+          counts: {
+            features: 1,
+            scenarios: counts({
+              total: 9,
+              passed: 5,
+              failed: 3,
+              skipped: 1,
+            }),
+            steps: counts(),
+          },
+        }),
+      ]),
+    );
+
+    expect(panel).toContain('class="trendsTable"');
+    expect(panel).toMatch(
+      /<td class="num">5<\/td><td class="num">3<\/td><td class="num">1<\/td><td class="num">9<\/td>/,
+    );
+    for (const header of [
+      'Passed',
+      'Failed',
+      'Skipped',
+      'Total',
+      'Pass rate',
+      'Duration',
+    ]) {
+      expect(panel).toContain(`<th scope="col" class="num">${header}</th>`);
+    }
+    expect(panel).toContain(
+      'Scroll for status, counts, pass rate and duration.',
+    );
+  });
+
+  it('captions the sparkline and marks the newest row as current', async () => {
+    const panel = trendsPanel(
+      await renderTrends([
+        run({ id: 'old', recordedAt: '2026-01-01T00:00:00.000Z' }),
+        run({ id: 'new', recordedAt: '2026-02-01T00:00:00.000Z' }),
+      ]),
+    );
+
+    expect(panel).toContain(
+      'Pass rate, oldest to newest. The table is newest first;',
+    );
+    expect(panel.match(/class="currentTag"/g)).toHaveLength(1);
+    const rows = tableRows(panel);
+    expect(rows[0]).toContain('Current');
+    expect(rows[1]).not.toContain('Current');
+  });
+
+  it('does not trust caller-supplied history entries', async () => {
+    const hostile = {
+      ...run({ id: 'hostile', recordedAt: 'not-a-date', title: '<b>x</b>' }),
+      status: '"><img src=x onerror="alert(1)">',
+      counts: {
+        features: 1,
+        scenarios: {
+          total: Number.NaN,
+          passed: Number.POSITIVE_INFINITY,
+          failed: -2,
+          skipped: '1',
+        },
+        steps: counts(),
+      },
+      durationMs: Number.NaN,
+    } as unknown as HistoryRun;
+
+    const panel = trendsPanel(
+      await renderTrends([
+        hostile,
+        run({ id: 'safe', recordedAt: '2026-02-01T00:00:00.000Z' }),
+      ]),
+    );
+
+    expect(panel).not.toContain('NaN');
+    expect(panel).not.toContain('Infinity');
+    expect(panel).not.toContain('<b>');
+    expect(panel).not.toContain('<img');
+    expect(panel).not.toContain('onerror');
+    expect(panel).toContain('Unknown');
+    expect(panel).toContain('0 ms');
+    expect(panel).toContain('—');
   });
 
   it('uses attempted scenarios for the pass rate and a dash for no attempt', async () => {

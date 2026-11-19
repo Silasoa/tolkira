@@ -77,21 +77,22 @@ characters and the skipped name list at 20, while the counts and the overall
 ```ts
 import {
   generateReport,
+  readHistory,
   renderReport,
   summarizeReport,
 } from 'tolkira';
 
 const inputs = ['test-results/'];
 const summary = await summarizeReport(inputs);
-const { html, summary: sameSummary, skippedAttachments } = await generateReport(
-  inputs,
-  {
+const previousRuns = await readHistory('.history/history.json');
+const { html, summary: sameSummary, skippedAttachments, history } =
+  await generateReport(inputs, {
     title: 'Nightly',
     metadata: { CI: 'true', Commit: process.env.GITHUB_SHA ?? '' },
     logo: 'data:image/png;base64,...',
     accent: '#1b5e20',
-  },
-);
+    history: previousRuns,
+  });
 const htmlOnly = await renderReport(inputs, { title: 'Nightly' });
 ```
 
@@ -99,6 +100,12 @@ const htmlOnly = await renderReport(inputs, { title: 'Nightly' });
 because they resolve outside every allowed root. It is a plain number, additive
 to the returned object; the HTML notice and the CLI stderr warning use it, while
 the summary document keeps schema version 2 and no warning field.
+
+`history` is the aggregate run list the HTML was rendered with; it already
+contains the current run. `generateReport` appends the current run to
+`options.history` and returns the appended list. `renderReport` and
+`CucumberHtmlStream` render `options.history` exactly as given and record
+nothing. Both fields are additive.
 
 The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 
@@ -108,6 +115,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | metadata | `--meta key=value` (repeatable) | `metadata` object |
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
+| history | `--history <file>` reads and appends a sidecar; needs `--out` | `history` array; `generateReport` appends the current run, `renderReport` and the stream render it as given |
 | size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
 | CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
@@ -115,7 +123,7 @@ The CLI validates logo bytes and rejects unsupported types or a size over
 2 MB. The API only accepts a `data:image/...;base64,...` logo; anything else is
 omitted.
 
-### Messages stream
+## Messages stream
 
 `CucumberHtmlStream` is a shape-compatible Node `Transform` for callers that
 already hold Cucumber Messages envelopes:
@@ -136,10 +144,102 @@ const html = await new Promise<string>((resolve, reject) => {
 
 The stream accepts `Envelope` objects in object mode, buffers the run and
 renders one HTML document on flush. It takes `RenderReportOptions` (title,
-metadata, logo, accent) and produces the same HTML for the same envelopes and
-options. It is not an incremental renderer. It writes no files and emits no
-summary; use `summarizeReport` or `generateReport` when you also need the
-stable JSON. The whole run is held in memory, exactly like the file API.
+metadata, logo, accent and the optional history list) and produces the same HTML
+for the same envelopes and options. A supplied `history` is rendered exactly as
+given; only `generateReport` appends the current run. The stream is not an
+incremental renderer, writes no files and emits no summary; use
+`summarizeReport` or `generateReport` when you also need the stable JSON. The
+whole run is held in memory, exactly like the file API.
+
+## Run history
+
+`--history <file>` keeps an aggregate sidecar of prior runs and renders a
+`Trends` tab once the report is generated with two or more entries. It requires
+`--out`; without the flag no history is read or written and the report contains
+no history data or Trends tab.
+
+```shell
+tolkira test-results/ --out report.html --history .history/history.json
+```
+
+The sidecar is UTF-8 JSON with schema version 1:
+
+```json
+{
+  "schemaVersion": 1,
+  "runs": [
+    {
+      "id": "0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9",
+      "recordedAt": "2026-11-19T06:00:00.000Z",
+      "title": "Nightly",
+      "status": "failed",
+      "counts": {
+        "features": 3,
+        "scenarios": {
+          "total": 10,
+          "passed": 6,
+          "failed": 2,
+          "skipped": 1,
+          "pending": 1,
+          "undefined": 0,
+          "ambiguous": 0,
+          "unknown": 0
+        },
+        "steps": {
+          "total": 42,
+          "passed": 34,
+          "failed": 3,
+          "skipped": 2,
+          "pending": 1,
+          "undefined": 1,
+          "ambiguous": 1,
+          "unknown": 0
+        }
+      },
+      "durationMs": 12345.678,
+      "attachments": { "total": 2, "bytes": 4096 }
+    }
+  ]
+}
+```
+
+Contract:
+
+- `schemaVersion` is `1`. A wrong version is rejected; unknown fields inside
+  version 1 are ignored and the reader copies only the documented fields.
+- `id` is the SHA-256 of the aggregates and the resolved title, excluding
+  `recordedAt`. When the last entry has the same id, the new run is not
+  appended and the old `recordedAt` stays.
+- The sidecar keeps the newest 30 runs; older entries are dropped on read, on
+  append and on write. A file above 1 MiB is rejected before it is read.
+- `title` is the resolved report title (`Tolkira report` when `--title` is
+  absent), capped at 200 characters including a trailing `…`; a longer title is
+  truncated before it is hashed or written. `durationMs` is the summary
+  duration, not wall-clock time.
+- Only aggregates are stored: no scenario names, step text, paths, tags or
+  attachment content. The report embeds the prior-run aggregates it was
+  generated with, so anyone who receives the HTML can read the pass-rate
+  history. Use one sidecar per suite and variant; mixing runs makes the trend
+  meaningless.
+- A missing file starts empty. Invalid JSON, a wrong schema version, an
+  oversized file, a malformed entry or a write failure exits 1 and names the
+  file. A bad file is never overwritten. The HTML is written first; a failed
+  history write leaves it in place and leaves no partial sidecar.
+- `--history` follows the output-path rules: it must not name an input, the
+  logo, `--out`, `--ci-out` or a path inside an input directory, even when the
+  history file does not exist yet.
+- The CLI (through `generateReport`) is the only automatic writer. API callers
+  write through `writeHistory`; `renderReport` and `CucumberHtmlStream` render a
+  given list and record nothing. The writer reads, appends and writes atomically
+  with a rename; that prevents a corrupt file, not lost updates from two
+  concurrent processes. Run one generation per sidecar at a time.
+- The 30-run bound applies to the CLI and `generateReport` path through
+  `readHistory` and `appendHistory`; `renderReport` and `CucumberHtmlStream`
+  accept the list they are given.
+
+The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`, `HISTORY_LIMIT`,
+`HISTORY_MAX_BYTES`, `HISTORY_MAX_TITLE`, `buildHistoryRun`, `appendHistory`,
+`readHistory` and `writeHistory` for programmatic use.
 
 ## Summary schema, version 2
 
@@ -356,9 +456,10 @@ outside `features/`).
 - Inputs are capped at 100 MB in total; attachments at 50 MB each and 100 MB
   total.
 - The HTML report includes a hash-based CSP and never executes attachments.
-- History, trends, retries beyond the latest attempt and a trace viewer are not
-  supported. Playwright JSON has a native adapter; the final attempt is the
-  rendered one. JUnit XML is a basic input mode; see
+- History is an opt-in aggregate sidecar (`--history`); there is no
+  scenario-level history, dashboard or server. Retries beyond the latest attempt
+  and a trace viewer are not supported. Playwright JSON has a native adapter;
+  the final attempt is the rendered one. JUnit XML is a basic input mode; see
   [`LIMITATIONS.md`](LIMITATIONS.md). Playwright producer metadata and
   annotation descriptions are HTML-only and do not change schema version 2.
 - Playwright path attachments are embedded only when the resolved regular file

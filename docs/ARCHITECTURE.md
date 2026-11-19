@@ -22,6 +22,13 @@ CLI / API
 
 One package. One CLI. One HTML output. No monorepo, no server, no database.
 
+An optional aggregate history sidecar (`--history <file>`) sits beside the
+report: the CLI validates and reads it, `generateReport` appends one aggregate
+entry and returns the list, and the renderer adds a Trends view when the list has
+two or more entries. The 30-run bound belongs to that CLI/`generateReport` path;
+`renderReport` renders the list it is given. It holds no scenario, step or path
+data and stays opt-in.
+
 ## Components
 
 ### `src/input/messages`
@@ -90,17 +97,23 @@ and is covered by real producer fixtures.
   scenarios. Below 560 px the triage collapses and the source strip hides.
 - Details tab: feature-by-status matrix, status distribution, environment and
   the agent summary.
+- Trends tab (only with two or more history runs): newest-first table of the
+  recorded runs with attempted pass rate, and a decorative pass-rate sparkline
+  oldest to newest. One `passRate` helper in `format.ts` feeds both the health
+  panel and the table, so `attempted === 0` states the same thing in both.
 - Renderer module map (top to bottom; a module imports only lower layers, and
-  same-layer modules never import each other — `report.ts` and `details.ts` are
-  peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and `ci.ts`):
-  `html.ts` owns the shell, CSP and `renderHtml` assembly; `report.ts` owns the
-  report header, toolbar, features, scenarios, steps, hooks and feature-row
-  chrome; `details.ts` owns the Details header, run/environment panels and
-  analysis layout; `triage.ts` owns the needs-attention index and source strip;
-  `matrix.ts` owns the feature-by-status matrix; `attachments.ts` owns
-  image/text/video/log/file rendering; `ci.ts` owns the CI header and detail
-  rows; `format.ts` owns status, duration, date, bar, count, health and tag
-  helpers; `types.ts` owns `RenderOptions`, `DisplayStatus` and
+  same-layer modules never import each other — `report.ts`, `details.ts` and
+  `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and
+  `ci.ts`): `html.ts` owns the shell, CSP and `renderHtml` assembly; `report.ts`
+  owns the report header, toolbar, features, scenarios, steps, hooks and
+  feature-row chrome; `details.ts` owns the Details header, run/environment
+  panels and analysis layout; `trends.ts` owns the Trends header, the
+  recorded-runs table and the sparkline; `triage.ts` owns the needs-attention
+  index and source strip; `matrix.ts` owns the feature-by-status matrix;
+  `attachments.ts` owns image/text/video/log/file rendering; `ci.ts` owns the CI
+  header and detail rows; `format.ts` owns status, duration, date, bar, count,
+  health, pass-rate and tag helpers; `types.ts` owns `RenderOptions`
+  (including the optional `history` list), `DisplayStatus` and
   `OrderedFeature`. `escape.ts`, `dom-contract.ts`, `markdown.ts`, `ansi.ts`,
   `styles.ts`, `client-bundle.ts`, `search.ts` and `report-client.ts` are shared
   foundation, importable from every layer. `src/attachment.ts` is a shared leaf
@@ -136,11 +149,29 @@ and is covered by real producer fixtures.
 - Pure and offline: no network, no report-model access and no schema change.
 - Caps annotations and lists while keeping the exact counts.
 
+### `src/history`
+
+- Owns the opt-in aggregate history sidecar: schema version 1, at most 30 runs
+  on the CLI/`generateReport` path and a 1 MiB size cap checked on the open
+  descriptor before reading.
+- `buildHistoryRun` hashes the aggregates and the resolved title (capped at 200
+  characters), excluding the recorded time; `appendHistory` keeps one copy of an
+  identical last run and the old timestamp; `readHistory` rejects non-regular
+  files, validates every documented field including cross-field count totals,
+  ignores unknown fields and never writes; `writeHistory` bounds the list and
+  titles, then writes atomically with a trailing newline.
+- Stores only id, recorded time, title, status, feature/scenario/step counts,
+  duration and attachment totals. There is no scenario-level history, and the
+  CLI is the only automatic writer, so concurrent processes can still lose an
+  update.
+- Exported through `src/index`; `generateReport` appends the current run,
+  `renderReport` and `CucumberHtmlStream` render the list they are given.
+
 ### `src/cli`
 
 - `tolkira <input...> [--out <file>] [--json] [--ci github|markdown]`
-  `[--ci-out <file>] [--title <title>] [--meta key=value] [--logo <file>]`
-  `[--accent <hex>] [--max-size <mb>]`.
+  `[--ci-out <file>] [--history <file>] [--title <title>] [--meta key=value]`
+  `[--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
   content; duplicate paths are resolved and read once.
@@ -149,6 +180,10 @@ and is covered by real producer fixtures.
 - Writes atomically through a temporary file in the output directory.
 - `--ci` may run without `--out`; `--ci-out` is a standalone atomic Markdown
   file and is rejected for GitHub annotations.
+- `--history` requires `--out`. It is validated like an output path (inputs,
+  logo, `--out`, `--ci-out` and input directories, even when missing), read once
+  before generation and written after the HTML. A history read or write failure
+  exits 1 and names the file; a written HTML stays in place.
 - Warns when the report exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
@@ -158,11 +193,15 @@ Programmatic API:
 
 ```ts
 renderReport(inputs, options): Promise<string>
-generateReport(inputs, options): Promise<{ html, summary, skippedAttachments }>
+generateReport(inputs, options): Promise<{
+  html, summary, skippedAttachments, history?
+}>
 summarizeReport(inputs): Promise<ReportSummary>
 ```
 
-The CLI is a thin wrapper around the API.
+`generateReport` accepts `history`, appends the current aggregate run and returns
+the appended list; `renderReport` renders `options.history` without recording a
+run. The CLI is a thin wrapper around the API.
 
 ## Security
 
@@ -182,6 +221,11 @@ Test names, metadata, file names and attachments are untrusted input.
   loader keeps its separate total-input cap.
 - No network requests, telemetry or remote fonts.
 - No path traversal when writing output or external attachments.
+- The history sidecar is validated before use (schema version, field types,
+  finite non-negative numbers, strict ISO time, count totals), opened as a
+  regular file, capped at 1 MiB on the descriptor and rewritten atomically. It
+  stores aggregates only, so it cannot leak scenario names, step text, paths,
+  tags or attachment content.
 - A restrictive CSP is injected into every report; v0.1 defaults to inline
   assets.
 
@@ -197,6 +241,9 @@ Test names, metadata, file names and attachments are untrusted input.
 - Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
   1.4 MB; 5,000 / 15,000 in about 0.4–0.5 s to 7.0 MB. Timings vary with host
   load.
+- The CLI/`generateReport` history path is capped at 1 MiB and 30 runs, so trend
+  rendering is linear in at most 30 aggregate entries there; `renderReport`
+  accepts the given list as-is.
 - `npm run bench:ansi` bundles `src/text.ts` with esbuild, strips fixed
   2,000-message clean and escape-laden corpora of about 2 KiB per message, and
   reports medians plus scan-only and character-append reference ratios. The
@@ -223,7 +270,11 @@ Test names, metadata, file names and attachments are untrusted input.
 - Unit tests: Vitest. Attachment byte counting, cap boundaries, the allowlist,
   fallback names, kinds and text presentation are pinned in
   `test/attachment.test.ts` and `test/sanitize.test.ts`; the model/summary
-  cross-check keeps both consumers equal.
+  cross-check keeps both consumers equal. `test/history.test.ts` pins the
+  sidecar schema, validation, dedupe, retention and atomic write;
+  `test/cli-history.test.ts` and `test/render-trends.test.ts` cover the
+  `--history` flow and the Trends view; `test/e2e/trends.spec.ts` covers the
+  two-run browser flow at 320, 1440 and 200 % text zoom.
 - Fixtures: cucumber-js legacy JSON, Behave 1.3.3 real runs (statuses, doc
   strings, tables and inline images), cucumber-jvm and cucumber-ruby real runs,
   and a hand-built Messages stream with passing/failing scenarios and

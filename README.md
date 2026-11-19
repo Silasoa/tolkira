@@ -54,10 +54,18 @@ tolkira test-results/ --out report.html \
 
 # Embed a logo (PNG, JPEG, GIF, WebP or SVG)
 tolkira test-results/ --out report.html --logo path/to/logo.png
+
+# Keep aggregate run history and show a Trends tab from the second run
+tolkira test-results/ --out report.html --history .history/history.json
 ```
 
 Tolkira accepts one or more files and directories. A directory is scanned
 recursively for supported result files. Everything is merged into one report.
+The optional history file is a separate sidecar: without `--history` no history
+is read or written and the report stays one file. Use one sidecar per suite and
+variant; mixing runs makes the trend meaningless. The Trends tab needs
+JavaScript: a copy opened without JavaScript shows the Report view and an inert
+tab, and printing or PDF export captures whichever tab is open.
 
 ## For agents and CI
 
@@ -73,17 +81,23 @@ GitHub Actions step:
 ```yaml
 - name: Generate Cucumber report
   if: always()
-  run: npx tolkira test-results/ --out report.html --title "CI run" --json > summary.json
+  run: npx tolkira test-results/ --out report.html --history .history/history.json --title "CI run" --json > summary.json
 
 - name: Upload report
   if: always()
   uses: actions/upload-artifact@v4
   with:
     name: cucumber-report
+    include-hidden-files: true
     path: |
       report.html
       summary.json
+      .history/history.json
 ```
+
+Persist `.history/history.json` between CI runs (for example with
+`actions/cache`) so the next run continues the trend. A missing sidecar starts a
+new history; upload it beside the report if you want another job to continue it.
 
 `--json` writes exactly one JSON document to stdout; warnings go to stderr.
 Exit code 0 means the report was generated, not that the tests passed. Read
@@ -192,6 +206,11 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
 - **A Details view when you need it.** Status distribution, a feature-by-status
   matrix, run metadata and the Run environment (producer, runtime, OS, CPU,
   protocol).
+- **Opt-in run trends.** `--history <file>` keeps the last 30 aggregate runs and
+  adds a Trends tab from the second run: a newest-first table and a pass-rate
+  sparkline. The sidecar holds counts, status, the resolved title, duration and
+  attachment totals only, never scenario names or paths; a report embeds the runs
+  it was generated with, so share it with that in mind.
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure
   messages.
@@ -368,8 +387,9 @@ npx tolkira path/to/jsonDir --out reports/index.html --title "My report"
 
 Map `jsonDir` to the input directory, `reportPath`/`reportName` to `--out`,
 `metadata` to repeated `--meta key=value`, and `brandLogo` to `--logo`.
-Dashboard, history, trends, i18n, email reports and the multi-file folder report
-are not reproduced. See
+MCHR's dashboard, i18n, email reports and folder report are not reproduced.
+History is only the opt-in aggregate sidecar described above; there is no
+scenario-level history or multi-run dashboard. See
 [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md#multiple-cucumber-html-reporter)
 for the mapping.
 
@@ -382,6 +402,12 @@ for the mapping.
   attachments. A warning appears when a report grows beyond 10 MB.
 - JUnit XML is intentionally basic; use the native Playwright JSON adapter for
   Playwright projects that can write the JSON reporter.
+- History is opt-in and aggregate-only. `--history <file>` stores counts, status,
+  the resolved title (capped at 200 characters), duration and attachment totals
+  for the last 30 runs; the report embeds those prior-run aggregates. The CLI is
+  the only automatic writer, so use one sidecar per suite and variant and one
+  generation at a time. No scenario names, steps, paths, tags or attachment
+  content are stored.
 - One report is one file. External attachments for very large media are a
   future option.
 

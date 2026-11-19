@@ -25,7 +25,12 @@ export class CucumberHtmlStream extends Transform {
   }
 
   _flush(callback: TransformCallback): void {
-    renderHtml(this.envelopes, renderOptions(this.options)).then(
+    renderHtml(this.envelopes, {
+      ...renderOptions(this.options),
+      ...(this.options.history === undefined
+        ? {}
+        : { history: this.options.history }),
+    }).then(
       (html) => callback(null, html),
       (error: unknown) =>
         callback(error instanceof Error ? error : new Error(String(error))),

@@ -6,7 +6,7 @@ import type {
   ReportScenario,
 } from '../report/model.js';
 import { statusSeverity, type ReportStatus } from '../report/status.js';
-import { displayUri } from '../summary.js';
+import { displayUri, type StatusCounts } from '../summary.js';
 import { stripBidiControls } from '../text.js';
 import { escapeHtml } from './escape.js';
 import type { DisplayStatus, OrderedFeature } from './types.js';
@@ -132,17 +132,36 @@ export function featureSourceLabel(feature: ReportFeature): string {
   return uris.size === 1 ? [...uris][0] ?? '' : `${uris.size} spec files`;
 }
 
+function count(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.trunc(value)
+    : 0;
+}
+
+export function passRate(counts: StatusCounts): {
+  attempted: number;
+  percent: number | null;
+} {
+  const total = count(counts.total);
+  const attempted = Math.max(total - count(counts.skipped), 0);
+  const passed = Math.min(count(counts.passed), attempted);
+  return {
+    attempted,
+    percent:
+      attempted === 0 ? null : Math.round((passed / attempted) * 1000) / 10,
+  };
+}
+
 export function healthMarkup(model: ReportModel): string {
-  const { total, passed, skipped } = model.counts.scenarios;
+  const { total } = model.counts.scenarios;
   if (total === 0) {
     return '<div class="healthTop"><strong>0%</strong><span aria-hidden="true">0 / 0</span><span class="sr">0 / 0 passed</span></div>';
   }
-  const attempted = total - skipped;
+  const { attempted, percent } = passRate(model.counts.scenarios);
   if (attempted === 0) {
     return '<div class="healthTop"><span>No scenarios attempted</span><span class="sr">Skipped scenarios are results, not pass attempts.</span></div>';
   }
-  const percent = Math.round((passed / attempted) * 1000) / 10;
-  return `<div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${passed} / ${attempted} attempted</span><span class="sr">${passed} of ${attempted} attempted scenarios passed</span></div>`;
+  return `<div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${model.counts.scenarios.passed} / ${attempted} attempted</span><span class="sr">${model.counts.scenarios.passed} of ${attempted} attempted scenarios passed</span></div>`;
 }
 
 export function tagsMarkup(tags: string[], extraClass = ''): string {

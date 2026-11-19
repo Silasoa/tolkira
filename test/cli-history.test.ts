@@ -6,6 +6,7 @@ import {
   readFile,
   readdir,
   rm,
+  symlink,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -284,6 +285,90 @@ describe('CLI history sidecar', () => {
     await expect(readFile(ciOut, 'utf8')).rejects.toMatchObject({
       code: 'ENOENT',
     });
+  });
+
+  it('reports the history path conflict before reading the logo', async () => {
+    const dir = await tempDir();
+    const input = path.join(dir, 'input.ndjson');
+    await copyFile(messages, input);
+    const logo = path.join(dir, 'logo.txt');
+    await writeFile(logo, 'not an image', 'utf8');
+    const output = path.join(dir, 'report.html');
+
+    const run = await cli([
+      input,
+      '--out',
+      output,
+      '--logo',
+      logo,
+      '--history',
+      output,
+    ]);
+
+    expect(run.code, run.stderr).toBe(2);
+    expect(run.stderr).toContain('--history');
+    expect(run.stderr).not.toContain('Unsupported logo type');
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
+  // Only these platforms fold path case; Linux treats the names as different.
+  it.skipIf(!['win32', 'darwin'].includes(process.platform))(
+    'rejects a case-variant history path collision',
+    async () => {
+      const dir = await tempDir();
+      const input = path.join(dir, 'input.ndjson');
+      await copyFile(messages, input);
+
+      const run = await cli([
+        input,
+        '--out',
+        path.join(dir, 'Report.HTML'),
+        '--history',
+        path.join(dir, 'report.html'),
+      ]);
+
+      expect(run.code, run.stderr).toBe(2);
+      expect(run.stderr).toContain('--history');
+      await expect(
+        readFile(path.join(dir, 'report.html'), 'utf8'),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+    },
+  );
+
+  it('rejects a history path that reaches an input directory through a link', async () => {
+    const dir = await tempDir();
+    const inputDir = path.join(dir, 'results');
+    await mkdir(inputDir);
+    await copyFile(messages, path.join(inputDir, 'run.ndjson'));
+    const link = path.join(dir, 'linked-results');
+    try {
+      await symlink(
+        inputDir,
+        link,
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
+    } catch (error) {
+      // Some Windows hosts cannot create junctions without extra privileges.
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'EPERM' || code === 'EACCES') return;
+      throw error;
+    }
+
+    const run = await cli([
+      inputDir,
+      '--out',
+      path.join(dir, 'report.html'),
+      '--history',
+      path.join(link, 'history.json'),
+    ]);
+
+    expect(run.code, run.stderr).toBe(2);
+    expect(run.stderr).toContain('--history');
+    await expect(
+      readFile(path.join(inputDir, 'history.json'), 'utf8'),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('rejects a history path inside an input directory even when it is missing', async () => {

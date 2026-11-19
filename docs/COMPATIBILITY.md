@@ -150,5 +150,7 @@ tolkira path/to/jsonDir --out reports/index.html --title "My report"
 ```
 
 Map `jsonDir` to the input directory, `reportPath`/`reportName` to `--out`,
-`metadata` to `--meta key=value` and `brandLogo` to `--logo`. Dashboard,
-history, trends, i18n and the old folder report are not reproduced.
+`metadata` to `--meta key=value` and `brandLogo` to `--logo`. The dashboard,
+scenario-level history, i18n and the old folder report are not reproduced;
+history is available only as the opt-in aggregate `--history` sidecar described
+in [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).

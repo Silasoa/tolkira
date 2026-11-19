@@ -11,6 +11,7 @@ export const FILTER_PRESET_ATTRIBUTE = 'data-filter-preset';
 export const DOM_IDS = {
   reportView: 'report-view',
   analysisView: 'analysis-view',
+  trendsView: 'trends-view',
   live: 'tolkira-live',
   searchNote: 'tolkira-search-note',
   copyLive: 'tolkira-copy-live',

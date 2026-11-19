@@ -96,8 +96,28 @@ in counts, status pills, filters and bars, but it is not a pass attempt.
 
 **Attempted pass rate** — the pass percentage over attempted scenarios:
 executed results whose status is not `skipped`. Counts and bars include skipped;
-the Report and Details health and the feature pass text do not. A run with
-results but no attempt states `No scenarios attempted` instead of a percentage.
+the Report and Details health, the feature pass text and the Trends table do not.
+A run with results but no attempt states `No scenarios attempted`; Trends shows
+`—` for that run.
+
+**History file / sidecar** — the optional UTF-8 JSON file passed with
+`--history <file>`. It keeps the last 30 aggregate history runs in schema
+version 1 and is read, appended and written atomically by the CLI. Without the
+flag no history is read or written.
+
+**History run** — one aggregate entry in the history file: id, recorded time,
+resolved title, overall status, feature/scenario/step counts, duration and
+attachment totals. It never carries scenario names, step text, paths, tags or
+attachment content.
+
+**Aggregate id** — the SHA-256 in a history run. It hashes the aggregates and
+the title but not the recorded time, so an identical rerun is not appended and
+keeps the old timestamp.
+
+**Trends view** — the optional third tab, rendered when a report is generated
+with two or more history runs. It lists the runs newest first and adds a
+decorative pass-rate sparkline oldest to newest; the table is the accessible
+source.
 
 **Unexecuted scenario** — a scenario whose selected test case started but
 reported no raw step result, including a started-but-unfinished case. It stays
