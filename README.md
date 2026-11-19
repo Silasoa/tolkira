@@ -419,12 +419,14 @@ npx playwright install chromium firefox webkit
 npm run check
 npm run test:e2e
 npm run stress -- 1000
+npm run bench:ansi
 ```
 
 `npm run check` runs typecheck, lint, unit tests, build and the CSS generation
 step. `npm run test:e2e` runs the browser tests in Chromium, Firefox and
 WebKit. `npm run stress -- 1000` builds a 1,000-scenario report and reports size
-and timing.
+and timing. `npm run bench:ansi` measures `stripAnsi` on fixed message corpora
+and enforces the 500 ms production budget.
 
 Build once and run the CLI from `dist`:
 

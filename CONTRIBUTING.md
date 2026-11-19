@@ -27,11 +27,14 @@ npx playwright install chromium firefox webkit
 npm run hygiene
 npm run check
 npm run test:e2e
+npm run bench:ansi
 ```
 
 `npm run check` runs typecheck, lint, unit tests and build. `npm run hygiene`
 checks tracked generated/local files, absolute local paths in docs and commit
-trailers; CI runs the same check on the committed tree.
+trailers; CI runs the same check on the committed tree. `npm run bench:ansi`
+measures `stripAnsi` on fixed message corpora and fails on the 500 ms
+production budget.
 
 ## Pull requests
 

@@ -125,6 +125,10 @@ function isControl(code: number): boolean {
  * readable.
  */
 export function stripAnsi(text: string): string {
+  // Most step and hook messages carry no terminal controls. `npm run bench:ansi`
+  // measures this early return at roughly 7-10x the scan on the reference host;
+  // a ratio below the 1.5x floor reports `review`, and removing the fast path
+  // is a separate change.
   if (!ANSI_CONTROLS.test(text)) return text;
 
   let output = '';

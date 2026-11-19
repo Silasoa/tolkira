@@ -47,6 +47,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-014 | Input | P3 | Benchmark `stripAnsi` fast path | [#17](https://github.com/Silasoa/tolkira/issues/17) |
+| B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | — |
 
 **B-006 in progress (2026-11-19).** Consolidated in change
 `consolidate-attachment-bytes`: one shared attachment module owns decoded byte
@@ -165,6 +166,21 @@ the benchmark path and budget.
   folded into passed with `@flaky`; a flaky count/status or first-attempt
   evidence would need a schema v2 decision. Trigger: a user asks for flake
   forensics or a reported flaky rate becomes a problem.
+- **CR-only message text.** The fast-path probe excludes CR while the scan strips
+  it, so a CR-only message is returned unchanged and a message with CR plus
+  another control loses CR. This predates #17; the benchmark excludes CR to keep
+  the change behaviour-neutral. Trigger: when `stripAnsi` logic or its tests are
+  next changed (a comment-only edit does not fire it), or a CR-only message is
+  reported. Promote to an issue then.
+- **ANSI benchmark follow-ups.** Deferred from #17: caching the quick benchmark
+  document across tests (the suite is about 3 s; not worth the test
+  restructuring), a full-mode structural unit test (the Node 22 Linux CI step
+  already runs full mode), a fault-injected output-equivalence path (production
+  and the references share the scanner, so it would test the harness), host
+  metadata and Linux calibration (the JSON stays host-neutral; the fixed Linux
+  run is the stable signal), and a `review` job-summary line (a `review` exits 0
+  by design). Trigger: the benchmark is next changed, a mismatch is suspected,
+  or the CI budget flakes.
 - **Details matrix caption.** The caption still says `Executed scenarios only.`
   and 320 px can split `1` from `failed`; align the wording and the cell layout
   with the next vocabulary pass if users report it.

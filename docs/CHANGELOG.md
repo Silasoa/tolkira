@@ -14,6 +14,11 @@ Keep a Changelog and the project uses semantic versioning.
   file/field error, and the `error` and `hook_error` step-result statuses map
   to failed, with `cleanup_error` accepted defensively. Dry-run/WIP statuses and
   scenario-level hook failures without a step result remain documented limits.
+- `stripAnsi` benchmark. `npm run bench:ansi` measures fixed clean and
+  escape-laden message corpora, compares production with scan-only and
+  character-append references, enforces a 500 ms production median budget,
+  reports a 1.5x fast-path `keep`/`review` decision and runs in the Node 22 CI
+  check job.
 - Failed-only preset. A `Failed only` toolbar toggle appears when the run has
   failures plus another present status or an unexecuted row; it keeps the failed
   chip on, hides other statuses and statusless rows, and is encoded as the other
