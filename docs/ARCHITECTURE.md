@@ -80,6 +80,20 @@ and is covered by real producer fixtures.
   scenarios. Below 560 px the triage collapses and the source strip hides.
 - Details tab: feature-by-status matrix, status distribution, environment and
   the agent summary.
+- Renderer module map (top to bottom; a module imports only lower layers, and
+  same-layer modules never import each other — `report.ts` and `details.ts` are
+  peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and `ci.ts`):
+  `html.ts` owns the shell, CSP and `renderHtml` assembly; `report.ts` owns the
+  report header, toolbar, features, scenarios, steps, hooks and feature-row
+  chrome; `details.ts` owns the Details header, run/environment panels and
+  analysis layout; `triage.ts` owns the needs-attention index and source strip;
+  `matrix.ts` owns the feature-by-status matrix; `attachments.ts` owns
+  image/text/video/log/file rendering; `ci.ts` owns the CI header and detail
+  rows; `format.ts` owns status, duration, date, bar, count, health and tag
+  helpers; `types.ts` owns `RenderOptions`, `DisplayStatus` and
+  `OrderedFeature`. `escape.ts`, `dom-contract.ts`, `markdown.ts`, `ansi.ts`,
+  `styles.ts`, `client-bundle.ts`, `search.ts` and `report-client.ts` are shared
+  foundation, importable from every layer.
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
   generates `src/render/styles.ts` for the inline report.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state

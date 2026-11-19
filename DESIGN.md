@@ -112,6 +112,22 @@ describe the viewport, not the font.
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
 | Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Run environment / Custom metadata blocks, agent summary |
 
+### Renderer modules
+
+- `html.ts` - shell, CSP and `renderHtml` assembly.
+- `report.ts` - report header, toolbar, features, scenarios, steps, hooks and
+  feature-row chrome.
+- `details.ts` - Details header, run/environment panels and analysis layout.
+- `triage.ts` - needs-attention index and source strip.
+- `matrix.ts` - feature-by-status matrix.
+- `attachments.ts` - image, text, video, log and file rendering.
+- `ci.ts` - CI header and detail rows.
+- `format.ts` - status, duration, date, bar, count, health and tag helpers.
+- `types.ts` - `RenderOptions`, `DisplayStatus` and `OrderedFeature`.
+
+`report.ts` and `details.ts` are peers, as are `triage.ts`, `matrix.ts`,
+`attachments.ts` and `ci.ts`; a module imports only from a lower layer.
+
 ## Interaction rules
 
 - Feature and scenario summaries are the only click targets that toggle; a
@@ -152,7 +168,8 @@ template strings. A local utility layer is fine when it removes repetition.
 ## Agent workflow
 
 1. Read `docs/PRODUCT.md`, this file, `src/report/model.ts`,
-   `src/render/html.ts` and `src/render/styles.ts`.
+   `src/render/report.ts`, `src/render/details.ts` and
+   `src/render/styles.ts`.
 2. Change the view model first if the data is missing; keep `src/summary.ts`
    independent.
 3. Use tokens and existing component classes; do not add a UI framework.

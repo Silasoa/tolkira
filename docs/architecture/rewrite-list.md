@@ -26,9 +26,9 @@ Statuses are coordinator decisions, not approved interfaces yet.
   convert the client to TS/direct imports, then a Node round-trip test plus pure
   visibility decisions. Promote to Strong only if the 16,000-byte bundle does
   not grow (current headroom 854 B). `data-status` is overloaded; resolve it.
-- **`html.ts` view seams.** Keep exploring, but first reflow the four 4–8 KB
-  single-line template returns; then re-judge a split. The split alone is
-  relocation, not depth, unless view ownership becomes real.
+- **`html.ts` view seams.** Done in #7: `html.ts` is the shell only, and
+  `report.ts`, `details.ts` and the view modules own their fragments. Reflow
+  happened after the split because the fragments need their owner.
 - **Pure input detection.** Separate format detection/bytes from parsing so it
   can be tested without files. Extra evaluation queued.
 

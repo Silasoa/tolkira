@@ -17,9 +17,10 @@ Layers, top to bottom; a module may import only from a lower layer:
 
 ```
 html.ts            shell, CSP, renderHtml assembly (summarizeIndex stays here)
-  report.ts        report header, toolbar, features, scenarios, steps, hooks
+  report.ts        report header, toolbar, features, scenarios, steps, hooks,
+                   feature-row chrome
   details.ts       Details header, run/environment panels, analysis layout
-    triage.ts      needs-attention index, source strip, feature shape
+    triage.ts      needs-attention index, source strip
     matrix.ts      feature-by-status matrix
     attachments.ts image/text/video/log/file rendering
     ci.ts          CI header and detail rows
@@ -29,28 +30,29 @@ html.ts            shell, CSP, renderHtml assembly (summarizeIndex stays here)
 ```
 
 `format.ts`, `types.ts` and `ci.ts` import no view module. `escape.ts`,
-`dom-contract.ts`, `markdown.ts`, `ansi.ts`, `styles.ts` and
-`client-bundle.ts` stay as they are. `report.ts` stays under 800 lines; if it
-grows past that or a second consumer needs scenario/step rendering, extract
-`scenarios.ts`/`steps.ts` then (backlog trigger).
+`dom-contract.ts`, `markdown.ts`, `ansi.ts`, `styles.ts`, `client-bundle.ts`,
+`search.ts` and `report-client.ts` stay as they are. `report.ts` stays under 800
+lines; if it grows past that or a second consumer needs scenario/step rendering,
+extract `scenarios.ts`/`steps.ts` then (backlog trigger).
 
 ## Function ownership
 
 - `types.ts`: `RenderOptions`, `DisplayStatus`, `OrderedFeature`.
 - `format.ts`: `ALL_STATUSES`, `STEP_GLYPHS`, `statusLabel`, `statusClass`,
-  `durationLabel`, `dateLabel`, `barWidth`, `displayStatuses`, `compareStatus`,
-  `bySeverity`, `orderFeatures`, `countStatuses`, `executedOnly`,
-  `featureSourceLabel`, `healthMarkup`, `tagsMarkup`, `statusBar`, `countPills`,
-  `safeHttpUrl`, `hookLabel`. `triage` and `matrix` import `ALL_STATUSES`; they
-  never copy it, because a copy would silently reorder their output.
+  `durationLabel`, `dateLabel`, `barWidth`, `featureBar`, `displayStatuses`,
+  `compareStatus`, `bySeverity`, `orderFeatures`, `countStatuses`,
+  `attentionCounts`, `executedOnly`, `featureSourceLabel`, `healthMarkup`,
+  `tagsMarkup`, `statusBar`, `countPills`, `safeHttpUrl`, `hookLabel`. `triage`
+  and `matrix` import `ALL_STATUSES`; they never copy it, because a copy would
+  silently reorder their output.
 - `ci.ts`: `githubRepoPath`, `githubBaseUrl`, `shortRevision`,
   `githubCommitUrl`, `revisionMarkup`, `ciNameMarkup`, `ciHeaderMarkup`,
   `ciDetailRows`.
 - `attachments.ts`: `JsonFrame`, `prettyJson`, `jsonBody`, `uriListBody`,
   `textAttachmentBody`, `renderAttachment`.
 - `triage.ts`: `TRIAGE_FEATURE_LIMIT`, `TRIAGE_SCENARIO_LIMIT`, `SOURCE_LIMIT`,
-  `TriageEntry`, `attentionCounts`, `scenarioLabel`, `featureBar`,
-  `featureShape`, `renderTriageRow`, `renderTriage`, `renderSourceStrip`.
+  `TriageEntry`, `scenarioLabel`, `renderTriageRow`, `renderTriage`,
+  `renderSourceStrip`.
 - `matrix.ts`: `matrixStatuses`, `renderFeatureMatrix`.
 - `details.ts`: `renderAnalysisView`.
 - `report.ts`: `SEARCH_MESSAGE_LIMIT`, `UNDEFINED_LEAD`, `AMBIGUOUS_LEAD`,
@@ -58,7 +60,8 @@ grows past that or a second consumer needs scenario/step rendering, extract
   `renderStep`, `renderHook`, `renderRunHooks`, `backgroundText`,
   `backgroundMarkup`, `ruleSearchText`, `scenarioText`, `RenderItem`,
   `RuleBlock`, `renderScenario`, `renderExamples`, `renderOutline`,
-  `renderFeatureItem`, `renderRuleBlock`, `renderFeature`, `renderReportView`.
+  `renderFeatureItem`, `renderRuleBlock`, `featureShape`, `renderFeature`,
+  `renderReportView`.
 - `html.ts`: `inlineScriptHashes`, `csp`, `renderHtml`, the shell string and a
   one-line `export type { RenderOptions }` for path stability.
 
@@ -99,9 +102,10 @@ recorded deviation, not a silent one.
 3. **Module-layer test.** Add `test/render-modules.test.ts` with 3.7, after the
    modules exist: read the relative imports of the new render modules and assert
    the layer direction (`html` → `report`/`details` →
-   `triage`/`matrix`/`attachments`/`ci` → `format` → `types`) plus the expected
-   module set. It is green at the end of the split and guards later imports;
-   `tsc` alone does not reject cycles.
+   `triage`/`matrix`/`attachments`/`ci` → `format` → `types`), the expected
+   module set, that the foundation modules import no layered module, and that
+   `html.ts` stays shell-only. It is green at the end of the split and guards
+   later imports; `tsc` alone does not reject cycles.
 4. Fixture set for 1 and the extra CLI hash check:
    `messages/screenshot.ndjson`, `messages/all-statuses.ndjson`,
    `messages/empty-statuses.ndjson`, `legacy/happy.json`, `legacy/failed.json`,

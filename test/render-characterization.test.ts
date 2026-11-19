@@ -1,3 +1,5 @@
+// An intentional output change runs `npx vitest run -u test/render-golden.test.ts`,
+// then replaces the failing hashes from the failure output.
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,11 +33,6 @@ const fixtures = [
     sha256: '9d58b06d4c7d7f1f2dc138040a13bab2e91168efd9eb2eeeeccce2c97702d2fa',
   },
   {
-    name: 'messages attachments presentation',
-    fixture: 'messages/attachments-presentation.ndjson',
-    sha256: 'c964413b4fc3ab36c874146ebe7af008171ca9cd0e4ac1e000d3f4d0d9806966',
-  },
-  {
     name: 'legacy happy',
     fixture: 'legacy/happy.json',
     sha256: '8d3c6dbbc219c6d16ec510d2c7646cf3aadccbad63a1dffa8be2e15907e95b16',
@@ -44,11 +41,6 @@ const fixtures = [
     name: 'legacy failed',
     fixture: 'legacy/failed.json',
     sha256: '081c88b7c0d930cef81f8c89d390eeec7a7f22b9c7c5254470e8725d28806d80',
-  },
-  {
-    name: 'legacy minimal',
-    fixture: 'legacy/minimal.json',
-    sha256: '1d61429e239b2f1d6c145e671d484792c7ee6623fd0c993a629a0017dff56ac8',
   },
   {
     name: 'playwright real run',

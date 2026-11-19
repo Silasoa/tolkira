@@ -4,6 +4,7 @@ Start here for product, architecture, compatibility and agent-facing docs.
 
 - [Product](PRODUCT.md) — vision, audience, scope and non-goals.
 - [Architecture](ARCHITECTURE.md) — system shape and [ADRs](adr/).
+- [Design](../DESIGN.md) — report design system, components and renderer modules.
 - [Compatibility](COMPATIBILITY.md) — migration from `cucumber-html-reporter`.
 - [Cucumber compatibility](CUCUMBER-COMPATIBILITY.md) — tested producers and versions.
 - [JUnit XML](JUNIT-XML.md) — basic-mode mapping and limits.

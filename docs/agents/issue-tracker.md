@@ -42,7 +42,7 @@ Examples:
 | Report crashes on empty legacy JSON | Issue (bug template) | Reproducible, testable, user-facing |
 | "Maybe support PDF export" | Backlog only | Product idea without an approved scope |
 | Reviewer notes a stale ARIA label | Fix in the slice, or backlog chore | Small enough to fix now; issue only if deferred |
-| `html.ts` view seams (B-004) | Issue + OpenSpec change | Durable architecture work |
+| `report.ts` / `scenarios.ts` split | Issue + OpenSpec change | Durable architecture work |
 | Ten small chores from one review | One meta issue with a checklist | One owner for a batch; each chore stays a small sub-task |
 | A single docs typo | PR directly | Too small for an issue or a spec |
 

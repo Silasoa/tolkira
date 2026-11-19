@@ -57,7 +57,7 @@ behavior spec delta; archive it with `--skip-specs`.
 ## Review gate
 
 PIR and DXR before implementation. No TDD-Red: there is no behavior to specify;
-the committed golden and the existing 598 unit / 273 browser tests are the
+the committed golden, the full unit suite and the 273 browser tests are the
 safety net. Review swarm: SCR, CR, DAR and STR. SEC is not triggered because the
 output is byte-identical and no input or attachment path changes. Refs #7 and
 B-004.

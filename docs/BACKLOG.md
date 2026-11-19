@@ -146,6 +146,9 @@ the benchmark path and budget.
 - **Details matrix caption.** The caption still says `Executed scenarios only.`
   and 320 px can split `1` from `failed`; align the wording and the cell layout
   with the next vocabulary pass if users report it.
+- **Report scenario/step split.** Keep `report.ts` as one module while it stays
+  under about 800 lines and has one consumer. Extract `scenarios.ts`/`steps.ts`
+  when it exceeds that size or a second consumer needs scenario/step rendering.
 
 ## Review follow-ups (2026-11-18)
 
