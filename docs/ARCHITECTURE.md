@@ -180,6 +180,24 @@ Test names, metadata, file names and attachments are untrusted input.
 - Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
   1.4 MB; 5,000 / 15,000 in about 0.4–0.5 s to 7.0 MB. Timings vary with host
   load.
+- `npm run bench:ansi` bundles `src/text.ts` with esbuild, strips fixed
+  2,000-message clean and escape-laden corpora of about 2 KiB per message, and
+  reports medians plus scan-only and character-append reference ratios. The
+  fast-path ratio is the scan-only median divided by the production median; the
+  slicing ratio is the character-append median divided by the production median.
+  Higher is better for both. On the 2026-11-19 reference host (Windows, Node
+  26.13.1) a coherent full run measured a 27.7 ms combined production median
+  against the 500 ms budget, a 9.6x clean fast-path ratio (roughly 7-10x), and
+  `outputIdentical: true`. Across the full runs on this host, including phases
+  under heavy local load, the combined median ranged 23.4-78.9 ms and the clean
+  ratio 6.3-9.6x (one noisier run 4.2x). The slicing ratio ranged 0.65-1.21x
+  (one noisier run 3.47x) and is evidence only. A fast-path ratio of at least
+  1.5x reports `keep`; below reports `review` without failing CI. A budget
+  failure is investigated, never raised silently, and a budget change or
+  fast-path removal is a separate change with its own reason. A full-mode
+  combined median below 0.75x the largest corpus median fails the benchmark as
+  an incoherent measurement (re-run once; if it persists, investigate the
+  measurement order or host load); quick mode skips the check.
 - Warn when the generated file exceeds 10 MB.
 - External attachments are the escape hatch for large screenshots/videos.
 

@@ -47,6 +47,8 @@ jobs:
         run: npm pack --dry-run
       - if: matrix.node == 22
         run: npm run stress -- 1000
+      - if: matrix.node == 22
+        run: npm run bench:ansi
 
   package:
     runs-on: ubuntu-latest
