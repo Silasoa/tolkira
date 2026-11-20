@@ -83,11 +83,11 @@ Tolkira view carries, record that functional gap.
 
 | Host | Last run | Result | Notes |
 | --- | --- | --- | --- |
-| Seed-Test | 2026-11-20 static | Blocked on real data | ESM AI branch; still default-import/no-`await`; group mode reads `output + '.json'`, which the old reporter writes and Tolkira does not. Needs `features/<name>.json` or a running stack. |
-| Cucumber-js host | pending | — | Recipe selected; first live run pending. |
-| Playwright movies-app | 2026-11-18 research | Research passed | 10 passed / 1 flaky / 1 skipped / 1 failed; native 4.7 MB/29 files vs Tolkira 2.0 MB/one file. Re-run on the pinned commit as the release gate. |
-| Spring PetClinic | pending | — | Selected; Maven/JUnit run pending. |
-| Cucumber-JVM examples | pending | — | Selected; Maven/Cucumber run pending. |
+| Seed-Test | 2026-11-20 static + 2026-11-21 compat probe | Blocked on real data | ESM AI branch: `import reporter from 'tolkira/compat/...'` fails at module linkage (`does not provide an export named 'default'`); a namespace import without `await` races and crashes on errors. Group mode needs `output + '.json'`; the old reporter writes it (`jsonDir.js:82`), Tolkira does not (B-032). Needs `features/<name>.json` or a running stack. |
+| Cucumber-js host | 2026-11-21 | Pass | 2 scenarios (1 passed/1 failed), 2 steps, 2 PNG attachments; legacy and Messages summaries byte-identical; shim ESM named/await and CJS callback both work; warnings for `theme`, `reportSuiteAsScenarios` and `screenshotsDirectory`; metadata and images render. Group sidecar missing (B-032). |
+| Playwright movies-app | 2026-11-21 | Pass with documented gaps | 8 tests / 9 executions; 7 passed / 1 failed (host test rot: TMDB images missing). Final attempt, projects, failure text, screenshots/video/error-context, rule path and counts match. Gaps: no retry history, no scenario source line (B-035), failed results lose their steps upstream in Playwright 1.62, no trace viewer, no git metadata. |
+| Spring PetClinic | 2026-11-21 | Pass with grouping gap | 59 tests / 12 features (Surefire has 15 class rows because nested `Outer$Nested` classes are folded into the outer feature; B-036). Counts match; duration is the sum of testcase times vs Surefire's suite wall time (B-037). All selected tests passed; failure/error/skip rendering not exercised. |
+| Cucumber-JVM examples | 2026-11-21 | Pass with adapter fix | 3 features / 9 scenarios / 52 step results; hooks, backgrounds, tags, outline expansion and nanoseconds correct. Cucumber-JVM `name` on attachments is now mapped; hook output is not rendered (B-034). The host is all-green, so failure/skip/retry coverage stays limited. |
 | `cucumber-html-reporter@7.2.0` reference | 2026-11-20 | Content PASS | Same fixture; screenshots at 1440/390; no visual parity; old install 144 packages/7 vulnerabilities. |
 
 The 2026-11-20 wild-install probe is separate from this matrix but recorded

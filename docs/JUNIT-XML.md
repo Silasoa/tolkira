@@ -87,6 +87,12 @@ one.
   instructions is data and is accepted.
 - A document with no test cases is rejected with a clear error instead of
   rendered as an empty run.
+- Grouping follows `<testsuite>`; a per-testcase `classname` is not used. Maven's
+  `Outer$Nested` cases stay in the outer feature, so a Surefire report with 15
+  class rows can show 12 Tolkira features while keeping all 59 cases (B-036).
+- Test time is the sum of `<testcase time>` values. Suite wall time (including
+  Spring context setup) is not included, so do not compare it directly with a
+  Surefire total (B-037).
 - JUnit XML dialects differ; Tolkira handles the common Jenkins/Gradle/Maven/
   pytest/Playwright shape and fails clearly otherwise. Playwright JSON is the
   richer Playwright path; this JUnit mode cannot recover projects, retries,
