@@ -118,10 +118,17 @@ Browser gate:
 Plus the reviewer set: docs-only changes skip review; every other change is
 reviewed. A failing review spawns a fixer; the coordinator re-runs the gate.
 
+Input-adapter, report-shell, print/PDF/email or compatibility-shim changes also
+run the relevant rows in `docs/DROP-IN-VALIDATION.md` and record the host, pin
+and result. A red host blocks or needs a written, approved exception.
+
 ## Release
 
 - The user approves a release explicitly, **per version**. An approval for an
   earlier version is not authorization for a new tag, stage or publish.
+- Run the full required host matrix in `docs/DROP-IN-VALIDATION.md` before a
+  tag or stage; record the host pins and results. A red host blocks the release
+  or needs a written, approved exception.
 - Prepare the release locally (version, changelog, gate, review) and present
   the result. Do not create a tag, stage a package or publish until the user
   says yes to that exact version.

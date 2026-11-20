@@ -24,6 +24,8 @@ Package: https://www.npmjs.com/package/tolkira
 - [PDF export](https://github.com/Silasoa/tolkira/blob/main/docs/PDF.md):
   opt-in `--pdf`, `--pdf-timeout` and `renderPdf`, optional Playwright Chromium
   install in the project, A4 portrait print archive, write order and limits.
+- [Drop-in host validation](https://github.com/Silasoa/tolkira/blob/main/docs/DROP-IN-VALIDATION.md):
+  real host projects run before releases and major adapter/report changes.
 - [Limitations](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md):
   dated status of Behave coverage, JUnit, Playwright, themes and attachments.
 - [Playwright JSON](https://github.com/Silasoa/tolkira/blob/main/docs/PLAYWRIGHT-JSON.md):
