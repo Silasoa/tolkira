@@ -31,6 +31,8 @@ export {
   writeHistory,
 } from './history.js';
 export type { RenderReportOptions } from './options.js';
+export type { EmailOptions } from './email.js';
+export { renderEmail } from './email.js';
 export { CucumberHtmlStream } from './stream.js';
 
 export interface GeneratedReport {

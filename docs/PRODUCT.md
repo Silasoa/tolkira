@@ -125,18 +125,33 @@ it. The gap is the combination.
   prints with closed details unchanged. The failed-only filter plus print is the
   failures-only archival print. Browser headers/footers and page numbers stay
   user-controlled; video/audio do not print and unusually wide matrices may need
-  landscape. No PDF engine, email summary, print button or custom page numbers.
+  landscape. No PDF engine, print button or custom page numbers.
+
+### Email summary (in main)
+
+- Opt-in `--email <file>` writes one self-contained HTML mail body from the
+  summary: title/status, attempted pass rate (percentage with a full-sentence
+  note), every non-zero status plus unexecuted, counts, duration, inline
+  attachments and the first five failed scenarios in summary order. It follows
+  `--locale`, names the report basename or states that no full report is attached, has no image,
+  script, link or remote asset, keeps a standard summary under 100 KB and never
+  sends mail. The full report, when generated, is attached or shared separately.
 
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media (ADR 0006).
-- Email HTML summary (#13b) and a PDF engine (#13c); the print slice covers the
-  browser route meanwhile.
+- A PDF engine (#13c); the print slice covers the browser route meanwhile.
+- An `.eml` draft with a real subject (B-023), a capped logo (B-024), optional
+  metadata or error snippets (B-025) and a configurable failed-scenario cap
+  (B-026).
 - Deeper dashboard and custom themes.
 
 ### Non-goals
 
 - Test management, live server, trace viewer, screenshot diffing, AI analysis.
+- Sending mail: SMTP, recipients or scheduling are outside the local file
+  baseline; Tolkira writes the summary and the user's mail step sends it. A
+  local `.eml` draft is a follow-up (B-023), not a sending feature.
 - A plugin marketplace or a SaaS.
 - Posting PR comments or calling a CI provider API on the user's behalf.
 - A 1:1 visual clone of the old Bootstrap themes.

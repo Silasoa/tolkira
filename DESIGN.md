@@ -146,14 +146,37 @@ layer.
 The visible shell is rendered from `src/i18n/locales/<locale>.json`. `renderHtml`
 resolves `locale` once, sets `<html lang>` and `dir`, and passes one translator
 to every view. One report carries one locale; there is no in-report switcher.
-All visible counts are locale-formatted (English keeps raw digits), on the
-server and in the client. The report always embeds the active
-`client.*` messages as an inert JSON block; the browser bundle contains no
-non-English catalog, and a missing block or key shows the key. Test data,
+All visible counts are locale-formatted (English report digits stay raw; the
+email groups them), on the server and in the client. The report always embeds
+the active `client.*` messages as an inert JSON block; the browser bundle contains
+no non-English catalog, and a missing block or key shows the key. Test data,
 Gherkin keywords, tags, errors, attachment content and names, metadata and URIs
 render verbatim in every locale; the JSON summary and CI text stay English. See
 [`docs/I18N.md`](docs/I18N.md) for keys, fallback, the German glossary and the
 translation checklist.
+
+### Email summary
+
+`src/email.ts` renders a second, opt-in surface from the stable summary, not from
+the report shell. It is a 600 px table (`width: 100%`, `max-width: 600px`) with
+inline styles and a small `<style>` block that applies below 480 px, so 600 px
+keeps the 2 by 2 metric grid: an inline system font stack, the status colour as a
+pill whose count and label stay separated, the validated accent as the top
+border, and no image, icon, script, link, preheader or remote asset. The heading,
+note and failed names wrap anywhere, and displayed feature, scenario and
+report-name strings are capped at 200 characters with an ellipsis. The layout is
+intentionally plainer than the report so a mail client that strips `<style>`
+still shows a readable summary. The content is the title and status, generation
+time, attempted pass rate as a percentage with a full-sentence note that skipped
+scenarios are not attempts, every non-zero status plus unexecuted,
+feature/step/duration totals, the inline-attachment count
+labelled `Attachments in the run`, and the first five failed scenarios in summary
+order; the full report is referenced by basename, or the note says that no full
+report is attached. The empty and all-unexecuted states are distinct. English
+email digits are grouped (`8,509 bytes`) and durations use a human form
+(`12 ms`, `12.3 s`, `1 min 5 s`, `1 h 2 min`) through email-local helpers; German
+counts and dates reuse the report translator, and the report helpers
+stay unchanged. A standard summary stays under 100 KB.
 
 ## Interaction rules
 
@@ -250,7 +273,10 @@ Direction A is implemented in production:
   views and details by default (an active filter still narrows the Report
   view), light palette, fitted tables and page breaks, with the screen state
   restored where `afterprint` fires and a no-JavaScript fallback for the active
-  Report.
+  Report;
+- an opt-in 600 px HTML email summary from the same status and counts, with the
+  first five failed scenarios in summary order and the report basename (or a
+  no-report note), but no image or script.
 
 CSS lives in `src/render/report.css`; `scripts/build-styles.mjs` generates
 `src/render/styles.ts` for the inline report.

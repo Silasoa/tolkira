@@ -10,6 +10,12 @@ export interface ReportFile {
   output: string;
 }
 
+export interface EmailFile {
+  dir: string;
+  email: string;
+  report?: string;
+}
+
 export async function writeInput(
   name: string,
   content: string,
@@ -55,6 +61,37 @@ export async function writeReport(
 
 export async function removeReport(dir: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
+}
+
+// Writes the email, optionally together with the report, in one CLI run.
+export async function writeEmail(
+  inputs: string[],
+  title = '',
+  prefix = 'tolkira-email-e2e-',
+  locale = '',
+  withReport = false,
+): Promise<EmailFile> {
+  const dir = await mkdtemp(path.join(tmpdir(), prefix));
+  const email = path.join(dir, 'email.html');
+  const report = withReport ? path.join(dir, 'report.html') : undefined;
+  const args = [...inputs, '--email', email];
+  if (report) args.push('--out', report);
+  if (title) args.push('--title', title);
+  if (locale) args.push('--locale', locale);
+  let stderr = '';
+  try {
+    const code = await runCli(args, {
+      stdout: () => undefined,
+      stderr: (text) => {
+        stderr += text;
+      },
+    });
+    expect(code, stderr).toBe(0);
+  } catch (error) {
+    await rm(dir, { recursive: true, force: true });
+    throw error;
+  }
+  return { dir, email, ...(report === undefined ? {} : { report }) };
 }
 
 // Writes one report that reads and appends the shared history sidecar; call it

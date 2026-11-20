@@ -121,26 +121,30 @@ count is stated.
 `--json` and CI text both target stdout, so they combine only when CI goes to a
 file:
 
-| `--ci` | `--json` | `--ci-out` | stdout |
-| --- | --- | --- | --- |
-| yes | no | no | CI text only |
-| yes | no | yes | normal report confirmation, or nothing without `--out` |
-| yes | yes | yes | JSON summary only |
-| yes | yes | no | usage error |
+| `--ci` | `--json` | `--ci-out` | `--email` | stdout |
+| --- | --- | --- | --- | --- |
+| yes | no | no | any | CI text only |
+| yes | no | yes | no | `Report written to ...`, or nothing without `--out` |
+| yes | no | yes | yes | `Report written to ...` and `Email written to ...`, or the email line alone without `--out` |
+| yes | yes | yes | any | JSON summary only |
+| yes | yes | no | any | usage error |
 
-The human `Report written to ...` line is suppressed whenever CI text goes to
-stdout, so annotations and Markdown are never mixed with other output.
+The human confirmation lines (`Report written to ...`, `Email written to ...`)
+are suppressed whenever CI text goes to stdout, so annotations and Markdown are
+never mixed with other output. `--email` writes its file whenever the command is
+accepted and changes neither the CI text nor the JSON bytes. Its own confirmation
+appears only when stdout is free.
 
 Report warnings, such as skipped path attachments, go to stderr when HTML is
 written. They never enter stdout, the JSON summary or the CI text.
 
-`--ci-out` must not overwrite an input file, the logo or the `--out` file. The
-check resolves each path through its nearest existing ancestor, so a symlinked
-or junctioned directory cannot hide a target that does not exist yet, and it
-treats paths as the same file regardless of case on Windows and macOS. It runs
-before report generation, so a rejected combination writes neither HTML nor the
-CI file. The CI file is written atomically as a standalone file: the contents
-are replaced, not appended.
+`--ci-out` must not overwrite an input file, the logo, the `--out` file or the
+`--email` file. The check resolves each path through its nearest existing
+ancestor, so a symlinked or junctioned directory cannot hide a target that does
+not exist yet, and it treats paths as the same file regardless of case on Windows
+and macOS. It runs before report generation, so a rejected combination writes
+neither HTML nor the CI file. The CI file is written atomically as a standalone
+file: the contents are replaced, not appended.
 
 ## Exit codes
 
@@ -154,8 +158,9 @@ CI output does not change the exit codes:
 
 A failed test run still exits 0 so the report and annotations can be published.
 Use the annotations, the Markdown counts or the JSON summary for the test
-outcome. A `--ci-out` write failure exits 1 after the HTML report has been
-written.
+outcome. A status mail step must derive its subject from the summary status, not
+from the job status, for the same reason. A `--ci-out` write failure exits 1 after
+the HTML report has been written.
 
 ## Messages are not redacted
 

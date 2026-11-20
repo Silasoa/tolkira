@@ -111,6 +111,13 @@ With `--out`, name the report basename and say "attach or share"; without it,
 say no full report was generated. No path or URL: MCHR removes links back to
 `index.html`, matching Tolkira's offline promise. [5]
 
+### Implementation note (2026-11-20)
+
+The shipped copy is recipient-facing: `No full report is attached.` /
+`Es ist kein vollständiger Bericht angehängt.`. The first visible line is the
+`Tolkira` eyebrow, the mobile block applies below 480 px, and displayed names are
+capped at 200 characters. See [`../EMAIL.md`](../EMAIL.md).
+
 ### Smallest first slice and follow-ups
 
 Ship `src/email.ts` (`renderEmail`), `--email`, catalog keys, path/write safety,

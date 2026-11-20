@@ -20,7 +20,8 @@ CLI / API
                               One self-contained HTML file
 ```
 
-One package. One CLI. One HTML output. No monorepo, no server, no database.
+One package. One CLI. One report file, plus an optional email summary. No
+monorepo, no server, no database.
 
 An optional aggregate history sidecar (`--history <file>`) sits beside the
 report: the CLI validates and reads it, `generateReport` appends one aggregate
@@ -28,6 +29,11 @@ entry and returns the list, and the renderer adds a Trends view when the list ha
 two or more entries. The 30-run bound belongs to that CLI/`generateReport` path;
 `renderReport` renders the list it is given. It holds no scenario, step or path
 data and stays opt-in.
+
+An optional HTML email summary (`--email <file>`) is a second output derived from
+the same `ReportSummary`: no logo, scripts, images, network or SMTP, one 600 px
+table with inline styles. It stays opt-in; without the flag the one-file report
+default is unchanged.
 
 ## Components
 
@@ -169,6 +175,31 @@ and is covered by real producer fixtures.
 - Pure and offline: no network, no report-model access and no schema change.
 - Caps annotations and lists while keeping the exact counts.
 
+### `src/email`
+
+- Renders one self-contained HTML email summary from a `ReportSummary`; pure and
+  synchronous, writing nothing and sending nothing.
+- A 600 px table (`width: 100%`, `max-width: 600px`) with an inline system font
+  stack, inline styles and a small `<style>` block that applies below 480 px, so
+  600 px keeps the 2 by 2 metric grid; no scripts, images, links, hidden
+  preheader or remote assets, so it makes no request and a standard summary stays
+  under 100 KB.
+- Shows the title/status, generation time, attempted pass rate as a percentage
+  with a full-sentence note that skipped scenarios are not attempts, every
+  non-zero status plus unexecuted, counts, feature/step/duration totals and the
+  inline-attachment count labelled `Attachments in the run`, then the first five
+  failed scenarios in summary order. The empty and all-unexecuted states are
+  distinct. The heading, note and failed names wrap
+  anywhere, and displayed names are capped at 200 characters with an ellipsis.
+  The report note keeps only the basename, or states that no full report is
+  attached.
+- Uses the report translator for labels, percentages, dates and locale number
+  formatting; email-local helpers render grouped digits (`8,509 bytes`) and
+  durations as `12 ms`, `12.3 s`, `1 min 5 s` or `1 h 2 min`, leaving the report
+  helpers unchanged. A validated accent becomes a border and invalid values are
+  ignored. Exported as `renderEmail` with `EmailOptions`; the CLI and API produce
+  identical HTML for the same summary, options and clock.
+
 ### `src/history`
 
 - Owns the opt-in aggregate history sidecar: schema version 1, at most 30 runs
@@ -189,9 +220,10 @@ and is covered by real producer fixtures.
 
 ### `src/cli`
 
-- `tolkira <input...> [--out <file>] [--json] [--ci github|markdown]`
-  `[--ci-out <file>] [--history <file>] [--locale <tag>] [--title <title>]`
-  `[--meta key=value] [--logo <file>] [--accent <hex>] [--max-size <mb>]`.
+- `tolkira <input...> [--out <file>] [--email <file>] [--json]`
+  `[--ci github|markdown] [--ci-out <file>] [--history <file>]`
+  `[--locale <tag>] [--title <title>] [--meta key=value] [--logo <file>]`
+  `[--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
   content; duplicate paths are resolved and read once.
@@ -201,13 +233,21 @@ and is covered by real producer fixtures.
 - `--ci` may run without `--out`; `--ci-out` is a standalone atomic Markdown
   file and is rejected for GitHub annotations.
 - `--history` requires `--out`. It is validated like an output path (inputs,
-  logo, `--out`, `--ci-out` and input directories, even when missing), read once
-  before generation and written after the HTML. A history read or write failure
-  exits 1 and names the file; a written HTML stays in place.
-- `--locale <tag>` requires `--out`, defaults to `en` and validates exact then
-  primary-subtag matches (`de-AT` -> `de`) before generation. Unknown or empty
-  tags exit 2 with `en, de`. The requested canonical tag reaches `<html lang>`;
-  the JSON summary and CI text stay English.
+  logo, `--out`, `--ci-out`, `--email` and input directories, even when missing),
+  read once before generation and written after the HTML. A history read or write
+  failure exits 1 and names the file; a written HTML stays in place.
+- `--email` is an output: alone, with `--out`, `--json`, `--ci` or `--ci-out`
+  (`--ci-out` still requires `--ci markdown`). It is validated like an output
+  path and must not collide with an input, the logo, `--out`, `--ci-out` or
+  `--history`, and must not be written inside an input directory. `--title` sets
+  the heading/suggested subject and `--accent` the top border, even standalone.
+  The order is report, email, history, `--ci-out`, stdout. An email write failure
+  exits 1, names the email path, keeps the report and skips later outputs; no
+  temporary file remains.
+- `--locale <tag>` requires `--out` or `--email`, defaults to `en` and validates
+  exact then primary-subtag matches (`de-AT` -> `de`) before generation. Unknown
+  or empty tags exit 2 with `en, de`. The requested canonical tag reaches
+  `<html lang>`; the JSON summary and CI text stay English.
 - Warns when the report exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
@@ -220,14 +260,17 @@ renderReport(inputs, options): Promise<string>
 generateReport(inputs, options): Promise<{
   html, summary, skippedAttachments, history?
 }>
+renderEmail(summary, options): string
 summarizeReport(inputs): Promise<ReportSummary>
 ```
 
 `generateReport` accepts `history`, appends the current aggregate run and returns
 the appended list; `renderReport` renders `options.history` without recording a
 run. `RenderReportOptions.locale` is optional and reaches the renderer through
-`renderOptions`; `de-AT` keeps its tag and uses the `de` catalog. The CLI is a
-thin wrapper around the API.
+`renderOptions`; `de-AT` keeps its tag and uses the `de` catalog. `renderEmail`
+is the synchronous email renderer; it takes a `ReportSummary` and validated
+options, writes nothing and shares the translator. The CLI is a thin wrapper
+around the API.
 
 ## Security
 
@@ -252,6 +295,11 @@ Test names, metadata, file names and attachments are untrusted input.
   regular file, capped at 1 MiB on the descriptor and rewritten atomically. It
   stores aggregates only, so it cannot leak scenario names, step text, paths,
   tags or attachment content.
+- The email summary escapes the title, feature/scenario names and report name,
+  ignores an invalid accent, wraps and caps long names, and contains no script,
+  image, link or remote URL. Its path is contained: it cannot overwrite an input
+  or the logo, or land inside an input directory. It is opt-in, written atomically
+  and never sent.
 - A restrictive CSP is injected into every report; v0.1 defaults to inline
   assets.
 
@@ -300,13 +348,16 @@ Test names, metadata, file names and attachments are untrusted input.
   sidecar schema, validation, dedupe, retention and atomic write;
   `test/cli-history.test.ts` and `test/render-trends.test.ts` cover the
   `--history` flow and the Trends view; `test/e2e/trends.spec.ts` covers the
-  two-run browser flow at 320, 1440 and 200 % text zoom.
+  two-run browser flow at 320, 1440 and 200 % text zoom. `test/email.test.ts`,
+  `test/cli-email.test.ts`, `test/email-catalog.test.ts` and
+  `test/e2e/email.spec.ts` pin the email template, metrics, escaping, locale,
+  size, CLI composition and 600/320 px rendering.
 - Fixtures: cucumber-js legacy JSON, Behave 1.3.3 real runs (statuses, doc
   strings, tables and inline images), cucumber-jvm and cucumber-ruby real runs,
   and a hand-built Messages stream with passing/failing scenarios and
   attachments.
 - Browser test per critical flow: render, search, open a screenshot, verify an
-  HTML attachment does not execute.
+  HTML attachment does not execute, and open the email at 600 and 320 px.
 - Security tests: XSS payloads in names/metadata, malicious attachment names,
   remote attachments, HTML attachments, CSP and offline asset checks.
 - ISTQB-inspired edge cases: equivalence classes, boundaries, decision tables

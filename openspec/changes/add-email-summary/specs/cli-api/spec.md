@@ -7,7 +7,7 @@
 The CLI SHALL accept `--email <file>` and count it as an output. It SHALL
 require a non-empty path and at least one input. Without `--out` it SHALL still
 write the summary-only email. `--json`, `--ci` and their text SHALL stay
-English and unchanged.
+English and unchanged; `--ci-out` SHALL still require `--ci markdown`.
 
 #### Scenario: Email alone
 
@@ -50,16 +50,16 @@ SHALL stay a usage error. The CLI, JSON and CI text SHALL stay English.
 ### Requirement: Validate email paths and writes
 
 The email path SHALL NOT equal an input, the logo, `--out`, `--ci-out` or
-`--history` (resolved and case-aware). The CLI SHALL write in the order report,
-email, history, `--ci-out`, stdout. On an email write failure it SHALL exit 1
-with the email path (not the temporary name), keep an already written report,
-and SHALL NOT write the history/`--ci-out` or print the JSON/CI stdout. No
-partial email SHALL remain.
+`--history`, or be inside an input directory even when the target does not exist.
+The CLI SHALL write in the order report, email, history, `--ci-out`, stdout. On
+an email write failure it SHALL exit 1 with the email path (not the temporary
+name), keep an already written report, and SHALL NOT write the history/`--ci-out`
+or print the JSON/CI stdout. No partial email SHALL remain.
 
 #### Scenario: Collision
 
-- **WHEN** `--email` resolves to an input, the logo, `--out`, `--ci-out` or the
-  history file
+- **WHEN** `--email` resolves to an input, the logo, `--out`, `--ci-out`, the
+  history file or a path inside an input directory
 - **THEN** the CLI exits 2
 - **AND** nothing is written
 
@@ -71,6 +71,20 @@ partial email SHALL remain.
 - **AND** the history and `--ci-out` are not written and the JSON/CI stdout is
   not printed
 - **AND** no partial email remains
+
+### Requirement: Apply the email appearance options
+
+`--title` SHALL set the email heading and suggested subject. A validated
+`--accent` SHALL set the top border even without `--out`; an invalid value SHALL
+be ignored.
+
+#### Scenario: Appearance options
+
+- **WHEN** `--email summary.html --title "Nightly" --accent #1b5e20` is used
+  without `--out`
+- **THEN** the email heading and suggested subject use `Nightly`
+- **AND** the validated accent is the top border
+- **AND** no report is generated
 
 ### Requirement: Confirm the email output
 

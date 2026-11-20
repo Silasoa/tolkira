@@ -111,13 +111,15 @@ The core Messages path reads `meta.ci` and renders it in HTML only.
   the generated HTML. If you only have the old HTML, export the JSON again.
 - **The `output + '.json'` side effect.** Tolkira does not write a merged JSON
   copy next to the report.
-- **Custom CSS/JS, MCHR's UI language set, email reports, CDN mode and browser
-  launch.** MCHR 4.6 chooses one UI language at build time (`language` or
+- **Custom CSS/JS, MCHR's UI language set, CDN mode and browser launch.** MCHR
+  4.6 chooses one UI language at build time (`language` or
   `--language`/`--lang`) from en, es, fr, pt and ar, including RTL Arabic;
   German is not in that set, and MCHR has no in-report switcher. Tolkira
   supports en and de per report and maps the MCHR option to `--locale`. Custom
-  CSS/JS, email reports, CDN mode and browser launch conflict with the
-  single-file, no-network baseline or are out of scope.
+  CSS/JS, CDN mode and browser launch conflict with the single-file, no-network
+  baseline or are out of scope. Tolkira's core `--email <file>` is the nearest
+  equivalent to MCHR's separate email report, not a shim option; see
+  [`EMAIL.md`](EMAIL.md) and the MCHR section below.
 
 ## Seed-Test
 
@@ -147,8 +149,9 @@ does not write that file.
   API: with JavaScript the complete report prints by default (an active filter
   still narrows the Report view), without it the active Report only. Video/audio
   do not print, very wide matrices may need landscape, browser headers/footers
-  and page numbers stay user-controlled, and there is no email summary or PDF
-  engine in this compatibility surface.
+  and page numbers stay user-controlled, and there is no PDF engine in this
+  compatibility surface. The shim itself has no email option; the core CLI/API
+  adds the opt-in `--email` summary.
 
 ## `multiple-cucumber-html-reporter`
 
@@ -170,12 +173,17 @@ folder. MCHR localizes its default report titles; Tolkira keeps `Tolkira report`
 unless `--title` overrides it. An unknown MCHR language warns and falls back to
 English on the API/config path, while its `--language`/`--lang` CLI throws.
 Tolkira rejects it too: the CLI exits 2 and the API throws.
-MCHR's `--email`/`emailReport` email-report option has no equivalent. The
-sendable artifact is Tolkira's single HTML file, or its browser-printed PDF; add
-a mail step outside Tolkira and attach that file. For comparison, Allure 3 ships
-an optional `mail` plugin; Tolkira leaves delivery to your CI or mail tooling.
+MCHR's `--email`/`emailReport` is a boolean and writes
+`reportPath/email-report.html`; Tolkira's `--email` takes a required file path, so
+copying MCHR's bare flag exits 2. MCHR renders a 960 px Tailwind/CDN page with
+per-feature statistic cards, metadata/logo and the five **slowest** scenarios.
+Tolkira writes a 600 px inline, offline mail body with aggregate counts and the
+first five **failed** scenarios in summary order, with no per-feature cards,
+metadata or logo. MCHR and Allure 3's `mail` plugin both only generate the file
+and leave delivery to a mail step: no sending is shared, not a Tolkira
+difference. Attach the report separately.
 The dashboard, scenario-level history and the old folder report are not
 reproduced; history is available only as the opt-in aggregate `--history`
 sidecar described in [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history). The
-core CLI/API also accepts `--locale en|de` for the report shell; the legacy
-`cucumber-html-reporter` shim option set stays frozen.
+core CLI/API also accepts `--locale en|de` for the report shell and email; the
+legacy `cucumber-html-reporter` shim option set stays frozen.

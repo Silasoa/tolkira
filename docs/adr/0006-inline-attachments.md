@@ -18,8 +18,10 @@ deliberately out of scope, and trace viewer/replay is not a Tolkira feature.
 
 ## Decision
 
-- Keep the default and only output a single self-contained HTML file with inline
-  attachments.
+- Keep the default and only report output a single self-contained HTML file with
+  inline attachments. The opt-in `--email <file>` adds one separate mail body
+  (see [`../EMAIL.md`](../EMAIL.md)); it is not a linked-assets or split-assets
+  mode and does not change the report default.
 - Keep rejecting remote URLs, `file:`, UNC/device paths and paths outside the
   allowed roots; keep the skipped-attachment notice and the size warning.
 - Do not add a split-assets mode, a CDN default or a linked-assets manifest.
@@ -33,6 +35,8 @@ deliberately out of scope, and trace viewer/replay is not a Tolkira feature.
 ## Consequences
 
 - Reports remain portable, offline and a single attachment.
+- The opt-in email summary is a second, explicitly requested file; without
+  `--email` the report is still the only output.
 - Very large media stays out; users compress images and clips or attach them
   separately to the ticket.
 - Trace viewer and HTML-report replay remain out of scope.

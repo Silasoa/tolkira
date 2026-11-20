@@ -7,6 +7,28 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Opt-in HTML email summary (#13b). `--email <file>` writes one self-contained
+  600 px table body from the stable summary: title and status, generation time,
+  attempted pass rate as a percentage with a full-sentence note that skipped
+  scenarios are not attempts, every non-zero scenario status plus unexecuted,
+  the total as scenarios with results, feature/step/duration and
+  inline-attachment totals, and the first five failed scenarios in summary
+  order (feature, name, status and duration; further failures are a count). It
+  composes with `--out`, `--json` and `--ci`/`--ci-out`, writes in the order
+  report, email, history, `--ci-out`, stdout, and never changes the report, JSON
+  or CI bytes. The email path is validated like an output and is written
+  atomically; a write failure exits 1, names the email path, keeps the report and
+  skips later outputs. `--locale` now also applies to the email and is accepted
+  with `--email` without `--out`. The 17 `email.*` catalog keys ship in English
+  and German. `renderEmail(summary, options)` is exported with title, locale,
+  report name, validated accent and pinned `now`; there is no logo or image,
+  script, link, hidden preheader or remote asset. The email names the report
+  basename or states that no full report is attached, uses an inline system font
+  stack, wraps long text and caps displayed names at 200 characters, labels the
+  attachment count `Attachments in the run`, groups English digits
+  (`8,509 bytes`) and renders human durations (`12 ms`, `12.3 s`, `1 min 5 s`,
+  `1 h 2 min`). A standard summary stays under 100 KB, makes no request and is
+  never sent by Tolkira. See [`docs/EMAIL.md`](EMAIL.md).
 - Print and Save as PDF. A `@media print` stylesheet hides the interactive
   chrome, repeats the light palette from dark mode, fits the report tables to the
   printable width (A4-compatible, not a fixed CSS paper setting), keeps

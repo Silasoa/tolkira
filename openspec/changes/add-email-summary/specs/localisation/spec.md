@@ -5,10 +5,11 @@
 ### Requirement: Localize the email summary
 
 The email SHALL use the active locale catalog for its subject, heading,
-status labels, counts, pass rate, duration, failed-scenario labels and report
-note. It SHALL set `lang`/`dir` and format numbers, percentages,
-durations and dates for the locale. The default title and test data SHALL render
-verbatim; the CLI, JSON and CI text SHALL stay English.
+status labels, counts, pass-rate percentage and note, duration, failed-scenario
+labels and report note. It SHALL set `lang`/`dir` and format numbers, percentages,
+durations and dates for the locale. English email digits SHALL be grouped and
+durations SHALL use a short human form. The default title and test data SHALL
+render verbatim; the CLI, JSON and CI text SHALL stay English.
 
 #### Scenario: German email
 
@@ -16,13 +17,13 @@ verbatim; the CLI, JSON and CI text SHALL stay English.
 - **THEN** the email labels, counts, pass rate, duration and report note are
   German
 - **AND** `lang="de"` and the German number/date formats are used
+- **AND** the report note uses `Vollständiger Bericht` and no English fallback
 
 #### Scenario: English email
 
 - **WHEN** the email is generated without `--locale`
 - **THEN** the email is English
-- **AND** its numbers, percentages, durations and dates match the existing
-  English helpers
+- **AND** its digits are grouped and its durations use a short human form
 
 #### Scenario: Test data and title
 

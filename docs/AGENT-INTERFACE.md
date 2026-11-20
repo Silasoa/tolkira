@@ -1,10 +1,11 @@
 # Tolkira for agents
 
-Tolkira produces three things from the same input:
+Tolkira produces four things from the same input:
 
 - a self-contained HTML report for humans;
 - a stable JSON summary for programs and AI agents;
-- deterministic CI text: GitHub Actions annotations or a Markdown summary.
+- deterministic CI text: GitHub Actions annotations or a Markdown summary;
+- an opt-in HTML email summary for a status mail or chat message.
 
 The HTML report is the artifact. The JSON summary is the interface. The CI text
 is a presentation of that same summary. Do not parse the HTML to decide whether
@@ -58,7 +59,8 @@ tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
   suppressed. With `--ci-out`, the file receives the CI text and stdout keeps
   its normal confirmation; with `--json`, stdout stays JSON only.
 - `--ci-out` requires `--ci markdown`, is written atomically as a standalone
-  file, and must not overwrite an input, the logo or `--out`. To add to
+  file, and must not overwrite an input, the logo, `--out` or the `--email`
+  file. To add to
   `$GITHUB_STEP_SUMMARY`, append stdout with `>>`; do not point `--ci-out` at a
   shared file.
 - Exit codes are unchanged. A failed test run still exits 0; invalid
@@ -72,14 +74,61 @@ Markdown caps the failed list at 50 scenarios, each message at 500 raw
 characters and the skipped name list at 20, while the counts and the overall
 `Status` row stay complete.
 
+## Email summary
+
+`--email <file>` writes one self-contained HTML mail body from the same summary.
+It is another output, not a mode, and composes with `--out`, `--json`, `--ci` and
+`--ci-out` (`--ci-out` still requires `--ci markdown`):
+
+```shell
+tolkira test-results/ --out report.html --email email.html
+tolkira test-results/ --json --email email.html > summary.json
+tolkira test-results/ --email email.html --locale de
+```
+
+- The file is a 600 px table with an inline system font stack and a small style
+  block below 480 px, no scripts, images, links, remote assets or hidden
+  preheader. The heading, note and failed names wrap anywhere; displayed feature,
+  scenario and report-name strings are capped at 200 characters with an ellipsis.
+  A standard summary stays under 100 KB.
+- It shows the title and status, generation time, attempted pass rate as a
+  percentage with a full-sentence note that the rate counts only executed
+  (non-skipped) scenarios, every non-zero scenario status plus unexecuted, the
+  total as scenarios with results, feature/step/duration/attachment totals and
+  the first five failed scenarios in summary order
+  (feature, name, status, duration; no steps or errors). The attachment count is
+  labelled `Attachments in the run`. English digits are grouped (`8,509 bytes`)
+  and durations are human (`12 ms`, `12.3 s`, `1 min 5 s`, `1 h 2 min`). An
+  empty run and an all-unexecuted run are distinct; further failures are a
+  count.
+- `--title` sets the heading and suggested subject; `--accent` sets the top
+  border even without `--out`. With `--out`, the report note names only the
+  report basename and says to attach or share it separately. Without `--out`, it
+  tells the recipient that no full report is attached, so the mail never points
+  at a file that does not exist.
+- The email path is validated like an output: no collision with an input, the
+  logo, `--out`, `--ci-out` or `--history`, and no path inside an input
+  directory (including through a junction or symlink); an empty path exits 2 and
+  writes nothing. The write order is report, email, history, `--ci-out`, stdout.
+  A write failure exits 1, names the email path, keeps the report and skips later
+  outputs.
+- `Email written to <path>` is printed only when stdout is free. With `--json`
+  or `--ci` on stdout, the machine bytes are unchanged and no email line is
+  added; with `--ci-out` and no `--json`, the line is printed.
+- Tolkira writes the file only. There is no SMTP, sending, scheduling or
+  network access. Feature and scenario names, the title (which may carry a
+  branch or build name) and the report basename are included and not redacted.
+  See [`EMAIL.md`](EMAIL.md).
+
 ## Report locale
 
-`--locale <tag>` localizes the HTML report only. It requires `--out`, defaults to
-`en`, and accepts `en` or `de`; `de-AT` keeps the regional tag for `<html lang>`
-and uses the German catalog. An empty or unknown tag exits 2 with the supported
-list before anything is written; the API throws instead. The JSON
-summary, CI text, exit codes, summary keys and the default title `Tolkira
-report` are unchanged. Test data renders verbatim in every locale. See
+`--locale <tag>` localizes the HTML report and the optional email summary. It
+requires `--out` or `--email`, defaults to `en`, and accepts `en` or `de`;
+`de-AT` keeps the regional tag for `<html lang>` and uses the German catalog. An
+empty or unknown tag exits 2 with the supported list before anything is written;
+the API throws instead. The JSON summary, CI text, exit codes, summary keys and
+the default title `Tolkira report` are unchanged. Test data renders verbatim in
+every locale. With only `--json` or `--ci`, `--locale` stays a usage error. See
 [`I18N.md`](I18N.md).
 
 ## API
@@ -88,6 +137,7 @@ report` are unchanged. Test data renders verbatim in every locale. See
 import {
   generateReport,
   readHistory,
+  renderEmail,
   renderReport,
   summarizeReport,
 } from 'tolkira';
@@ -105,7 +155,23 @@ const { html, summary: sameSummary, skippedAttachments, history } =
     history: previousRuns,
   });
 const htmlOnly = await renderReport(inputs, { title: 'Nightly', locale: 'de' });
+const email = renderEmail(summary, {
+  title: 'Nightly',
+  locale: 'de',
+  reportName: 'report.html',
+  accent: '#1b5e20',
+  now: new Date('2026-11-20T09:30:00.000Z'),
+});
 ```
+
+`renderEmail(summary, options)` is synchronous and returns the same HTML the CLI
+writes for the same summary, options and clock. `EmailOptions` has `title`,
+`locale`, `reportName`, `accent` and `now`; there is no logo option. It writes
+nothing and sends nothing. Invalid accents are ignored, an unrecognised summary
+status falls back to the `Unknown` label and colour, and an invalid `now` omits
+the generated date. The title, test names and report name are escaped; the report
+note keeps only the basename. The CLI strips control characters from its
+`Email written to` confirmation.
 
 `skippedAttachments` is the number of Playwright path attachments skipped
 because they resolve outside every allowed root. It is a plain number, additive
@@ -122,12 +188,13 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 
 | Option | CLI | API |
 | ------ | --- | --- |
-| title | `--title` | `title` |
+| title | `--title` sets the report heading, Markdown CI heading and email heading/suggested subject | `title` |
 | metadata | `--meta key=value` (repeatable) | `metadata` object |
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | history | `--history <file>` reads and appends a sidecar; needs `--out` | `history` array; `generateReport` appends the current run, `renderReport` and the stream render it as given |
-| locale | `--locale <tag>` (`en` or `de`; needs `--out`) | `locale` string; default `en` |
+| locale | `--locale <tag>` (`en` or `de`; needs `--out` or `--email`) | `locale` string; default `en` |
+| email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
 | size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
 | CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
@@ -238,8 +305,8 @@ Contract:
   file. A bad file is never overwritten. The HTML is written first; a failed
   history write leaves it in place and leaves no partial sidecar.
 - `--history` follows the output-path rules: it must not name an input, the
-  logo, `--out`, `--ci-out` or a path inside an input directory, even when the
-  history file does not exist yet.
+  logo, `--out`, `--ci-out`, `--email` or a path inside an input directory, even
+  when the history file does not exist yet.
 - The CLI (through `generateReport`) is the only automatic writer. API callers
   write through `writeHistory`; `renderReport` and `CucumberHtmlStream` render a
   given list and record nothing. The writer reads, appends and writes atomically
@@ -444,12 +511,14 @@ outside `features/`).
 ## Recommended agent workflow
 
 1. Run the tests and keep the raw Cucumber JSON or Messages.
-2. Run `tolkira <inputs> --out report.html --json`.
+2. Run `tolkira <inputs> --out report.html --json`; add `--email email.html`
+   when a status mail or chat message is part of the job.
 3. Parse stdout once. Filter on `executed` (or use `counts`) and use `status`,
    counts and `scenarios[].steps[].message` for diagnosis.
 4. If you need screenshots or the full Gherkin view, open `report.html`; do not
    scrape it for pass/fail data.
-5. Attach or upload the HTML report as the human-facing artifact.
+5. Attach or upload the HTML report as the human-facing artifact; use
+   `email.html` as optional mail body, never as the only record.
 
 ## Current limits
 
@@ -474,6 +543,9 @@ outside `features/`).
   the final attempt is the rendered one. JUnit XML is a basic input mode; see
   [`LIMITATIONS.md`](LIMITATIONS.md). Playwright producer metadata and
   annotation descriptions are HTML-only and do not change schema version 2.
+- The email summary is opt-in and file-only. It has no sending, recipients,
+  scheduling, `.eml` draft, logo, error snippets or redaction mode; the report
+  basename (or the no-report note) is the only path-like content.
 - Playwright path attachments are embedded only when the resolved regular file
   is inside the input file's directory or the process working directory.
   Symlinked, missing, non-regular and outside-tree paths are skipped; inline

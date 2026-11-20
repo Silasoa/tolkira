@@ -60,6 +60,9 @@ tolkira test-results/ --out report.html --history .history/history.json
 
 # German report UI; test data stays verbatim
 tolkira test-results/ --out report.html --locale de
+
+# Write a small HTML email body beside the report (no sending)
+tolkira test-results/ --out report.html --email email.html
 ```
 
 Tolkira accepts one or more files and directories. A directory is scanned
@@ -88,7 +91,8 @@ the screen is dark, and the tables are sized to the printable width.
 - **Failures-only Report:** press **Failed only**, then print. This is still an
   archival print, not the concise summary: the Report view keeps only the
   filtered rows and adds a visible count marker, while Details and Trends print
-  in full. The concise email/PDF summary is #13b and not part of this release.
+  in full. The concise email summary is available with `--email`; the PDF engine
+  is #13c and not part of this release.
 - **Without JavaScript:** the active Report view prints with the chrome hidden;
   Details and Trends stay hidden and closed features stay closed. Without
   `beforeprint` support the same fallback applies.
@@ -103,16 +107,19 @@ the screen is dark, and the tables are sized to the printable width.
   screenshot archive, not a full attachment copy; screenshots, text attachments
   and the skipped-attachment notice do print.
 
-Printing needs no network, no extra tool and no PDF engine. There is no email
-delivery and no print button: the browser's print command is the entry point.
+Printing needs no network, no extra tool and no PDF engine. There is no mail
+delivery and no print button: `--email` writes a separate HTML mail body, and
+the browser's print command is the PDF entry point. See
+[Email summary](docs/EMAIL.md).
 
 ## For agents and CI
 
-Install as a project dependency and write both artifacts:
+Install as a project dependency and write the report, the optional email body
+and the JSON summary:
 
 ```shell
 npm install --save-dev tolkira
-npx tolkira test-results/ --out report.html --title "CI run" --json > summary.json
+npx tolkira test-results/ --out report.html --email email.html --title "CI run" --json > summary.json
 ```
 
 GitHub Actions step:
@@ -120,7 +127,7 @@ GitHub Actions step:
 ```yaml
 - name: Generate Cucumber report
   if: always()
-  run: npx tolkira test-results/ --out report.html --history .history/history.json --title "CI run" --json > summary.json
+  run: npx tolkira test-results/ --out report.html --email email.html --history .history/history.json --title "CI run" --json > summary.json
 
 - name: Upload report
   if: always()
@@ -130,9 +137,15 @@ GitHub Actions step:
     include-hidden-files: true
     path: |
       report.html
+      email.html
       summary.json
       .history/history.json
 ```
+
+`email.html` is an optional, small HTML mail body; a later CI mail step can use
+it as `html_body` and attach `report.html`. Tolkira never sends mail and exits 0
+even when tests fail, so derive the subject from `summary.json` (`jq -r .status`),
+not from the job status. See [Email summary](docs/EMAIL.md).
 
 Persist `.history/history.json` between CI runs (for example with
 `actions/cache`) so the next run continues the trend. A missing sidecar starts a
@@ -440,10 +453,15 @@ switcher; Tolkira's one file carries one locale, while MCHR writes its report
 folder. MCHR localizes its default report titles; Tolkira keeps `Tolkira report`
 unless `--title` overrides it. An unknown MCHR language warns and falls back to
 English on the API/config path, while its `--language`/`--lang` CLI throws.
-Tolkira rejects it too: the CLI exits 2 and the API throws. MCHR's dashboard,
-email reports and folder report are not reproduced. History is only the opt-in
-aggregate sidecar described above; there is no scenario-level history or
-multi-run dashboard. See
+Tolkira rejects it too: the CLI exits 2 and the API throws. MCHR's `--email` is a
+boolean that writes `reportPath/email-report.html`; Tolkira's `--email` takes a
+required file path, so a copied bare flag exits 2. MCHR shows per-feature cards
+and the five slowest scenarios; Tolkira shows aggregate counts and the first five
+failed scenarios in summary order, with no per-feature table, metadata or logo.
+Both MCHR and Allure's mail plugin only generate a file and never send, so the
+no-sending boundary is shared. MCHR's dashboard and folder report are not
+reproduced. History is only the opt-in aggregate sidecar described above; there
+is no scenario-level history or multi-run dashboard. See
 [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md#multiple-cucumber-html-reporter)
 for the mapping.
 
@@ -462,6 +480,10 @@ for the mapping.
   the only automatic writer, so use one sidecar per suite and variant and one
   generation at a time. No scenario names, steps, paths, tags or attachment
   content are stored.
+- The opt-in email summary contains feature and scenario names, statuses, counts,
+  durations, the title (which may carry a branch or build name) and the report
+  basename. It is written only with `--email`; there is no redaction mode, no
+  network request and no sending.
 - One report is one file. External attachments for very large media are a
   future option.
 
@@ -476,6 +498,8 @@ for the dated limitations table (last verified 2026-11-20).
   contract and exit codes.
 - [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) — GitHub annotations, GitLab and step-summary
   output.
+- [`docs/EMAIL.md`](https://github.com/Silasoa/tolkira/blob/main/docs/EMAIL.md) — opt-in HTML email summary, CLI/API and
+  CI mail-step example.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
   (last verified 2026-11-20).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested

@@ -4,10 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { formatCiOutput, type CiFormat } from './ci.js';
+import { renderEmail, type EmailOptions } from './email.js';
 import { readHistory, writeHistory, type HistoryRun } from './history.js';
 import { generateReport, summarizeReport, version } from './index.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { resolveLocale } from './render/i18n.js';
+import type { ReportSummary } from './summary.js';
 import { ACCENT_PATTERN } from './validation.js';
 import { ATTACHMENT_HINT, attachmentWarning } from './warnings.js';
 
@@ -22,18 +24,19 @@ const LOGO_MIME: Record<string, string> = {
   '.webp': 'image/webp',
 };
 
-const USAGE = `Usage: tolkira <input...> [--out <file>] [options]
+const USAGE = `Usage: tolkira <input...> [--out <file>] [--email <file>] [options]
 
 Generate one self-contained HTML report from Cucumber JSON, Messages, JUnit XML or Playwright JSON.
 
 Options:
   -o, --out <file>     Output HTML file
+      --email <file>   Write an HTML email summary
       --json           Print a stable JSON summary to stdout
       --ci <format>    Print a CI summary: github or markdown
       --ci-out <file>  Write the markdown CI summary to a file
       --history <file> Read and append an aggregate run history; needs --out
-      --title <text>   Report title and Markdown CI heading
-      --locale <tag>   Report language: en or de (default en); needs --out
+      --title <text>   Report title, email subject/heading and Markdown CI heading
+      --locale <tag>   Report and email language: en or de (default en); needs --out or --email
       --meta key=value Add metadata (repeatable)
       --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo; needs --out
       --accent <color> Header accent as a hex colour, e.g. #1b5e20
@@ -41,7 +44,7 @@ Options:
   -h, --help           Show this help
   -v, --version        Show the version
 
-Without --out, --json or --ci is required. --ci-out requires --ci markdown.
+Without --out, --json, --ci or --email is required. --ci-out requires --ci markdown.
 --history requires --out. Without --ci-out, --ci writes only the CI summary to
 stdout. --json and --ci share stdout only with --ci-out. Failing tests do not
 change the exit code.`;
@@ -57,6 +60,7 @@ function parseCliArgs(argv: string[]) {
     allowPositionals: true,
     options: {
       out: { type: 'string', short: 'o' },
+      email: { type: 'string' },
       title: { type: 'string' },
       locale: { type: 'string' },
       meta: { type: 'string', multiple: true },
@@ -119,22 +123,59 @@ function isInside(parent: string, file: string): boolean {
   }
 }
 
-async function historyConflicts(
+/** True when `file` would replace or join any input, file or directory. */
+async function conflictsWithInputs(
   file: string,
   inputs: string[],
-  logo: string | undefined,
-  output: string | undefined,
-  ciOut: string | undefined,
 ): Promise<boolean> {
-  if (output && samePath(file, output)) return true;
-  if (ciOut && samePath(file, ciOut)) return true;
-  if (logo && samePath(file, logo)) return true;
   for (const input of inputs) {
     if (samePath(file, input)) return true;
     const info = await stat(input).catch(() => undefined);
     if (info?.isDirectory() && isInside(input, file)) return true;
   }
   return false;
+}
+
+async function historyConflicts(
+  file: string,
+  inputs: string[],
+  logo: string | undefined,
+  output: string | undefined,
+  ciOut: string | undefined,
+  email: string | undefined,
+): Promise<boolean> {
+  if (output && samePath(file, output)) return true;
+  if (ciOut && samePath(file, ciOut)) return true;
+  if (email && samePath(file, email)) return true;
+  if (logo && samePath(file, logo)) return true;
+  return conflictsWithInputs(file, inputs);
+}
+
+/** Keeps a path on one line in confirmations and error output. */
+function oneLine(value: string): string {
+  let output = '';
+  for (const character of value) {
+    const code = character.codePointAt(0) ?? 0;
+    output += code < 0x20 || code === 0x7f ? ' ' : character;
+  }
+  return output;
+}
+
+async function writeEmailSummary(
+  file: string,
+  summary: ReportSummary,
+  options: EmailOptions,
+): Promise<void> {
+  const html = renderEmail(summary, options);
+  try {
+    await writeAtomic(file, html);
+  } catch (error) {
+    // Name the target, never the atomic temporary file.
+    const code = (error as NodeJS.ErrnoException).code;
+    throw new Error(
+      `Cannot write email to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+    );
+  }
 }
 
 async function readLogo(file: string): Promise<string> {
@@ -209,12 +250,18 @@ export async function runCli(
 
   const inputs = parsed.positionals;
   const output = parsed.values.out;
+  const emailPath = parsed.values.email;
   const wantsJson = parsed.values.json;
   const ciOut = parsed.values['ci-out'];
   const historyFile = parsed.values.history;
 
   if (parsed.values.out === '') {
     io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (emailPath === '') {
+    io.stderr(`tolkira: --email requires a file path\n\n${USAGE}`);
     return 2;
   }
 
@@ -229,8 +276,8 @@ export async function runCli(
     }
   }
 
-  if (locale !== undefined && !output) {
-    io.stderr(`tolkira: --locale requires --out\n\n${USAGE}`);
+  if (locale !== undefined && !output && emailPath === undefined) {
+    io.stderr(`tolkira: --locale requires --out or --email\n\n${USAGE}`);
     return 2;
   }
 
@@ -273,7 +320,10 @@ export async function runCli(
     return 2;
   }
 
-  if (inputs.length === 0 || (!output && !wantsJson && ci === undefined)) {
+  if (
+    inputs.length === 0 ||
+    (!output && !wantsJson && ci === undefined && emailPath === undefined)
+  ) {
     io.stderr(USAGE);
     return 2;
   }
@@ -306,11 +356,12 @@ export async function runCli(
       parsed.values.logo,
       output,
       ciOut,
+      emailPath,
     ))
   ) {
     io.stderr(
       `tolkira: --history must not overwrite an input file, the logo, ` +
-        `--out or --ci-out\n\n${USAGE}`,
+        `--out, --ci-out or --email\n\n${USAGE}`,
     );
     return 2;
   }
@@ -328,6 +379,31 @@ export async function runCli(
     if (await outputOverwritesInput(inputs, ciOut, parsed.values.logo)) {
       io.stderr(
         `tolkira: --ci-out must not overwrite an input file or the logo` +
+          `\n\n${USAGE}`,
+      );
+      return 2;
+    }
+  }
+
+  if (emailPath !== undefined) {
+    if (output && samePath(emailPath, output)) {
+      io.stderr(`tolkira: --email must not overwrite --out\n\n${USAGE}`);
+      return 2;
+    }
+    if (ciOut !== undefined && samePath(emailPath, ciOut)) {
+      io.stderr(`tolkira: --email must not overwrite --ci-out\n\n${USAGE}`);
+      return 2;
+    }
+    if (await conflictsWithInputs(emailPath, inputs)) {
+      io.stderr(
+        `tolkira: --email must not overwrite an input file or directory` +
+          `\n\n${USAGE}`,
+      );
+      return 2;
+    }
+    if (await outputOverwritesInput(inputs, emailPath, parsed.values.logo)) {
+      io.stderr(
+        `tolkira: --email must not overwrite an input file or the logo` +
           `\n\n${USAGE}`,
       );
       return 2;
@@ -357,6 +433,14 @@ export async function runCli(
 
     if (!output) {
       const summary = await summarizeReport(inputs);
+      if (emailPath !== undefined) {
+        await writeEmailSummary(emailPath, summary, {
+          title: parsed.values.title,
+          locale,
+          accent,
+          now: new Date(),
+        });
+      }
       const ciText =
         ci !== undefined
           ? formatCiOutput(summary, ci, { title: parsed.values.title })
@@ -368,6 +452,8 @@ export async function runCli(
         io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
       } else if (ciText !== undefined && ciOut === undefined) {
         io.stdout(ciText);
+      } else if (emailPath !== undefined) {
+        io.stdout(`Email written to ${oneLine(emailPath)}\n`);
       }
       return 0;
     }
@@ -383,6 +469,15 @@ export async function runCli(
     const { html, summary, skippedAttachments } = generated;
 
     await writeAtomic(output, html);
+    if (emailPath !== undefined) {
+      await writeEmailSummary(emailPath, summary, {
+        title: parsed.values.title,
+        locale,
+        reportName: path.basename(output),
+        accent,
+        now: new Date(),
+      });
+    }
     if (historyFile !== undefined && generated.history) {
       await writeHistory(historyFile, generated.history);
     }
@@ -416,6 +511,9 @@ export async function runCli(
       io.stdout(ciText);
     } else {
       io.stdout(`Report written to ${output}\n`);
+      if (emailPath !== undefined) {
+        io.stdout(`Email written to ${oneLine(emailPath)}\n`);
+      }
     }
     return 0;
   } catch (error) {

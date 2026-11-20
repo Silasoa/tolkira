@@ -1,9 +1,9 @@
 # Tolkira
 
 > Tolkira converts Cucumber legacy JSON, Cucumber Messages (NDJSON), JUnit XML
-> and Playwright JSON into one self-contained HTML report and prints a stable
-> JSON summary for CI and AI agents. It requires Node.js 22 or newer and runs
-> offline with no server, CDN or telemetry.
+> and Playwright JSON into one self-contained HTML report plus an optional HTML
+> email summary, and prints a stable JSON summary for CI and AI agents. It
+> requires Node.js 22 or newer and runs offline with no server, CDN or telemetry.
 
 Package: https://www.npmjs.com/package/tolkira
 
@@ -17,6 +17,9 @@ Package: https://www.npmjs.com/package/tolkira
   CLI, API, JSON summary schema 2 and exit codes.
 - [CI output](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md):
   GitHub annotations, GitLab and step summaries, caps and exit codes.
+- [Email summary](https://github.com/Silasoa/tolkira/blob/main/docs/EMAIL.md):
+  opt-in HTML mail body with `--email`, 600 px inline template, report note and
+  CI mail-step example; no sending, no SMTP and no network.
 - [Limitations](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md):
   dated status of Behave coverage, JUnit, Playwright, themes and attachments.
 - [Playwright JSON](https://github.com/Silasoa/tolkira/blob/main/docs/PLAYWRIGHT-JSON.md):
@@ -39,3 +42,8 @@ Package: https://www.npmjs.com/package/tolkira
   `--ci markdown` for a step summary or GitLab file. Messages are not redacted.
 - Attach `report.html` as the human-facing artifact; keep the JSON summary for
   automation.
+- Use `tolkira <inputs> --out report.html --email email.html` for a small HTML
+  mail body. With `--out` it names the report basename; standalone it says no
+  full report is attached. It stays local and never sends mail; attach
+  `report.html` separately. Tolkira exits 0 on failing tests, so take a mail
+  subject from `summary.json` (`status`), not from the job status.

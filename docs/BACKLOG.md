@@ -40,21 +40,24 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Revisit trigger | Issue |
 | --- | --- | --- | --- | --- | --- |
-| B-010 | Report | P3 | Email HTML summary (#13b) | Browser print slice done 2026-11-20; #13b email is the next planned slice. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | A producer fixture or user report carries CR-only text. | — |
 | B-019 | Report | P3 | PDF engine (#13c): order-sensitive locale/font work; needs an ADR | A user needs server-side PDF or hosted output that browser print cannot provide; browser print stays the default until then. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-020 | Report | P3 | Print button: the browser print command needs no in-report UI or catalog key | A measured usability failure shows users cannot find the browser print command; it then needs a catalog key. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-021 | Report | P3 | Repeated print title/page header on pages after the first | A shared multi-page PDF needs page identity with browser headers/footers off; pair with B-022. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-022 | Report | P3 | Custom print page numbers or footer text | A shared PDF needs page numbers while the browser footer stays off (it can expose local paths); pair with B-021. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-023 | Email | P3 | `.eml` draft with a real subject | A user needs a ready-to-open draft or a subject that travels with the file; the HTML body cannot set one. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-024 | Email | P3 | Small capped CID or inline logo in the email | A brand requirement shows the text header is not enough and the added bytes stay inside the 100 KB budget and client limits. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-025 | Email | P3 | Build/branch/PR metadata or error snippets in the email | Recipients need triage context in the body itself, or the mail is the only artifact; `--meta` and short errors are the candidates. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-026 | Email | P3 | Configurable failed-scenario cap | Five rows are too few because the email is sent without the report, or a team asks for an Allure-style cap. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 
 **Print slice (2026-11-20).** The browser print slice is done: by default it
 prints the complete report, while an active search or filter still narrows the
 Report view, so clear the filter for the whole run. The failed-only filter plus
 print is the failures-only archival print, not the concise summary. Without
 JavaScript the active Report prints with closed details unchanged; see
-[`LIMITATIONS.md`](LIMITATIONS.md). Email HTML (#13b) is the next planned slice;
-the PDF-engine branch (#13c) revisits only when a user needs server-side PDF or
-hosted output.
+[`LIMITATIONS.md`](LIMITATIONS.md). The email summary (#13b) now covers the
+concise mail body; the PDF-engine branch (#13c) revisits only when a user needs
+server-side PDF or hosted output.
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
@@ -92,6 +95,17 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-010 Email HTML summary (#13b)** — implemented on 2026-11-20 in the
+  `add-email-summary` change: opt-in `--email <file>`, a 600 px inline HTML body
+  with the attempted pass rate, all non-zero statuses plus unexecuted, counts,
+  duration, inline attachments and the first five failed scenarios in summary
+  order; localized `email.*` keys, `renderEmail(summary, options)`, path
+  validation and the pinned write order. No sending, SMTP, network, logo or new
+  dependency. The report, JSON and CI bytes are unchanged. `.eml`, a logo,
+  metadata/snippets and a configurable cap are recorded as B-023 to B-026. The
+  print and email slices are done;
+  [#13](https://github.com/Silasoa/tolkira/issues/13) remains open for the PDF
+  engine (B-019, #13c) or a separate decision.
 - **B-009 German UI and localisation** — implemented on 2026-11-20 in the
   `add-report-localisation` change: `--locale en|de` (default `en`, `de-AT` uses
   `de` and keeps its tag), ICU JSON catalogs with a generated typed module,

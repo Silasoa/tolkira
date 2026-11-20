@@ -17,34 +17,41 @@ expect a subject, an HTML body and report attachments.
 - Add `--email <file>` to write a self-contained HTML email summary. It is
   opt-in; without the flag no email is created and the one-file report default
   is unchanged.
-- Build the email from the stable summary: overall status, attempted pass rate,
+- Build the email from the stable summary: overall status, attempted pass rate
+  (percentage with a full-sentence note that skipped scenarios are not attempts),
   every non-zero scenario status plus unexecuted, the total labelled as executed
-  scenarios with results, feature/step/attachment totals, duration, the title
-  and the top five failed scenarios (feature and scenario names, status,
-  duration; no step bodies). Add a note that names the full report when `--out`
-  is set and says that no full report was generated otherwise.
+  scenarios with results, feature/step/attachment
+  totals, duration, the title and the first five failed scenarios in summary
+  order (feature and scenario names, status, duration; no step bodies). Add a
+  note that names the full report basename when `--out` is set and a
+  recipient-facing note that no full report is attached otherwise.
 - Allow `--email` with `--out`, with `--json`/`--ci` only, or standalone as the
   only output, matching the composable HTML-body pattern used by MCHR and the
   Allure mail plugin and expected by CI mail steps. `--locale` applies to the
   email as it does to the report; the CLI, JSON and CI text stay English.
-- Keep the email one self-contained HTML file with inline styles, no scripts,
-  no logo or other image, no hidden preheader, no remote images, fonts or
-  links, no telemetry and no SMTP. The user sends it or pastes it into a mail
-  client; the standard summary stays under 100 KB.
+  `--title` sets the heading/suggested subject and `--accent` the top border.
+- Keep the email one self-contained HTML file with inline styles, an inline
+  system font stack, a small style block below 480 px, no scripts, no logo or
+  other image, no hidden preheader in this slice (deferred), no remote images,
+  fonts or links, no telemetry and no SMTP. Long text wraps and displayed names
+  are capped at 200 characters. The user sends it or pastes it into a mail
+  client; a standard summary stays under 100 KB.
 - Validate the email path like the other outputs, reject collisions with
-  inputs, the logo, `--out`, `--ci-out` and `--history`, write it atomically in
-  the order report, email, history, `--ci-out`, stdout, and exit 1 on failure
-  without removing the report or writing later outputs.
+  inputs, the logo, `--out`, `--ci-out` and `--history` and paths inside input
+  directories, write it atomically in the order report, email, history,
+  `--ci-out`, stdout, and exit 1 on failure without removing the report or
+  writing later outputs.
 - Export `renderEmail(summary, options)` for library users (title, locale,
   report name, validated accent, generated `Date`; no logo) and document the
   CLI/API contract.
 - Add the email keys to the catalogs and support the active locale, with test
-  data escaped and verbatim.
+  data escaped and verbatim and the German report note guarded.
 
-Out of scope: SMTP/sending, recipients, scheduling, an `.eml` draft (a possible
-follow-up), the report logo or any image, a hidden preheader, `--meta` metadata
-in the email, embedding the full report, remote assets or fonts, telemetry, the
-PDF engine (#13c), scenario-level history, and a localized CLI/CI/JSON surface.
+Out of scope: SMTP/sending, recipients, scheduling, the report logo or any image,
+`--meta` metadata in the email, embedding the full report, remote assets or
+fonts, telemetry, the PDF engine (#13c), scenario-level history, and a localized
+CLI/CI/JSON surface. An `.eml` draft with a real subject remains a local
+follow-up (B-023), not a sending feature.
 
 ## Capabilities
 

@@ -19,7 +19,7 @@ request, script or new dependency.
 
 - **WHEN** `--email summary.html` is the only output
 - **THEN** the email is written from the summary
-- **AND** it states that no full report was generated
+- **AND** it tells the recipient that no full report is attached
 
 #### Scenario: No flag
 
@@ -29,10 +29,11 @@ request, script or new dependency.
 
 ### Requirement: Summarize the run counts
 
-The email SHALL show the report title, overall status, attempted pass rate,
-feature and step counts, duration and attachment totals. It SHALL show every
-non-zero scenario status plus the unexecuted count, and SHALL label the total as
-executed scenarios with results.
+The email SHALL show the report title, overall status, attempted pass rate as a
+percentage with a full-sentence note, feature/step/duration/attachment totals,
+every non-zero scenario status plus the unexecuted count, and the total as
+executed scenarios with results. The empty and all-skipped runs SHALL be
+distinct. English digits SHALL be grouped and durations SHALL use a human form.
 
 #### Scenario: Counts add up
 
@@ -45,19 +46,41 @@ executed scenarios with results.
 - **WHEN** a run has failures
 - **THEN** the email shows the failed count and the attempted pass rate
 - **AND** the feature/step/duration/attachment totals
+- **AND** the attachment count is labelled `Attachments in the run`
+
+#### Scenario: English formatting
+
+- **WHEN** an English email shows counts and durations
+- **THEN** digits are grouped (`8,509`) and durations read `12 ms`, `12.3 s`,
+  `1 min 5 s` or `1 h 2 min`
+
+#### Scenario: All scenarios skipped
+
+- **WHEN** scenarios exist but every one was skipped
+- **THEN** the email says no scenarios were attempted
+- **AND** it shows the unexecuted count and `0 scenarios with results`
+- **AND** it does not present a zero-percent success
+
+#### Scenario: Empty run
+
+- **WHEN** the run has no scenarios
+- **THEN** the email shows the empty state and zero counts
+- **AND** it does not show the all-skipped copy
 
 ### Requirement: List the failed scenarios
 
-The email SHALL list at most five failed scenarios with feature, scenario,
-status and duration, and no step bodies, plus a count of further failures. The
-test data SHALL be escaped and render verbatim. The no-failure copy SHALL key
-off the overall status, so an undefined/pending/unknown run is not called
-successful.
+The email SHALL list the first five failed scenarios in summary order with
+feature, scenario, status and duration, and no step bodies, plus a count of
+further failures. Long text SHALL wrap and displayed feature, scenario and
+report-name strings SHALL be capped at 200 characters with an ellipsis. The test
+data SHALL be escaped and render verbatim. The no-failure copy SHALL key off the
+overall status, so an undefined/pending/unknown run is not called successful.
 
 #### Scenario: Further failures
 
 - **WHEN** more than five scenarios failed
-- **THEN** the email lists five and summarizes the rest as a count
+- **THEN** the email lists the first five in summary order and summarizes the
+  rest as a count
 
 #### Scenario: Non-passing without failures
 
@@ -65,11 +88,6 @@ successful.
   unknown
 - **THEN** the email shows that status
 - **AND** it does not call the run successful
-
-#### Scenario: Empty run
-
-- **WHEN** the run has no scenarios
-- **THEN** the email shows the empty state and zero counts
 
 #### Scenario: Hostile names
 
@@ -79,12 +97,11 @@ successful.
 
 ### Requirement: Name the full report without a server
 
-With `--out`, the email SHALL name the report file (basename only) and state
-that it is attached or shared separately. Without `--out`, the email SHALL say
-that no full report was generated. The email SHALL NOT contain a remote URL,
-tracking pixel, external font, stylesheet, script or image; the first slice
-omits the logo and uses an optional validated accent colour. The standard
-summary SHOULD stay under 100 KB.
+With `--out`, the email SHALL name the report basename and state that it is
+attached or shared separately. Without `--out`, it SHALL say no full report is
+attached. It SHALL contain no remote URL, tracking pixel, external font,
+stylesheet, script or image, use an inline system font stack, wrap long text and
+cap displayed names. A standard summary SHOULD stay under 100 KB.
 
 #### Scenario: Report reference
 
@@ -103,13 +120,13 @@ summary SHOULD stay under 100 KB.
 
 The email path SHALL be required, SHALL be written atomically after the
 report/summary, and SHALL NOT collide with an input, the logo, `--out`,
-`--ci-out` or `--history`. On a write failure the CLI SHALL exit 1, name the
-file and leave an already written report in place.
+`--ci-out` or `--history`, or be inside an input directory. On a write failure the
+CLI SHALL exit 1, name the file and leave an already written report in place.
 
 #### Scenario: Path collision
 
-- **WHEN** `--email` points at an input, the logo, `--out`, `--ci-out` or the
-  history file
+- **WHEN** `--email` points at an input, the logo, `--out`, `--ci-out`, the
+  history file or a path inside an input directory
 - **THEN** the CLI exits 2
 - **AND** nothing is written
 
