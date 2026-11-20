@@ -68,7 +68,43 @@ The optional history file is a separate sidecar: without `--history` no history
 is read or written and the report stays one file. Use one sidecar per suite and
 variant; mixing runs makes the trend meaningless. The Trends tab needs
 JavaScript: a copy opened without JavaScript shows the Report view and an inert
-tab, and printing or PDF export captures whichever tab is open.
+tab. Printing works in both cases; see
+[Print or Save as PDF](#print-or-save-as-pdf).
+
+## Print or Save as PDF
+
+Use the browser's print dialog and choose **Save as PDF** as the destination.
+With JavaScript, printing captures the whole text and screenshot archive: the
+Report, Details and (when history is present) Trends views, with every closed
+feature and scenario opened and lazy thumbnails requested eagerly. The current
+search and filter state carries into print, so clear it first to archive the
+whole run. The active tab is left untouched; previously closed details, the
+lightbox and the scroll lock return in browsers that fire `afterprint`; the
+print-only panel reveal is scoped to print media, so a missed `afterprint`
+cannot stack panels on screen. The interactive chrome (tabs, toolbar, filters,
+copy and expand buttons) is hidden, the page uses the light palette even when
+the screen is dark, and the tables are sized to the printable width.
+
+- **Failures-only Report:** press **Failed only**, then print. This is still an
+  archival print, not the concise summary: the Report view keeps only the
+  filtered rows and adds a visible count marker, while Details and Trends print
+  in full. The concise email/PDF summary is #13b and not part of this release.
+- **Without JavaScript:** the active Report view prints with the chrome hidden;
+  Details and Trends stay hidden and closed features stay closed. Without
+  `beforeprint` support the same fallback applies.
+- **Wide runs:** if an unusually wide matrix still clips at the right edge,
+  choose **Landscape** in the print dialog.
+- **Browser headers and footers:** the browser's own header/footer, page numbers
+  and URL are not part of the report. Turn them off for a shared PDF, because
+  the footer can reveal a local file path or URL; with them off, pages after the
+  first carry no report title or page number, because a repeated print title is
+  not implemented (see [Limitations](docs/LIMITATIONS.md)).
+- **Video and audio** attachments cannot print, so the print is a text and
+  screenshot archive, not a full attachment copy; screenshots, text attachments
+  and the skipped-attachment notice do print.
+
+Printing needs no network, no extra tool and no PDF engine. There is no email
+delivery and no print button: the browser's print command is the entry point.
 
 ## For agents and CI
 

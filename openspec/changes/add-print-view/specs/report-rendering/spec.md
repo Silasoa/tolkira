@@ -5,9 +5,7 @@
 ### Requirement: Print the complete report
 
 With JavaScript, printing SHALL include the Report, Details and Trends panels
-when present, and SHALL open every closed `<details>`. A `beforeprint` handler
-SHALL remember the active tab, the open state, an open lightbox and the page
-overflow, and `afterprint` SHALL restore them. Without JavaScript or
+when present and open every closed `<details>`. Without JavaScript or
 `beforeprint` support, the active Report view SHALL print with closed details
 unchanged.
 
@@ -15,20 +13,8 @@ unchanged.
 
 - **WHEN** the report is printed with JavaScript
 - **THEN** all present tab panels and all details are visible in the print
-- **AND** the active tab and the previous detail state return after printing or
-  cancelling
-
-#### Scenario: Print from an open lightbox
-
-- **WHEN** a screenshot lightbox is open and the report is printed
-- **THEN** the lightbox closes and the page overflow is reset for the print
-- **AND** the lightbox and overflow state return afterwards
-
-#### Scenario: Lazy thumbnails
-
-- **WHEN** an off-screen screenshot thumbnail is printed
-- **THEN** its image is loaded for the print
-- **AND** the thumbnail state is restored afterwards
+- **AND** the active panel remains unchanged and the previous detail state
+  returns afterwards in browsers that fire `afterprint`
 
 #### Scenario: No JavaScript
 
@@ -42,6 +28,28 @@ unchanged.
 - **WHEN** the report has no history
 - **THEN** printing includes Report and Details only
 - **AND** no empty Trends page is produced
+
+### Requirement: Restore the screen after printing
+
+`beforeprint` SHALL add a print-only `printing` state that reveals every panel
+without changing the active panel's `hidden` attribute and stores the originally
+closed details, an open lightbox and the page overflow; `afterprint` SHALL
+restore them. The reveal SHALL apply only in print media, so a missed
+`afterprint` cannot change the screen.
+
+#### Scenario: Print from an open lightbox
+
+- **WHEN** a screenshot lightbox is open and the report is printed
+- **THEN** the lightbox closes and the page overflow is reset for the print
+- **AND** the lightbox and overflow state return afterwards in browsers that fire
+  `afterprint`
+
+#### Scenario: Lazy thumbnails
+
+- **WHEN** an off-screen screenshot thumbnail is printed
+- **THEN** its `loading` attribute is switched to eager so the browser fetches it
+  for the print
+- **AND** the lazy loading state is restored afterwards
 
 ### Requirement: Hide interactive chrome in print
 
@@ -64,23 +72,35 @@ independent of the screen colour scheme, with prefixed and unprefixed
 
 - **WHEN** the report is open in dark mode and printed
 - **THEN** the printed page uses light surfaces and dark ink
-- **AND** status chips, legends and logs use the light palette
+- **AND** status chips, legends and logs use the light palette, including all 16
+  ANSI foreground slots
 - **AND** status colours remain distinguishable
 
-### Requirement: Paginate and fit the printed page
+### Requirement: Paginate the printed report
 
-Each present view SHALL start on a new printed page. Tables SHALL not require
-horizontal scrolling in print; the matrix and the Trends table SHALL fit the
-A4 printable width for the standard fixtures, using smaller print type and
-resetting child column widths. Unusually wide runs MAY use landscape; the
-documentation names it. Long blocks SHOULD avoid awkward breaks, but a block
-larger than a page SHALL break normally.
+Each present view SHALL start on a new printed page. Long blocks SHOULD avoid
+awkward breaks, but a block larger than a page SHALL break normally.
 
 #### Scenario: Views on separate pages
 
 - **WHEN** the complete report is printed
 - **THEN** Report, Details and Trends each start on a new page
-- **AND** the standard matrix and Trends table are not clipped at the right edge
+
+### Requirement: Fit the tables to the printed page
+
+Tables inside `.tableWrap` SHALL not scroll horizontally in print. Every wrapped
+table, including the matrix and the Trends table, SHALL fit the A4 printable
+width for the standard fixtures at the A4 content width and 320 px with smaller
+type, wrapping headers and reset child widths. The Trends table SHALL use
+automatic layout in print, resetting the screen fixed columns, so its nowrap
+labels and the A4 width do not clip. Unusually wide runs MAY use landscape; the
+documentation names it.
+
+#### Scenario: Printed tables
+
+- **WHEN** the complete report is printed
+- **THEN** every `.tableWrap` table, including the standard matrix and Trends
+  table, is not clipped at the right edge
 
 #### Scenario: Wide matrix
 

@@ -29,6 +29,7 @@ const foundation = new Set([
   'escape',
   'i18n',
   'markdown',
+  'print-script',
   'report-client',
   'search',
   'styles',

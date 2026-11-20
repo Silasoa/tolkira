@@ -38,10 +38,23 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 ## Open work
 
-| ID | Area | Priority | Item | Issue |
-| --- | --- | --- | --- | --- |
-| B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
-| B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | — |
+| ID | Area | Priority | Item | Revisit trigger | Issue |
+| --- | --- | --- | --- | --- | --- |
+| B-010 | Report | P3 | Email HTML summary (#13b) | Browser print slice done 2026-11-20; #13b email is the next planned slice. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | A producer fixture or user report carries CR-only text. | — |
+| B-019 | Report | P3 | PDF engine (#13c): order-sensitive locale/font work; needs an ADR | A user needs server-side PDF or hosted output that browser print cannot provide; browser print stays the default until then. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-020 | Report | P3 | Print button: the browser print command needs no in-report UI or catalog key | A measured usability failure shows users cannot find the browser print command; it then needs a catalog key. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-021 | Report | P3 | Repeated print title/page header on pages after the first | A shared multi-page PDF needs page identity with browser headers/footers off; pair with B-022. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-022 | Report | P3 | Custom print page numbers or footer text | A shared PDF needs page numbers while the browser footer stays off (it can expose local paths); pair with B-021. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+
+**Print slice (2026-11-20).** The browser print slice is done: by default it
+prints the complete report, while an active search or filter still narrows the
+Report view, so clear the filter for the whole run. The failed-only filter plus
+print is the failures-only archival print, not the concise summary. Without
+JavaScript the active Report prints with closed details unchanged; see
+[`LIMITATIONS.md`](LIMITATIONS.md). Email HTML (#13b) is the next planned slice;
+the PDF-engine branch (#13c) revisits only when a user needs server-side PDF or
+hosted output.
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one

@@ -7,6 +7,21 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Print and Save as PDF. A `@media print` stylesheet hides the interactive
+  chrome, repeats the light palette from dark mode, fits the report tables to the
+  printable width (A4-compatible, not a fixed CSS paper setting), keeps
+  screenshots and starts each present view on a new page. A
+  `beforeprint`/`afterprint` handler prints the complete text and screenshot
+  archive by default (all panels, every detail, eagerly requested thumbnails;
+  an active filter still narrows the Report view). The active tab is never
+  changed, and the details, lightbox and overflow state return where
+  `afterprint` fires. The print-only reveal cannot stack panels on screen if
+  `afterprint` does not fire. The failed-only filter plus print is the
+  failures-only archival print; without JavaScript the active Report prints
+  with closed details unchanged.
+  There is no new string, dependency or delivery format, and browser
+  headers/footers and page numbers stay user-controlled. See
+  [`README.md`](../README.md#print-or-save-as-pdf).
 - Report localisation. `--locale <tag>`, `RenderReportOptions.locale` and the
   stream option render the report shell, labels, status text and accessibility
   names from the active `en` or `de` catalog; `de-AT` keeps its `lang` tag and

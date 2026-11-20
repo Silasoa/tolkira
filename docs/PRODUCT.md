@@ -116,10 +116,22 @@ it. The gap is the combination.
   and CI text stay English. `de-AT` uses the German catalog and keeps its `lang`
   tag. One report is one locale: no detection, switcher or RTL layout.
 
+### Print (in main)
+
+- Browser print/Save as PDF for the complete text and screenshot archive: all
+  present views and every detail with JavaScript, a light palette from dark
+  mode, fitted tables and page breaks. An active filter still narrows the Report
+  view, so clear it for the whole run. Without JavaScript the active Report
+  prints with closed details unchanged. The failed-only filter plus print is the
+  failures-only archival print. Browser headers/footers and page numbers stay
+  user-controlled; video/audio do not print and unusually wide matrices may need
+  landscape. No PDF engine, email summary, print button or custom page numbers.
+
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media (ADR 0006).
-- PDF/email summary.
+- Email HTML summary (#13b) and a PDF engine (#13c); the print slice covers the
+  browser route meanwhile.
 - Deeper dashboard and custom themes.
 
 ### Non-goals

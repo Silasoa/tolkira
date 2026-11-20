@@ -121,8 +121,9 @@ and is covered by real producer fixtures.
   with every `Intl.PluralRules` category and numeric `#` parameters. `escape.ts`,
   `dom-contract.ts`, `markdown.ts`, `ansi.ts`, `styles.ts`, `client-bundle.ts`,
   `search.ts`, `report-client.ts`, `i18n.ts` and `client-i18n.ts` are shared
-  foundation, importable from every layer. `src/attachment.ts` is a shared leaf
-  below the renderer; `render/attachments.ts` reads the `textFormat` it produced.
+  foundation, importable from every layer.
+  `src/attachment.ts` is a shared leaf below the renderer;
+  `render/attachments.ts` reads the `textFormat` it produced.
 - `src/i18n/locales/<tag>.json` are the catalog sources; `en.json` carries a
   description per key and is the fallback. `scripts/build-i18n.mjs` derives each
   tag from its file name and generates `src/i18n/catalogs.ts` (a `MessageKey`
@@ -138,11 +139,14 @@ and is covered by real producer fixtures.
   generates `src/render/styles.ts` for the inline report.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
   helpers; `src/render/report-client.ts` is the browser script.
-  `src/render/dom-contract.ts` owns the scenario data attributes, the shared
-  IDs and the pure visibility decisions used by both the templates and the
-  client. `scripts/build-search.mjs` bundles them into one `CLIENT_SCRIPT`
-  artifact in `src/render/client-bundle.ts`; `npm run assets` regenerates the
-  generated modules.
+  `src/render/print-script.ts` is the static print lifecycle, imported only by
+  `html.ts` and embedded as a second CSP-hashed inline script.
+  `src/render/dom-contract.ts` owns the scenario data attributes, the shared IDs
+  and the pure visibility decisions used by both the templates and the client.
+  `scripts/build-search.mjs` bundles
+  `report-client.ts` and its helpers into one `CLIENT_SCRIPT` artifact in
+  `src/render/client-bundle.ts`; `renderHtml` hashes both inline scripts into
+  the CSP. `npm run assets` regenerates the generated modules.
 - Adds a small shell: visible title, optional logo and accent colour, system
   dark mode.
 - No CDN, no external fonts, no network requests.

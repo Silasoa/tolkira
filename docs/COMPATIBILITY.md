@@ -143,6 +143,12 @@ does not write that file.
   100 MB total attachments.
 - The shim is experimental. The option set is frozen; new features are added to
   the core CLI/API, not to the shim.
+- Printing is the browser's print/Save as PDF, not a reporter option or a PDF
+  API: with JavaScript the complete report prints by default (an active filter
+  still narrows the Report view), without it the active Report only. Video/audio
+  do not print, very wide matrices may need landscape, browser headers/footers
+  and page numbers stay user-controlled, and there is no email summary or PDF
+  engine in this compatibility surface.
 
 ## `multiple-cucumber-html-reporter`
 
@@ -164,6 +170,10 @@ folder. MCHR localizes its default report titles; Tolkira keeps `Tolkira report`
 unless `--title` overrides it. An unknown MCHR language warns and falls back to
 English on the API/config path, while its `--language`/`--lang` CLI throws.
 Tolkira rejects it too: the CLI exits 2 and the API throws.
+MCHR's `--email`/`emailReport` email-report option has no equivalent. The
+sendable artifact is Tolkira's single HTML file, or its browser-printed PDF; add
+a mail step outside Tolkira and attach that file. For comparison, Allure 3 ships
+an optional `mail` plugin; Tolkira leaves delivery to your CI or mail tooling.
 The dashboard, scenario-level history and the old folder report are not
 reproduced; history is available only as the opt-in aggregate `--history`
 sidecar described in [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history). The

@@ -455,3 +455,84 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
     --ansi-fg-15: #ffffff;
   }
 }
+@media print {
+  :root {
+    color-scheme: light;
+    --paper: oklch(98% 0.006 85);
+    --canvas: oklch(96.5% 0.008 85);
+    --surface-2: oklch(99.4% 0.004 85);
+    --surface-3: oklch(95.5% 0.008 85);
+    --ink: oklch(19% 0.01 60);
+    --ink-2: oklch(30% 0.012 60);
+    --muted: oklch(45% 0.012 70);
+    --line: oklch(88% 0.008 85);
+    --line-strong: oklch(78% 0.012 85);
+    --accent: oklch(54% 0.14 70);
+    --accent-text: oklch(45% 0.12 70);
+    --accent-soft: oklch(94% 0.04 80);
+    --pass: oklch(45% 0.12 150);
+    --pass-soft: oklch(94% 0.03 150);
+    --fail: oklch(50% 0.17 25);
+    --fail-soft: oklch(95% 0.03 25);
+    --pending: oklch(45% 0.10 75);
+    --pending-soft: oklch(95% 0.03 80);
+    --undefined: oklch(42% 0.14 300);
+    --undefined-soft: oklch(94% 0.03 300);
+    --ambiguous: oklch(45% 0.012 70);
+    --ambiguous-soft: oklch(95.5% 0.008 85);
+    --skipped: oklch(45% 0.012 70);
+    --skipped-soft: oklch(95.5% 0.008 85);
+    --unknown: oklch(45% 0.012 70);
+    --unknown-soft: oklch(95.5% 0.008 85);
+    --radius: 10px;
+    --radius-control: 6px;
+    --shadow: none;
+    --ansi-fg-0: #24292f;
+    --ansi-fg-1: #b91c1c;
+    --ansi-fg-2: #15803d;
+    --ansi-fg-3: #965c05;
+    --ansi-fg-4: #1d4ed8;
+    --ansi-fg-5: #a21caf;
+    --ansi-fg-6: #0e7490;
+    --ansi-fg-7: #4b5563;
+    --ansi-fg-8: #5b6673;
+    --ansi-fg-9: #d11f1f;
+    --ansi-fg-10: #0f7d38;
+    --ansi-fg-11: #906000;
+    --ansi-fg-12: #2563eb;
+    --ansi-fg-13: #b01ec0;
+    --ansi-fg-14: #0a7697;
+    --ansi-fg-15: #111827;
+  }
+  @page { margin: 12mm; }
+  html, body { background: #fff; }
+  body { color: var(--ink); }
+  .topbar, .toolbar, .search, .tagFilter, .filters, .filter, .presetFilter, .expand, .copyFailure, .copyLog, .view, .lightboxClose, .chev, .lightbox, video, audio { display: none; }
+  .printing .tabPanel { display: block !important; }
+  .shell { max-width: none; padding: 0; }
+  .noticeShell { max-width: none; padding: 0 0 0.75rem; }
+  .runHead { grid-template-columns: 1fr; gap: 1rem; padding: 1rem 0; }
+  .health { border-left: 0; border-top: 1px solid var(--line-strong); padding: 0.75rem 0 0; }
+  .analysisGrid { grid-template-columns: 1fr; gap: 1rem; }
+  .panel { padding: 0.75rem; }
+  .tableWrap { overflow: visible; }
+  .tableWrap table, .featureTable { width: 100%; min-width: 0; table-layout: fixed; font-size: 8pt; }
+  .tableWrap table.trendsTable { width: 100%; min-width: 0; table-layout: auto; font-size: 8pt; }
+  .tableWrap table th, .tableWrap table td, .featureTable th, .featureTable td, .trendsTable th, .trendsTable td { width: auto; min-width: 0; padding: 0.2rem 0.3rem 0.2rem 0; overflow-wrap: anywhere; }
+  .featureTable th:first-child, .featureTable td:first-child { width: 38%; }
+  .trendsTable th:first-child, .trendsTable td:first-child { width: 14%; min-width: 0; }
+  .trendsTable th:nth-child(2), .trendsTable td:nth-child(2), .trendsTable th:nth-child(3), .trendsTable td:nth-child(3) { width: auto; min-width: 0; }
+  .trendsTable th, .trendsTable td { padding-right: 0; }
+  .trendsTable th, .trendsTable th.num, .trendsTable td, .trendsTable td.num, .trendsTable .statusText { font-size: 8pt; }
+  .trendsTable th, .trendsTable .statusText, .trendsTable .currentTag { white-space: nowrap; }
+  .trendsTable td:nth-child(2) { white-space: normal; }
+  #tolkira-live { position: static; width: auto; height: auto; margin: 0.75rem 0 0; overflow: visible; clip: auto; white-space: normal; font-size: 0.8125rem; }
+  #tolkira-live:empty { display: none; }
+  #analysis-view, #trends-view { break-before: page; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  .scenario, .legendRow, .featureTable tr, .trendsTable tr, summary, .step { break-inside: avoid; }
+  .scenario:has(.attachment) { break-inside: auto; }
+  pre, .json, .error, .ansiLog { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
+  .shot { max-width: 100%; max-height: 16cm; }
+  body, .statusText, .legendRow, .marker, .bar i, .sparkLine, .sparkPoint { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

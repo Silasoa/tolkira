@@ -119,6 +119,9 @@ describe the viewport, not the font.
 ### Renderer modules
 
 - `html.ts` - shell, CSP and `renderHtml` assembly.
+- `print-script.ts` - static `beforeprint`/`afterprint` lifecycle, imported only
+  by `html.ts` and emitted as a second CSP-hashed inline script outside the
+  interactive client bundle.
 - `report.ts` - report header, toolbar, features, scenarios, steps, hooks and
   feature-row chrome.
 - `details.ts` - Details header, run/environment panels and analysis layout.
@@ -176,6 +179,24 @@ translation checklist.
 - The lightbox locks background scrolling, restores focus to its trigger on
   Escape, Close, backdrop click and padding click, and reserves header space so
   Close never covers the screenshot.
+- Print is a CSS mode plus a small static inline script, emitted beside the
+  client as a second CSP-hashed inline script; the interactive client bundle
+  stays at 15,268 bytes with 732 bytes of headroom under its 16 KB budget.
+  `beforeprint` adds `body.printing`; its reveal rule lives inside
+  `@media print`, so it cannot change the screen, and `afterprint` removes it.
+  The handler stores the originally closed details, the open lightbox and the
+  `html` overflow, opens every `<details>`, requests lazy thumbnails eagerly
+  (`loading=eager`) and restores the lazy state, closes an open lightbox with a
+  guarded `close()` and releases the scroll lock. The active panel's `hidden`
+  state is never touched: removing `printing` restores it. `afterprint` returns
+  the previous state in browsers that fire it; a missed event cannot stack
+  panels on screen because the reveal is print-scoped. The print stylesheet
+  hides interactive chrome through explicit selectors (screenshots are buttons
+  and must print), repeats the light palette including all 16 ANSI foreground
+  slots for dark-mode screens, fits every `.tableWrap` table including the
+  German Trends case, and starts each present view on a new page. Without
+  JavaScript the active Report prints with its closed state; a print button,
+  repeated print title and custom page numbers are deliberately absent.
 - Status is never colour-only: scenario badges carry text, step markers carry a
   shape glyph plus a screen-reader label, and forced-colours mode keeps the
   glyph, marker border and disclosure chevron visible.
@@ -224,7 +245,12 @@ Direction A is implemented in production:
   carries two or more history runs;
 - English and German report chrome from one catalog, with test data verbatim;
 - empty state for search/filter results;
-- screenshot lightbox with a close button and Escape support.
+- screenshot lightbox with a close button and Escape support;
+- browser print/Save as PDF for the complete text and screenshot archive: all
+  views and details by default (an active filter still narrows the Report
+  view), light palette, fitted tables and page breaks, with the screen state
+  restored where `afterprint` fires and a no-JavaScript fallback for the active
+  Report.
 
 CSS lives in `src/render/report.css`; `scripts/build-styles.mjs` generates
 `src/render/styles.ts` for the inline report.
