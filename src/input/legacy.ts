@@ -45,6 +45,8 @@ interface LegacyEmbedding {
   data?: string;
   media?: { type?: string };
   mime_type?: string;
+  name?: string;
+  fileName?: string;
 }
 
 interface LegacyResult {
@@ -827,11 +829,17 @@ export function parseLegacyValue(
             embedding.media?.type ??
             embedding.mime_type ??
             'application/octet-stream';
+          const rawFileName = embedding.fileName ?? embedding.name;
+          const fileName =
+            typeof rawFileName === 'string' && rawFileName.trim()
+              ? rawFileName
+              : undefined;
           const attachment: Attachment = {
             body: embedding.data,
             contentEncoding: isLikelyBase64(embedding.data)
               ? AttachmentContentEncoding.BASE64
               : AttachmentContentEncoding.IDENTITY,
+            ...(fileName ? { fileName } : {}),
             mediaType,
             testCaseStartedId,
             testStepId: plan.testStep.id,

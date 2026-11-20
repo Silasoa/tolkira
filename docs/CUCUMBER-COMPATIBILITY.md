@@ -122,7 +122,8 @@ Messages-only; legacy Cucumber JSON has no CI envelope, so pass CI values
 through the `metadata` option instead. The JSON summary never includes CI
 fields and stays schema version 2.
 
-Attachment names use the Cucumber `fileName` when present. Unnamed attachments
+Attachment names use the Cucumber `fileName` or the legacy JSON `name` when
+present. Unnamed attachments
 fall back to a deterministic `attachment.<ext>` name in Messages and legacy
 JSON; known parameterised media types strip parameters and keep their
 extension (`text/uri-list` becomes `.txt` and `text/x.cucumber.log+plain`

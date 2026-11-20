@@ -80,6 +80,45 @@ describe('legacy JSON adapter', () => {
     expect(attachment?.body).toBe('dGVzdCBkYXRhIHRvIGJlIHByaW50ZWQ=');
   });
 
+  it('keeps a Cucumber-JVM attachment name', async () => {
+    const content = JSON.stringify([
+      {
+        uri: 'features/named.feature',
+        name: 'Named attachment feature',
+        elements: [
+          {
+            keyword: 'Scenario',
+            type: 'scenario',
+            name: 'Named attachment',
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'an attachment with a name',
+                result: { status: 'passed', duration: 1000 },
+                embeddings: [
+                  {
+                    data: 'bm90ZQ==',
+                    mime_type: 'text/plain',
+                    name: 'note.txt',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    const envelopes = await parseLegacyJson(content, 'named.json', {
+      idPrefix: 'named',
+      startedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    const attachment = envelopes.find(
+      (envelope) => envelope.attachment,
+    )?.attachment;
+
+    expect(attachment?.fileName).toBe('note.txt');
+  });
+
   it('renders a legacy report with its feature and attachment', async () => {
     const html = await renderReport(happy, { title: 'Legacy report' });
 
