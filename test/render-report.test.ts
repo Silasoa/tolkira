@@ -51,6 +51,20 @@ describe('messages rendering', () => {
     expect(html.length).toBeGreaterThan(20_000);
   });
 
+  it('renders a localized report and rejects an invalid locale', async () => {
+    const html = await renderReport(fixture, {
+      title: 'Lokalisierter Bericht',
+      locale: 'de',
+    });
+
+    expect(html).toContain('<html lang="de" dir="ltr">');
+    expect(html).toContain('>Bericht</button>');
+    expect(html).toContain('aria-label="Szenarien durchsuchen"');
+    await expect(
+      renderReport(fixture, { title: 'Ungültig', locale: 'fr' }),
+    ).rejects.toThrow(/\bde\b/);
+  });
+
   it('opens failed and image-bearing scenarios by default', async () => {
     const html = await renderReport(fixture, { title: 'Open state' });
 

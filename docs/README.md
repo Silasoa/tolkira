@@ -6,6 +6,8 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [Architecture](ARCHITECTURE.md) — system shape and [ADRs](adr/).
 - [Design](../DESIGN.md) — report design system, components and renderer modules.
 - [Compatibility](COMPATIBILITY.md) — migration from `cucumber-html-reporter`.
+- [Localisation](I18N.md) — report locales, catalogs, German glossary and the
+  translation checklist.
 - [Cucumber compatibility](CUCUMBER-COMPATIBILITY.md) — tested producers and versions.
 - [JUnit XML](JUNIT-XML.md) — basic-mode mapping and limits.
 - [Playwright JSON](PLAYWRIGHT-JSON.md) — native adapter mapping, path roots and limits.

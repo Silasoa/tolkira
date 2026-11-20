@@ -68,6 +68,7 @@
     "docs/CI.md",
     "docs/COMPATIBILITY.md",
     "docs/CUCUMBER-COMPATIBILITY.md",
+    "docs/I18N.md",
     "docs/JUNIT-XML.md",
     "docs/LIMITATIONS.md",
     "GLOSSARY.md"
@@ -78,16 +79,17 @@
     "postbuild": "node scripts/copy-compat-cjs.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
-    "test": "npm run assets && vitest run",
+    "test": "npm run i18n:check && npm run assets && vitest run",
     "test:e2e": "playwright test",
     "pretest:e2e": "npm run assets",
     "hygiene": "node scripts/check-hygiene.mjs",
-    "assets": "node scripts/build-styles.mjs && node scripts/build-search.mjs",
+    "assets": "node scripts/build-i18n.mjs && node scripts/build-styles.mjs && node scripts/build-search.mjs",
     "styles": "node scripts/build-styles.mjs",
+    "i18n:check": "vitest run test/i18n-catalog.test.ts",
     "prestress": "npm run build",
     "stress": "node scripts/stress.mjs",
     "bench:ansi": "node scripts/bench-ansi.mjs",
-    "check": "npm run assets && npm run typecheck && npm run lint && npm run build && npm run test",
+    "check": "npm run i18n:check && npm run assets && npm run typecheck && npm run lint && npm run build && npm run test",
     "prepublishOnly": "npm run check"
   },
   "publishConfig": {

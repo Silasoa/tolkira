@@ -44,6 +44,7 @@ import {
   tagsMarkup,
 } from './format.js';
 import { renderDescription } from './markdown.js';
+import type { Translator } from './i18n.js';
 import { renderSourceStrip, renderTriage } from './triage.js';
 import type { OrderedFeature, RenderOptions } from './types.js';
 
@@ -57,12 +58,12 @@ function scenarioTags(model: ReportModel): string[] {
   );
 }
 
-function renderDiagnostic(step: ReportStep): string {
+function renderDiagnostic(step: ReportStep, t: Translator): string {
   if (step.status === 'undefined') {
     const suggestions = step.suggestions ?? [];
     const lead = suggestions.length
-      ? `${UNDEFINED_LEAD} Implement with the snippet(s) below:`
-      : UNDEFINED_LEAD;
+      ? t.t('report.diagnostic.undefinedSuggestions')
+      : t.t('report.diagnostic.undefined');
     const snippets = suggestions
       .map((suggestion) => {
         const language = suggestion.language
@@ -82,7 +83,7 @@ function renderDiagnostic(step: ReportStep): string {
       )
       .join('');
     const list = items ? `<ul class="definitions">${items}</ul>` : '';
-    return `<div class="diagnostic" data-diagnostic="ambiguous"><p class="diagnosticLead">${AMBIGUOUS_LEAD}</p>${list}</div>`;
+    return `<div class="diagnostic" data-diagnostic="ambiguous"><p class="diagnosticLead">${t.t('report.diagnostic.ambiguous')}</p>${list}</div>`;
   }
   return '';
 }
@@ -118,13 +119,17 @@ function renderStepText(step: ReportStep): string {
   return html + escapeHtml(step.text.slice(cursor));
 }
 
-function renderStep(step: ReportStep, scenarioName: string): string {
-  const diagnostic = renderDiagnostic(step);
+function renderStep(
+  step: ReportStep,
+  scenarioName: string,
+  t: Translator,
+): string {
+  const diagnostic = renderDiagnostic(step, t);
   const docString = step.docString
     ? `<pre class="docString">${escapeHtml(step.docString)}</pre>`
     : '';
   const table = step.dataTable
-    ? `<div class="tableWrap" tabindex="0" role="region" aria-label="Data table for: ${escapeHtml(step.text)}"><table class="dataTable"><tbody>${step.dataTable
+    ? `<div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('report.dataTable', { step: escapeHtml(step.text) })}"><table class="dataTable"><tbody>${step.dataTable
         .map(
           (row, index) =>
             `<tr>${row
@@ -141,14 +146,15 @@ function renderStep(step: ReportStep, scenarioName: string): string {
     : '';
   const context = `${scenarioName}: ${step.keyword.trim()} ${step.text}`;
   const attachments = step.attachments
-    .map((attachment) => renderAttachment(attachment, context))
+    .map((attachment) => renderAttachment(attachment, context, t))
     .join('');
-  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> <span class="stepText">${renderStepText(step)}</span>${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs)}</span></li>`;
+  return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status, t)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> <span class="stepText">${renderStepText(step)}</span>${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs, t)}</span></li>`;
 }
 
 function renderHook(
   hook: ReportHook | ReportRunHook,
   scenarioName: string,
+  t: Translator,
   bareName = false,
 ): string {
   const error = hook.message
@@ -156,28 +162,33 @@ function renderHook(
     : '';
   const label = hookLabel(hook, bareName);
   const attachments = hook.attachments
-    .map((attachment) => renderAttachment(attachment, `${scenarioName}: ${label}`))
+    .map((attachment) =>
+      renderAttachment(attachment, `${scenarioName}: ${label}`, t),
+    )
     .join('');
-  return `<li class="hook" data-status="${hook.status}"><span class="stepMarker ${statusClass(hook.status)}"><span aria-hidden="true">${STEP_GLYPHS[hook.status]}</span><span class="sr">${statusLabel(hook.status)}</span></span><div><span class="hookLabel">${escapeHtml(label)}</span>${error}${attachments}</div><span class="dur">${durationLabel(hook.durationMs)}</span></li>`;
+  return `<li class="hook" data-status="${hook.status}"><span class="stepMarker ${statusClass(hook.status)}"><span aria-hidden="true">${STEP_GLYPHS[hook.status]}</span><span class="sr">${statusLabel(hook.status, t)}</span></span><div><span class="hookLabel">${escapeHtml(label)}</span>${error}${attachments}</div><span class="dur">${durationLabel(hook.durationMs, t)}</span></li>`;
 }
 
-function renderRunHooks(model: ReportModel): string {
+function renderRunHooks(model: ReportModel, t: Translator): string {
   if (model.runHooks.length === 0) return '';
-  return `<section class="runHooks" data-run-hooks aria-labelledby="run-hooks-heading"><h2 id="run-hooks-heading">Hooks</h2><ul class="hooks">${model.runHooks.map((hook) => renderHook(hook, 'Run', true)).join('')}</ul></section>`;
+  return `<section class="runHooks" data-run-hooks aria-labelledby="run-hooks-heading"><h2 id="run-hooks-heading">${t.t('report.runHooks')}</h2><ul class="hooks">${model.runHooks.map((hook) => renderHook(hook, t.t('report.run'), t, true)).join('')}</ul></section>`;
 }
 
 function backgroundText(background: ReportBackground): string {
   return [background.name, background.description].join(' ');
 }
 
-function backgroundMarkup(backgrounds: ReportBackground[]): string {
+function backgroundMarkup(
+  backgrounds: ReportBackground[],
+  t: Translator,
+): string {
   return backgrounds
     .filter((background) => background.name || background.description)
     .map((background) => {
       const name = background.name
         ? ` ${escapeHtml(background.name)}`
         : '';
-      const description = renderDescription(background.description);
+      const description = renderDescription(background.description, t);
       return `<section class="background" data-background><h3 class="backgroundTitle"><span class="kw">${escapeHtml(background.keyword)}:</span>${name}</h3>${description}</section>`;
     })
     .join('');
@@ -245,11 +256,18 @@ function scenarioSummary(
   visibleName: string,
   image: ReportScenario['attachments'][number] | undefined,
   rowTags: string,
+  t: Translator,
 ): string {
   const statusCell = scenario.executed
-    ? `<span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status)}</span></span>`
-    : '<span class="statusCell"><span class="sr">Not executed</span></span>';
-  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${scenario.steps.length} step${scenario.steps.length === 1 ? '' : 's'}${scenario.hooks.length ? ` · ${scenario.hooks.length} hook${scenario.hooks.length === 1 ? '' : 's'}` : ''}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs)}${scenario.attachments.length ? `<br>${scenario.attachments.length} attachment${scenario.attachments.length === 1 ? '' : 's'}` : ''}</span><span class="chev" aria-hidden="true"></span></summary>`;
+    ? `<span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status, t)}</span></span>`
+    : `<span class="statusCell"><span class="sr">${t.t('report.notExecuted')}</span></span>`;
+  const hooks = scenario.hooks.length
+    ? ` · ${t.t('report.hookCount', { count: scenario.hooks.length })}`
+    : '';
+  const attachments = scenario.attachments.length
+    ? `<br>${t.t('report.attachmentCount', { count: scenario.attachments.length })}`
+    : '';
+  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
 }
 
 function scenarioBody({
@@ -259,6 +277,7 @@ function scenarioBody({
   passedHooksGroup,
   extraAttachments,
   scenarioMeta,
+  t,
 }: {
   scenario: ReportScenario;
   description: string;
@@ -266,18 +285,26 @@ function scenarioBody({
   passedHooksGroup: string;
   extraAttachments: string;
   scenarioMeta: string;
+  t: Translator;
 }): string {
   const copyFailure =
     scenario.status === 'failed'
-      ? '<button class="copyFailure" type="button" data-copy-failure>Copy failure</button>'
+      ? `<button class="copyFailure" type="button" data-copy-failure>${t.t('report.copyFailure')}</button>`
       : '';
-  return `<div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">Steps</p>${copyFailure}</div><ol class="steps" aria-label="Steps and hooks">${inlineItems}</ol>${passedHooksGroup}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>Feature: ${escapeHtml(scenario.featureName)}</span><span>Attempt: ${scenario.attempt + 1}</span>${scenario.startedAt ? `<span>Started: ${dateLabel(scenario.startedAt)}</span>` : ''}${scenario.ruleName ? `<span>Rule: ${escapeHtml(scenario.ruleName)}</span>` : ''}</div></div>`;
+  const started = scenario.startedAt
+    ? `<span>${t.t('report.startedMeta', { date: dateLabel(scenario.startedAt, t) })}</span>`
+    : '';
+  const rule = scenario.ruleName
+    ? `<span>${t.t('report.ruleMeta', { name: escapeHtml(scenario.ruleName) })}</span>`
+    : '';
+  return `<div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">${t.t('report.steps')}</p>${copyFailure}</div><ol class="steps" aria-label="${t.t('report.stepsAndHooks')}">${inlineItems}</ol>${passedHooksGroup}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>${t.t('report.featureMeta', { name: escapeHtml(scenario.featureName) })}</span><span>${t.t('report.attemptMeta', { count: scenario.attempt + 1 })}</span>${started}${rule}</div></div>`;
 }
 
 function renderScenario(
   scenario: ReportScenario,
   featureIndex: number,
   scenarioIndex: number,
+  t: Translator,
   grouped = false,
   inRule = false,
 ): string {
@@ -299,22 +326,37 @@ function renderScenario(
   const inlineItems = [
     ...scenario.steps.map((step) => ({
       order: step.order,
-      html: renderStep(step, scenario.name),
+      html: renderStep(step, scenario.name, t),
     })),
     ...scenario.hooks
       .filter((hook) => hook.status !== 'passed')
-      .map((hook) => ({ order: hook.order, html: renderHook(hook, scenario.name) })),
+      .map((hook) => ({
+        order: hook.order,
+        html: renderHook(hook, scenario.name, t),
+      })),
   ]
     .sort((a, b) => a.order - b.order)
     .map((item) => item.html)
     .join('');
   const passedHooksGroup = passedHooks.length
-    ? `<details class="hookGroup"><summary>${passedHooks.length} hook${passedHooks.length === 1 ? '' : 's'}</summary><ul class="hooks" aria-label="Passed hooks">${passedHooks.map((hook) => renderHook(hook, scenario.name)).join('')}</ul></details>`
+    ? `<details class="hookGroup"><summary>${t.t('report.hookCount', { count: passedHooks.length })}</summary><ul class="hooks" aria-label="${t.t('report.passedHooks')}">${passedHooks.map((hook) => renderHook(hook, scenario.name, t)).join('')}</ul></details>`
     : '';
-  const description = grouped ? '' : renderDescription(scenario.description);
+  const description = grouped ? '' : renderDescription(scenario.description, t);
   const screenReaderLabel =
     grouped && outline
-      ? `<span class="sr">${escapeHtml(`${scenario.name}, Scenario Outline ${outline.name}${outline.examplesName ? `, Examples ${outline.examplesName}` : ''}, example ${example}`)}</span>`
+      ? (() => {
+          const parts = [
+            scenario.name,
+            t.t('report.outlineLabel', { outline: outline.name }),
+          ];
+          if (outline.examplesName) {
+            parts.push(
+              t.t('report.examplesLabel', { examples: outline.examplesName }),
+            );
+          }
+          parts.push(t.t('report.exampleLabel', { example }));
+          return `<span class="sr">${escapeHtml(parts.join(', '))}</span>`;
+        })()
       : '';
   const visibleName = grouped
     ? `<span class="exampleNo" aria-hidden="true">${escapeHtml(example)}</span>${screenReaderLabel}`
@@ -323,11 +365,11 @@ function renderScenario(
   // rows show only their own tags and never repeat inherited feature/rule tags.
   const rowTags = grouped ? '' : tagsMarkup(scenario.ownTags);
   const extraAttachments = scenario.extraAttachments.length
-    ? `<div role="group" aria-label="Attachments"><p class="detailLabel">Attachments</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name)).join('')}</div>`
+    ? `<div role="group" aria-label="${t.t('report.attachments')}"><p class="detailLabel">${t.t('report.attachments')}</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name, t)).join('')}</div>`
     : '';
   const scenarioMeta =
     grouped && outline
-      ? `<span>Scenario: ${escapeHtml(scenario.name)}</span>`
+      ? `<span>${t.t('report.scenarioMeta', { name: escapeHtml(scenario.name) })}</span>`
       : '';
   const attributes = encodeScenario({
     ...(scenario.executed ? { status: scenario.status } : {}),
@@ -341,7 +383,7 @@ function renderScenario(
   })
     .map(([name, value]) => `${name}="${escapeHtml(value)}"`)
     .join(' ');
-  return `<details class="scenario" id="${scenarioId(featureIndex, scenarioIndex)}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}>${scenarioSummary(scenario, heading, visibleName, image, rowTags)}${scenarioBody({ scenario, description, inlineItems, passedHooksGroup, extraAttachments, scenarioMeta })}</details>`;
+  return `<details class="scenario" id="${scenarioId(featureIndex, scenarioIndex)}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}>${scenarioSummary(scenario, heading, visibleName, image, rowTags, t)}${scenarioBody({ scenario, description, inlineItems, passedHooksGroup, extraAttachments, scenarioMeta, t })}</details>`;
 }
 
 function renderExamples(
@@ -349,8 +391,9 @@ function renderExamples(
   rows: ReportScenario[],
   featureIndex: number,
   idIndex: Map<string, number>,
+  t: Translator,
 ): string {
-  const description = renderDescription(outline.examplesDescription);
+  const description = renderDescription(outline.examplesDescription, t);
   const title = outline.examplesName
     ? `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span> ${escapeHtml(outline.examplesName)}`
     : `<span class="kw">${escapeHtml(outline.examplesKeyword)}:</span>`;
@@ -360,6 +403,7 @@ function renderExamples(
         scenario,
         featureIndex,
         idIndex.get(scenario.id) ?? 0,
+        t,
         true,
       ),
     )
@@ -371,6 +415,7 @@ function renderOutline(
   rows: ReportScenario[],
   featureIndex: number,
   idIndex: Map<string, number>,
+  t: Translator,
 ): string {
   const blocks = new Map<string, { outline: ReportOutline; rows: ReportScenario[] }>();
   for (const row of rows) {
@@ -385,10 +430,10 @@ function renderOutline(
   const exampleBlocks = [...blocks.values()]
     .sort((a, b) => a.outline.examplesIndex - b.outline.examplesIndex)
     .map((block) =>
-      renderExamples(block.outline, block.rows, featureIndex, idIndex),
+      renderExamples(block.outline, block.rows, featureIndex, idIndex, t),
     )
     .join('');
-  const description = renderDescription(outline.description);
+  const description = renderDescription(outline.description, t);
   return `<section class="outline" data-outline data-search="${escapeHtml(outline.description)}">${tagsMarkup(outline.tags)}<h3 class="outlineTitle"><span class="kw">${escapeHtml(outline.keyword)}:</span> ${escapeHtml(outline.name)}</h3>${description}${exampleBlocks}</section>`;
 }
 
@@ -415,15 +460,17 @@ function renderFeatureItem(
   featureIndex: number,
   idIndex: Map<string, number>,
   inRule: boolean,
+  t: Translator,
 ): string {
   if (item.kind === 'outline' && item.outline && item.rows) {
-    return renderOutline(item.outline, item.rows, featureIndex, idIndex);
+    return renderOutline(item.outline, item.rows, featureIndex, idIndex, t);
   }
   if (item.scenario) {
     return renderScenario(
       item.scenario,
       featureIndex,
       idIndex.get(item.scenario.id) ?? 0,
+      t,
       false,
       inRule,
     );
@@ -435,18 +482,20 @@ function renderRuleBlock(
   block: RuleBlock,
   featureIndex: number,
   idIndex: Map<string, number>,
+  t: Translator,
 ): string {
   const rule = block.rule;
   const name = rule.name ? ` ${escapeHtml(rule.name)}` : '';
-  const description = renderDescription(rule.description);
-  return `<section class="rule" data-rule data-search="${escapeHtml(ruleSearchText(rule))}"><h3 class="ruleTitle"><span class="kw">${escapeHtml(rule.keyword)}:</span>${name}</h3>${tagsMarkup(rule.tags, 'ruleTags')}${description}${backgroundMarkup(rule.backgrounds)}<div class="ruleRows">${block.items
-    .map((item) => renderFeatureItem(item, featureIndex, idIndex, true))
+  const description = renderDescription(rule.description, t);
+  return `<section class="rule" data-rule data-search="${escapeHtml(ruleSearchText(rule))}"><h3 class="ruleTitle"><span class="kw">${escapeHtml(rule.keyword)}:</span>${name}</h3>${tagsMarkup(rule.tags, 'ruleTags')}${description}${backgroundMarkup(rule.backgrounds, t)}<div class="ruleRows">${block.items
+    .map((item) => renderFeatureItem(item, featureIndex, idIndex, true, t))
     .join('')}</div></section>`;
 }
 
 function featureShape(
   feature: ReportFeature,
   scenarios: ReportScenario[],
+  t: Translator,
 ): string {
   const executed = executedOnly(scenarios);
   const passed = executed.filter(
@@ -455,27 +504,33 @@ function featureShape(
   const attempted = executed.filter(
     (scenario) => scenario.status !== 'skipped',
   ).length;
-  const attention = attentionCounts(executed);
+  const attention = attentionCounts(executed, t);
   const counts =
     attempted === 0
-      ? `${passed} of 0 passed${attention ? ` · ${attention}` : ''}`
-      : `${passed} passed of ${attempted} attempted${attention ? ` · ${attention}` : ''}`;
+      ? attention
+        ? t.t('report.featureCountsZeroAttention', { passed, attention })
+        : t.t('report.featureCountsZero', { passed })
+      : attention
+        ? t.t('report.featureCountsAttention', { passed, attempted, attention })
+        : t.t('report.featureCounts', { passed, attempted });
   const source = feature.sourceFile
-    ? `<span class="featureSource">from ${escapeHtml(feature.sourceFile)}</span>`
+    ? `<span class="featureSource">${t.t('report.sourceFrom', { file: escapeHtml(feature.sourceFile) })}</span>`
     : '';
-  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(featureSourceLabel(feature))}</span>${tagsMarkup(feature.tags, 'featureTags')}</span>`;
+  return `<span class="featureShape"><span class="featureCounts">${counts}</span>${featureBar(scenarios)}${source}<span class="featureUri">${escapeHtml(featureSourceLabel(feature, t))}</span>${tagsMarkup(feature.tags, 'featureTags')}</span>`;
 }
 
 function featureSummary(
   feature: ReportFeature,
   scenarios: ReportScenario[],
+  t: Translator,
 ): string {
-  return `<summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios)}</summary>`;
+  return `<summary><span class="statusCell"><span class="statusText ${statusClass(feature.status)}">${statusLabel(feature.status, t)}</span></span><h2>${escapeHtml(feature.name)}</h2><span class="chev" aria-hidden="true"></span>${featureShape(feature, scenarios, t)}</summary>`;
 }
 
 function renderFeature(
   { feature, scenarios }: OrderedFeature,
   featureIndex: number,
+  t: Translator,
 ): string {
   const executed = executedOnly(scenarios);
   const open =
@@ -485,7 +540,7 @@ function renderFeature(
         scenario.status !== 'passed' ||
         scenario.attachments.some((attachment) => attachment.kind === 'image'),
     );
-  const description = renderDescription(feature.description);
+  const description = renderDescription(feature.description, t);
   // Triage and row anchors share this severity order; grouping only changes
   // the display order, never the ids.
   const idIndex = new Map(scenarios.map((scenario, index) => [scenario.id, index]));
@@ -589,11 +644,11 @@ function renderFeature(
   const backgroundSearch = escapeHtml(
     feature.backgrounds.map(backgroundText).join(' '),
   );
-  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="${featureId(featureIndex)}" data-feature data-background-search="${backgroundSearch}" ${open ? 'open' : ''}>${featureSummary(feature, scenarios)}${description}${backgroundMarkup(feature.backgrounds)}<div class="rows">${topItems
+  return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="${featureId(featureIndex)}" data-feature data-background-search="${backgroundSearch}" ${open ? 'open' : ''}>${featureSummary(feature, scenarios, t)}${description}${backgroundMarkup(feature.backgrounds, t)}<div class="rows">${topItems
     .map((item) =>
       item.kind === 'rule'
-        ? renderRuleBlock(item, featureIndex, idIndex)
-        : renderFeatureItem(item, featureIndex, idIndex, false),
+        ? renderRuleBlock(item, featureIndex, idIndex, t)
+        : renderFeatureItem(item, featureIndex, idIndex, false, t),
     )
     .join('')}</div></details>`;
 }
@@ -608,48 +663,53 @@ function metadataLine(metadata: Record<string, string> | undefined): string {
     .join('');
 }
 
-function reportHeader(model: ReportModel, options: RenderOptions): string {
+function reportHeader(
+  model: ReportModel,
+  options: RenderOptions,
+  t: Translator,
+): string {
   const total = model.counts.scenarios.total;
   const unexecuted = model.scenarios.filter(
     (scenario) => !scenario.executed,
   ).length;
   const meta = metadataLine(options.metadata);
-  const ci = ciHeaderMarkup(model.environment?.ci);
-  const date = dateLabel(model.startedAt);
-  return `<header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${model.counts.features} feature${model.counts.features === 1 ? '' : 's'}</span><span>${total} scenario${total === 1 ? '' : 's'} with results</span>${unexecuted > 0 ? `<span>${unexecuted} unexecuted</span>` : ''}<span title="Sum of the final attempt per scenario and run hooks"><b>Test time</b> ${durationLabel(model.durationMs)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health">${healthMarkup(model)}${statusBar(model)}${countPills(model)}</div></header>`;
+  const ci = ciHeaderMarkup(model.environment?.ci, t);
+  const date = dateLabel(model.startedAt, t);
+  return `<header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${t.t('report.featureCount', { count: model.counts.features })}</span><span>${t.t('report.scenarioWithResults', { count: total })}</span>${unexecuted > 0 ? `<span>${t.t('report.unexecuted', { count: unexecuted })}</span>` : ''}<span title="${t.t('report.testTimeTitle')}"><b>${t.t('report.testTime')}</b> ${durationLabel(model.durationMs, t)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health">${healthMarkup(model, t)}${statusBar(model)}${countPills(model, t)}</div></header>`;
 }
 
-function toolbar(model: ReportModel): string {
+function toolbar(model: ReportModel, t: Translator): string {
   const tags = scenarioTags(model);
   const tagFilter = tags.length
-    ? `<label class="tagFilter"><span>Tag</span><select data-tag-filter><option value="">All tags</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
+    ? `<label class="tagFilter"><span>${t.t('report.tag')}</span><select data-tag-filter><option value="">${t.t('report.allTags')}</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join('')}</select></label>`
     : '';
   const statuses = displayStatuses(model);
   const preset =
     model.counts.scenarios.failed > 0 &&
     (statuses.length > 1 ||
       model.scenarios.some((scenario) => !scenario.executed))
-      ? `<button class="filter presetFilter" type="button" ${FILTER_PRESET_ATTRIBUTE}="failed" aria-pressed="false">Failed only</button>`
+      ? `<button class="filter presetFilter" type="button" ${FILTER_PRESET_ATTRIBUTE}="failed" aria-pressed="false">${t.t('report.failedOnly')}</button>`
       : '';
-  return `<div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="Search scenario, feature or tag" aria-label="Search scenarios"></label>${tagFilter}<div class="filters">${statuses
+  return `<div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input data-search type="search" placeholder="${t.t('report.searchPlaceholder')}" aria-label="${t.t('report.searchLabel')}"></label>${tagFilter}<div class="filters">${statuses
     .map(
       (status) =>
-        `<button class="filter" type="button" ${FILTER_STATUS_ATTRIBUTE}="${status}" aria-pressed="true">${statusLabel(status)} <b>${model.counts.scenarios[status]}</b></button>`,
+        `<button class="filter" type="button" ${FILTER_STATUS_ATTRIBUTE}="${status}" aria-pressed="true">${statusLabel(status, t)} <b>${t.number(model.counts.scenarios[status])}</b></button>`,
     )
-    .join('')}${preset}</div><div class="expand"><button type="button" data-expand="all">Expand all</button><button type="button" data-expand="none">Collapse all</button></div></div>`;
+    .join('')}${preset}</div><div class="expand"><button type="button" data-expand="all">${t.t('report.expandAll')}</button><button type="button" data-expand="none">${t.t('report.collapseAll')}</button></div></div>`;
 }
 
 export function renderReportView(
   model: ReportModel,
   options: RenderOptions,
+  t: Translator,
 ): string {
   const total = model.counts.scenarios.total;
   const ordered = orderFeatures(model.features);
   const features = ordered
-    .map((feature, index) => renderFeature(feature, index))
+    .map((feature, index) => renderFeature(feature, index, t))
     .join('');
-  const triage = renderTriage(ordered);
-  const sources = renderSourceStrip(model);
-  const runHooks = renderRunHooks(model);
-  return `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell">${reportHeader(model, options)}${toolbar(model)}<p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">No scenarios in this report.</div>`}</div>${runHooks}<div class="empty" id="${DOM_IDS.emptyResults}" hidden>No scenarios match the current search or filters.</div><p class="foot">Generated by Tolkira. Single file. No network requests. Attachments are embedded when available.</p></main></div>`;
+  const triage = renderTriage(ordered, t);
+  const sources = renderSourceStrip(model, t);
+  const runHooks = renderRunHooks(model, t);
+  return `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell">${reportHeader(model, options, t)}${toolbar(model, t)}<p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">${t.t('report.noScenarios')}</div>`}</div>${runHooks}<div class="empty" id="${DOM_IDS.emptyResults}" hidden>${t.t('report.noMatches')}</div><p class="foot">${t.t('report.footer')}</p></main></div>`;
 }

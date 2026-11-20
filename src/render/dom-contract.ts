@@ -17,6 +17,7 @@ export const DOM_IDS = {
   copyLive: 'tolkira-copy-live',
   emptyResults: 'empty-results',
   lightbox: 'tolkira-lightbox',
+  i18nMessages: 'tolkira-messages',
 } as const;
 
 export function featureId(index: number): string {

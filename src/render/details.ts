@@ -14,43 +14,50 @@ import {
   statusClass,
   statusLabel,
 } from './format.js';
+import type { Translator } from './i18n.js';
 import { renderFeatureMatrix } from './matrix.js';
 import type { RenderOptions } from './types.js';
 
-function detailsHeader(model: ReportModel): string {
-  return `<header class="runHead"><div><p class="path">${escapeHtml(model.source)} / details</p><h1>Run details</h1><p class="meta">${dateLabel(model.startedAt) ? `<span>${dateLabel(model.startedAt)}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health">${healthMarkup(model)}${statusBar(model)}${countPills(model)}</div></header>`;
+function detailsHeader(model: ReportModel, t: Translator): string {
+  const date = dateLabel(model.startedAt, t);
+  return `<header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${t.t('details.path')}</p><h1>${t.t('details.title')}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${escapeHtml(model.source)}</span></p></div><div class="health">${healthMarkup(model, t)}${statusBar(model)}${countPills(model, t)}</div></header>`;
 }
 
-function runPanel(model: ReportModel, total: number): string {
-  return `<h2 class="subhead">Run</h2><dl class="metaList"><dt>Test time</dt><dd>${durationLabel(model.durationMs)}</dd><dt>Features</dt><dd>${model.counts.features}</dd><dt>Scenarios</dt><dd>${total}</dd><dt>Steps (excl. hooks)</dt><dd>${model.counts.steps.total}</dd><dt>Hooks</dt><dd>${model.counts.hooks.total}</dd><dt>Attachments</dt><dd>${model.counts.attachments}</dd><dt>Attachment size</dt><dd>${model.counts.attachmentBytes} bytes</dd><dt>Source</dt><dd>${escapeHtml(model.source)}</dd></dl><p class="durationNote">Test time sums the final attempt per scenario and test-run hooks; Scenario time sums the final attempt per scenario. Neither is wall-clock time.</p>`;
+function runPanel(model: ReportModel, total: number, t: Translator): string {
+  return `<h2 class="subhead">${t.t('details.run')}</h2><dl class="metaList"><dt>${t.t('details.testTime')}</dt><dd>${durationLabel(model.durationMs, t)}</dd><dt>${t.t('details.features')}</dt><dd>${t.number(model.counts.features)}</dd><dt>${t.t('details.scenarios')}</dt><dd>${t.number(total)}</dd><dt>${t.t('details.steps')}</dt><dd>${t.number(model.counts.steps.total)}</dd><dt>${t.t('details.hooks')}</dt><dd>${t.number(model.counts.hooks.total)}</dd><dt>${t.t('details.attachments')}</dt><dd>${t.number(model.counts.attachments)}</dd><dt>${t.t('details.attachmentSize')}</dt><dd>${t.t('format.bytes', { count: t.number(model.counts.attachmentBytes) })}</dd><dt>${t.t('details.source')}</dt><dd>${escapeHtml(model.source)}</dd></dl><p class="durationNote">${t.t('details.durationNote')}</p>`;
 }
 
-function environmentPanel(model: ReportModel, customRows: string): string {
+function environmentPanel(
+  model: ReportModel,
+  customRows: string,
+  t: Translator,
+): string {
   const environmentRows = [
     model.environment?.producer
-      ? `<dt>Producer</dt><dd>${escapeHtml(model.environment.producer)}</dd>`
+      ? `<dt>${t.t('details.producer')}</dt><dd>${escapeHtml(model.environment.producer)}</dd>`
       : '',
     model.environment?.runtime
-      ? `<dt>Runtime</dt><dd>${escapeHtml(model.environment.runtime)}</dd>`
+      ? `<dt>${t.t('details.runtime')}</dt><dd>${escapeHtml(model.environment.runtime)}</dd>`
       : '',
     model.environment?.os
-      ? `<dt>OS</dt><dd>${escapeHtml(model.environment.os)}</dd>`
+      ? `<dt>${t.t('details.os')}</dt><dd>${escapeHtml(model.environment.os)}</dd>`
       : '',
     model.environment?.cpu
-      ? `<dt>CPU</dt><dd>${escapeHtml(model.environment.cpu)}</dd>`
+      ? `<dt>${t.t('details.cpu')}</dt><dd>${escapeHtml(model.environment.cpu)}</dd>`
       : '',
     model.environment?.protocol
-      ? `<dt>Protocol</dt><dd>${escapeHtml(model.environment.protocol)}</dd>`
+      ? `<dt>${t.t('details.protocol')}</dt><dd>${escapeHtml(model.environment.protocol)}</dd>`
       : '',
-    ciDetailRows(model.environment?.ci),
+    ciDetailRows(model.environment?.ci, t),
   ].join('');
-  return `${environmentRows ? `<h2 class="subhead">Run environment</h2><dl class="metaList">${environmentRows}</dl>` : ''}${customRows ? `<h2 class="subhead">Custom metadata</h2><dl class="metaList">${customRows}</dl>` : ''}`;
+  return `${environmentRows ? `<h2 class="subhead">${t.t('details.runEnvironment')}</h2><dl class="metaList">${environmentRows}</dl>` : ''}${customRows ? `<h2 class="subhead">${t.t('details.customMetadata')}</h2><dl class="metaList">${customRows}</dl>` : ''}`;
 }
 
 export function renderAnalysisView(
   model: ReportModel,
   options: RenderOptions,
   summary: ReportSummary,
+  t: Translator,
 ): string {
   const counts = model.counts.scenarios;
   const preview = {
@@ -66,10 +73,10 @@ export function renderAnalysisView(
         `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`,
     )
     .join('');
-  return `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis">${detailsHeader(model)}<div class="analysisGrid"><section class="panel"><h2>Features</h2><p>Where the run spent its scenarios and steps.</p><p class="matrixHint">Executed scenarios only. Scroll for all status columns.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Feature status matrix">${renderFeatureMatrix(model)}</div></section><section class="panel"><h2>Status distribution</h2><p>Pass rate counts attempted (non-skipped) scenarios; counts and bars include skipped.</p><div class="legend">${displayStatuses(model)
+  return `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis">${detailsHeader(model, t)}<div class="analysisGrid"><section class="panel"><h2>${t.t('details.features')}</h2><p>${t.t('details.featureSpend')}</p><p class="matrixHint">${t.t('details.matrixHint')}</p><div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('details.matrixLabel')}">${renderFeatureMatrix(model, t)}</div></section><section class="panel"><h2>${t.t('details.statusDistribution')}</h2><p>${t.t('details.passRateNote')}</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
-        `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status)}</span><b>${counts[status]}</b></div>`,
+        `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status, t)}</span><b>${t.number(counts[status])}</b></div>`,
     )
-    .join('')}</div>${runPanel(model, counts.total)}${environmentPanel(model, customRows)}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>Run attachments</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, 'Run attachments')).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>Agent summary</h2><p>The same run as stable JSON for CI tools and agents. Its step counts include hook entries; the HTML counts above exclude them.</p><pre class="json" tabindex="0" aria-label="Agent summary JSON">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">Full summary: <code>tolkira ... --json</code></p></main></div>`;
+    .join('')}</div>${runPanel(model, counts.total, t)}${environmentPanel(model, customRows, t)}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>${t.t('details.runAttachments')}</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, t.t('details.runAttachments'), t)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>${t.t('details.agentSummary')}</h2><p>${t.t('details.agentSummaryNote')}</p><pre class="json" tabindex="0" aria-label="${t.t('details.agentSummaryJson')}">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">${t.t('details.fullSummary')} <code>tolkira ... --json</code></p></main></div>`;
 }

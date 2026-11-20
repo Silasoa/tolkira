@@ -5,6 +5,8 @@ export interface RenderReportOptions {
   metadata?: Record<string, string>;
   logo?: string;
   accent?: string;
+  /** Report UI language tag; defaults to English. */
+  locale?: string;
   /** Prior aggregate runs; renderReport only renders them, generateReport appends. */
   history?: HistoryRun[];
 }
@@ -15,5 +17,6 @@ export function renderOptions(options: RenderReportOptions) {
     metadata: options.metadata,
     logo: options.logo,
     accent: options.accent,
+    locale: options.locale,
   };
 }

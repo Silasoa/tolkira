@@ -309,6 +309,26 @@ describe('rendered scenario contract', () => {
     expect(idsOf(html)).not.toContain(DOM_IDS.trendsView);
   });
 
+  it('always embeds the inert client-message block', async () => {
+    expect(DOM_IDS.i18nMessages).toBe('tolkira-messages');
+
+    const html = await renderHtml(await parsedFixture(emptyMixedFixture), {
+      title: 'Client messages',
+    });
+    const blocks = [
+      ...html.matchAll(
+        new RegExp(
+          `<script\\b[^>]*\\bid="${DOM_IDS.i18nMessages}"[^>]*>([\\s\\S]*?)<\\/script>`,
+          'g',
+        ),
+      ),
+    ];
+
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.[0]).toContain('type="application/json"');
+    expect(() => JSON.parse(blocks[0]?.[1] ?? '')).not.toThrow();
+  });
+
   it('keeps data-status for results and data-filter-status for controls', async () => {
     const html = await renderHtml(
       [

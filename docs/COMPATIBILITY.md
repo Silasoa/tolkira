@@ -111,8 +111,13 @@ The core Messages path reads `meta.ci` and renders it in HTML only.
   the generated HTML. If you only have the old HTML, export the JSON again.
 - **The `output + '.json'` side effect.** Tolkira does not write a merged JSON
   copy next to the report.
-- **Custom CSS/JS, i18n, email reports, CDN mode and browser launch.** These
-  conflict with the single-file, no-network baseline or are out of scope.
+- **Custom CSS/JS, MCHR's UI language set, email reports, CDN mode and browser
+  launch.** MCHR 4.6 chooses one UI language at build time (`language` or
+  `--language`/`--lang`) from en, es, fr, pt and ar, including RTL Arabic;
+  German is not in that set, and MCHR has no in-report switcher. Tolkira
+  supports en and de per report and maps the MCHR option to `--locale`. Custom
+  CSS/JS, email reports, CDN mode and browser launch conflict with the
+  single-file, no-network baseline or are out of scope.
 
 ## Seed-Test
 
@@ -150,7 +155,17 @@ tolkira path/to/jsonDir --out reports/index.html --title "My report"
 ```
 
 Map `jsonDir` to the input directory, `reportPath`/`reportName` to `--out`,
-`metadata` to `--meta key=value` and `brandLogo` to `--logo`. The dashboard,
-scenario-level history, i18n and the old folder report are not reproduced;
-history is available only as the opt-in aggregate `--history` sidecar described
-in [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
+`metadata` to `--meta key=value` and `brandLogo` to `--logo`. MCHR 4.6 selects
+its UI language at build time with `language` or `--language`/`--lang` from en,
+es, fr, pt and ar (including RTL Arabic; no German); map it to Tolkira's
+`--locale en|de`. Neither has an in-report switcher; Tolkira's one file carries
+one locale, while MCHR chooses its language at build time and writes its report
+folder. MCHR localizes its default report titles; Tolkira keeps `Tolkira report`
+unless `--title` overrides it. An unknown MCHR language warns and falls back to
+English on the API/config path, while its `--language`/`--lang` CLI throws.
+Tolkira rejects it too: the CLI exits 2 and the API throws.
+The dashboard, scenario-level history and the old folder report are not
+reproduced; history is available only as the opt-in aggregate `--history`
+sidecar described in [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history). The
+core CLI/API also accepts `--locale en|de` for the report shell; the legacy
+`cucumber-html-reporter` shim option set stays frozen.

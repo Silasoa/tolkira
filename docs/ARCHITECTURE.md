@@ -114,10 +114,26 @@ and is covered by real producer fixtures.
   header and detail rows; `format.ts` owns status, duration, date, bar, count,
   health, pass-rate and tag helpers; `types.ts` owns `RenderOptions`
   (including the optional `history` list), `DisplayStatus` and
-  `OrderedFeature`. `escape.ts`, `dom-contract.ts`, `markdown.ts`, `ansi.ts`,
-  `styles.ts`, `client-bundle.ts`, `search.ts` and `report-client.ts` are shared
+  `OrderedFeature`. Two shared foundation modules carry localisation:
+  `i18n.ts` owns locale resolution, the catalog translator and locale-aware
+  number/percent/duration/date helpers, caching `Intl` formatters per translator;
+  `client-i18n.ts` owns the browser formatter for the embedded `client.*` block,
+  with every `Intl.PluralRules` category and numeric `#` parameters. `escape.ts`,
+  `dom-contract.ts`, `markdown.ts`, `ansi.ts`, `styles.ts`, `client-bundle.ts`,
+  `search.ts`, `report-client.ts`, `i18n.ts` and `client-i18n.ts` are shared
   foundation, importable from every layer. `src/attachment.ts` is a shared leaf
   below the renderer; `render/attachments.ts` reads the `textFormat` it produced.
+- `src/i18n/locales/<tag>.json` are the catalog sources; `en.json` carries a
+  description per key and is the fallback. `scripts/build-i18n.mjs` derives each
+  tag from its file name and generates `src/i18n/catalogs.ts` (a `MessageKey`
+  union plus `Record<MessageKey, string>` catalogs, no runtime JSON import);
+  `npm run assets` runs it. Adding a left-to-right locale is mostly a data step:
+  drop in the JSON file, then update the CLI usage line and any test that names
+  the supported list; an RTL locale also needs a `DIRECTIONS` entry. `renderHtml`
+  resolves `options.locale` once, sets `<html lang>`/`dir`, passes one translator
+  to every view and always embeds the active `client.*` messages as an inert JSON
+  block. The browser bundle contains no non-English catalog. See
+  [`docs/I18N.md`](I18N.md).
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
   generates `src/render/styles.ts` for the inline report.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
@@ -170,8 +186,8 @@ and is covered by real producer fixtures.
 ### `src/cli`
 
 - `tolkira <input...> [--out <file>] [--json] [--ci github|markdown]`
-  `[--ci-out <file>] [--history <file>] [--title <title>] [--meta key=value]`
-  `[--logo <file>] [--accent <hex>] [--max-size <mb>]`.
+  `[--ci-out <file>] [--history <file>] [--locale <tag>] [--title <title>]`
+  `[--meta key=value] [--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
   content; duplicate paths are resolved and read once.
@@ -184,6 +200,10 @@ and is covered by real producer fixtures.
   logo, `--out`, `--ci-out` and input directories, even when missing), read once
   before generation and written after the HTML. A history read or write failure
   exits 1 and names the file; a written HTML stays in place.
+- `--locale <tag>` requires `--out`, defaults to `en` and validates exact then
+  primary-subtag matches (`de-AT` -> `de`) before generation. Unknown or empty
+  tags exit 2 with `en, de`. The requested canonical tag reaches `<html lang>`;
+  the JSON summary and CI text stay English.
 - Warns when the report exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
@@ -201,7 +221,9 @@ summarizeReport(inputs): Promise<ReportSummary>
 
 `generateReport` accepts `history`, appends the current aggregate run and returns
 the appended list; `renderReport` renders `options.history` without recording a
-run. The CLI is a thin wrapper around the API.
+run. `RenderReportOptions.locale` is optional and reaches the renderer through
+`renderOptions`; `de-AT` keeps its tag and uses the `de` catalog. The CLI is a
+thin wrapper around the API.
 
 ## Security
 

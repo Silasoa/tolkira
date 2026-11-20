@@ -265,7 +265,11 @@ function sourceFiles(dir = SRC, prefix = ''): string[] {
 
 // Generated assets are built files, not attachment logic; only hand-written
 // modules are scanned.
-const GENERATED = new Set(['render/client-bundle.ts', 'render/styles.ts']);
+const GENERATED = new Set([
+  'i18n/catalogs.ts',
+  'render/client-bundle.ts',
+  'render/styles.ts',
+]);
 
 // Read once per file. This is a coarse structural guard; the behavioural byte,
 // metadata and cap tests are the real proof.

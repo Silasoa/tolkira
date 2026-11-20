@@ -1,6 +1,6 @@
 # Limitations
 
-Last verified: **2026-11-19**. "Verified" means the repository state on that
+Last verified: **2026-11-20**. "Verified" means the repository state on that
 date: the cited fixture or test exists and passes. It does not mean every
 producer was re-run on that date.
 
@@ -13,5 +13,6 @@ producer was re-run on that date.
 | Themes and charts | Not supported | 2026-11-13 | Branding is title, metadata, logo, accent colour and dark mode. The old cucumber-html-reporter themes and charts are not reproduced. |
 | External attachments | Not supported | 2026-11-19 | Output stays one file. Current limits: 100 MB total input, 50 MB per attachment, 100 MB total attachments, with a warning above 10 MB. Decision: [ADR 0006](adr/0006-inline-attachments.md). |
 | History and trends | Opt-in | 2026-11-19 | `--history <file>` keeps the last 30 aggregate runs in a schema-version-1 sidecar and adds a Trends tab from the second run. Entries hold id, recorded time, resolved title, status, counts, duration and attachment totals only: no scenario names, step text, paths, tags or attachment content. There is no scenario-level history, multi-suite grouping or dashboard, and the CLI is the only writer, so concurrent generation on one sidecar can lose an update. A report embeds the prior-run aggregates it was generated with. |
+| Localisation | en, de | 2026-11-20 | The report shell, labels and accessibility text come from the active catalog; all visible counts are locale-formatted (English keeps raw digits), including the client. Test data, Gherkin keywords, attachment content and names, metadata and URIs render verbatim in every locale; the JSON summary and CI text stay English. `de-AT` uses `de` but keeps its `lang` tag. Only left-to-right locales ship: there is no RTL layout, pseudo-locale, localized default title or in-report language switcher. |
 | Native Playwright adapter | Basic | 2026-11-19 | The Playwright JSON reporter is read natively: projects, file/describe rules, retries, nested steps, expected/unexpected outcomes, tags, annotations, inline and in-tree path attachments, `stdout`/`stderr` and run-level errors. The final attempt is the visible one. No trace viewer or HTML-report replay is claimed; trace zip attachments are skipped. Path attachments outside the input file's directory and the process working directory are skipped; ones that exist as regular files are counted and surface as an HTML notice and, when HTML is written, a CLI warning, while missing files, symlinks, URL/UNC paths, trace zips and earlier attempts are not counted. |
 | Browser and accessibility coverage | Ongoing | 2026-11-13 | Chromium, Firefox and WebKit at 320, 390, 768, 1024 and 1440 px, plus 320 px at 200 % text zoom. This is not a formal WCAG audit. |

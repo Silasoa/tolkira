@@ -1,0 +1,11 @@
+{
+  "en": {
+    "report.tab": {
+      "message": "Report",
+      "description": "Top navigation tab that shows the test report"
+    }
+  },
+  "de": {
+    "report.tab": "<b>Bericht</b>"
+  }
+}

@@ -108,11 +108,18 @@ it. The gap is the combination.
   tab from the second run; aggregate-only data, one CLI writer, no server and no
   scenario-level history.
 
+### Localisation (in main)
+
+- `--locale en|de` localizes the report shell, labels and accessibility text;
+  English is the default. Test data, Gherkin keywords, attachment content and
+  names, metadata and URIs render unchanged in every locale; the JSON summary
+  and CI text stay English. `de-AT` uses the German catalog and keeps its `lang`
+  tag. One report is one locale: no detection, switcher or RTL layout.
+
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media (ADR 0006).
 - PDF/email summary.
-- German UI/localisation.
 - Deeper dashboard and custom themes.
 
 ### Non-goals

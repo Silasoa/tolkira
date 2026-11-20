@@ -9,10 +9,21 @@ import { statusSeverity, type ReportStatus } from '../report/status.js';
 import { displayUri, type StatusCounts } from '../summary.js';
 import { stripBidiControls } from '../text.js';
 import { escapeHtml } from './escape.js';
+import type { MessageKey, Translator } from './i18n.js';
 import type { DisplayStatus, OrderedFeature } from './types.js';
 
-export function statusLabel(status: ReportStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+const STATUS_KEYS: Record<ReportStatus, MessageKey> = {
+  passed: 'status.passed',
+  failed: 'status.failed',
+  skipped: 'status.skipped',
+  pending: 'status.pending',
+  undefined: 'status.undefined',
+  ambiguous: 'status.ambiguous',
+  unknown: 'status.unknown',
+};
+
+export function statusLabel(status: ReportStatus, t: Translator): string {
+  return t.t(STATUS_KEYS[status]);
 }
 
 export function statusClass(status: ReportStatus): string {
@@ -29,17 +40,15 @@ export const STEP_GLYPHS: Record<ReportStatus, string> = {
   unknown: '·',
 };
 
-export function durationLabel(milliseconds: number): string {
-  if (!Number.isFinite(milliseconds) || milliseconds < 0) return '0 ms';
-  if (milliseconds < 1000) return `${Math.round(milliseconds * 100) / 100} ms`;
-  return `${(milliseconds / 1000).toFixed(2)} s`;
+export function durationLabel(
+  milliseconds: number,
+  t: Translator,
+): string {
+  return t.duration(milliseconds);
 }
 
-export function dateLabel(iso: string | undefined): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return `${date.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+export function dateLabel(iso: string | undefined, t: Translator): string {
+  return t.date(iso);
 }
 
 export const ALL_STATUSES: DisplayStatus[] = [
@@ -90,7 +99,16 @@ export function countStatuses(
   return counts;
 }
 
-export function attentionCounts(scenarios: ReportScenario[]): string {
+// shortcut: lowercasing is not locale-aware (for example Turkish dotted i),
+// upgrade when a locale with different casing rules ships.
+function lowerLabel(label: string): string {
+  return label.toLowerCase();
+}
+
+export function attentionCounts(
+  scenarios: ReportScenario[],
+  t: Translator,
+): string {
   const counts = new Map<ReportStatus, number>();
   for (const scenario of scenarios) {
     if (!scenario.executed || scenario.status === 'passed') continue;
@@ -98,7 +116,10 @@ export function attentionCounts(scenarios: ReportScenario[]): string {
   }
   return [...counts.entries()]
     .sort((a, b) => statusSeverity(b[0]) - statusSeverity(a[0]))
-    .map(([status, count]) => `${count} ${status}`)
+    .map(
+      ([status, count]) =>
+        `${t.number(count)} ${lowerLabel(statusLabel(status, t))}`,
+    )
     .join(', ');
 }
 
@@ -124,12 +145,17 @@ export function featureBar(scenarios: ReportScenario[]): string {
   return `<span class="bar" aria-hidden="true">${segments}</span>`;
 }
 
-export function featureSourceLabel(feature: ReportFeature): string {
+export function featureSourceLabel(
+  feature: ReportFeature,
+  t: Translator,
+): string {
   const uris = new Set(
     feature.scenarios.map((scenario) => displayUri(scenario.uri)).filter(Boolean),
   );
   if (uris.size === 0) return '';
-  return uris.size === 1 ? [...uris][0] ?? '' : `${uris.size} spec files`;
+  return uris.size === 1
+    ? [...uris][0] ?? ''
+    : t.t('format.specFiles', { count: uris.size });
 }
 
 function count(value: unknown): number {
@@ -152,16 +178,17 @@ export function passRate(counts: StatusCounts): {
   };
 }
 
-export function healthMarkup(model: ReportModel): string {
+export function healthMarkup(model: ReportModel, t: Translator): string {
   const { total } = model.counts.scenarios;
   if (total === 0) {
-    return '<div class="healthTop"><strong>0%</strong><span aria-hidden="true">0 / 0</span><span class="sr">0 / 0 passed</span></div>';
+    return `<div class="healthTop"><strong>${t.percent(0)}</strong><span aria-hidden="true">0 / 0</span><span class="sr">${t.t('format.emptyRatio')}</span></div>`;
   }
   const { attempted, percent } = passRate(model.counts.scenarios);
   if (attempted === 0) {
-    return '<div class="healthTop"><span>No scenarios attempted</span><span class="sr">Skipped scenarios are results, not pass attempts.</span></div>';
+    return `<div class="healthTop"><span>${t.t('format.noAttempts')}</span><span class="sr">${t.t('format.skippedNotAttempts')}</span></div>`;
   }
-  return `<div class="healthTop"><strong>${percent}%</strong><span aria-hidden="true">${model.counts.scenarios.passed} / ${attempted} attempted</span><span class="sr">${model.counts.scenarios.passed} of ${attempted} attempted scenarios passed</span></div>`;
+  const passed = model.counts.scenarios.passed;
+  return `<div class="healthTop"><strong>${t.percent(percent ?? 0)}</strong><span aria-hidden="true">${t.t('format.attemptedRatio', { passed, attempted })}</span><span class="sr">${t.t('format.passedOfAttempted', { passed, attempted })}</span></div>`;
 }
 
 export function tagsMarkup(tags: string[], extraClass = ''): string {
@@ -182,12 +209,12 @@ export function statusBar(model: ReportModel): string {
     .join('')}</div>`;
 }
 
-export function countPills(model: ReportModel): string {
+export function countPills(model: ReportModel, t: Translator): string {
   const counts = model.counts.scenarios;
   return `<div class="counts">${displayStatuses(model)
     .map(
       (status) =>
-        `<span class="${statusClass(status)}"><b>${counts[status]}</b> ${status}</span>`,
+        `<span class="${statusClass(status)}"><b>${t.number(counts[status])}</b> ${lowerLabel(statusLabel(status, t))}</span>`,
     )
     .join('')}</div>`;
 }

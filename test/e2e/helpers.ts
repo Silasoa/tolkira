@@ -30,11 +30,13 @@ export async function writeReport(
   inputs: string[],
   title = '',
   prefix = 'tolkira-e2e-',
+  locale = '',
 ): Promise<ReportFile> {
   const dir = await mkdtemp(path.join(tmpdir(), prefix));
   const output = path.join(dir, 'report.html');
   const args = [...inputs, '--out', output];
   if (title) args.push('--title', title);
+  if (locale) args.push('--locale', locale);
   let stderr = '';
   try {
     const code = await runCli(args, {
@@ -62,11 +64,13 @@ export async function writeReportWithHistory(
   history: string,
   title = '',
   prefix = 'tolkira-history-e2e-',
+  locale = '',
 ): Promise<ReportFile> {
   const dir = await mkdtemp(path.join(tmpdir(), prefix));
   const output = path.join(dir, 'report.html');
   const args = [...inputs, '--out', output, '--history', history];
   if (title) args.push('--title', title);
+  if (locale) args.push('--locale', locale);
   let stderr = '';
   try {
     const code = await runCli(args, {

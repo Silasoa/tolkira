@@ -23,6 +23,8 @@ Package: https://www.npmjs.com/package/tolkira
   native Playwright mapping, statuses, attachments and limits.
 - [Compatibility](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md):
   cucumber-html-reporter shim mapping and caveats.
+- [Localisation](https://github.com/Silasoa/tolkira/blob/main/docs/I18N.md):
+  `--locale`, catalog schema, fallback, German glossary and agent checklist.
 - [Cucumber compatibility](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md):
   tested producers and versions.
 

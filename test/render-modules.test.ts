@@ -24,8 +24,10 @@ const layers: Record<string, number> = {
 const foundation = new Set([
   'ansi',
   'client-bundle',
+  'client-i18n',
   'dom-contract',
   'escape',
+  'i18n',
   'markdown',
   'report-client',
   'search',
@@ -82,5 +84,19 @@ describe('render modules', () => {
     const html = source('html');
     expect(html.split('\n').length).toBeLessThan(100);
     expect(html).not.toMatch(/function\s+render\w*View\b|const\s+render\w*View\b/);
+  });
+
+  it('keeps the generated catalog a leaf and i18n on it', () => {
+    const catalog = readFileSync(
+      fileURLToPath(new URL('../src/i18n/catalogs.ts', import.meta.url)),
+      'utf8',
+    );
+    expect(catalog).not.toMatch(/\bimport\b/);
+
+    const specs = [
+      ...source('i18n').matchAll(/\bfrom\s*['"]([^'"]+)['"]/g),
+    ].map((match) => match[1]);
+    expect(specs).toEqual(['../i18n/catalogs.js']);
+    expect(source('client-i18n')).not.toMatch(/\bimport\b/);
   });
 });

@@ -1,0 +1,69 @@
+[
+  {
+    "uri": "features/kontoeroeffnung.feature",
+    "name": "Kontoeröffnung <img src=x onerror=\"alert(1)\"> & \"Zitat\"",
+    "description": "Deutsche Testdaten bleiben in jedem Bericht unverändert.",
+    "tags": [{ "name": "@de", "line": 1 }],
+    "elements": [
+      {
+        "keyword": "Szenario",
+        "type": "scenario",
+        "name": "Überweisung ohne Deckung",
+        "tags": [
+          { "name": "@konto", "line": 8 },
+          { "name": "@fehler", "line": 8 }
+        ],
+        "steps": [
+          {
+            "keyword": "Angenommen ",
+            "name": "das Konto hat 10,00 € Guthaben",
+            "result": { "status": "passed", "duration": 1000 }
+          },
+          {
+            "keyword": "Wenn ",
+            "name": "ich 250,00 € überweise",
+            "result": {
+              "status": "failed",
+              "duration": 1500,
+              "error_message": "Kontostand reicht nicht aus.\nBitte Deckung prüfen."
+            }
+          },
+          {
+            "keyword": "Dann ",
+            "name": "wird die Überweisung abgelehnt",
+            "result": { "status": "skipped", "duration": 0 }
+          },
+          {
+            "keyword": "Und ",
+            "name": "die Meldung lautet:",
+            "result": { "status": "passed", "duration": 100 },
+            "docString": "„Nicht genügend Guthaben“"
+          }
+        ]
+      },
+      {
+        "keyword": "Szenario",
+        "type": "scenario",
+        "name": "Überweisung mit ausreichendem Guthaben",
+        "tags": [{ "name": "@konto", "line": 16 }],
+        "steps": [
+          {
+            "keyword": "Angenommen ",
+            "name": "das Konto hat 1.000,00 € Guthaben",
+            "result": { "status": "passed", "duration": 1200 }
+          },
+          {
+            "keyword": "Wenn ",
+            "name": "ich 250,00 € überweise",
+            "result": { "status": "passed", "duration": 800 }
+          },
+          {
+            "keyword": "Dann ",
+            "name": "beträgt das Guthaben 750,00 €",
+            "result": { "status": "passed", "duration": 400 }
+          }
+        ]
+      }
+    ]
+  }
+]

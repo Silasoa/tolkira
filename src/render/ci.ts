@@ -2,6 +2,7 @@ import type { ReportModel } from '../report/model.js';
 import { stripBidiControls } from '../text.js';
 import { escapeHtml } from './escape.js';
 import { safeHttpUrl } from './format.js';
+import type { Translator } from './i18n.js';
 
 function githubRepoPath(url: URL): string | undefined {
   if (url.hostname.toLowerCase() !== 'github.com') return undefined;
@@ -68,33 +69,41 @@ function ciNameMarkup(
 
 export function ciHeaderMarkup(
   ci: NonNullable<ReportModel['environment']>['ci'],
+  t: Translator,
 ): string {
   if (!ci) return '';
   const name = ciNameMarkup(ci);
   const rows = [
-    name ? `<span class="ci"><b>CI</b> ${name}</span>` : '',
+    name ? `<span class="ci"><b>${t.t('ci.label')}</b> ${name}</span>` : '',
     ci.revision
-      ? `<span><b>Revision</b> ${revisionMarkup(ci)}</span>`
+      ? `<span><b>${t.t('ci.revision')}</b> ${revisionMarkup(ci)}</span>`
       : '',
     ci.branch
-      ? `<span><b>Branch</b> <span>${escapeHtml(ci.branch)}</span></span>`
+      ? `<span><b>${t.t('ci.branch')}</b> <span>${escapeHtml(ci.branch)}</span></span>`
       : '',
-    ci.tag ? `<span><b>Tag</b> <span>${escapeHtml(ci.tag)}</span></span>` : '',
+    ci.tag
+      ? `<span><b>${t.t('ci.tag')}</b> <span>${escapeHtml(ci.tag)}</span></span>`
+      : '',
   ].filter(Boolean);
   return rows.join('');
 }
 
 export function ciDetailRows(
   ci: NonNullable<ReportModel['environment']>['ci'],
+  t: Translator,
 ): string {
   if (!ci) return '';
   const name = ciNameMarkup(ci);
   return [
-    name ? `<dt>CI</dt><dd>${name}</dd>` : '',
+    name ? `<dt>${t.t('ci.label')}</dt><dd>${name}</dd>` : '',
     ci.revision
-      ? `<dt>Revision</dt><dd>${revisionMarkup(ci)}</dd>`
+      ? `<dt>${t.t('ci.revision')}</dt><dd>${revisionMarkup(ci)}</dd>`
       : '',
-    ci.branch ? `<dt>Branch</dt><dd>${escapeHtml(ci.branch)}</dd>` : '',
-    ci.tag ? `<dt>Tag</dt><dd>${escapeHtml(ci.tag)}</dd>` : '',
+    ci.branch
+      ? `<dt>${t.t('ci.branch')}</dt><dd>${escapeHtml(ci.branch)}</dd>`
+      : '',
+    ci.tag
+      ? `<dt>${t.t('ci.tag')}</dt><dd>${escapeHtml(ci.tag)}</dd>`
+      : '',
   ].join('');
 }

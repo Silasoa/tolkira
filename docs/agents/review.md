@@ -97,8 +97,8 @@ still runs for every user-facing report feature.
   then MCHR, Allure and Playwright on the same fixture. Use
   `docs/research/cucumber-html-parity.md`; report concrete gaps, regressions
   and what not to copy.
-- **ILA — i18n/Localization.** UI strings, user-facing text, translations and
-  key parity. Not relevant until localisation ships.
+- **ILA — i18n/Localization.** UI strings, user-facing text, translations,
+  locale formatting and key parity.
 - **STR — Structure/Test-Health.** Checks module and folder logic, agent- and
   human-friendly layout, and whether the test suite is sufficient without
   being bloated. Runs at least once per change.

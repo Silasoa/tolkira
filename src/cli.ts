@@ -7,6 +7,7 @@ import { formatCiOutput, type CiFormat } from './ci.js';
 import { readHistory, writeHistory, type HistoryRun } from './history.js';
 import { generateReport, summarizeReport, version } from './index.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
+import { resolveLocale } from './render/i18n.js';
 import { ACCENT_PATTERN } from './validation.js';
 import { ATTACHMENT_HINT, attachmentWarning } from './warnings.js';
 
@@ -32,6 +33,7 @@ Options:
       --ci-out <file>  Write the markdown CI summary to a file
       --history <file> Read and append an aggregate run history; needs --out
       --title <text>   Report title and Markdown CI heading
+      --locale <tag>   Report language: en or de (default en); needs --out
       --meta key=value Add metadata (repeatable)
       --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo; needs --out
       --accent <color> Header accent as a hex colour, e.g. #1b5e20
@@ -56,6 +58,7 @@ function parseCliArgs(argv: string[]) {
     options: {
       out: { type: 'string', short: 'o' },
       title: { type: 'string' },
+      locale: { type: 'string' },
       meta: { type: 'string', multiple: true },
       logo: { type: 'string' },
       accent: { type: 'string' },
@@ -215,6 +218,22 @@ export async function runCli(
     return 2;
   }
 
+  let locale: string | undefined;
+  if (parsed.values.locale !== undefined) {
+    try {
+      locale = resolveLocale(parsed.values.locale).requested;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
+      return 2;
+    }
+  }
+
+  if (locale !== undefined && !output) {
+    io.stderr(`tolkira: --locale requires --out\n\n${USAGE}`);
+    return 2;
+  }
+
   let ci: CiFormat | undefined;
   try {
     ci = parseCiFormat(parsed.values.ci);
@@ -358,6 +377,7 @@ export async function runCli(
       metadata,
       logo,
       accent,
+      ...(locale === undefined ? {} : { locale }),
       ...(history === undefined ? {} : { history }),
     });
     const { html, summary, skippedAttachments } = generated;

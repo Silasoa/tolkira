@@ -32,6 +32,9 @@ optional Details view, never in the way of the failure.
 - **Accessible by default.** WCAG 2.2 AA, keyboard focus, reduced motion,
   200 % page zoom and 200 % text zoom, no colour-only status, no horizontal
   page scroll.
+- **Test data is not UI copy.** Report chrome comes from the active locale
+  catalog; names, steps, tags, errors and attachment content always render
+  verbatim.
 
 ## Tokens
 
@@ -126,10 +129,28 @@ describe the viewport, not the font.
 - `ci.ts` - CI header and detail rows.
 - `format.ts` - status, duration, date, bar, count, health and tag helpers.
 - `types.ts` - `RenderOptions`, `DisplayStatus` and `OrderedFeature`.
+- `i18n.ts` - locale resolution, catalogs, translator and locale-aware number,
+  percent, duration and date helpers; caches `Intl` formatters per translator.
+- `client-i18n.ts` - browser formatter for the embedded `client.*` block, with
+  every `Intl.PluralRules` category and numeric `#` parameters.
 
 `report.ts`, `details.ts` and `trends.ts` are peers, as are `triage.ts`,
 `matrix.ts`, `attachments.ts` and `ci.ts`; a module imports only from a lower
 layer.
+
+### Localisation
+
+The visible shell is rendered from `src/i18n/locales/<locale>.json`. `renderHtml`
+resolves `locale` once, sets `<html lang>` and `dir`, and passes one translator
+to every view. One report carries one locale; there is no in-report switcher.
+All visible counts are locale-formatted (English keeps raw digits), on the
+server and in the client. The report always embeds the active
+`client.*` messages as an inert JSON block; the browser bundle contains no
+non-English catalog, and a missing block or key shows the key. Test data,
+Gherkin keywords, tags, errors, attachment content and names, metadata and URIs
+render verbatim in every locale; the JSON summary and CI text stay English. See
+[`docs/I18N.md`](docs/I18N.md) for keys, fallback, the German glossary and the
+translation checklist.
 
 ## Interaction rules
 
@@ -201,6 +222,7 @@ Direction A is implemented in production:
 - Details tab with producer, runtime, OS, CPU, protocol and user metadata;
 - Trends tab with an aggregate run table and pass-rate sparkline when the report
   carries two or more history runs;
+- English and German report chrome from one catalog, with test data verbatim;
 - empty state for search/filter results;
 - screenshot lightbox with a close button and Escape support.
 

@@ -1,4 +1,6 @@
 import MarkdownIt from 'markdown-it';
+import { escapeHtml } from './escape.js';
+import type { Translator } from './i18n.js';
 
 const markdown = new MarkdownIt({
   html: false,
@@ -78,11 +80,16 @@ for (const type of ['heading_open', 'heading_close'] as const) {
   };
 }
 
-markdown.renderer.rules.table_open = () =>
-  '<div class="tableWrap" tabindex="0" role="region" aria-label="Description table"><table>';
+markdown.renderer.rules.table_open = (_tokens, _index, _options, env) => {
+  const translator = (env as { t: Translator }).t;
+  return `<div class="tableWrap" tabindex="0" role="region" aria-label="${escapeHtml(translator.t('markdown.descriptionTable'))}"><table>`;
+};
 markdown.renderer.rules.table_close = () => '</table></div>';
 
-export function renderDescription(description: string): string {
+export function renderDescription(
+  description: string,
+  t: Translator,
+): string {
   if (!description || !description.trim()) return '';
-  return `<div class="description">${markdown.render(description)}</div>`;
+  return `<div class="description">${markdown.render(description, { t })}</div>`;
 }

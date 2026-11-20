@@ -1,0 +1,11 @@
+{
+  "en": {
+    "report.greeting": {
+      "message": "Hello {name}",
+      "description": "Greeting with the reader name"
+    }
+  },
+  "de": {
+    "report.greeting": "Hallo {nom}"
+  }
+}

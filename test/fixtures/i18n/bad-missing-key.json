@@ -1,0 +1,15 @@
+{
+  "en": {
+    "report.tab": {
+      "message": "Report",
+      "description": "Top navigation tab that shows the test report"
+    },
+    "report.views": {
+      "message": "Report views",
+      "description": "Accessibility label for the tab list"
+    }
+  },
+  "de": {
+    "report.tab": "Bericht"
+  }
+}

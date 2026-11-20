@@ -72,6 +72,16 @@ Markdown caps the failed list at 50 scenarios, each message at 500 raw
 characters and the skipped name list at 20, while the counts and the overall
 `Status` row stay complete.
 
+## Report locale
+
+`--locale <tag>` localizes the HTML report only. It requires `--out`, defaults to
+`en`, and accepts `en` or `de`; `de-AT` keeps the regional tag for `<html lang>`
+and uses the German catalog. An empty or unknown tag exits 2 with the supported
+list before anything is written; the API throws instead. The JSON
+summary, CI text, exit codes, summary keys and the default title `Tolkira
+report` are unchanged. Test data renders verbatim in every locale. See
+[`I18N.md`](I18N.md).
+
 ## API
 
 ```ts
@@ -88,12 +98,13 @@ const previousRuns = await readHistory('.history/history.json');
 const { html, summary: sameSummary, skippedAttachments, history } =
   await generateReport(inputs, {
     title: 'Nightly',
+    locale: 'de',
     metadata: { CI: 'true', Commit: process.env.GITHUB_SHA ?? '' },
     logo: 'data:image/png;base64,...',
     accent: '#1b5e20',
     history: previousRuns,
   });
-const htmlOnly = await renderReport(inputs, { title: 'Nightly' });
+const htmlOnly = await renderReport(inputs, { title: 'Nightly', locale: 'de' });
 ```
 
 `skippedAttachments` is the number of Playwright path attachments skipped
@@ -116,6 +127,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | history | `--history <file>` reads and appends a sidecar; needs `--out` | `history` array; `generateReport` appends the current run, `renderReport` and the stream render it as given |
+| locale | `--locale <tag>` (`en` or `de`; needs `--out`) | `locale` string; default `en` |
 | size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
 | CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
@@ -144,10 +156,10 @@ const html = await new Promise<string>((resolve, reject) => {
 
 The stream accepts `Envelope` objects in object mode, buffers the run and
 renders one HTML document on flush. It takes `RenderReportOptions` (title,
-metadata, logo, accent and the optional history list) and produces the same HTML
-for the same envelopes and options. A supplied `history` is rendered exactly as
-given; only `generateReport` appends the current run. The stream is not an
-incremental renderer, writes no files and emits no summary; use
+metadata, logo, accent, locale and the optional history list) and produces the
+same HTML for the same envelopes and options. A supplied `history` is rendered
+exactly as given; only `generateReport` appends the current run. The stream is
+not an incremental renderer, writes no files and emits no summary; use
 `summarizeReport` or `generateReport` when you also need the stable JSON. The
 whole run is held in memory, exactly like the file API.
 

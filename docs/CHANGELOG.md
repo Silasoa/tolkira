@@ -7,6 +7,28 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Report localisation. `--locale <tag>`, `RenderReportOptions.locale` and the
+  stream option render the report shell, labels, status text and accessibility
+  names from the active `en` or `de` catalog; `de-AT` keeps its `lang` tag and
+  uses `de`. The CLI validates the request before generation and exits 2 with
+  the supported list; the API throws instead. `--locale` requires
+  `--out`, defaults to `en` and never uses host detection. All visible counts
+  are locale-formatted (English keeps raw digits). Test data renders verbatim in
+  every locale; Gherkin keywords, tags, errors, attachment content and names,
+  metadata, URIs, the JSON summary, CI text and the default `Tolkira report`
+  title stay unchanged. The report always embeds the active `client.*` messages
+  as an escaped inert JSON block; the client uses that block as its only source,
+  supports every `Intl.PluralRules` category and formats `#` and numeric
+  parameters. The client bundle contains no non-English catalog. Catalogs live in
+  `src/i18n/locales/`; `scripts/build-i18n.mjs` derives each tag from its file
+  name, generates a `MessageKey` union plus `Record` maps, and
+  `npm run i18n:check` validates each target with its own `Intl.PluralRules` tag,
+  rejecting ASCII double quotes, `<`/`>`, messages over 2000 characters and `=N`
+  branches. Adding a
+  left-to-right locale is mostly a data step: add the JSON file, then update the
+  CLI usage line and tests that name the supported list; RTL also needs a
+  `DIRECTIONS` entry. One report carries one locale; there is no in-report
+  switcher. See [`docs/I18N.md`](I18N.md).
 - Opt-in run history and a Trends view. `--history <file>` reads, appends and
   atomically writes a schema-version-1 aggregate sidecar, keeps the newest 30
   runs, rejects invalid, oversized or unsupported files before writing, and
@@ -72,6 +94,12 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- English report output changes only by `dir="ltr"` on `<html>`, the inert
+  `tolkira-messages` JSON block, the generated client script and its CSP hash.
+  Visible English text, numbers, percentages, durations, dates and CSS are
+  unchanged. Non-English reports add a small style override so long status and
+  toolbar labels wrap at 320 px and 200 % text zoom. Characterization hashes and
+  goldens were updated intentionally for those changes.
 - Test-only: the render unit suite is split by report flow and the browser
   report spec by user journey. Fixture paths, report creation, clipboard stubs
   and the hostile ANSI payload now have one shared helper. No product behaviour

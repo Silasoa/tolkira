@@ -53,7 +53,7 @@ cheap default. There are **no `@media print` rules** today.
 | Playwright HTML reporter | English-only JSX labels (`Search tests`, `Settings`) | No locale option | Report folder served by `show-report`; no print stylesheet in the reviewed CSS, no PDF/email documented | [docs](https://playwright.dev/docs/test-reporters#html-reporter), [source](https://github.com/microsoft/playwright/blob/main/packages/html-reporter/src/headerView.tsx) |
 | `@cucumber/html-formatter` | English UI | No; customisation is title, icon, CSS, JS | Browser page; no PDF/email documented | [README](https://github.com/cucumber/html-formatter) |
 | Allure 2 | Bundled translations; `--lang de` since 2.28.0, plus a report setting | Yes | No PDF export documented; browser print. Allure 3 adds a `mail` plugin for HTML email | [PR #2476](https://github.com/allure-framework/allure2/pull/2476), [Allure 3](https://allurereport.org/docs/v3/configure/) |
-| MCHR 4.x | en, es, fr, pt, ar; Arabic RTL | Yes: `language`, CLI `--language`/`--lang` | Email-able report (`--email`); no PDF documented | [README](https://github.com/WasiqB/multiple-cucumber-html-reporter), [options](https://multiple-cucumber-html-reporter.com/docs/options#main-options) |
+| MCHR 4.6 | en, es, fr, pt, ar; Arabic RTL; no German | No in-report switcher; build-time `language`, CLI `--language`/`--lang` | Email-able report (`--email`); no PDF documented | [README](https://github.com/WasiqB/multiple-cucumber-html-reporter), [options](https://multiple-cucumber-html-reporter.com/docs/options#main-options) |
 | ReportPortal | No locale setting documented; English in practice | No | Hosted UI; no static file, print or PDF documented | [docs](https://reportportal.io/docs/configuration/) |
 | pytest-html | English; no locale option | No | Self-contained HTML; no PDF/email; browser print | [guide](https://pytest-html.readthedocs.io/en/latest/user_guide.html) |
 
@@ -87,7 +87,7 @@ are reversible.
   values stay numeric. `lang`/`dir` on `<html>`.
 - Serialise ~16 client keys into a JSON `<script>`; the CSP loop already hashes
   every script. Do not bundle a catalog per locale into the client.
-- Tests: key parity, English byte-identical, German render, `--json`/`--ci`
+- Tests: key parity, visible English output identical, German render, `--json`/`--ci`
   unchanged, mixed-language fixture.
 
 ### Recommended order
@@ -108,8 +108,8 @@ are reversible.
 
 - All three tabs, toolbar, status labels, counts/plurals, attachment and a11y
   labels, empty/error states, footer. Exclude CLI/CI, compat shim and test data.
-- `--locale de`, default `en`, one locale per report, no switch. English stays
-  byte-identical so existing goldens prove no drift.
+- `--locale de`, default `en`, one locale per report, no switch. Visible
+  English output stays identical so existing goldens prove no drift.
 - Seed German terms in `GLOSSARY.md` (`Szenario`, `Fehlgeschlagen`,
   `Übersprungen`, `Anhang`, `Lauf`).
 - Acceptance: parity test; `de` at 320, 390, 768, 1024, 1440 px and 320 px at

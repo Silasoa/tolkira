@@ -45,7 +45,8 @@ integration, and a localized default report title.
   `report-client.ts`, `dom-contract.ts`, generated `client-bundle.ts`.
 - `src/warnings.ts` (report notice vs CLI copy), `src/cli.ts`, `src/options.ts`,
   `src/index.ts`, `src/stream.ts`.
-- `test/i18n.test.ts` (new), `test/render-modules.test.ts`,
+- `test/i18n.test.ts`, `test/i18n-catalog.test.ts` (new),
+  `test/render-modules.test.ts`,
   `test/dom-contract.test.ts`, render/CLI/e2e tests, characterization hashes,
   goldens and `test/e2e/helpers.ts`.
 - `docs/I18N.md` (new), `README.md`, `DESIGN.md`, `GLOSSARY.md`, `llms.txt`,

@@ -6,6 +6,51 @@
 **Report** — one self-contained HTML file generated from one or more test
 result inputs.
 
+**Locale catalog** — the flat, sorted ICU message file for one report language
+under `src/i18n/locales/`; English carries descriptions and is the fallback.
+The generated `src/i18n/catalogs.ts` is what the renderer imports. See
+[`docs/I18N.md`](docs/I18N.md).
+
+**Report locale** — the requested language tag (`en` or `de`, optionally
+regional such as `de-AT`) resolved once per report. It sets `<html lang>` and
+`dir`; `de-AT` uses the `de` catalog. It never affects test data, the JSON
+summary or CI text.
+
+**Client messages** — the `client.*` subset of the active catalog, embedded as
+an inert JSON block in every report so search, filters and copy labels are
+localized without shipping a non-English catalog in the browser bundle. The
+block is the client's only message source: a missing block or key shows the key,
+and the old English fallback map is gone.
+
+**German report terms** — the approved sheet for the `de` catalog:
+
+| English | German |
+| --- | --- |
+| Report | Bericht |
+| Details | Details |
+| Trends | Trends |
+| Scenario | Szenario |
+| Step | Schritt |
+| Attachment | Anhang |
+| Run | Lauf |
+| Passed | Bestanden |
+| Failed | Fehlgeschlagen |
+| Skipped | Übersprungen |
+| Pending | Ausstehend |
+| Pass rate | Erfolgsquote |
+| Test time | Testzeit |
+| Feature | Feature |
+| Hook | Hook |
+| Rule | Rule |
+| URI | URI |
+
+The address form is impersonal; avoid `du` and `Sie`. The full
+`Fehlgeschlagen` chip is used and wraps; there is no short form. `de` is the
+generic catalog and `de-AT` uses it. Final copy also uses `Laufzeit` for
+runtime, `Lauf-Hooks` for run-level hooks in the test-time notes,
+`Aufgezeichnet am` for the recorded-at column, `Basisverzeichnisse` for the
+allowed roots and `Fehlerdetails kopieren` for the copy-failure action.
+
 **Legacy JSON** — the older Cucumber JSON output format. Implementation-specific
 and lossy, but still widely used.
 

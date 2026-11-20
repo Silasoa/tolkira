@@ -1,3 +1,4 @@
+import { createClientFormatter } from './client-i18n.js';
 import {
   DOM_IDS,
   FILTER_PRESET_ATTRIBUTE,
@@ -19,6 +20,27 @@ import {
   serializeUrlState,
   type UrlState,
 } from './search.js';
+
+// The report always embeds the active locale's client.* strings in an inert
+// JSON block. No catalog or English fallback map enters this bundle.
+const messages: Record<string, string> = (() => {
+  const block = document.getElementById(DOM_IDS.i18nMessages);
+  if (!block?.textContent) return {};
+  try {
+    return JSON.parse(block.textContent) as Record<string, string>;
+  } catch {
+    return {};
+  }
+})();
+
+const formatter = createClientFormatter(document.documentElement.lang);
+
+function translate(
+  key: string,
+  params: Record<string, string | number> = {},
+): string {
+  return formatter.format(messages[key] ?? key, params);
+}
 
 const views = [...document.querySelectorAll<HTMLElement>('[data-view]')];
 
@@ -197,11 +219,17 @@ function apply(): void {
     }
   }
   if (live) {
-    live.textContent = `${visible} of ${scenarios.length} scenarios visible`;
+    live.textContent = translate('client.visibleCount', {
+      visible,
+      total: scenarios.length,
+    });
   }
   if (searchNote) {
     if (query && opened === SEARCH_OPEN_CAP && visible > SEARCH_OPEN_CAP) {
-      searchNote.textContent = `${SEARCH_OPEN_CAP} of ${visible} matches expanded. Use Expand all to open the rest.`;
+      searchNote.textContent = translate('client.searchNote', {
+        expanded: SEARCH_OPEN_CAP,
+        visible,
+      });
       searchNote.hidden = false;
     } else {
       searchNote.hidden = true;
@@ -213,8 +241,8 @@ function apply(): void {
     empty.hidden = visible !== 0;
     if (visible === 0) {
       empty.textContent = presetActive()
-        ? 'No failed scenarios match the current search or filters. Unexecuted rows are hidden by Failed only.'
-        : 'No scenarios match the current search or filters.';
+        ? translate('client.emptyPreset')
+        : translate('client.empty');
     }
   }
   if (triage) triage.hidden = Boolean(query || tag || state.hidden.size);
@@ -228,28 +256,7 @@ function clearHighlights(): void {
 }
 
 function escapeRegex(value: string): string {
-  let out = '';
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-    const character = value.charAt(index);
-    const special =
-      code === 92 ||
-      code === 94 ||
-      code === 36 ||
-      code === 46 ||
-      code === 42 ||
-      code === 43 ||
-      code === 63 ||
-      code === 40 ||
-      code === 41 ||
-      code === 91 ||
-      code === 93 ||
-      code === 123 ||
-      code === 125 ||
-      code === 124;
-    out += special ? String.fromCharCode(92) + character : character;
-  }
-  return out;
+  return value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
 }
 
 function highlightSearch(): void {
@@ -507,21 +514,28 @@ function failureText(button: HTMLElement): string {
   const stepLabel = hook
     ? hook.querySelector('.hookLabel')?.textContent?.trim() ?? 'Hook'
     : `${keyword} ${text.trim()}`.trim();
-  const stepKind = hook ? 'Hook: ' : 'Step: ';
+  const stepKind = hook
+    ? `${translate('client.clipboardHook')} `
+    : `${translate('client.clipboardStep')} `;
   const lines = [
-    `Feature: ${featureTitle?.textContent ?? ''}`,
-    `Scenario: ${scenarioName}`,
+    `${translate('client.clipboardFeature')} ${featureTitle?.textContent ?? ''}`,
+    `${translate('client.clipboardScenario')} ${scenarioName}`,
   ];
   if (facts.example) {
     lines.push(
-      `Example: ${facts.example}${
+      `${translate('client.clipboardExample')} ${facts.example}${
         facts.examplesName ? ` (${facts.examplesName})` : ''
       }`,
     );
   }
-  lines.push('URI: ' + facts.uri, stepKind + stepLabel);
+  lines.push(
+    `${translate('client.clipboardUri')} ${facts.uri}`,
+    stepKind + stepLabel,
+  );
   if (error?.textContent?.trim()) {
-    lines.push('Error:\n' + error.textContent.trim());
+    lines.push(
+      `${translate('client.clipboardError')}\n${error.textContent.trim()}`,
+    );
   }
   return lines.join('\n');
 }
@@ -538,7 +552,9 @@ function setupCopyButton(
     button.focus();
     writeClipboard(textFor(button), (ok) => {
       if (labelTimer) clearTimeout(labelTimer);
-      button.textContent = ok ? 'Copied' : 'Copy failed';
+      button.textContent = ok
+        ? translate('client.copied')
+        : translate('client.copyFailed');
       if (copyLive) {
         copyLive.textContent = ok ? copiedMessage : failedMessage;
       }
@@ -555,10 +571,10 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 )) {
   setupCopyButton(
     button,
-    'Copy failure',
+    translate('client.copyFailure'),
     failureText,
-    'Failure details copied to clipboard.',
-    'Could not copy failure details.',
+    translate('client.copyFailureDone'),
+    translate('client.copyFailureFailed'),
   );
 }
 for (const button of document.querySelectorAll<HTMLButtonElement>(
@@ -567,14 +583,14 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
   button.hidden = false;
   setupCopyButton(
     button,
-    'Copy log',
+    translate('client.copyLog'),
     (target) => {
       const details = target.closest('details');
       const pre = details?.querySelector('pre');
       return pre?.textContent ?? '';
     },
-    'Log copied to clipboard.',
-    'Could not copy the log.',
+    translate('client.logCopied'),
+    translate('client.logCopyFailed'),
   );
 }
 

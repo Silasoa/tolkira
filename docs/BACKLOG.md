@@ -40,7 +40,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Issue |
 | --- | --- | --- | --- | --- |
-| B-009 | Report | P3 | German UI and localisation | [#12](https://github.com/Silasoa/tolkira/issues/12) |
 | B-010 | Report | P3 | PDF/email summary | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | — |
 
@@ -56,9 +55,38 @@ specs; #12 keep the locale trigger explicit; #13 narrow to print CSS or one
 delivery format; #15 name the fixture and the missing Behave shapes; #17 name
 the benchmark path and budget.
 
+**Localisation triggers (2026-11-20).** The `en`/`de` change deliberately stops
+at neutral copy and one catalog per language. Revisit these only when a user
+asks or a locale needs them:
+
+- **Pseudo-locale** — add when a translation change needs an automated
+  expansion/overflow check beyond the German viewport gate.
+- **Localized default title** — the title stays `Tolkira report` because it
+  feeds the history id; add only with a stable id strategy.
+- **RTL** — add when an RTL locale ships; `dir` is already resolved from the
+  locale entry but no RTL catalog or mirroring work exists.
+- **In-report switcher** — add only if one file must carry several locales;
+  today one report holds one locale and the client bundle carries no non-English
+  catalog.
+- **Select/gender** — add when a real string needs grammatical gender or a
+  `select`; the formatter intentionally supports placeholders and plural only.
+- **English singular grammar in triage/health** — pre-existing sentences such as
+  `1 of 2 scenarios need attention` and the screen-reader health text
+  `1 of 1 attempted scenarios passed` are deliberately left unchanged so the
+  English output stays as today. Fix with the next English copy change or when a
+  user reports it; the German copy is already correct and this change does not
+  correct the English wording.
+
 ## Resolved
 
-- **B-007 Optional history file and trends** — implemented in `main` on
+- **B-009 German UI and localisation** — implemented on 2026-11-20 in the
+  `add-report-localisation` change: `--locale en|de` (default `en`, `de-AT` uses
+  `de` and keeps its tag), ICU JSON catalogs with a generated typed module,
+  German numbers/dates/durations via `Intl`, a localized report shell and
+  client messages, and an English/German agent guide. One locale per build; no
+  switcher, RTL or CLI/CI translation. The one-file default is unchanged.
+  [#12](https://github.com/Silasoa/tolkira/issues/12) is resolved.
+- **B-007 Optional history file and trends** - implemented in `main` on
   2026-11-19 in the `add-history-trends` change: opt-in `--history <file>`,
   aggregate-only `schemaVersion: 1` sidecar with a 30-run cap, dedupe,
   atomic write and strict validation, plus a Trends tab with a table and

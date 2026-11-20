@@ -9,6 +9,8 @@ export interface RenderOptions {
   metadata?: Record<string, string>;
   logo?: string;
   accent?: string;
+  /** Report UI language tag; defaults to English. */
+  locale?: string;
   /** Prior aggregate runs; two or more render the Trends view. */
   history?: HistoryRun[];
   summary?: ReportSummary;

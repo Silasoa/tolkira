@@ -45,22 +45,25 @@ translation. One flat sorted file per locale, dotted keys grouped by area
 - English entries are objects with `message` and `description`; targets are
   value-only strings.
 - `scripts/build-i18n.mjs` reads the JSON and writes the committed
-  `src/i18n/catalogs.ts` with `en` (`as const`), `MessageKey = keyof typeof en`
-  and `de` (`satisfies Record<MessageKey, string>`). The type lives in the
-  generated module, so the catalog never imports the renderer. `npm run assets`
-  runs it, like the styles and client bundles. No runtime or declaration
-  imports JSON, so the esbuild bundle and `tsc` declarations stay clean and the
-  package needs no JSON copy.
-- `test/i18n.test.ts` re-reads the JSON source and fails if the generated
-  module is stale. `npm run i18n:check` runs that file **before** `assets` in
-  `npm run check` and `npm test`, so a forgotten regeneration fails instead of
-  being silently refreshed.
+  `src/i18n/catalogs.ts` with `en`, the `MessageKey` union and
+  `Record<MessageKey, string>` catalog maps. The type lives in the generated
+  module, so the catalog never imports the renderer; the emitted
+  `catalogs.d.ts` stays slim because it does not repeat every message as a
+  literal type. `npm run assets` runs it, like the styles and client bundles. No
+  runtime or declaration imports JSON, so the esbuild bundle and `tsc`
+  declarations stay clean and the package needs no JSON copy.
+- `test/i18n-catalog.test.ts` re-reads the JSON source and fails if the
+  generated module is stale. `npm run i18n:check` runs that file **before**
+  `assets` in `npm run check` and `npm test`, so a forgotten regeneration fails
+  instead of being silently refreshed.
 - The formatter supports `{name}` and `{name, plural, ...}` with `#` and an
   `other` branch. Branches may contain placeholders, not nested plural/select.
-  Select, nesting and HTML are catalog errors. A select/gender helper waits for
-  a string that needs it (backlog trigger).
-- Messages are parsed once per unique string and cached. Parse errors name the
-  file and key. The catalog is trusted local data, not user input.
+  Select, nesting, HTML, ASCII double quotes, `=N` branches and messages over
+  2000 characters are catalog errors; use typographic quotes. A select/gender
+  helper waits for a string that needs it (backlog trigger).
+- Messages are parsed once per unique string and cached; `i18n.ts` also caches
+  `Intl` formatters per translator. Parse errors name the file and key. The
+  catalog is trusted local data, not user input.
 
 ## Modules
 
@@ -70,14 +73,21 @@ can depend on it:
 
 - `src/render/i18n.ts`: `SUPPORTED_LOCALES`, `resolveLocale(tag)`,
   `createTranslator(locale)`, the re-exported `MessageKey`, the formatter and
-  the locale-aware `number`, `percent`, `duration` and `date` helpers. Add
-  `i18n` to the guard's `foundation` set; it must not import a layered render
-  module.
+  the locale-aware `number`, `percent`, `duration` and `date` helpers. It caches
+  `Intl` formatters per translator. Add `i18n` to the guard's `foundation` set;
+  it must not import a layered render module.
+- `src/render/client-i18n.ts`: the browser formatter for the embedded
+  `client.*` block. It supports every `Intl.PluralRules` category and formats
+  `#` and numeric parameters; it is part of the client bundle and imports no
+  server catalog.
 - `src/i18n/locales/en.json`, `de.json` (data; not scanned by the guard).
-- `src/i18n/catalogs.ts` (generated, committed; owns `MessageKey`).
-- `scripts/build-i18n.mjs` (generation).
-- `test/i18n.test.ts`: formatter, resolver, fallback, escaping and the catalog
-  checks. `npm run i18n:check` runs this file before `assets`.
+- `src/i18n/catalogs.ts` (generated, committed; owns `MessageKey` and
+  `Record<MessageKey, string>` maps).
+- `scripts/build-i18n.mjs` (generation; derives tags from the file names).
+- `test/i18n.test.ts`: formatter, resolver, fallback and escaping.
+- `test/i18n-catalog.test.ts`: key parity, catalog limits, plural categories and
+  the stale generated module. `npm run i18n:check` runs this file before
+  `assets`.
 
 `RenderOptions` gains `locale?: string`; `renderOptions()` is the single
 CLI/API/stream seam and must pass it through. `renderHtml` resolves it once and
@@ -92,8 +102,8 @@ passes the translator to the shell and views.
   matched catalog for text. `dir` comes from the locale entry (`ltr` for
   en/de).
 - The CLI validates in the pre-flight usage block, before generation, and exits
-  2 with `en, de`. Generation errors stay exit 1. The API throws a `UsageError`
-  with the same message.
+  2 with `en, de`. Generation errors stay exit 1. The API throws an `Error`
+  with the same reason.
 - No environment or `navigator.language` detection; one locale per report.
 - `--locale` requires `--out`; with `--json`/`--ci` only it is a usage error.
   The summary, JSON and CI text are not localized.
@@ -149,9 +159,15 @@ The German term sheet lives in `docs/I18N.md` and `GLOSSARY.md`: `Bericht`,
 `Details`, `Trends`, `Szenario`, `Schritt`, `Anhang`, `Lauf`, `Bestanden`,
 `Fehlgeschlagen`, `Übersprungen`, `Ausstehend`, `Erfolgsquote`. The address form
 is impersonal; no `du`/`Sie`. `Feature`, `Hook`, `Rule` and `URI` keep their
-technical meaning. Approved on 2026-11-20: neutral address, full
-`Fehlgeschlagen` in the chip with wrapping (no short form), `Trends`, and the
-stable `Tolkira report` title. `de` is the generic catalog and `de-AT` uses it.
+technical meaning. Final copy also uses `Laufzeit` for the runtime value,
+`Lauf-Hooks` for run-level hooks in the test-time notes, `Aufgezeichnet am` for
+the recorded-at column, `Basisverzeichnisse` for the allowed roots,
+`Fehlerdetails kopieren` for the copy-failure action and full sentences for the
+pass-rate note and attachment notice; the German `triage.moreInReport` is a
+`one`/`other` plural and the German `triage.lead` agrees its verb with the need
+count. Approved on 2026-11-20: neutral address, full `Fehlgeschlagen` in the
+chip with wrapping (no short form), `Trends`, and the stable `Tolkira report`
+title. `de` is the generic catalog and `de-AT` uses it.
 
 ## Client messages
 
@@ -161,24 +177,32 @@ Only the `client.*` keys are embedded, as
 escapes, not HTML entities, so the client displays the literal text. The block
 is inert and always present.
 
-The client reads and parses it, uses the existing English literals as per-key
-fallbacks, and supports only `{name}` and `one`/`other` plural branching; the
-visible-count plural agrees with the total, not the visible count. The client
-does not import the server formatter or any catalog. Search, filters, tabs,
-copy and keyboard handling stay unchanged. If CSP blocks the data block in a
-browser test, move the map to a `data-` attribute on the shell; the client API
-stays the same. The 16 KB budget check remains; the headroom is about 1.5 KB,
-so the map and parser must stay small. A bundle test asserts the client build
-contains no German catalog string and stays under 16 KB.
+`src/render/client-i18n.ts` reads and parses the block and uses it as the only
+message source: the English fallback map is removed, and a missing block or key
+shows the key itself. It supports the full `Intl.PluralRules` category set and
+formats `#` and numeric parameters; the visible-count plural agrees with the
+total, not the visible count. The client does not import the server formatter or
+any catalog. Search, filters, tabs, copy and keyboard handling stay unchanged.
+If CSP blocks the data block in a browser test, move the map to a `data-`
+attribute on the shell; the client API stays the same. The 16 KB budget check
+remains; the bundle is about 15 KB, so the headroom is about 1 KB and the map and
+parser must stay small. A bundle test asserts the client build contains no
+non-English catalog string and stays under 16 KB.
 
 ## Validation
 
-`test/i18n.test.ts` checks key parity, placeholders, the active plural
-categories from `Intl.PluralRules`, non-empty values, English descriptions,
-`other`, sorted keys, the complete German catalog and the stale generated
-module. A crafted partial catalog covers a missing plural category. Bad
-fixtures cover each failure. `npm run i18n:check` runs it before `assets` in
-`npm run check` and `npm test`, so a forgotten regeneration fails.
+`test/i18n-catalog.test.ts` checks key parity, placeholders, the active plural
+categories from each target's own `Intl.PluralRules` tag, non-empty values,
+English descriptions, `other`, sorted keys, the complete German catalog and the
+stale generated module. It also rejects ASCII double quotes, HTML, `=N` branches
+and messages over 2000 characters; a stray `}` is left to the renderer. A
+crafted partial catalog covers a missing plural category. Bad fixtures cover
+each failure. `npm run i18n:check` runs it before `assets` in `npm run check` and
+`npm test`, so a forgotten regeneration fails. `test/i18n.test.ts` covers the
+formatter, resolver, fallback and escaping.
+
+The measured report delta is about 0.6 KB for the smallest fixture, well under
+the 10 KB budget.
 
 A German URL-state round-trip test filters with `?hide=passed`, reloads and
 asserts the same scenarios are hidden while the label is German. A mixed

@@ -1,0 +1,11 @@
+{
+  "en": {
+    "report.fileCount": {
+      "message": "{count, plural, one {# file}}",
+      "description": "File count in the run summary"
+    }
+  },
+  "de": {
+    "report.fileCount": "{count, plural, one {# Datei}}"
+  }
+}

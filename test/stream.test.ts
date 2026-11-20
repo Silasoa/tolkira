@@ -62,6 +62,19 @@ describe('CucumberHtmlStream', () => {
     expect(html).toContain('class="logo"');
   });
 
+  it('passes the locale to the renderer and rejects an invalid locale', async () => {
+    const html = await streamHtml('Stream locale', { locale: 'de' });
+
+    expect(html).toBe(
+      await renderReport(fixture, { title: 'Stream locale', locale: 'de' }),
+    );
+    expect(html).toContain('<html lang="de" dir="ltr">');
+    expect(html).toContain('>Bericht</button>');
+    await expect(streamHtml('Bad locale', { locale: 'fr' })).rejects.toThrow(
+      /\bde\b/,
+    );
+  });
+
   it('renders the same history as renderReport without appending a run', async () => {
     const history = await readHistory(
       fileURLToPath(

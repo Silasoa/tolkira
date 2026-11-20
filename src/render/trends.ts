@@ -1,22 +1,19 @@
 import type { HistoryRun } from '../history.js';
+import type { ReportStatus } from '../report/status.js';
 import type { StatusCounts } from '../summary.js';
 import { DOM_IDS } from './dom-contract.js';
 import { escapeHtml } from './escape.js';
-import { dateLabel, durationLabel, passRate } from './format.js';
+import {
+  dateLabel,
+  durationLabel,
+  passRate,
+  statusLabel,
+} from './format.js';
+import type { Translator } from './i18n.js';
 
 const SPARK_WIDTH = 320;
 const SPARK_HEIGHT = 64;
 const SPARK_PAD = 6;
-
-const STATUS_LABELS: Record<string, string> = {
-  passed: 'Passed',
-  failed: 'Failed',
-  skipped: 'Skipped',
-  pending: 'Pending',
-  undefined: 'Undefined',
-  ambiguous: 'Ambiguous',
-  unknown: 'Unknown',
-};
 
 const STATUS_CLASSES: Record<string, string> = {
   passed: 'pass',
@@ -65,13 +62,16 @@ function time(run: HistoryRun): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function statusOf(run: HistoryRun): { label: string; className: string } {
-  const status =
-    typeof run?.status === 'string' && Object.hasOwn(STATUS_LABELS, run.status)
-      ? run.status
+function statusOf(
+  run: HistoryRun,
+  t: Translator,
+): { label: string; className: string } {
+  const status: ReportStatus =
+    typeof run?.status === 'string' && Object.hasOwn(STATUS_CLASSES, run.status)
+      ? (run.status as ReportStatus)
       : 'unknown';
   return {
-    label: STATUS_LABELS[status] ?? 'Unknown',
+    label: statusLabel(status, t),
     className: STATUS_CLASSES[status] ?? 'unknown',
   };
 }
@@ -80,9 +80,9 @@ function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function rateLabel(run: HistoryRun): string {
+function rateLabel(run: HistoryRun, t: Translator): string {
   const { percent } = passRate(scenarioCounts(run));
-  return percent === null ? '—' : `${percent}%`;
+  return percent === null ? '—' : t.percent(percent);
 }
 
 function sparkPoints(runs: HistoryRun[]): Array<{ x: number; y: number } | null> {
@@ -133,19 +133,23 @@ function sparkline(runs: HistoryRun[]): string {
   return `<svg class="spark" viewBox="0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}" aria-hidden="true" focusable="false">${lines}${circles}</svg>`;
 }
 
-function rowMarkup(run: HistoryRun, current: boolean): string {
+function rowMarkup(
+  run: HistoryRun,
+  current: boolean,
+  t: Translator,
+): string {
   const counts = scenarioCounts(run);
-  const status = statusOf(run);
+  const status = statusOf(run, t);
   const title = typeof run?.title === 'string' ? run.title : '';
   const recordedAt =
     typeof run?.recordedAt === 'string' ? run.recordedAt : undefined;
-  return `<tr><td>${escapeHtml(dateLabel(recordedAt))}${current ? '<span class="currentTag">Current</span>' : ''}</td><td>${escapeHtml(title)}</td><td><span class="statusText ${status.className}">${status.label}</span></td><td class="num">${counts.passed}</td><td class="num">${counts.failed}</td><td class="num">${counts.skipped}</td><td class="num">${counts.total}</td><td class="num">${rateLabel(run)}</td><td class="num">${durationLabel(typeof run?.durationMs === 'number' ? run.durationMs : 0)}</td></tr>`;
+  return `<tr><td>${escapeHtml(dateLabel(recordedAt, t))}${current ? `<span class="currentTag">${t.t('trends.current')}</span>` : ''}</td><td>${escapeHtml(title)}</td><td><span class="statusText ${status.className}">${status.label}</span></td><td class="num">${t.number(counts.passed)}</td><td class="num">${t.number(counts.failed)}</td><td class="num">${t.number(counts.skipped)}</td><td class="num">${t.number(counts.total)}</td><td class="num">${rateLabel(run, t)}</td><td class="num">${durationLabel(typeof run?.durationMs === 'number' ? run.durationMs : 0, t)}</td></tr>`;
 }
 
-function rowsMarkup(runs: HistoryRun[]): string {
+function rowsMarkup(runs: HistoryRun[], t: Translator): string {
   return [...runs]
     .sort((a, b) => byTime(b, a))
-    .map((run, index) => rowMarkup(run, index === 0))
+    .map((run, index) => rowMarkup(run, index === 0, t))
     .join('');
 }
 
@@ -153,6 +157,9 @@ function rowsMarkup(runs: HistoryRun[]): string {
  * The third view: the latest runs newest first, with the pass-rate trend as a
  * decorative sparkline (oldest to newest). The table carries the data.
  */
-export function renderTrendsView(history: HistoryRun[]): string {
-  return `<div class="tabPanel" id="${DOM_IDS.trendsView}" role="tabpanel" aria-labelledby="view-trends" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">History / trends</p><h1>Trends</h1><p class="meta"><span>${history.length} runs</span><span>Newest first</span><span>Pass rate counts attempted (non-skipped) scenarios</span></p></div></header><section class="panel trendsPanel"><h2>Recorded runs</h2><p class="matrixHint">Scroll for status, counts, pass rate and duration.</p><div class="tableWrap" tabindex="0" role="region" aria-label="Recorded runs"><table class="trendsTable"><thead><tr><th scope="col">Recorded</th><th scope="col">Title</th><th scope="col">Status</th><th scope="col" class="num">Passed</th><th scope="col" class="num">Failed</th><th scope="col" class="num">Skipped</th><th scope="col" class="num">Total</th><th scope="col" class="num">Pass rate</th><th scope="col" class="num">Duration</th></tr></thead><tbody>${rowsMarkup(history)}</tbody></table></div><p class="sparkLead">Pass rate, oldest to newest. The table is newest first; runs without attempted scenarios are skipped.</p>${sparkline(history)}</section></main></div>`;
+export function renderTrendsView(
+  history: HistoryRun[],
+  t: Translator,
+): string {
+  return `<div class="tabPanel" id="${DOM_IDS.trendsView}" role="tabpanel" aria-labelledby="view-trends" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${t.t('trends.path')}</p><h1>${t.t('trends.title')}</h1><p class="meta"><span>${t.t('trends.runs', { count: history.length })}</span><span>${t.t('trends.newestFirst')}</span><span>${t.t('trends.passRateNote')}</span></p></div></header><section class="panel trendsPanel"><h2>${t.t('trends.recordedRuns')}</h2><p class="matrixHint">${t.t('trends.tableHint')}</p><div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('trends.tableLabel')}"><table class="trendsTable"><thead><tr><th scope="col">${t.t('trends.recorded')}</th><th scope="col">${t.t('trends.titleColumn')}</th><th scope="col">${t.t('trends.status')}</th><th scope="col" class="num">${statusLabel('passed', t)}</th><th scope="col" class="num">${statusLabel('failed', t)}</th><th scope="col" class="num">${statusLabel('skipped', t)}</th><th scope="col" class="num">${t.t('trends.total')}</th><th scope="col" class="num">${t.t('trends.passRate')}</th><th scope="col" class="num">${t.t('trends.duration')}</th></tr></thead><tbody>${rowsMarkup(history, t)}</tbody></table></div><p class="sparkLead">${t.t('trends.sparkLead')}</p>${sparkline(history)}</section></main></div>`;
 }

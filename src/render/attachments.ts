@@ -3,6 +3,7 @@ import type { ReportAttachment } from '../report/model.js';
 import { renderAnsiLog } from './ansi.js';
 import { escapeHtml } from './escape.js';
 import { safeHttpUrl } from './format.js';
+import type { Translator } from './i18n.js';
 
 interface JsonFrame {
   opener: '{' | '[';
@@ -106,7 +107,10 @@ function uriListBody(text: string): string {
     .join('\n');
 }
 
-function textAttachmentBody(attachment: ReportAttachment): string {
+function textAttachmentBody(
+  attachment: ReportAttachment,
+  t: Translator,
+): string {
   const text = attachment.text ?? '';
   if (attachment.textFormat === 'json') {
     const body =
@@ -119,22 +123,27 @@ function textAttachmentBody(attachment: ReportAttachment): string {
     return `<pre>${uriListBody(text)}</pre>`;
   }
   if (attachment.textFormat === 'log') {
-    return `<div class="logTools"><button class="copyLog" type="button" data-copy-log aria-label="Copy log ${escapeHtml(attachment.fileName)}" hidden>Copy log</button></div><pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
+    const name = escapeHtml(attachment.fileName);
+    return `<div class="logTools"><button class="copyLog" type="button" data-copy-log aria-label="${t.t('attachment.copyLogLabel', { name })}" hidden>${t.t('attachment.copyLog')}</button></div><pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
   }
   return `<pre>${escapeHtml(text)}</pre>`;
 }
 
 export function renderAttachment(
   attachment: ReportAttachment,
-  context?: string,
+  context: string | undefined,
+  t: Translator,
 ): string {
   const name = escapeHtml(attachment.fileName);
   const media = escapeHtml(attachment.mediaType);
   const label = context
-    ? `Screenshot for ${escapeHtml(context)}: ${name}`
-    : `Attachment ${name}`;
+    ? t.t('attachment.screenshotFor', {
+        context: escapeHtml(context),
+        name,
+      })
+    : t.t('attachment.attachmentName', { name });
   if (attachment.kind === 'image' && attachment.dataUri) {
-    return `<figure class="attachment"><button class="shotButton" type="button" aria-label="View full size: ${label}"><img class="shot" src="${escapeHtml(attachment.dataUri)}" alt="${label} (${media})"></button><figcaption>${name} (${media})</figcaption></figure>`;
+    return `<figure class="attachment"><button class="shotButton" type="button" aria-label="${t.t('attachment.viewFullSize', { label })}"><img class="shot" src="${escapeHtml(attachment.dataUri)}" alt="${label} (${media})"></button><figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'video' && attachment.dataUri) {
     return `<figure class="attachment"><video class="shot" controls src="${escapeHtml(attachment.dataUri)}"></video><figcaption>${name} (${media})</figcaption></figure>`;
@@ -143,10 +152,11 @@ export function renderAttachment(
     return `<figure class="attachment"><audio controls src="${escapeHtml(attachment.dataUri)}"></audio><figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'text' && attachment.text !== undefined) {
-    return `<details class="attachmentText"><summary>${name} (${media})</summary>${textAttachmentBody(attachment)}</details>`;
+    return `<details class="attachmentText"><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t)}</details>`;
   }
+  const bytes = t.t('format.bytes', { count: t.number(attachment.bytes) });
   if (attachment.dataUri) {
-    return `<a class="fileLink" href="${escapeHtml(attachment.dataUri)}" download="${name}">${name} (${media}, ${attachment.bytes} bytes)</a>`;
+    return `<a class="fileLink" href="${escapeHtml(attachment.dataUri)}" download="${name}">${name} (${media}, ${bytes})</a>`;
   }
-  return `<span class="fileLink">${name} (${media}, ${attachment.bytes} bytes)</span>`;
+  return `<span class="fileLink">${name} (${media}, ${bytes})</span>`;
 }

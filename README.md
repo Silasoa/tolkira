@@ -57,6 +57,9 @@ tolkira test-results/ --out report.html --logo path/to/logo.png
 
 # Keep aggregate run history and show a Trends tab from the second run
 tolkira test-results/ --out report.html --history .history/history.json
+
+# German report UI; test data stays verbatim
+tolkira test-results/ --out report.html --locale de
 ```
 
 Tolkira accepts one or more files and directories. A directory is scanned
@@ -217,6 +220,13 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
 - **Accessible by default.** Keyboard navigation, visible focus, text status
   labels as well as colour, dark mode and 200% zoom reflow. Accessibility is an
   ongoing effort; feedback is welcome.
+- **Report language.** `--locale de` renders the report shell, labels and
+  accessibility text in German; `de-AT` keeps the regional tag and uses the
+  German catalog. Test data, Gherkin keywords, attachment content and names,
+  metadata and URIs render unchanged in every locale; the JSON summary stays
+  English. English is the default; one report is one locale and there is no
+  in-report switcher. See
+  [docs/I18N.md](https://github.com/Silasoa/tolkira/blob/main/docs/I18N.md).
 - **Your branding.** Title, metadata, logo and accent colour without forking the
   shell.
 
@@ -269,13 +279,13 @@ claim is credible Messages report parity, not full formatter parity.
 
 ### How it compares
 
-Last checked 2026-11-18 against the current package docs. Trade-offs are
+Last checked 2026-11-20 against the current package docs. Trade-offs are
 deliberate; pick the tool that fits the job.
 
 | Tool | Offline | Legacy JSON | Messages | JUnit | Playwright JSON | JSON summary | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
-| [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | No | Saved JSON (`saveCollectedJSON`) | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, i18n and a report folder. |
+| [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | No | Saved JSON (`saveCollectedJSON`) | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, build-time UI languages (en/es/fr/pt/ar, no German) and a report folder. |
 | [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
 | **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Yes** | **Versioned summary (`--json`)** | **Branding, dark mode; no theme gallery** | **ESM; CJS compat shim** | **22+** | **Active** | **You need one offline file from legacy JSON, Messages, JUnit or Playwright JSON, plus a stable summary for CI and agents.** |
 
@@ -386,10 +396,18 @@ npx tolkira path/to/jsonDir --out reports/index.html --title "My report"
 ```
 
 Map `jsonDir` to the input directory, `reportPath`/`reportName` to `--out`,
-`metadata` to repeated `--meta key=value`, and `brandLogo` to `--logo`.
-MCHR's dashboard, i18n, email reports and folder report are not reproduced.
-History is only the opt-in aggregate sidecar described above; there is no
-scenario-level history or multi-run dashboard. See
+`metadata` to repeated `--meta key=value`, `brandLogo` to `--logo`, and
+`language`/`--language`/`--lang` to `--locale`. MCHR 4.6 chooses one UI language
+at build time from en, es, fr, pt and ar (including RTL Arabic; German is not in
+that set); Tolkira supports en and de per report. Neither has an in-report
+switcher; Tolkira's one file carries one locale, while MCHR writes its report
+folder. MCHR localizes its default report titles; Tolkira keeps `Tolkira report`
+unless `--title` overrides it. An unknown MCHR language warns and falls back to
+English on the API/config path, while its `--language`/`--lang` CLI throws.
+Tolkira rejects it too: the CLI exits 2 and the API throws. MCHR's dashboard,
+email reports and folder report are not reproduced. History is only the opt-in
+aggregate sidecar described above; there is no scenario-level history or
+multi-run dashboard. See
 [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md#multiple-cucumber-html-reporter)
 for the mapping.
 
@@ -412,7 +430,7 @@ for the mapping.
   future option.
 
 See [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md)
-for the dated limitations table (last verified 2026-11-19).
+for the dated limitations table (last verified 2026-11-20).
 
 ## Documentation
 
@@ -423,7 +441,7 @@ for the dated limitations table (last verified 2026-11-19).
 - [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) — GitHub annotations, GitLab and step-summary
   output.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
-  (last verified 2026-11-19).
+  (last verified 2026-11-20).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested
   Cucumber producers and versions.
 - [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and
@@ -432,6 +450,8 @@ for the dated limitations table (last verified 2026-11-19).
   JSON mapping and limits.
 - [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md) — migration from
   cucumber-html-reporter.
+- [`docs/I18N.md`](https://github.com/Silasoa/tolkira/blob/main/docs/I18N.md) — report locales, catalog rules,
+  formatting and the German glossary.
 - [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPARISON.md) — Seed-Test comparison and
   remaining parity gaps.
 

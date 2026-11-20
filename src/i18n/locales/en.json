@@ -1,0 +1,610 @@
+{
+  "attachment.attachmentName": {
+    "message": "Attachment {name}",
+    "description": "Fallback accessible label for an attachment without a scenario context"
+  },
+  "attachment.copyLog": {
+    "message": "Copy log",
+    "description": "Visible label on the button that copies a log attachment"
+  },
+  "attachment.copyLogLabel": {
+    "message": "Copy log {name}",
+    "description": "Accessible label for the log copy button; name is the attachment file name"
+  },
+  "attachment.screenshotFor": {
+    "message": "Screenshot for {context}: {name}",
+    "description": "Accessible image label; context is the scenario or step and name the file"
+  },
+  "attachment.viewFullSize": {
+    "message": "View full size: {label}",
+    "description": "Accessible label for opening an image attachment in the lightbox"
+  },
+  "ci.branch": {
+    "message": "Branch",
+    "description": "CI branch label"
+  },
+  "ci.label": {
+    "message": "CI",
+    "description": "CI provider label"
+  },
+  "ci.revision": {
+    "message": "Revision",
+    "description": "CI revision label"
+  },
+  "ci.tag": {
+    "message": "Tag",
+    "description": "CI tag label"
+  },
+  "client.clipboardError": {
+    "message": "Error:",
+    "description": "Clipboard label before the failure message"
+  },
+  "client.clipboardExample": {
+    "message": "Example:",
+    "description": "Clipboard label before an example row number"
+  },
+  "client.clipboardFeature": {
+    "message": "Feature:",
+    "description": "Clipboard label before the feature name; Feature stays technical"
+  },
+  "client.clipboardHook": {
+    "message": "Hook:",
+    "description": "Clipboard label before a failed hook"
+  },
+  "client.clipboardScenario": {
+    "message": "Scenario:",
+    "description": "Clipboard label before the scenario name"
+  },
+  "client.clipboardStep": {
+    "message": "Step:",
+    "description": "Clipboard label before a failed step"
+  },
+  "client.clipboardUri": {
+    "message": "URI:",
+    "description": "Clipboard label before the source URI; URI stays technical"
+  },
+  "client.copied": {
+    "message": "Copied",
+    "description": "Button label shown after a successful copy"
+  },
+  "client.copyFailed": {
+    "message": "Copy failed",
+    "description": "Button label shown after a failed copy"
+  },
+  "client.copyFailure": {
+    "message": "Copy failure",
+    "description": "Button that copies the failure details of a scenario"
+  },
+  "client.copyFailureDone": {
+    "message": "Failure details copied to clipboard.",
+    "description": "Live-region message after copying failure details"
+  },
+  "client.copyFailureFailed": {
+    "message": "Could not copy failure details.",
+    "description": "Live-region message when copying failure details fails"
+  },
+  "client.copyLog": {
+    "message": "Copy log",
+    "description": "Button that copies a log attachment"
+  },
+  "client.empty": {
+    "message": "No scenarios match the current search or filters.",
+    "description": "Empty result message in the browser report"
+  },
+  "client.emptyPreset": {
+    "message": "No failed scenarios match the current search or filters. Unexecuted rows are hidden by Failed only.",
+    "description": "Empty result message while the Failed only preset is active"
+  },
+  "client.logCopied": {
+    "message": "Log copied to clipboard.",
+    "description": "Live-region message after copying a log"
+  },
+  "client.logCopyFailed": {
+    "message": "Could not copy the log.",
+    "description": "Live-region message when copying a log fails"
+  },
+  "client.searchNote": {
+    "message": "{expanded} of {visible} matches expanded. Use Expand all to open the rest.",
+    "description": "Search note when the opening cap hides matched scenarios"
+  },
+  "client.visibleCount": {
+    "message": "{visible} of {total, plural, one {# scenario} other {# scenarios}} visible",
+    "description": "Live count of visible scenarios; total controls the plural"
+  },
+  "details.agentSummary": {
+    "message": "Agent summary",
+    "description": "Heading of the stable JSON panel for agents"
+  },
+  "details.agentSummaryJson": {
+    "message": "Agent summary JSON",
+    "description": "Accessible label for the agent summary JSON block"
+  },
+  "details.agentSummaryNote": {
+    "message": "The same run as stable JSON for CI tools and agents. Its step counts include hook entries; the HTML counts above exclude them.",
+    "description": "Explanation above the agent summary JSON"
+  },
+  "details.attachmentSize": {
+    "message": "Attachment size",
+    "description": "Label for the total attachment size in the run details"
+  },
+  "details.attachments": {
+    "message": "Attachments",
+    "description": "Label for the attachment count in the run details"
+  },
+  "details.cpu": {
+    "message": "CPU",
+    "description": "Environment CPU label"
+  },
+  "details.customMetadata": {
+    "message": "Custom metadata",
+    "description": "Heading of user-supplied metadata"
+  },
+  "details.durationNote": {
+    "message": "Test time sums the final attempt per scenario and test-run hooks; Scenario time sums the final attempt per scenario. Neither is wall-clock time.",
+    "description": "Explains how the two duration figures are computed"
+  },
+  "details.featureSpend": {
+    "message": "Where the run spent its scenarios and steps.",
+    "description": "Intro text above the feature status matrix"
+  },
+  "details.features": {
+    "message": "Features",
+    "description": "Heading of the feature matrix panel: scenarios, status counts and scenario time per feature"
+  },
+  "details.fullSummary": {
+    "message": "Full summary:",
+    "description": "Label before the CLI example for the full JSON summary"
+  },
+  "details.hooks": {
+    "message": "Hooks",
+    "description": "Label for the hook count in the run details"
+  },
+  "details.matrixHint": {
+    "message": "Executed scenarios only. Scroll for all status columns.",
+    "description": "Hint above the feature status matrix"
+  },
+  "details.matrixLabel": {
+    "message": "Feature status matrix",
+    "description": "Accessible label for the feature status matrix region"
+  },
+  "details.os": {
+    "message": "OS",
+    "description": "Environment operating system label"
+  },
+  "details.passRateNote": {
+    "message": "Pass rate counts attempted (non-skipped) scenarios; counts and bars include skipped.",
+    "description": "Explains the pass-rate denominator and that counts and bars include skipped scenarios"
+  },
+  "details.path": {
+    "message": "details",
+    "description": "Breadcrumb segment for the details view"
+  },
+  "details.producer": {
+    "message": "Producer",
+    "description": "Environment producer label"
+  },
+  "details.protocol": {
+    "message": "Protocol",
+    "description": "Environment protocol label"
+  },
+  "details.run": {
+    "message": "Run",
+    "description": "Heading of the run summary panel"
+  },
+  "details.runAttachments": {
+    "message": "Run attachments",
+    "description": "Heading of attachments recorded for the whole run"
+  },
+  "details.runEnvironment": {
+    "message": "Run environment",
+    "description": "Heading of the environment metadata panel"
+  },
+  "details.runtime": {
+    "message": "Runtime",
+    "description": "Environment runtime label"
+  },
+  "details.scenarios": {
+    "message": "Scenarios",
+    "description": "Label for the scenario count in the run details"
+  },
+  "details.source": {
+    "message": "Source",
+    "description": "Label for the run source"
+  },
+  "details.statusDistribution": {
+    "message": "Status distribution",
+    "description": "Heading of the status distribution panel"
+  },
+  "details.steps": {
+    "message": "Steps (excl. hooks)",
+    "description": "Label for the step count without hooks"
+  },
+  "details.tab": {
+    "message": "Details",
+    "description": "Top navigation tab that shows run details"
+  },
+  "details.testTime": {
+    "message": "Test time",
+    "description": "Label for the total test time"
+  },
+  "details.title": {
+    "message": "Run details",
+    "description": "Heading of the details view"
+  },
+  "format.attemptedRatio": {
+    "message": "{passed} / {attempted} attempted",
+    "description": "Compact pass ratio; attempted excludes skipped scenarios"
+  },
+  "format.bytes": {
+    "message": "{count} bytes",
+    "description": "Byte count; count is already locale-formatted"
+  },
+  "format.emptyRatio": {
+    "message": "0 / 0 passed",
+    "description": "Screen-reader pass ratio for an empty run"
+  },
+  "format.noAttempts": {
+    "message": "No scenarios attempted",
+    "description": "Health message when every reported scenario is skipped"
+  },
+  "format.passedOfAttempted": {
+    "message": "{passed} of {attempted} attempted scenarios passed",
+    "description": "Screen-reader sentence for the pass ratio"
+  },
+  "format.skippedNotAttempts": {
+    "message": "Skipped scenarios are results, not pass attempts.",
+    "description": "Screen-reader explanation for a run without attempts"
+  },
+  "format.specFiles": {
+    "message": "{count, plural, one {# spec file} other {# spec files}}",
+    "description": "Feature source label when one feature spans several spec files"
+  },
+  "lightbox.close": {
+    "message": "Close",
+    "description": "Button that closes the attachment lightbox"
+  },
+  "lightbox.label": {
+    "message": "Full-size attachment",
+    "description": "Accessible label for the attachment lightbox"
+  },
+  "markdown.descriptionTable": {
+    "message": "Description table",
+    "description": "Accessible label for tables rendered from markdown descriptions"
+  },
+  "matrix.feature": {
+    "message": "Feature",
+    "description": "Feature column header in the matrix"
+  },
+  "matrix.scenarioTime": {
+    "message": "Scenario time",
+    "description": "Scenario time column header in the matrix"
+  },
+  "matrix.total": {
+    "message": "Total",
+    "description": "Total column header in the matrix"
+  },
+  "report.allTags": {
+    "message": "All tags",
+    "description": "Placeholder option in the tag filter"
+  },
+  "report.attachmentCount": {
+    "message": "{count, plural, one {# attachment} other {# attachments}}",
+    "description": "Attachment count in a scenario row"
+  },
+  "report.attachmentNotice": {
+    "message": "{count, plural, one {# path attachment was skipped: it is outside the allowed roots (its input file's folder and Tolkira's working directory). The report may be missing screenshots or files.} other {# path attachments were skipped: they are outside the allowed roots (each input file's folder and Tolkira's working directory). The report may be missing screenshots or files.}}",
+    "description": "Report notice when path attachments were skipped"
+  },
+  "report.attachments": {
+    "message": "Attachments",
+    "description": "Label and accessible group name for scenario attachments"
+  },
+  "report.attemptMeta": {
+    "message": "Attempt: {count}",
+    "description": "Synthetic label before the attempt number"
+  },
+  "report.collapseAll": {
+    "message": "Collapse all",
+    "description": "Button that closes every scenario"
+  },
+  "report.copyFailure": {
+    "message": "Copy failure",
+    "description": "Button that copies the failure details of a scenario"
+  },
+  "report.dataTable": {
+    "message": "Data table for: {step}",
+    "description": "Accessible label for a Gherkin data table"
+  },
+  "report.diagnostic.ambiguous": {
+    "message": "Multiple matching step definitions found:",
+    "description": "Lead text for an ambiguous step"
+  },
+  "report.diagnostic.undefined": {
+    "message": "No step definition found.",
+    "description": "Lead text for an undefined step without suggestions"
+  },
+  "report.diagnostic.undefinedSuggestions": {
+    "message": "No step definition found. Implement with the snippet(s) below:",
+    "description": "Lead text for an undefined step with code suggestions"
+  },
+  "report.exampleLabel": {
+    "message": "example {example}",
+    "description": "Screen-reader text before an example row number"
+  },
+  "report.examplesLabel": {
+    "message": "Examples {examples}",
+    "description": "Screen-reader text before an examples block name"
+  },
+  "report.expandAll": {
+    "message": "Expand all",
+    "description": "Button that opens every scenario"
+  },
+  "report.failedOnly": {
+    "message": "Failed only",
+    "description": "Preset filter that hides everything but failures"
+  },
+  "report.featureCount": {
+    "message": "{count, plural, one {# feature} other {# features}}",
+    "description": "Feature count in the run summary"
+  },
+  "report.featureCounts": {
+    "message": "{passed} passed of {attempted} attempted",
+    "description": "Feature row pass count; attempted excludes skipped scenarios"
+  },
+  "report.featureCountsAttention": {
+    "message": "{passed} passed of {attempted} attempted · {attention}",
+    "description": "Feature row pass count with the attention summary"
+  },
+  "report.featureCountsZero": {
+    "message": "{passed} of 0 passed",
+    "description": "Feature row pass count without attempts"
+  },
+  "report.featureCountsZeroAttention": {
+    "message": "{passed} of 0 passed · {attention}",
+    "description": "Feature row pass count without attempts, with attention summary"
+  },
+  "report.featureMeta": {
+    "message": "Feature: {name}",
+    "description": "Synthetic label before the feature name; Feature stays technical"
+  },
+  "report.footer": {
+    "message": "Generated by Tolkira. Single file. No network requests. Attachments are embedded when available.",
+    "description": "Report footer"
+  },
+  "report.hookCount": {
+    "message": "{count, plural, one {# hook} other {# hooks}}",
+    "description": "Hook count in a scenario row"
+  },
+  "report.noMatches": {
+    "message": "No scenarios match the current search or filters.",
+    "description": "Empty result message rendered with the report"
+  },
+  "report.noScenarios": {
+    "message": "No scenarios in this report.",
+    "description": "Empty report message"
+  },
+  "report.notExecuted": {
+    "message": "Not executed",
+    "description": "Screen-reader status for a scenario without a result"
+  },
+  "report.outlineLabel": {
+    "message": "Scenario Outline {outline}",
+    "description": "Screen-reader text naming a scenario outline"
+  },
+  "report.passedHooks": {
+    "message": "Passed hooks",
+    "description": "Accessible label for the passed hooks group"
+  },
+  "report.ruleMeta": {
+    "message": "Rule: {name}",
+    "description": "Synthetic label before the rule name; Rule stays technical"
+  },
+  "report.run": {
+    "message": "Run",
+    "description": "Synthetic context for run-level hooks"
+  },
+  "report.runHooks": {
+    "message": "Hooks",
+    "description": "Heading of the run hooks section"
+  },
+  "report.scenarioCount": {
+    "message": "{count, plural, one {# scenario} other {# scenarios}}",
+    "description": "Scenario count; count is a non-negative integer"
+  },
+  "report.scenarioMeta": {
+    "message": "Scenario: {name}",
+    "description": "Synthetic label before the scenario name"
+  },
+  "report.scenarioWithResults": {
+    "message": "{count, plural, one {# scenario with results} other {# scenarios with results}}",
+    "description": "Scenario count in the run summary meta line"
+  },
+  "report.searchLabel": {
+    "message": "Search scenarios",
+    "description": "Accessible label for the search input"
+  },
+  "report.searchPlaceholder": {
+    "message": "Search scenario, feature or tag",
+    "description": "Placeholder text in the search input"
+  },
+  "report.sourceFrom": {
+    "message": "from {file}",
+    "description": "Prefix before the source file of a feature"
+  },
+  "report.startedMeta": {
+    "message": "Started: {date}",
+    "description": "Synthetic label before the scenario start time"
+  },
+  "report.stepCount": {
+    "message": "{count, plural, one {# step} other {# steps}}",
+    "description": "Step count in a scenario row"
+  },
+  "report.steps": {
+    "message": "Steps",
+    "description": "Label above the step list"
+  },
+  "report.stepsAndHooks": {
+    "message": "Steps and hooks",
+    "description": "Accessible label for the step list"
+  },
+  "report.tab": {
+    "message": "Report",
+    "description": "Top navigation tab that shows the test report"
+  },
+  "report.tag": {
+    "message": "Tag",
+    "description": "Label before the tag filter"
+  },
+  "report.testTime": {
+    "message": "Test time",
+    "description": "Label for the total test time in the run header"
+  },
+  "report.testTimeTitle": {
+    "message": "Sum of the final attempt per scenario and run hooks",
+    "description": "Tooltip explaining the test time"
+  },
+  "report.unexecuted": {
+    "message": "{count} unexecuted",
+    "description": "Count of scenarios without a result"
+  },
+  "report.views": {
+    "message": "Report views",
+    "description": "Accessible label for the tab list"
+  },
+  "status.ambiguous": {
+    "message": "Ambiguous",
+    "description": "Scenario status"
+  },
+  "status.failed": {
+    "message": "Failed",
+    "description": "Scenario status"
+  },
+  "status.passed": {
+    "message": "Passed",
+    "description": "Scenario status"
+  },
+  "status.pending": {
+    "message": "Pending",
+    "description": "Scenario status"
+  },
+  "status.skipped": {
+    "message": "Skipped",
+    "description": "Scenario status"
+  },
+  "status.undefined": {
+    "message": "Undefined",
+    "description": "Scenario status"
+  },
+  "status.unknown": {
+    "message": "Unknown",
+    "description": "Scenario status without a known result"
+  },
+  "trends.current": {
+    "message": "Current",
+    "description": "Tag on the newest history row"
+  },
+  "trends.duration": {
+    "message": "Duration",
+    "description": "Duration column header"
+  },
+  "trends.newestFirst": {
+    "message": "Newest first",
+    "description": "Sort hint in the trends header"
+  },
+  "trends.passRate": {
+    "message": "Pass rate",
+    "description": "Pass rate column header"
+  },
+  "trends.passRateNote": {
+    "message": "Pass rate counts attempted (non-skipped) scenarios",
+    "description": "Explanation of the pass rate in the trends header"
+  },
+  "trends.path": {
+    "message": "History / trends",
+    "description": "Breadcrumb segment for the trends view"
+  },
+  "trends.recorded": {
+    "message": "Recorded",
+    "description": "Recorded-at column header"
+  },
+  "trends.recordedRuns": {
+    "message": "Recorded runs",
+    "description": "Heading of the trends table"
+  },
+  "trends.runs": {
+    "message": "{count, plural, one {# run} other {# runs}}",
+    "description": "Run count in the trends header"
+  },
+  "trends.sparkLead": {
+    "message": "Pass rate, oldest to newest. The table is newest first; runs without attempted scenarios are skipped.",
+    "description": "Caption for the pass-rate sparkline"
+  },
+  "trends.status": {
+    "message": "Status",
+    "description": "Status column header"
+  },
+  "trends.tab": {
+    "message": "Trends",
+    "description": "Top navigation tab that shows run history"
+  },
+  "trends.tableHint": {
+    "message": "Scroll for status, counts, pass rate and duration.",
+    "description": "Hint above the trends table"
+  },
+  "trends.tableLabel": {
+    "message": "Recorded runs",
+    "description": "Accessible label for the trends table region"
+  },
+  "trends.title": {
+    "message": "Trends",
+    "description": "Heading of the trends view"
+  },
+  "trends.titleColumn": {
+    "message": "Title",
+    "description": "Run title column header"
+  },
+  "trends.total": {
+    "message": "Total",
+    "description": "Total column header"
+  },
+  "triage.featureCount": {
+    "message": "{count, plural, one {# feature} other {# features}}",
+    "description": "Feature count in a source entry"
+  },
+  "triage.firstFailure": {
+    "message": "First failure:",
+    "description": "Label before the first failure message"
+  },
+  "triage.lead": {
+    "message": "{need} of {total, plural, one {# scenario needs} other {# scenarios need}} attention.",
+    "description": "Triage lead sentence; need and total are scenario counts"
+  },
+  "triage.moreBelow": {
+    "message": "{count, plural, one {# more feature below.} other {# more features below.}}",
+    "description": "Remainder line when the triage list is capped"
+  },
+  "triage.moreInReport": {
+    "message": "+{count} more in the report",
+    "description": "Triage row suffix when more failing scenarios exist"
+  },
+  "triage.moreInputs": {
+    "message": "{count, plural, one {# more input} other {# more inputs}}",
+    "description": "Remainder line when the source strip is capped"
+  },
+  "triage.needsAttention": {
+    "message": "Needs attention",
+    "description": "Triage heading and accessible navigation name"
+  },
+  "triage.scenarioCount": {
+    "message": "{count, plural, one {# scenario} other {# scenarios}}",
+    "description": "Scenario count in a source entry"
+  },
+  "triage.showMore": {
+    "message": "{count, plural, one {Show # more feature} other {Show # more features}}",
+    "description": "Summary that expands the rest of the triage list"
+  },
+  "triage.sources": {
+    "message": "Sources",
+    "description": "Heading of the source strip"
+  }
+}
