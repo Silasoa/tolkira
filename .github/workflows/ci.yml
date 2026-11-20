@@ -73,14 +73,50 @@ jobs:
       - run: test -s /tmp/report.html && grep -q "Minimal feature" /tmp/report.html
       - name: Missing PDF engine exits 1
         run: |
-          rm -f /tmp/missing.pdf /tmp/missing-pdf.log
-          if node "$TOLKIRA_ROOT/tolkira/dist/cli.js" test/fixtures/legacy/minimal.json --pdf /tmp/missing.pdf > /tmp/missing-pdf.log 2>&1; then
-            echo "expected exit 1 without playwright-core" >&2
+          assert_missing_engine() {
+            local dir="$1"
+            local log="$dir/missing.log"
+            local pdf="$dir/missing.pdf"
+            local code
+            rm -f "$pdf" "$log"
+            set +e
+            (cd "$dir" && node "$TOLKIRA_ROOT/tolkira/dist/cli.js" "$GITHUB_WORKSPACE/test/fixtures/legacy/minimal.json" --pdf "$pdf") > "$log" 2>&1
+            code=$?
+            set -e
+            test "$code" -eq 1
+            grep -qF "PDF output needs the optional Playwright Chromium engine." "$log"
+            grep -qF "In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0" "$log"
+            grep -qF "Then: npx playwright install chromium" "$log"
+            grep -qF "A project-local Tolkira install is recommended. Or omit --pdf." "$log"
+            test ! -e "$pdf"
+          }
+
+          missing_dir=$(mktemp -d)
+          assert_missing_engine "$missing_dir"
+          test ! -e "$missing_dir/node_modules/playwright-core"
+
+          browser_dir=$(mktemp -d)
+          mkdir -p "$browser_dir/node_modules/playwright-core"
+          cat > "$browser_dir/node_modules/playwright-core/package.json" <<'EOF'
+          {"name":"playwright-core","version":"1.65.0","main":"index.js"}
+          EOF
+          cat > "$browser_dir/node_modules/playwright-core/index.js" <<'EOF'
+          console.error('FAKE_PEER_LOADED');
+          module.exports = {
+            chromium: {
+              launch: async () => {
+                throw new Error("browserType.launch: Executable doesn't exist at /tmp/tolkira-fake-chrome");
+              },
+            },
+          };
+          EOF
+          test -f "$browser_dir/node_modules/playwright-core/index.js"
+          assert_missing_engine "$browser_dir"
+          grep -qF "FAKE_PEER_LOADED" "$browser_dir/missing.log"
+          if grep -qF "FAKE_PEER_LOADED" "$missing_dir/missing.log"; then
+            echo "missing-peer case unexpectedly loaded the fake peer" >&2
             exit 1
           fi
-          grep -q "playwright" /tmp/missing-pdf.log
-          grep -q "npm i -D playwright" /tmp/missing-pdf.log
-          test ! -e /tmp/missing.pdf
 
   e2e:
     runs-on: ubuntu-latest

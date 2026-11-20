@@ -32,6 +32,7 @@ Generate one self-contained HTML report from Cucumber JSON, Messages, JUnit XML 
 Options:
   -o, --out <file>     Output HTML file
       --pdf <file>     Write an A4 PDF through the optional Playwright engine
+      --pdf-timeout <ms> PDF render deadline in milliseconds (default 300000); needs --pdf
       --email <file>   Write an HTML email summary
       --json           Print a stable JSON summary to stdout
       --ci <format>    Print a CI summary: github or markdown
@@ -46,7 +47,7 @@ Options:
   -h, --help           Show this help
   -v, --version        Show the version
 
-Without --out, --json, --ci or --email is required; --pdf alone is also an output. --ci-out requires
+At least one of --out, --pdf, --json, --ci or --email is required. --ci-out requires
 --ci markdown. --history requires --out. Without --ci-out, --ci writes only the
 CI summary to stdout. --json and --ci share stdout only with --ci-out. Failing
 tests do not change the exit code.`;
@@ -63,6 +64,7 @@ function parseCliArgs(argv: string[]) {
     options: {
       out: { type: 'string', short: 'o' },
       pdf: { type: 'string' },
+      'pdf-timeout': { type: 'string' },
       email: { type: 'string' },
       title: { type: 'string' },
       locale: { type: 'string' },
@@ -99,6 +101,17 @@ function parseMaxSize(value: string | undefined): number {
     throw new Error(`Invalid --max-size "${value}". Use a positive number of MB.`);
   }
   return megabytes;
+}
+
+function parsePdfTimeout(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  // Leading zeros, signs, fractions and exponents are usage errors, not aliases.
+  if (!/^[1-9]\d*$/.test(value) || Number(value) > 2_147_483_647) {
+    throw new Error(
+      `Invalid --pdf-timeout "${value}". Use a positive integer of milliseconds.`,
+    );
+  }
+  return Number(value);
 }
 
 function parseCiFormat(value: string | undefined): CiFormat | undefined {
@@ -181,13 +194,23 @@ async function writeEmailSummary(
   }
 }
 
-async function writePdf(file: string, html: string): Promise<void> {
+async function writePdf(
+  file: string,
+  html: string,
+  timeoutMs?: number,
+): Promise<void> {
   let bytes: Uint8Array;
   try {
-    bytes = await renderPdf(html);
+    bytes = await renderPdf(
+      html,
+      timeoutMs === undefined ? undefined : { timeoutMs },
+    );
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Cannot render PDF for ${oneLine(file)}: ${detail}`);
+    // Raw Chromium errors can carry the command line and the home directory.
+    throw new Error(
+      `Cannot render PDF for ${oneLine(file)}: ${oneLine(detail).slice(0, 500)}`,
+    );
   }
   try {
     await writeAtomic(file, bytes);
@@ -284,6 +307,20 @@ export async function runCli(
 
   if (pdfPath === '') {
     io.stderr(`tolkira: --pdf requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (parsed.values['pdf-timeout'] !== undefined && pdfPath === undefined) {
+    io.stderr(`tolkira: --pdf-timeout requires --pdf\n\n${USAGE}`);
+    return 2;
+  }
+
+  let pdfTimeout: number | undefined;
+  try {
+    pdfTimeout = parsePdfTimeout(parsed.values['pdf-timeout']);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
     return 2;
   }
 
@@ -541,7 +578,7 @@ export async function runCli(
       await writeAtomic(output, html);
     }
     if (pdfPath !== undefined) {
-      await writePdf(pdfPath, html);
+      await writePdf(pdfPath, html, pdfTimeout);
     }
     if (emailPath !== undefined) {
       await writeEmailSummary(emailPath, summary, {
@@ -555,14 +592,14 @@ export async function runCli(
     if (historyFile !== undefined && generated.history) {
       await writeHistory(historyFile, generated.history);
     }
-    if (output) {
+    if (output || pdfPath !== undefined) {
       const bytes = Buffer.byteLength(html, 'utf8');
       const maxBytes = maxSizeMb * 1024 * 1024;
       if (bytes > maxBytes) {
         io.stderr(
-          `tolkira: warning: report is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
+          `tolkira: warning: report HTML is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
             `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
-            `inflate the single-file report.\n`,
+            `inflate the HTML and the PDF.\n`,
         );
       }
     }

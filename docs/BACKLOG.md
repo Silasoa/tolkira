@@ -49,14 +49,22 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-025 | Email | P3 | Build/branch/PR metadata or error snippets in the email | Recipients need triage context in the body itself, or the mail is the only artifact; `--meta` and short errors are the candidates. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-026 | Email | P3 | Configurable failed-scenario cap | Five rows are too few because the email is sent without the report, or a team asks for an Allure-style cap. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-027 | Report | P3 | Tagged PDF/accessibility | A user has an accessibility or compliance requirement for a tagged PDF or reading order; start with Chromium's `tagged` option and verify the text order with a screen reader. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
-| B-028 | Report | P3 | PDF size cap, warning or streaming | A large suite produces a PDF that exceeds a CI artifact, mail or memory limit; the five-minute timeout and print volume limits apply first. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-028 | Report | P3 | PDF size cap, warning or streaming | A large suite produces a PDF that exceeds a CI artifact, mail or memory limit; the five-minute deadline and print volume limits apply first. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-029 | Report | P3 | Chromium OS sandbox for PDF renders | A CI runner or container supports the Chromium OS sandbox and the PDF path processes untrusted attachments; until then the accepted `--no-sandbox` risk is documented in PDF.md. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
+| B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
+
+#13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
+open issue work. The remaining rows are trigger-based backlog items.
 
 **PDF slice (2026-11-20).** The optional Chromium engine is done (#13c):
-`--pdf <file>`, `renderPdf(html, options)`, the A4/12 mm archive, the
-report → PDF → email order, path validation and the install error. The default
-install, report, JSON, CI and email bytes are unchanged. Page identity and page
-numbers are B-021/B-022, tagged PDF/accessibility is B-027 and a size
-cap/streaming is B-028; see [`PDF.md`](PDF.md) and
+`--pdf <file>`, `--pdf-timeout <ms>`, `renderPdf(html, options)`, the A4/12 mm
+archive, the report → PDF → email order, path validation and the install error.
+The default install and runtime dependency surface, report, JSON, CI and email
+bytes are unchanged; the package gains the PDF docs. Page identity and page
+numbers are B-021/B-022, tagged PDF/accessibility is B-027, a size
+cap/streaming is B-028, the Chromium OS sandbox is B-029 and Letter/custom paper
+is B-030; landscape is unscheduled. See [`PDF.md`](PDF.md) and
 [ADR 0007](adr/0007-optional-pdf-engine.md).
 
 **Print slice (2026-11-20).** The browser print slice is done: by default it
@@ -113,15 +121,18 @@ asks or a locale needs them:
   metadata/snippets and a configurable cap are recorded as B-023 to B-026. The
   print and email slices are done; the PDF engine is resolved as B-019 below.
 - **B-019 PDF engine (#13c)** — implemented on 2026-11-20 in the
-  `add-pdf-export` change: opt-in `--pdf <file>` and `renderPdf(html, options)`,
-  mandatory `page.setContent` (no temporary report), A4/12 mm print CSS, one
-  optional `playwright-core` peer imported dynamically and external in the
-  bundle, atomic binary write, report → PDF → email → history → `--ci-out` →
-  stdout order, path validation, missing-engine exit 1 and the Chromium-only
-  limits. The default install, report, JSON, CI and email bytes are unchanged.
-  Page identity/page numbers, tagged PDF and a size cap are B-021/B-022, B-027 and
-  B-028. [#13](https://github.com/Silasoa/tolkira/issues/13) stays open for those
-  follow-ups.
+  `add-pdf-export` change: opt-in `--pdf <file>`, `--pdf-timeout <ms>` and
+  `renderPdf(html, options)`, mandatory `page.setContent` (no temporary report),
+  eager lazy images, aborted HTTP(S) subresources, A4/12 mm print CSS, one
+  optional `playwright-core` peer imported dynamically (with the cwd
+  `createRequire` fallback) and external in the bundle, atomic binary write,
+  report → PDF → email → history → `--ci-out` → stdout order, path validation,
+  missing-engine exit 1 and the Chromium-only limits. The default install and
+  runtime dependency surface, report, JSON, CI and email bytes are unchanged; the
+  package gains the PDF docs. Page identity/page numbers, tagged PDF, a size cap,
+  the Chromium OS sandbox and Letter/custom paper are B-021/B-022, B-027, B-028,
+  B-029 and B-030; landscape is unscheduled. The #13a–#13c slices are complete;
+  #13 is closed and these remain trigger-based backlog entries.
 - **B-009 German UI and localisation** — implemented on 2026-11-20 in the
   `add-report-localisation` change: `--locale en|de` (default `en`, `de-AT` uses
   `de` and keeps its tag), ICU JSON catalogs with a generated typed module,

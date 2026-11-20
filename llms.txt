@@ -22,8 +22,8 @@ Package: https://www.npmjs.com/package/tolkira
   opt-in HTML mail body with `--email`, 600 px inline template, report note and
   CI mail-step example; no sending, no SMTP and no network.
 - [PDF export](https://github.com/Silasoa/tolkira/blob/main/docs/PDF.md):
-  opt-in `--pdf` and `renderPdf`, optional Playwright Chromium install, A4 print
-  archive, write order and limits.
+  opt-in `--pdf`, `--pdf-timeout` and `renderPdf`, optional Playwright Chromium
+  install in the project, A4 portrait print archive, write order and limits.
 - [Limitations](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md):
   dated status of Behave coverage, JUnit, Playwright, themes and attachments.
 - [Playwright JSON](https://github.com/Silasoa/tolkira/blob/main/docs/PLAYWRIGHT-JSON.md):
@@ -51,7 +51,10 @@ Package: https://www.npmjs.com/package/tolkira
   full report is attached. It stays local and never sends mail; attach
   `report.html` separately. Tolkira exits 0 on failing tests, so take a mail
   subject from `summary.json` (`status`), not from the job status.
-- Add `--pdf report.pdf` for the complete A4 print archive only when the optional
-  Playwright Chromium engine is installed (`npm i -D playwright && npx playwright
-  install chromium`). The PDF is Chromium-only, has no CLI filter or page
-  numbers, and is written before the email; a missing engine exits 1.
+- Add `--pdf report.pdf` for the complete A4 portrait print archive only when the
+  optional Playwright Chromium engine is installed in the project where Tolkira
+  runs (`npm i -D playwright-core@^1.65.0 playwright@^1.65.0`, then
+  `npx playwright install chromium`). The PDF is Chromium-only, has no CLI
+  filter, Letter/custom paper or page numbers, and is written before the email;
+  a missing engine exits 1. `--pdf-timeout <ms>` overrides the five-minute
+  render deadline.

@@ -687,7 +687,9 @@ describe('CLI --email', () => {
 
     expect(result.code).toBe(0);
     expect(result.stdout).toContain('--email <file>');
-    expect(result.stdout).toContain('Without --out, --json, --ci or --email');
+    expect(result.stdout).toContain(
+      'At least one of --out, --pdf, --json, --ci or --email is required',
+    );
     const titleLine = result.stdout
       .split('\n')
       .find((line) => line.includes('--title'));

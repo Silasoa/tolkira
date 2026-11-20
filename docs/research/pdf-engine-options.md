@@ -23,8 +23,9 @@ block, a closed `details` and a `beforeprint` handler.
 | `@sparticuz/chromium` | 70 MB, Linux only | Via Chromium | Lambda only |
 
 All desktop paths applied print CSS and ran `beforeprint`; closed details
-printed open. Playwright defaults to zero margins, so `@page margin: 12mm` needs
-the same `margin`; Chrome honours the CSS margin. Chrome's default footer prints
+printed open. Playwright's `margin` option is unset by default; the print CSS
+`@page { margin: 12mm }` supplies the inset (verified), so no explicit `margin`
+is needed. Chrome's default footer prints
 the date, title, page number and the local `file://` URL, so disable it
 (`--no-pdf-header-footer`).
 Playwright defaults `displayHeaderFooter` to `false`
@@ -70,7 +71,9 @@ npm documents that optional peers are **not** installed automatically, while
 ([peers](https://docs.npmjs.com/cli/v11/configuring-npm/package-json#peerdependenciesmeta),
 [optional](https://docs.npmjs.com/cli/v11/configuring-npm/package-json#optionaldependencies)).
 A dynamic `import('playwright-core')` keeps the engine out of the bundle and
-turns absence into one message. Current tarball: 507 KB / 2.1 MB unpacked.
+turns absence into one message. Tarball before the PDF docs: 507 KB / 2.1 MB
+unpacked; the package gains `docs/PDF.md`, the runtime dependency surface does
+not change.
 CI cost is mostly paid: the Playwright gate (Linux/macOS) installs Chromium, and
 a PDF test can reuse it. Playwright advises against caching browsers
 ([CI](https://playwright.dev/docs/ci)); a PDF-only job adds one 130–280 MB
@@ -120,18 +123,23 @@ bytes atomically; on failure remove them, name the path and exit 1. Order:
 report → PDF → email → history → `--ci-out`.
 
 **Reuse and print state:** set the HTML directly with `page.setContent` (no
-temporary `file://` copy), let the native `page.pdf` fire `beforeprint`, await
+temporary `file://` copy), let the native `page.pdf` fire `beforeprint`, set
+every `img.loading = 'eager'`, guard against HTTP(S) subresources, await
 `document.fonts.ready` and every `img.decode()`, then:
 
 ```js
 page.pdf({ format: 'A4', printBackground: true, displayHeaderFooter: false,
-  preferCSSPageSize: true, timeout: 300000 })
+  preferCSSPageSize: true })
 ```
 
-`preferCSSPageSize: true` plus the print CSS `@page { margin: 12mm }` yields A4
-with the inset (verified 595.92×842.88 pt, ~34 pt); explicit margins are not
-required. A fresh page has no URL state, so the PDF covers the whole run with
-all details open; the browser print remains the filtered/landscape route.
+A4 comes from `format: 'A4'`; the print CSS `@page { margin: 12mm }` supplies
+the inset (verified 595.92×842.88 pt, ~34 pt). `preferCSSPageSize` only lets a
+declared CSS `size` win, and the report declares none. Explicit margins are not
+required. `page.pdf` has no timeout option, so the font/image wait and the print
+are bounded by an explicit five-minute deadline (`--pdf-timeout`/
+`PdfOptions.timeoutMs`); there is no 30 s browser print default. A fresh page has
+no URL state, so the PDF covers the whole run with all details open; the browser
+print remains the filtered/landscape route.
 
 **Page size and headers:** A4 portrait, 12 mm @page inset, no header/footer or
 page numbers in slice 1; B-021/B-022 page identity is deferred.
@@ -140,10 +148,15 @@ page numbers in slice 1; B-021/B-022 page identity is deferred.
 
 ```
 PDF output needs the optional Playwright Chromium engine.
-Install beside Tolkira: npm i -D playwright
+In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0
 Then: npx playwright install chromium
-Or omit --pdf.
+A project-local Tolkira install is recommended. Or omit --pdf.
 ```
+
+The engine is resolved beside Tolkira first, then through
+`createRequire(cwd/package.json)`, so a globally installed or npx-cached Tolkira
+sees the caller's project. The default `chromiumSandbox: false` is kept for
+root/container CI; B-029 tracks the OS sandbox.
 
 No browser-path/channel option in slice 1; the Playwright-managed Chromium is
 the tested engine. A browser path is a follow-up, not part of the peer contract.
@@ -156,7 +169,8 @@ installs the browser; CI adds no download.
 a mocked unit test, a Chromium PDF e2e and a missing-engine CLI/package smoke.
 
 **Follow-ups:** page numbers/tagged PDF (B-021/B-022/B-027), PDF size
-warning/streaming (B-028), a browser path option, landscape, Lambda/existing HTML.
+warning/streaming (B-028), Chromium OS sandbox (B-029), Letter/custom paper
+(B-030), a browser path option, landscape (unscheduled), Lambda/existing HTML.
 
 ## ADR 0007
 
@@ -175,14 +189,15 @@ PDFKit/pdf-lib/pdfmake/jsPDF — second renderer. WeasyPrint/wkhtmltopdf —
 external or unmaintained engine.
 
 **Consequences:** PDF needs an explicit install and browser download; a missing
-engine exits 1. Output is Chromium-only and not byte-deterministic. Report,
-email and history are unaffected without `--pdf`.
+engine exits 1. Output is Chromium-only, A4 portrait and not byte-deterministic.
+Report, email and history are unaffected without `--pdf`; the default runtime
+dependency surface is unchanged and the package gains the PDF docs.
 
 ## Open questions
 
 - Page numbers/tagged PDF: deferred; the browser print can add headers.
 - PDF size cap/streaming for very large reports: backlog; the five-minute
-  timeout and the print volume limits apply.
+  deadline and the print volume limits apply.
 - A browser-path/channel option: follow-up; slice 1 uses the Playwright browser.
 
 The temp-`file://` question is resolved by `setContent`; the filter state is

@@ -130,13 +130,15 @@ it. The gap is the combination.
 ### PDF export (in main)
 
 - Opt-in `--pdf <file>` prints the same complete archive through optional
-  Playwright Chromium: A4, 12 mm print CSS margins, light palette, fitted tables,
-  no header/footer/URL/page numbers, Chromium-only. It composes with the report,
-  email, history, JSON and CI outputs and follows the report locale; a fresh page
-  means no CLI filter state. The write order is report → PDF → email → history →
-  `--ci-out` → stdout. A missing engine exits 1 with the install command. The
-  PDF-only route has no logo or Trends (`--logo`/`--history` require `--out`).
-  The default install and one-file HTML default are unchanged. See
+  Playwright Chromium: A4 portrait, 12 mm print CSS margins, light palette,
+  fitted tables, no header/footer/URL/page numbers, Chromium-only; Letter/custom
+  paper is not exposed. `--pdf-timeout <ms>` overrides the five-minute render
+  deadline. It composes with the report, email, history, JSON and CI outputs and
+  follows the report locale; a fresh page means no CLI filter state. The write
+  order is report → PDF → email → history → `--ci-out` → stdout. A missing engine
+  exits 1 with the install command. The PDF-only route has no logo or Trends
+  (`--logo`/`--history` require `--out`). The default install and runtime
+  dependency surface are unchanged; the package gains the PDF documentation. See
   [`PDF.md`](PDF.md).
 
 ### Email summary (in main)
@@ -152,8 +154,10 @@ it. The gap is the combination.
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media (ADR 0006).
-- PDF page numbers, tagged PDF/accessibility, custom headers and landscape
-  (B-021/B-022); the Chromium engine and the A4 archive ship in main.
+- PDF page numbers and custom headers (B-021/B-022), tagged PDF/accessibility
+  (B-027), a size cap (B-028), the Chromium OS sandbox (B-029) and Letter/custom
+  paper (B-030); landscape is unscheduled. The Chromium engine and the A4 archive
+  ship in main.
 - An `.eml` draft with a real subject (B-023), a capped logo (B-024), optional
   metadata or error snippets (B-025) and a configurable failed-scenario cap
   (B-026).

@@ -40,9 +40,9 @@ const PDF_BYTES = Buffer.from([
 
 const INSTALL_GUIDANCE =
   'PDF output needs the optional Playwright Chromium engine.\n' +
-  'Install beside Tolkira: npm i -D playwright\n' +
+  'In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0\n' +
   'Then: npx playwright install chromium\n' +
-  'Or omit --pdf.';
+  'A project-local Tolkira install is recommended. Or omit --pdf.';
 
 const dirs: string[] = [];
 
@@ -655,11 +655,128 @@ describe('CLI --pdf', () => {
     ]);
   });
 
-  it('documents --pdf in the help and the output requirement', async () => {
+  it('passes --pdf-timeout to the engine and accepts the integer bounds', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'run.pdf');
+
+    const result = await run([
+      fixture,
+      '--pdf',
+      output,
+      '--pdf-timeout',
+      '120000',
+    ]);
+
+    expect(result.code, result.stderr).toBe(0);
+    expect(pdf.renderPdf).toHaveBeenCalledWith(expect.stringContaining('<html'), {
+      timeoutMs: 120_000,
+    });
+
+    const max = await run([
+      fixture,
+      '--pdf',
+      path.join(dir, 'max.pdf'),
+      '--pdf-timeout',
+      '2147483647',
+    ]);
+    expect(max.code, max.stderr).toBe(0);
+    expect(pdf.renderPdf).toHaveBeenLastCalledWith(
+      expect.stringContaining('<html'),
+      { timeoutMs: 2_147_483_647 },
+    );
+  });
+
+  it('rejects invalid --pdf-timeout values without writing a PDF', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'run.pdf');
+
+    for (const value of [
+      '0',
+      '-5',
+      'abc',
+      '0300',
+      '2147483648',
+      '1.5',
+      '+5',
+    ]) {
+      const result = await run([
+        fixture,
+        '--pdf',
+        output,
+        '--pdf-timeout',
+        value,
+      ]);
+
+      expect(result.code, value).toBe(2);
+      expect(result.stdout, value).toBe('');
+      expect(result.stderr, value).toMatch(
+        /Invalid --pdf-timeout|argument is ambiguous/i,
+      );
+      await expect(stat(output), value).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    }
+    expect(pdf.renderPdf).not.toHaveBeenCalled();
+  });
+
+  it('rejects --pdf-timeout without --pdf', async () => {
+    const dir = await tempDir();
+
+    const result = await run([
+      fixture,
+      '--out',
+      path.join(dir, 'report.html'),
+      '--pdf-timeout',
+      '1000',
+    ]);
+
+    expect(result.code).toBe(2);
+    expect(result.stderr).toMatch(/--pdf-timeout[^\n]*--pdf/i);
+    expect(pdf.renderPdf).not.toHaveBeenCalled();
+  });
+
+  it('warns about the size threshold on a PDF-only run', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'run.pdf');
+
+    const result = await run([
+      fixture,
+      '--pdf',
+      output,
+      '--max-size',
+      '0.001',
+    ]);
+
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout).toBe(`PDF written to ${output}\n`);
+    expect(result.stderr).toContain('report HTML is');
+    expect(result.stderr).toContain('inflate the HTML and the PDF');
+  });
+
+  it('keeps a raw render error on one line and caps it at 500 characters', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'run.pdf');
+    pdf.renderPdf.mockRejectedValue(
+      new Error(`${'x'.repeat(600)}\nC:\\Users\\secret\\chrome.exe`),
+    );
+
+    const result = await run([fixture, '--pdf', output]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(output);
+    expect(result.stderr.split('\n')[0]).toMatch(/x{500}$/);
+    expect(result.stderr).not.toContain('secret');
+    expect(result.stderr).not.toContain('chrome.exe');
+  });
+
+  it('documents --pdf and --pdf-timeout in the help and the output requirement', async () => {
     const result = await run(['--help']);
 
     expect(result.code).toBe(0);
     expect(result.stdout).toContain('--pdf <file>');
-    expect(result.stdout).toMatch(/Without --out,[^\n]*--pdf/);
+    expect(result.stdout).toContain('--pdf-timeout <ms>');
+    expect(result.stdout).toMatch(
+      /At least one of --out, --pdf, --json, --ci or --email is required/,
+    );
   });
 });

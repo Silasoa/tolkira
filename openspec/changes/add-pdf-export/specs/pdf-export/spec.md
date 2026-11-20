@@ -46,9 +46,8 @@ browser print's landscape.
 
 The PDF SHALL use Playwright Chromium through an optional `playwright-core`
 peer, imported dynamically and excluded from the default bundle. The default
-install, runtime dependencies and package tarball SHALL stay unchanged. A
-missing engine SHALL exit 1 with install instructions. The PDF SHALL make no
-network request; the Chromium render is local.
+install and runtime dependency surface SHALL stay unchanged; the package gains
+the PDF documentation. A missing engine SHALL exit 1 with install instructions.
 
 #### Scenario: Missing engine
 
@@ -62,12 +61,31 @@ network request; the Chromium render is local.
 - **THEN** the default install and the HTML report work as before
 - **AND** the PDF feature is unavailable until the peer is installed
 
+#### Scenario: Project-local engine
+
+- **WHEN** Tolkira is installed globally or run through npx and the peer is only
+  in the project working directory
+- **THEN** the engine is resolved from that project
+- **AND** no browser is launched by the unit/CLI test suite
+
+### Requirement: Keep the PDF render offline
+
+The PDF SHALL make no network request. HTTP(S) subresource requests from caller
+HTML SHALL be aborted before the report loads, while inline `data:` URIs render;
+the Chromium render itself SHALL be local.
+
+#### Scenario: External image
+
+- **WHEN** caller HTML references an HTTP(S) image
+- **THEN** the request is aborted before the report loads
+- **AND** inline `data:` images still render in the PDF
+
 ### Requirement: Render the print state
 
 The PDF engine SHALL load the report HTML with `page.setContent` (no temporary
-file), wait for fonts and images, and print with the print stylesheet and the
-native `beforeprint` lifecycle. The default print timeout SHALL be five minutes
-and API-overridable; no manual event dispatch SHALL be required.
+file), make lazy images eager, wait for fonts and images, and print with the
+print stylesheet and the native `beforeprint` lifecycle. No manual event dispatch
+SHALL be required.
 
 #### Scenario: Screenshots and dark palette
 
@@ -80,17 +98,39 @@ and API-overridable; no manual event dispatch SHALL be required.
 - **THEN** the report content is set directly on the page
 - **AND** no report/temp file is written by the function
 
-#### Scenario: Large report timeout
+#### Scenario: Lazy screenshots
 
-- **WHEN** a large report is printed beyond the browser's 30 s default
-- **THEN** the five-minute default (or the API timeout) applies
+- **WHEN** a report has below-the-fold `loading="lazy"` screenshots
+- **THEN** the engine sets them eager before waiting for fonts and images
+- **AND** a 40-screenshot report completes instead of waiting forever
+
+### Requirement: Bound the PDF render
+
+`page.pdf` SHALL NOT be relied on for a timeout. `page.setContent` SHALL receive
+the load timeout; the font/image wait and the print SHALL each be raced against an
+explicit deadline. The deadline SHALL default to 300,000 ms and be overridable
+through `PdfOptions.timeoutMs` and the CLI's `--pdf-timeout`.
+
+#### Scenario: Large report deadline
+
+- **WHEN** a large report needs more than the default page-load allowance
+- **THEN** the five-minute default deadline (or `--pdf-timeout`/`timeoutMs`)
+  bounds the font/image wait and the print
 - **AND** the print does not fail early
+
+#### Scenario: Stuck font or image wait
+
+- **WHEN** the font/image wait never settles
+- **THEN** the deadline rejects the render and closes the browser
+- **AND** the CLI exits 1 without a partial PDF
 
 ### Requirement: Keep the PDF A4 and header-free
 
-The PDF SHALL be A4 with the print CSS 12 mm `@page` margins, `printBackground`,
-`preferCSSPageSize` and no header/footer/URL/page number. The first slice SHALL
-be Chromium-only; the browser print SHALL remain the landscape route.
+The PDF SHALL be A4 through `format: 'A4'`, with the 12 mm `@page` margins,
+`printBackground`, `preferCSSPageSize` and no header/footer/URL/page number.
+`preferCSSPageSize` only lets a declared CSS `size` take priority; the report
+declares none, so A4 applies. The first slice SHALL be Chromium-only; the browser
+print SHALL remain the landscape and Letter/custom-paper route.
 
 #### Scenario: A4 and margins
 
@@ -132,8 +172,8 @@ partial PDF.
 
 `renderPdf(html, options)` SHALL return the PDF bytes for the given report HTML,
 SHALL NOT write an output file or launch a server, and SHALL use the same
-optional engine. The options SHALL include an optional print timeout. The CLI
-and API SHALL produce equivalent PDFs for the same HTML.
+optional engine. The options SHALL include `timeoutMs`, the optional deadline in
+milliseconds. The CLI and API SHALL produce equivalent PDFs for the same HTML.
 
 #### Scenario: Library use
 

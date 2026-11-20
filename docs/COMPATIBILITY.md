@@ -150,7 +150,8 @@ does not write that file.
   narrows the Report view), without it the active Report only. Video/audio do not
   print, very wide matrices may need landscape, and browser headers/footers and
   page numbers stay user-controlled. The core CLI/API also adds the opt-in
-  `--pdf <file>`/`renderPdf` Playwright Chromium export; it is not exposed as a
+  `--pdf <file>`/`renderPdf` Playwright Chromium export (A4 portrait,
+  `--pdf-timeout`; no Letter/custom paper or landscape); it is not exposed as a
   cucumber-html-reporter option. The shim itself has no email option either; the
   core CLI/API adds the opt-in `--email` summary. See [`PDF.md`](PDF.md) and
   [`EMAIL.md`](EMAIL.md).

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -77,14 +77,28 @@ describe('PDF package metadata', () => {
     expect(shared).toMatch(/external/);
   });
 
-  it('keeps the peer type out of the emitted declarations', () => {
+  it('keeps the shared externals in the compat bundle', () => {
+    const source = read('esbuild.mjs');
+    const compat = source.slice(source.lastIndexOf('entryPoints'));
+
+    expect(compat).toMatch(/external:\s*\[\.\.\.shared\.external/);
+    expect(compat).toContain("'../index.js'");
+  });
+
+  it('keeps the peer type out of the emitted declarations when built', (context) => {
+    if (!existsSync(path.join(repoRoot, 'dist/index.d.ts'))) {
+      context.skip(
+        'dist/index.d.ts is missing (clean tree); run npm run build before this assertion',
+      );
+      return;
+    }
     const declaration = read('dist/index.d.ts');
 
     expect(declaration).toContain('renderPdf');
     expect(declaration).not.toContain('playwright-core');
   });
 
-  it('runs a missing-engine --pdf smoke in the package job', () => {
+  it('runs a strict missing-engine --pdf smoke in the package job', () => {
     const workflow = read('.github/workflows/ci.yml');
     const start = workflow.indexOf('\n  package:');
     const end = workflow.indexOf('\n  e2e:');
@@ -93,6 +107,38 @@ describe('PDF package metadata', () => {
     const packageJob = workflow.slice(start, end);
 
     expect(packageJob).toContain('--pdf');
-    expect(packageJob).toMatch(/exit 1|!\s*-[es]\s|expected/i);
+    expect(packageJob).toMatch(/test "\$code" -eq 1/);
+    expect(packageJob).toContain('optional Playwright Chromium engine');
+    expect(packageJob).toContain(
+      'npm i -D playwright-core@^1.65.0 playwright@^1.65.0',
+    );
+    // The missing peer must be resolved from an empty temp cwd, not the repo
+    // root where npm ci installed playwright-core.
+    expect(packageJob).toContain('missing_dir=$(mktemp -d)');
+    expect(packageJob).toContain('cd "$dir"');
+    expect(packageJob).toContain(
+      '$GITHUB_WORKSPACE/test/fixtures/legacy/minimal.json',
+    );
+    expect(packageJob).toContain('"$dir/missing.pdf"');
+    expect(packageJob).toMatch(
+      /test ! -e "\$missing_dir\/node_modules\/playwright-core"/,
+    );
+    // The peer-present/browser-missing branch uses a fake package in a second
+    // temp cwd and must map the launch error to the same guidance.
+    expect(packageJob).toContain('browser_dir=$(mktemp -d)');
+    expect(packageJob).toContain(
+      'node_modules/playwright-core/package.json',
+    );
+    expect(packageJob).toContain("Executable doesn't exist");
+    expect(packageJob).toContain('assert_missing_engine "$browser_dir"');
+    // The marker proves the fallback loaded the fake peer; the same guidance
+    // alone is indistinguishable from the missing-peer case.
+    expect(packageJob).toContain("console.error('FAKE_PEER_LOADED')");
+    expect(packageJob).toContain(
+      'grep -qF "FAKE_PEER_LOADED" "$browser_dir/missing.log"',
+    );
+    expect(packageJob).toContain(
+      'grep -qF "FAKE_PEER_LOADED" "$missing_dir/missing.log"',
+    );
   });
 });

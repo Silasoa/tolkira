@@ -29,23 +29,29 @@ Keep a Changelog and the project uses semantic versioning.
   (`8,509 bytes`) and renders human durations (`12 ms`, `12.3 s`, `1 min 5 s`,
   `1 h 2 min`). A standard summary stays under 100 KB, makes no request and is
   never sent by Tolkira. See [`docs/EMAIL.md`](EMAIL.md).
-- Opt-in PDF export (#13c). `--pdf <file>` and `renderPdf(html, options)` print
-  the existing report print view through an optional Playwright Chromium engine:
-  all present views and details, screenshots, the light palette, fitted tables,
-  A4 with 12 mm print CSS margins and no header, footer, URL or page number. The
-  report HTML is loaded with `page.setContent` (no temporary file), fonts and
-  images are awaited, the native `beforeprint` opens every detail, and the
-  five-minute default print timeout is API-overridable. The write order is report
+- Opt-in PDF export (#13c). `--pdf <file>`, `--pdf-timeout <ms>` and
+  `renderPdf(html, options)` print the existing report print view through an
+  optional Playwright Chromium engine: all present views and details,
+  screenshots, the light palette, fitted tables, A4 portrait via
+  `format: 'A4'`, 12 mm print CSS margins and no header, footer, URL or page
+  number. The report HTML is loaded with `page.setContent` (no temporary file),
+  lazy thumbnails are made eager, HTTP(S) subresources are aborted, fonts and
+  images are awaited, the native `beforeprint` opens every detail, and an
+  explicit five-minute deadline bounds the font/image wait and the print
+  (`--pdf-timeout`/`PdfOptions.timeoutMs` override it; `page.pdf` has no timeout
+  option and there is no 30 s browser print default). The write order is report
   → PDF → email → history → `--ci-out` → stdout; a PDF failure exits 1, names the
   path, keeps the report and skips later outputs, and a missing engine exits 1
-  with the install command. `--pdf` composes with `--out`, `--email`, `--json`,
-  `--ci`, `--history` and `--locale`; without `--out`, `--logo`/`--history` still
-  require the report and exit 2, and the email names the PDF. `playwright-core`
-  is an optional peer (`^1.65.0`), imported dynamically only by `src/pdf.ts` and
-  external in the bundle, so the default install, report, JSON, CI and email
-  bytes are unchanged. Chromium-only, no CLI filter state, no video/audio, no
-  page numbers or tagged PDF in this slice. See [`docs/PDF.md`](PDF.md) and
-  [ADR 0007](adr/0007-optional-pdf-engine.md).
+  with a project-local install command. `--pdf` composes with `--out`, `--email`,
+  `--json`, `--ci`, `--history` and `--locale`; without `--out`, `--logo`/
+  `--history` still require the report and exit 2, and the email names the PDF.
+  `playwright-core` is an optional peer (`^1.65.0`), resolved beside Tolkira or
+  from the project working directory, imported dynamically only by `src/pdf.ts`
+  and external in the bundle, so the default install and runtime dependency
+  surface, report, JSON, CI and email bytes are unchanged; the package gains
+  `docs/PDF.md`. Chromium-only, no CLI filter state, no video/audio, no
+  Letter/custom paper, page numbers or tagged PDF in this slice. See
+  [`docs/PDF.md`](PDF.md) and [ADR 0007](adr/0007-optional-pdf-engine.md).
 - Print and Save as PDF. A `@media print` stylesheet hides the interactive
   chrome, repeats the light palette from dark mode, fits the report tables to the
   printable width (A4-compatible, not a fixed CSS paper setting), keeps

@@ -33,5 +33,5 @@ await build({
   entryPoints: ['src/compat/cucumber-html-reporter.ts'],
   outfile: 'dist/compat/cucumber-html-reporter.js',
   // Reuse the public renderer instead of bundling a second copy.
-  external: [...Object.keys(pkg.dependencies ?? {}), '../index.js'],
+  external: [...shared.external, '../index.js'],
 });

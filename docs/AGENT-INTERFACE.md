@@ -130,17 +130,29 @@ Playwright Chromium engine. It is another output, not a mode, and composes with
 `--out`, `--email`, `--json`, `--ci`/`--ci-out` and `--history`:
 
 ```shell
-npm i -D playwright && npx playwright install chromium
+npm i -D playwright-core@^1.65.0 playwright@^1.65.0
+npx playwright install chromium
 tolkira test-results/ --out report.html --pdf report.pdf
 tolkira test-results/ --pdf report.pdf --json > summary.json
 tolkira test-results/ --pdf report.pdf --locale de
+tolkira test-results/ --pdf report.pdf --pdf-timeout 600000
 ```
 
-- The PDF is A4 with 12 mm print CSS margins, the light print palette and no
-  browser header, footer, URL or page number. Chromium only in this slice.
+- Run the install in the project where Tolkira runs; a project-local Tolkira
+  install is recommended. The engine resolves beside Tolkira, then from the
+  current project directory.
+- The PDF is A4 portrait (`format: 'A4'`) with 12 mm `@page` print CSS margins,
+  the light print palette and no browser header, footer, URL or page number.
+  Chromium only in this slice; Letter/custom paper and landscape are not exposed.
 - It is the complete archive (all views and details, screenshots, fitted tables)
-  from a fresh page: the CLI search/filter does not apply. Video/audio do not
-  print; use browser print for a filtered or landscape view.
+  from a fresh page: the CLI search/filter does not apply. The email is the
+  concise summary; video/audio do not print. HTTP(S) images in caller HTML are
+  aborted; inline `data:` images render.
+- `--pdf-timeout <ms>` needs `--pdf`, is a positive integer up to 2,147,483,647
+  and overrides the five-minute render deadline
+  (`renderPdf(html, { timeoutMs })`). `page.pdf` has no timeout option and there
+  is no 30 s browser print default; Tolkira bounds the font/image wait and the
+  print explicitly.
 - `--locale` is accepted with `--pdf` even without `--out` or `--email`; the PDF
   follows the report locale while CLI/JSON/CI stay English. `--accent` applies.
 - Without `--out`, no report HTML is written. `--logo` and `--history` still
@@ -150,14 +162,16 @@ tolkira test-results/ --pdf report.pdf --locale de
   the email/history/`--ci-out`/stdout; no partial PDF remains. A missing engine
   exits 1 with the install command.
 - `PDF written to <path>` is printed only when stdout is free, like the report and
-  email lines. JSON/CI stdout stays byte-identical.
+  email lines. JSON/CI stdout stays byte-identical; `--json --ci-out` also
+  suppresses the PDF line.
 - The PDF path is validated like an output: no collision with an input, the logo,
   `--out`, `--ci-out`, `--history` or `--email`, and no path inside an input
   directory; a collision exits 2.
 - The email with `--out` names the report; without `--out` it names the PDF
   because the PDF is written first.
-- The engine is optional and dynamically imported; the default install, report,
-  JSON, email and CI bytes are unchanged. See [`PDF.md`](PDF.md).
+- The engine is optional and dynamically imported; the default install and
+  runtime dependency surface, report, JSON, email and CI bytes are unchanged;
+  the package gains `docs/PDF.md`. See [`PDF.md`](PDF.md).
 
 ## Report locale
 
@@ -217,9 +231,9 @@ note keeps only the basename. The CLI strips control characters from its
 
 `renderPdf(html, options)` returns the PDF bytes for already rendered report
 HTML. `PdfOptions` has only the optional `timeoutMs` (default five minutes). It
-writes no file, starts no server and uses the same optional Chromium engine as
-the CLI; a missing engine throws an install error. The CLI and API produce
-equivalent PDFs for the same HTML and engine.
+writes no file, starts no server, aborts HTTP(S) subresources and uses the same
+optional Chromium engine as the CLI; a missing engine throws an install error.
+The CLI and API produce equivalent PDFs for the same HTML and engine.
 
 `skippedAttachments` is the number of Playwright path attachments skipped
 because they resolve outside every allowed root. It is a plain number, additive
@@ -243,7 +257,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | history | `--history <file>` reads and appends a sidecar; needs `--out` | `history` array; `generateReport` appends the current run, `renderReport` and the stream render it as given |
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
-| pdf | `--pdf <file>` prints the report with optional Playwright Chromium | `renderPdf(html, { timeoutMs })` |
+| pdf | `--pdf <file>` prints the report with optional Playwright Chromium; `--pdf-timeout <ms>` (needs `--pdf`) overrides the deadline | `renderPdf(html, { timeoutMs })` |
 | size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
 | CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
@@ -595,10 +609,11 @@ outside `features/`).
 - The email summary is opt-in and file-only. It has no sending, recipients,
   scheduling, `.eml` draft, logo, error snippets or redaction mode; the report
   basename (or the no-report note) is the only path-like content.
-- PDF export is opt-in, Chromium-only and file-only. It has no page numbers,
-  custom header/footer, tagged PDF, CLI filter, forced landscape, PDF-only logo
-  or PDF-only Trends; it needs a separate engine and browser install. See
-  [`PDF.md`](PDF.md).
+- PDF export is opt-in, Chromium-only and file-only. It is A4 portrait only
+  (no Letter/custom paper), with no page numbers, custom header/footer, tagged
+  PDF, CLI filter, forced landscape, PDF-only logo or PDF-only Trends; it needs a
+  separate project-local engine and browser install. The default Chromium launch
+  is not OS-sandboxed; see [`PDF.md`](PDF.md).
 - Playwright path attachments are embedded only when the resolved regular file
   is inside the input file's directory or the process working directory.
   Symlinked, missing, non-regular and outside-tree paths are skipped; inline

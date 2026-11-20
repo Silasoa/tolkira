@@ -6,9 +6,9 @@
 
 The CLI SHALL accept `--pdf <file>` as an output. It SHALL require a non-empty
 path and at least one input. The PDF SHALL compose with `--out`, `--email`,
-`--json` and `--ci`, and SHALL follow the order report → PDF → email → history →
-`--ci-out` → stdout (the PDF is written before the email that names it). A
-missing optional engine SHALL exit 1 with install instructions; the report
+`--json`, `--ci` and `--history`, and SHALL follow the order report → PDF → email
+→ history → `--ci-out` → stdout (the PDF is written before the email that names
+it). A missing optional engine SHALL exit 1 with install instructions; the report
 remains and the email/later outputs are skipped.
 
 #### Scenario: PDF alone
@@ -30,6 +30,34 @@ remains and the email/later outputs are skipped.
 - **THEN** the CLI exits 1 with the install instructions
 - **AND** the report (if already written) stays
 - **AND** no email/PDF is left partial
+
+### Requirement: Override the PDF render deadline
+
+The CLI SHALL accept `--pdf-timeout <ms>` only together with `--pdf`. The value
+SHALL be a positive decimal integer of at most 2,147,483,647; `0`, negative
+values, fractions, leading-zero forms and non-numeric values SHALL exit 2 with a
+message naming `--pdf-timeout`. The value SHALL be passed to `renderPdf` as
+`timeoutMs` and SHALL replace the five-minute default. `--help` and the usage
+text SHALL list the option.
+
+#### Scenario: Timeout override
+
+- **WHEN** `--pdf run.pdf --pdf-timeout 120000` is used
+- **THEN** `renderPdf` receives `{ timeoutMs: 120000 }`
+- **AND** the PDF is written normally
+
+#### Scenario: Invalid timeout
+
+- **WHEN** `--pdf-timeout` is `0`, negative, fractional, non-numeric or above
+  2,147,483,647
+- **THEN** the CLI exits 2
+- **AND** no PDF is written
+
+#### Scenario: Timeout without a PDF
+
+- **WHEN** `--pdf-timeout 1000` is used without `--pdf`
+- **THEN** the CLI exits 2 and names the missing `--pdf`
+- **AND** nothing is written
 
 ### Requirement: State the PDF-only scope limits
 

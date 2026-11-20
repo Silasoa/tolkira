@@ -1,9 +1,11 @@
+import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The PDF unit test must never launch a browser in `npm run check`: the engine
 // is replaced by this fake page/browser pair.
 const engine = vi.hoisted(() => {
   const page = {
+    route: vi.fn(),
     setContent: vi.fn(),
     evaluate: vi.fn(),
     pdf: vi.fn(),
@@ -52,6 +54,7 @@ beforeEach(() => {
   engine.chromium.launch.mockReset().mockResolvedValue(engine.browser);
   engine.browser.newPage.mockReset().mockResolvedValue(engine.page);
   engine.browser.close.mockReset().mockResolvedValue(undefined);
+  engine.page.route.mockReset().mockResolvedValue(undefined);
   engine.page.setContent.mockReset().mockResolvedValue(undefined);
   engine.page.evaluate.mockReset().mockResolvedValue(undefined);
   engine.page.pdf.mockReset().mockResolvedValue(PDF_BYTES);
@@ -65,6 +68,10 @@ describe('renderPdf', () => {
 
     expect(pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(pdf)).toEqual(PDF_BYTES);
+    // The result is a view over the engine bytes, not a second full copy.
+    expect(pdf.buffer).toBe(PDF_BYTES.buffer);
+    expect(pdf.byteOffset).toBe(PDF_BYTES.byteOffset);
+    expect(pdf.byteLength).toBe(PDF_BYTES.byteLength);
     expect(engine.chromium.launch).toHaveBeenCalledWith({ headless: true });
     expect(engine.browser.newPage).toHaveBeenCalledTimes(1);
     expect(engine.page.setContent).toHaveBeenCalledTimes(1);
@@ -126,6 +133,40 @@ describe('renderPdf', () => {
     expect(engine.browser.close).toHaveBeenCalledTimes(1);
   });
 
+  it('bounds the font/image wait with the same deadline', async () => {
+    const renderPdf = await loadRenderPdf();
+    engine.page.evaluate.mockImplementation(() => new Promise(() => {}));
+
+    await expect(renderPdf(HTML, { timeoutMs: 25 })).rejects.toThrow(
+      /font\/image wait timed out/i,
+    );
+    expect(engine.page.pdf).not.toHaveBeenCalled();
+    expect(engine.browser.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts HTTP and HTTPS subresources before loading caller HTML', async () => {
+    const renderPdf = await loadRenderPdf();
+
+    await renderPdf(HTML);
+
+    expect(engine.page.route).toHaveBeenCalledTimes(1);
+    const [pattern, handler] = engine.page.route.mock.calls[0] as [
+      RegExp,
+      (route: { abort: () => void }) => void,
+    ];
+    expect(pattern).toBeInstanceOf(RegExp);
+    expect(pattern.test('https://example.com/image.png')).toBe(true);
+    expect(pattern.test('http://example.com/image.png')).toBe(true);
+    expect(pattern.test('data:image/png;base64,AAAA')).toBe(false);
+    expect(pattern.test('file:///tmp/image.png')).toBe(false);
+    const route = { abort: vi.fn() };
+    handler(route);
+    expect(route.abort).toHaveBeenCalledTimes(1);
+    expect(engine.page.route.mock.invocationCallOrder[0]).toBeLessThan(
+      engine.page.setContent.mock.invocationCallOrder[0] ?? Number.NaN,
+    );
+  });
+
   it('awaits fonts and images before printing and leaves beforeprint to page.pdf', async () => {
     const renderPdf = await loadRenderPdf();
 
@@ -136,6 +177,8 @@ describe('renderPdf', () => {
       .join('\n');
     expect(sources).toContain('document.fonts.ready');
     expect(sources).toMatch(/document\.images|img|images/i);
+    // Below-the-fold `loading="lazy"` thumbnails must not stall decode().
+    expect(sources).toMatch(/loading\s*=\s*['"]eager['"]/);
     expect(sources).toContain('decode');
     // The native page.pdf lifecycle fires beforeprint; a manual dispatch would
     // print the wrong state and is not part of the contract.
@@ -156,6 +199,19 @@ describe('renderPdf', () => {
     await expect(renderPdf(HTML)).rejects.toThrow('print failed');
 
     expect(engine.browser.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not hang when browser.close never settles', async () => {
+    const renderPdf = await loadRenderPdf();
+    engine.browser.close.mockImplementation(() => new Promise(() => {}));
+    vi.useFakeTimers();
+    try {
+      const result = renderPdf(HTML);
+      await vi.advanceTimersByTimeAsync(5_000);
+      await expect(result).resolves.toBeInstanceOf(Uint8Array);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('closes the browser when loading the HTML fails', async () => {
@@ -183,6 +239,65 @@ describe('renderPdf', () => {
     expect(message).toMatch(INSTALL_GUIDANCE.install);
     expect(message).toMatch(INSTALL_GUIDANCE.browser);
     expect(engine.chromium.launch).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the cwd project when the package import fails', async () => {
+    vi.resetModules();
+    vi.doMock('playwright-core', () => {
+      throw new Error('not installed beside Tolkira');
+    });
+    const projectRequire = vi.fn(() => ({ chromium: engine.chromium }));
+    const createRequire = vi.fn(() => projectRequire);
+    vi.doMock('node:module', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('node:module')>()),
+      createRequire,
+    }));
+    try {
+      const renderPdf = await loadRenderPdf();
+
+      await renderPdf(HTML);
+
+      expect(createRequire).toHaveBeenCalledWith(
+        path.join(process.cwd(), 'package.json'),
+      );
+      expect(projectRequire).toHaveBeenCalledWith('playwright-core');
+      expect(engine.chromium.launch).toHaveBeenCalledWith({ headless: true });
+    } finally {
+      vi.doUnmock('node:module');
+    }
+  });
+
+  it('reports install guidance when the import and cwd fallback both fail', async () => {
+    vi.resetModules();
+    vi.doMock('playwright-core', () => {
+      throw new Error('not installed beside Tolkira');
+    });
+    const projectRequire = vi.fn(() => {
+      throw new Error('not installed in the project');
+    });
+    const createRequire = vi.fn(() => projectRequire);
+    vi.doMock('node:module', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('node:module')>()),
+      createRequire,
+    }));
+    try {
+      const renderPdf = await loadRenderPdf();
+
+      const error = await renderPdf(HTML).catch((reason: unknown) => reason);
+
+      expect(error).toBeInstanceOf(Error);
+      const message = (error as Error).message;
+      expect(message).toMatch(INSTALL_GUIDANCE.engine);
+      expect(message).toMatch(INSTALL_GUIDANCE.install);
+      expect(message).toMatch(INSTALL_GUIDANCE.browser);
+      expect(createRequire).toHaveBeenCalledWith(
+        path.join(process.cwd(), 'package.json'),
+      );
+      expect(projectRequire).toHaveBeenCalledWith('playwright-core');
+      expect(engine.chromium.launch).not.toHaveBeenCalled();
+    } finally {
+      vi.doUnmock('node:module');
+    }
   });
 
   it('reports a missing Chromium browser with install guidance', async () => {

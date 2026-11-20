@@ -140,6 +140,7 @@ export async function writePdf(
     locale?: string;
     withReport?: boolean;
     history?: string;
+    timeoutMs?: number;
   } = {},
 ): Promise<PdfFile> {
   if (options.history !== undefined && !options.withReport) {
@@ -153,6 +154,9 @@ export async function writePdf(
   if (options.history) args.push('--history', options.history);
   if (options.title) args.push('--title', options.title);
   if (options.locale) args.push('--locale', options.locale);
+  if (options.timeoutMs !== undefined) {
+    args.push('--pdf-timeout', String(options.timeoutMs));
+  }
   let stderr = '';
   try {
     const code = await runCli(args, {

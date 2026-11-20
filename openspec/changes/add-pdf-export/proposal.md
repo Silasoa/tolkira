@@ -11,18 +11,22 @@ layout and a system binary would break the npm-only baseline.
 
 ## What Changes
 
-- Add `--pdf <file>` and `renderPdf(html, options)` as an opt-in PDF export from
-  the existing report HTML/print view.
+- Add `--pdf <file>`, `--pdf-timeout <ms>` and `renderPdf(html, options)` as an
+  opt-in PDF export from the existing report HTML/print view.
 - Use **Playwright Chromium** as an optional engine: `playwright-core` is an
   optional peer dependency, imported dynamically only for the PDF and marked
-  external in the build. The default install, runtime dependencies and package
-  tarball stay unchanged.
+  external in the build. The default install and runtime dependency surface stay
+  unchanged; the package gains the PDF documentation. The engine resolves beside
+  Tolkira first, then from the project working directory, so a global or
+  npx-cached Tolkira can use the caller's peer.
 - Print the complete report through the print view: all present views and
   details, screenshots, light palette, fitted tables, A4 with 12 mm margins and
   no header/footer. The PDF is generated from a fresh page, so no CLI
   search/filter state applies; the browser print remains the filtered route.
-- Use `page.setContent` with the report HTML (no temporary file), the native
-  `beforeprint`, fonts and images, then `page.pdf`.
+- Use `page.setContent` with the report HTML (no temporary file), make lazy
+  images eager, abort HTTP(S) subresources, wait for fonts and images, then
+  `page.pdf` under an explicit deadline. The deadline defaults to five minutes
+  and is overridable through `--pdf-timeout` and `PdfOptions.timeoutMs`.
 - Write the PDF atomically in the order report → PDF → email → history →
   `--ci-out` → stdout. The PDF precedes the email that names it, so a PDF
   failure exits 1, names the PDF path, keeps the report and skips the email and
@@ -55,8 +59,9 @@ the one-file HTML default, report, summary, email or print view.
 
 ## Impact
 
-- `src/pdf.ts` (new), `src/cli.ts`, `src/index.ts`, `esbuild.mjs` (external
-  `playwright-core`), `package.json` (optional peer/peer metadata and files),
+- `src/pdf.ts` (new), `src/cli.ts` (`--pdf`, `--pdf-timeout`), `src/index.ts`,
+  `esbuild.mjs` (external `playwright-core`), `package.json` (optional peer/peer
+  metadata and files),
   tests (unit/CLI/e2e PDF), `docs/PDF.md` (new), `docs/adr/0007-optional-pdf-engine.md`,
   `docs/research/pdf-engine-options.md`, `README.md`, `DESIGN.md`,
   `docs/AGENT-INTERFACE.md`, `docs/ARCHITECTURE.md`, `docs/LIMITATIONS.md`,
@@ -64,7 +69,8 @@ the one-file HTML default, report, summary, email or print view.
   `docs/BACKLOG.md`, `docs/README.md`, `llms.txt`.
 - No default runtime dependency, no network, no server. PDF users install
   `playwright-core` plus a Chromium browser; CI already installs Chromium for
-  the browser gate. The default package/tarball is unchanged.
+  the browser gate. The default install and runtime dependency surface are
+  unchanged; the package gains the PDF documentation.
 
 ## Review gate
 

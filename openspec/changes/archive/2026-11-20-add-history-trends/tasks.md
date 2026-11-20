@@ -18,7 +18,7 @@
   directory (missing file); history write failure leaves the HTML and exits 1;
   no flag leaves output/files untouched; exit codes.
 - [x] 2.3 Render tests: no tab with 0/1 entries; tab and table with 2+; newest
-  first; attempted pass rate and `â€”` for zero attempts; sparkline order and
+  first; attempted pass rate and `—` for zero attempts; sparkline order and
   segmented line (n/a skipped); labelled focusable table region; 320 px scroll;
   no-JS keeps the Report view; conditional `DOM_IDS.trendsView`.
 - [x] 2.4 Browser test: generate two reports with one temp history file, open

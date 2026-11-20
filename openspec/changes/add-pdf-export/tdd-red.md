@@ -100,8 +100,9 @@ Observed: `5 failed | 1 passed` of 6.
   `preferCSSPageSize: true`, `displayHeaderFooter: false`. Playwright's
   `page.pdf` has no timeout option; the five-minute deadline wraps the print
   promise and closes the browser on expiry.
-- Default five-minute timeout, shared with `setContent`; `renderPdf(html,
-  { timeoutMs: 120000 })` overrides both.
+- Default five-minute deadline; `setContent` gets the load timeout and the
+  font/image wait and print get the same deadline; `renderPdf(html,
+  { timeoutMs: 120000 })` overrides it.
 - Fonts/images await `document.fonts.ready` and image `decode()`; no manual
   `beforeprint`/`afterprint` dispatch (the native `page.pdf` lifecycle owns it).
 - Missing engine (module resolves without Chromium) and missing browser
@@ -169,6 +170,10 @@ promise, with an added hang test; the load timeout still applies to
 `page.setContent`.
 - `--out` route leaves `report.html` + `run.pdf`; PDF-only leaves only
   `run.pdf`.
+- Review-fix e2e (2026-11-20): 40 scenarios, each with a distinct 160x90 PNG
+  attachment; `--pdf-timeout 30000`; the run completes, the PDF has at least two
+  pages, at least 40 embedded image XObjects and the last scenario on a later
+  page.
 
 The helper was validated against real Chromium 1.65 PDFs before the Red run:
 A4 MediaBox `595.91998 × 842.88`, first-page inset 33.75–34.18 pt, 6 pages and
@@ -200,3 +205,23 @@ parser.
   writes no file.
 - The real PDF runs only in the Chromium e2e; `npm run check` uses mocks and
   launches no browser.
+
+## Review-fix tests (2026-11-20, fixer)
+
+Added on top of the Red suite; no Red assertion was deleted or loosened.
+
+- `test/pdf.test.ts`: setting `img.loading = 'eager'` before decode, the
+  font/image wait deadline, the HTTP(S) `page.route` abort before `setContent`,
+  the `createRequire(cwd/package.json)` fallback without launching a browser,
+  the no-copy `Uint8Array` view and the five-second close path.
+- `test/cli-pdf.test.ts`: `--pdf-timeout` success and upper bound, invalid
+  values (`0`, negative, fraction, leading zero, over the cap), missing `--pdf`,
+  the PDF-only size warning and the 500-character one-line render error.
+- `test/e2e/pdf.spec.ts`: the 40-screenshot volume test above.
+- `test/package-pdf.test.ts`: compat externals, the strict CI smoke text and a
+  clear skip when `dist/index.d.ts` is absent.
+- The help assertion now pins “At least one of --out, --pdf, --json, --ci or
+  --email is required” because the Red wording was self-contradictory.
+- Follow-up (2026-11-20): the import-and-cwd-fallback-both-fail guidance test;
+  the CI smoke now runs in empty/fake-peer temp cwds, and the package test pins
+  that isolation; the 40-screenshot e2e asserts at least 40 image XObjects.

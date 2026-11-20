@@ -134,16 +134,18 @@ file:
 | yes | yes | no | any | usage error |
 
 The human confirmation lines (`Report written to ...`,
-`PDF written to ...`, `Email written to ...`) are suppressed whenever CI text
-goes to stdout, so annotations and Markdown are never mixed with other output.
-`--email` and `--pdf` write their files whenever the command is accepted and
-change neither the CI text nor the JSON bytes. Their own confirmations appear
-only when stdout is free. The PDF is written after the report and before the
-email, history and CI file, so a PDF failure keeps the report and skips the
-later outputs; `PDF written to` appears between the report and email lines.
+`PDF written to ...`, `Email written to ...`) are suppressed whenever CI text or
+the JSON summary owns stdout, so annotations, Markdown and JSON are never mixed
+with other output. `--email` and `--pdf` write their files whenever the command
+is accepted and change neither the CI text nor the JSON bytes. Their own
+confirmations appear only when stdout is free; `--json --ci-out` suppresses the
+PDF line too. The PDF is written after the report and before the email, history
+and CI file, so a PDF failure keeps the report and skips the later outputs;
+`PDF written to` appears between the report and email lines. `--pdf-timeout`
+overrides the PDF render deadline without changing any CI output.
 
-Report warnings, such as skipped path attachments, go to stderr when HTML is
-written. They never enter stdout, the JSON summary or the CI text.
+Report warnings, such as skipped path attachments, go to stderr when HTML or a
+PDF is written. They never enter stdout, the JSON summary or the CI text.
 
 `--ci-out` must not overwrite an input file, the logo, the `--out` file, the
 `--pdf` file or the

@@ -204,19 +204,27 @@ and is covered by real producer fixtures.
 
 - Opt-in PDF export: `renderPdf(html, { timeoutMs? })` returns the PDF bytes for
   already rendered report HTML; it writes no file and starts no server.
-- `playwright-core` is imported dynamically inside the call, launched headless,
-  and marked external in esbuild. It is an optional peer: the default install,
-  bundle and tarball stay unchanged, and a missing package or Chromium browser
-  becomes one install error.
+- `playwright-core` is imported dynamically inside the call, with a
+  `createRequire(cwd/package.json)` fallback for globally installed or npx-cached
+  Tolkira, launched headless, and marked external in esbuild. It is an optional
+  peer: the default install and runtime dependency surface stay unchanged (the
+  package gains the PDF docs), and a missing package or Chromium browser becomes
+  one install error.
 - The page receives the HTML with `page.setContent` (no temporary report or
-  `file://` page), then awaits `document.fonts.ready` and best-effort
-  `img.decode()`. The native `page.pdf` lifecycle fires `beforeprint`, so the
-  print script opens every detail without a manual dispatch. Print options are
-  A4, `printBackground`, `preferCSSPageSize`, `displayHeaderFooter: false` and a
-  five-minute default timeout shared with `setContent`. The browser is closed in
-  `finally`.
+  `file://` page). Before loading, HTTP(S) routes are aborted; every
+  `img.loading` is set to `eager` so below-the-fold lazy thumbnails decode. Then
+  the engine awaits `document.fonts.ready` and best-effort `img.decode()`. The
+  native `page.pdf` lifecycle fires `beforeprint`, so the print script opens
+  every detail without a manual dispatch. Print options are `format: 'A4'`,
+  `printBackground`, `preferCSSPageSize` and `displayHeaderFooter: false`. The
+  load uses the `setContent` timeout; the font/image wait and the print are each
+  bounded by an explicit five-minute deadline (`--pdf-timeout`/
+  `PdfOptions.timeoutMs`), because `page.pdf` has no timeout option. The browser
+  is closed in `finally` with a short close deadline.
 - A fresh page has no CLI filter state; the browser print remains the filtered
-  and landscape route. Chromium-only in this slice. See `docs/PDF.md`.
+  and landscape route. Chromium-only, A4 portrait in this slice. The accepted
+  `--no-sandbox` risk is documented in `docs/PDF.md`; B-029 tracks the OS
+  sandbox. See `docs/PDF.md`.
 
 ### `src/history`
 
@@ -238,10 +246,10 @@ and is covered by real producer fixtures.
 
 ### `src/cli`
 
-- `tolkira <input...> [--out <file>] [--email <file>] [--json]`
-  `[--ci github|markdown] [--ci-out <file>] [--history <file>]`
-  `[--locale <tag>] [--title <title>] [--meta key=value] [--logo <file>]`
-  `[--accent <hex>] [--max-size <mb>]`.
+- `tolkira <input...> [--out <file>] [--pdf <file>] [--pdf-timeout <ms>]`
+  `[--email <file>] [--json] [--ci github|markdown] [--ci-out <file>]`
+  `[--history <file>] [--locale <tag>] [--title <title>]`
+  `[--meta key=value] [--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
   content; duplicate paths are resolved and read once.
@@ -264,17 +272,20 @@ and is covered by real producer fixtures.
   skips later outputs; no temporary file remains.
 - `--pdf <file>` is an output and can be the only one; the report HTML is then
   generated in memory. It composes with `--out`, `--email`, `--json`, `--ci` and
-  `--history`. It is written atomically after the report and before the email;
-  the path is validated against inputs, the logo, `--out`, `--ci-out`,
+  `--history`. `--pdf-timeout <ms>` requires `--pdf` and accepts a positive
+  integer up to 2,147,483,647; the value is passed to `renderPdf` as
+  `timeoutMs`. The PDF is written atomically after the report and before the
+  email; the path is validated against inputs, the logo, `--out`, `--ci-out`,
   `--history`, `--email` and input directories. A render or write failure exits
   1, names the PDF path, keeps the report and skips later outputs; no partial PDF
-  remains. A missing optional engine exits 1 with install guidance. `--logo` and
-  `--history` still require `--out`; the PDF-only route has no logo or Trends.
+  remains and a raw engine error is capped at one 500-character line. A missing
+  optional engine exits 1 with install guidance. `--logo` and `--history` still
+  require `--out`; the PDF-only route has no logo or Trends.
 - `--locale <tag>` requires `--out`, `--pdf` or `--email`, defaults to `en` and
   validates exact then primary-subtag matches (`de-AT` -> `de`) before
   generation. Unknown or empty tags exit 2 with `en, de`. The requested canonical
   tag reaches `<html lang>`; the JSON summary and CI text stay English.
-- Warns when the report exceeds 10 MB.
+- Warns when the report HTML (also on a PDF-only run) exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
 ### `src/index`
@@ -381,10 +392,12 @@ Test names, metadata, file names and attachments are untrusted input.
   `test/cli-email.test.ts`, `test/email-catalog.test.ts` and
   `test/e2e/email.spec.ts` pin the email template, metrics, escaping, locale,
   size, CLI composition and 600/320 px rendering. `test/pdf.test.ts` mocks
-  `playwright-core` and pins the print options, timeout, fonts/images, browser
-  close and install errors without launching a browser; `test/cli-pdf.test.ts`
-  pins `--pdf` order, paths, atomic binary write and failure; the Chromium-only
-  `test/e2e/pdf.spec.ts` asserts the real `%PDF`, page count, A4 MediaBox, 12 mm
+  `playwright-core` and pins the print options, deadline, eager lazy images,
+  HTTP(S) abort, cwd fallback, fonts/images, browser close and install errors
+  without launching a browser; `test/cli-pdf.test.ts` pins `--pdf`/
+  `--pdf-timeout`, order, paths, atomic binary write and failure; the
+  Chromium-only `test/e2e/pdf.spec.ts` asserts the real `%PDF`, page count, A4
+  MediaBox, 12 mm
   inset, German text and embedded screenshots.
 - Fixtures: cucumber-js legacy JSON, Behave 1.3.3 real runs (statuses, doc
   strings, tables and inline images), cucumber-jvm and cucumber-ruby real runs,

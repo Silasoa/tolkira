@@ -65,7 +65,7 @@ tolkira test-results/ --out report.html --locale de
 # Write a small HTML email body beside the report (no sending)
 tolkira test-results/ --out report.html --email email.html
 
-# Print an A4 PDF through the optional Playwright Chromium engine
+# Print an A4 PDF (next release; needs the optional Playwright engine; see below)
 tolkira test-results/ --out report.html --pdf report.pdf
 ```
 
@@ -117,20 +117,28 @@ and the browser's print command is the zero-install PDF route.
 ### PDF file with `--pdf`
 
 For CI and headless workflows, `--pdf <file>` prints the same complete archive
-without a print dialog:
+without a print dialog. Install the optional engine in the project where Tolkira
+runs; a project-local Tolkira install is recommended:
 
 ```shell
-npm i -D playwright && npx playwright install chromium
+npm i -D playwright-core@^1.65.0 playwright@^1.65.0
+npx playwright install chromium
 tolkira test-results/ --out report.html --pdf report.pdf
 ```
 
-The PDF is A4 with 12 mm margins, no browser header/footer or page numbers, and
-it follows the report locale. It is Chromium-only, has no CLI filter state, does
-not print video/audio, and `--logo`/`--history` still require `--out`. The
-optional engine is a dynamic import: the default install, report, JSON and CI
-bytes are unchanged. The write order is report → PDF → email → history →
-`--ci-out` → stdout, so a PDF failure exits 1, keeps the report and skips later
-outputs. See [PDF export](docs/PDF.md) for the install, API, costs and limits.
+The PDF is the full rendered archive, not a one-page executive summary; use
+`--email` for the concise summary. It is A4 portrait with 12 mm margins, no
+browser header/footer or page numbers, and it follows the report locale. Letter
+and custom paper are not exposed. It is Chromium-only, has no CLI filter state,
+does not print video/audio, and `--logo`/`--history` still require `--out`.
+`--pdf-timeout <ms>` overrides the five-minute render deadline. The optional
+engine is a dynamic import resolved beside Tolkira or in the project: the default
+install and runtime dependency surface, report, JSON and CI bytes are unchanged.
+The write order is report → PDF → email → history → `--ci-out` → stdout, so a PDF
+failure exits 1, keeps the report and skips later outputs. Common HTML reporters
+ship no PDF export, and Allure exports CSV; Playwright/CI teams already print
+through headless Chromium, which is the same engine route. See
+[PDF export](docs/PDF.md) for the install, API, costs and limits.
 
 ## For agents and CI
 
@@ -168,8 +176,9 @@ even when tests fail, so derive the subject from `summary.json` (`jq -r .status`
 not from the job status. See [Email summary](docs/EMAIL.md).
 
 Add `--pdf report.pdf` to the same command for a print archive. It needs the
-optional engine (`npm i -D playwright && npx playwright install chromium`) and
-composes with `--out`, `--email`, `--history`, `--json` and `--ci`; see
+optional engine in the project (`npm i -D playwright-core@^1.65.0
+playwright@^1.65.0 && npx playwright install chromium`) and composes with
+`--out`, `--email`, `--history`, `--json` and `--ci`; see
 [PDF export](docs/PDF.md). The PDF is written after the report and before the
 email, so a PDF failure keeps `report.html` and skips the later outputs.
 
@@ -512,8 +521,11 @@ for the mapping.
   network request and no sending.
 - PDF export is opt-in and Chromium-only. It needs the optional `playwright-core`
   peer and a Chromium browser (about 19 MB of packages plus a 130–280 MB
-  browser), prints A4 with no header/footer or page numbers, and has no CLI
-  filter state, landscape or PDF-only logo/Trends. The PDF is not byte-identical
+  browser) in the project where Tolkira runs, prints A4 portrait with no
+  header/footer or page numbers, and has no CLI filter state, Letter/custom
+  paper, landscape or PDF-only logo/Trends. The default Chromium launch is not
+  OS-sandboxed; the report CSP and escaped attachments are the boundary, so run
+  untrusted attachments in a container or VM. The PDF is not byte-identical
   across engine or font updates.
 - One report is one file. External attachments for very large media are a
   future option.

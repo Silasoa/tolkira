@@ -12,7 +12,7 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [JUnit XML](JUNIT-XML.md) — basic-mode mapping and limits.
 - [Playwright JSON](PLAYWRIGHT-JSON.md) — native adapter mapping, path roots and limits.
 - [Email summary](EMAIL.md) — opt-in HTML mail body, CLI/API, privacy and CI mail steps.
-- [PDF export](PDF.md) — opt-in Playwright Chromium PDF, install, CLI/API and limits.
+- [PDF export](PDF.md) - opt-in Playwright Chromium PDF, install, `--pdf-timeout`, CLI/API and limits.
 - [Agent interface](AGENT-INTERFACE.md) — JSON summary schema and CLI contract.
 - [Glossary](../GLOSSARY.md) — shared terms for the model, report and agents.
 - [CI output](CI.md) — GitHub annotations, GitLab and step-summary output.
