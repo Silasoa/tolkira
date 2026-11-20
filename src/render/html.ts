@@ -64,6 +64,8 @@ export async function renderHtml(
       : ':lang(de) .statusText{overflow-wrap:anywhere;text-align:center}' +
         ':lang(de) .legendRow{overflow-wrap:anywhere}' +
         ':lang(de) .legendRow > *{min-width:0}' +
+        ':lang(de) .triageSummary{overflow-wrap:anywhere}' +
+        ':lang(de) .triageSummary > *{min-width:0}' +
         ':lang(de) .featureTable th:first-child,:lang(de) .featureTable td:first-child{min-width:9.5rem}' +
         ':lang(de) .featureTable .matrixName{overflow-wrap:break-word}' +
         ':lang(de) .panel h2{overflow-wrap:anywhere;hyphens:auto}' +
