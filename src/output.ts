@@ -74,7 +74,7 @@ export function samePath(a: string, b: string): boolean {
 
 export async function writeAtomic(
   output: string,
-  content: string,
+  content: string | Uint8Array,
 ): Promise<void> {
   const directory = path.dirname(output);
   await mkdir(directory, { recursive: true });

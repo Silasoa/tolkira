@@ -72,6 +72,7 @@
     "docs/I18N.md",
     "docs/JUNIT-XML.md",
     "docs/LIMITATIONS.md",
+    "docs/PDF.md",
     "GLOSSARY.md"
   ],
   "scripts": {
@@ -108,7 +109,16 @@
     "@types/node": "^26.6.6",
     "esbuild": "^0.28.2",
     "oxlint": "^1.90.0",
+    "playwright": "^1.65.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "peerDependencies": {
+    "playwright-core": "^1.65.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright-core": {
+      "optional": true
+    }
   }
 }

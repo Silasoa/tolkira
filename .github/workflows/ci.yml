@@ -71,6 +71,16 @@ jobs:
       - run: node "$TOLKIRA_ROOT/tolkira/dist/cli.js" --help
       - run: node "$TOLKIRA_ROOT/tolkira/dist/cli.js" test/fixtures/legacy/minimal.json --out /tmp/report.html --title "Package smoke test"
       - run: test -s /tmp/report.html && grep -q "Minimal feature" /tmp/report.html
+      - name: Missing PDF engine exits 1
+        run: |
+          rm -f /tmp/missing.pdf /tmp/missing-pdf.log
+          if node "$TOLKIRA_ROOT/tolkira/dist/cli.js" test/fixtures/legacy/minimal.json --pdf /tmp/missing.pdf > /tmp/missing-pdf.log 2>&1; then
+            echo "expected exit 1 without playwright-core" >&2
+            exit 1
+          fi
+          grep -q "playwright" /tmp/missing-pdf.log
+          grep -q "npm i -D playwright" /tmp/missing-pdf.log
+          test ! -e /tmp/missing.pdf
 
   e2e:
     runs-on: ubuntu-latest

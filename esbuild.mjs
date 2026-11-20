@@ -9,7 +9,7 @@ const shared = {
   target: 'node22',
   format: 'esm',
   sourcemap: true,
-  external: Object.keys(pkg.dependencies ?? {}),
+  external: [...Object.keys(pkg.dependencies ?? {}), 'playwright-core'],
   logLevel: 'info',
 };
 

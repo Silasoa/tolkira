@@ -5,7 +5,8 @@
 Tolkira turns test results into a single HTML file you can open offline, attach
 to a ticket, or keep as a CI artifact. Screenshots, logs and other attachments
 are embedded where available; the report names any it had to skip. There is no
-server, no CDN and no telemetry.
+server, no CDN and no telemetry. An opt-in PDF export reuses the same print view
+when the optional Playwright Chromium engine is installed.
 
 Current release: **v0.3.0** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
@@ -63,6 +64,9 @@ tolkira test-results/ --out report.html --locale de
 
 # Write a small HTML email body beside the report (no sending)
 tolkira test-results/ --out report.html --email email.html
+
+# Print an A4 PDF through the optional Playwright Chromium engine
+tolkira test-results/ --out report.html --pdf report.pdf
 ```
 
 Tolkira accepts one or more files and directories. A directory is scanned
@@ -91,8 +95,7 @@ the screen is dark, and the tables are sized to the printable width.
 - **Failures-only Report:** press **Failed only**, then print. This is still an
   archival print, not the concise summary: the Report view keeps only the
   filtered rows and adds a visible count marker, while Details and Trends print
-  in full. The concise email summary is available with `--email`; the PDF engine
-  is #13c and not part of this release.
+  in full. The concise email summary is available with `--email`.
 - **Without JavaScript:** the active Report view prints with the chrome hidden;
   Details and Trends stay hidden and closed features stay closed. Without
   `beforeprint` support the same fallback applies.
@@ -107,10 +110,27 @@ the screen is dark, and the tables are sized to the printable width.
   screenshot archive, not a full attachment copy; screenshots, text attachments
   and the skipped-attachment notice do print.
 
-Printing needs no network, no extra tool and no PDF engine. There is no mail
-delivery and no print button: `--email` writes a separate HTML mail body, and
-the browser's print command is the PDF entry point. See
-[Email summary](docs/EMAIL.md).
+Browser printing needs no network, no extra tool and no PDF engine. There is no
+mail delivery and no print button: `--email` writes a separate HTML mail body,
+and the browser's print command is the zero-install PDF route.
+
+### PDF file with `--pdf`
+
+For CI and headless workflows, `--pdf <file>` prints the same complete archive
+without a print dialog:
+
+```shell
+npm i -D playwright && npx playwright install chromium
+tolkira test-results/ --out report.html --pdf report.pdf
+```
+
+The PDF is A4 with 12 mm margins, no browser header/footer or page numbers, and
+it follows the report locale. It is Chromium-only, has no CLI filter state, does
+not print video/audio, and `--logo`/`--history` still require `--out`. The
+optional engine is a dynamic import: the default install, report, JSON and CI
+bytes are unchanged. The write order is report → PDF → email → history →
+`--ci-out` → stdout, so a PDF failure exits 1, keeps the report and skips later
+outputs. See [PDF export](docs/PDF.md) for the install, API, costs and limits.
 
 ## For agents and CI
 
@@ -146,6 +166,12 @@ GitHub Actions step:
 it as `html_body` and attach `report.html`. Tolkira never sends mail and exits 0
 even when tests fail, so derive the subject from `summary.json` (`jq -r .status`),
 not from the job status. See [Email summary](docs/EMAIL.md).
+
+Add `--pdf report.pdf` to the same command for a print archive. It needs the
+optional engine (`npm i -D playwright && npx playwright install chromium`) and
+composes with `--out`, `--email`, `--history`, `--json` and `--ci`; see
+[PDF export](docs/PDF.md). The PDF is written after the report and before the
+email, so a PDF failure keeps `report.html` and skips the later outputs.
 
 Persist `.history/history.json` between CI runs (for example with
 `actions/cache`) so the next run continues the trend. A missing sidecar starts a
@@ -484,6 +510,11 @@ for the mapping.
   durations, the title (which may carry a branch or build name) and the report
   basename. It is written only with `--email`; there is no redaction mode, no
   network request and no sending.
+- PDF export is opt-in and Chromium-only. It needs the optional `playwright-core`
+  peer and a Chromium browser (about 19 MB of packages plus a 130–280 MB
+  browser), prints A4 with no header/footer or page numbers, and has no CLI
+  filter state, landscape or PDF-only logo/Trends. The PDF is not byte-identical
+  across engine or font updates.
 - One report is one file. External attachments for very large media are a
   future option.
 
@@ -500,6 +531,8 @@ for the dated limitations table (last verified 2026-11-20).
   output.
 - [`docs/EMAIL.md`](https://github.com/Silasoa/tolkira/blob/main/docs/EMAIL.md) — opt-in HTML email summary, CLI/API and
   CI mail-step example.
+- [`docs/PDF.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PDF.md) — opt-in PDF export, engine install, CLI/API,
+  write order and limits.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
   (last verified 2026-11-20).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested

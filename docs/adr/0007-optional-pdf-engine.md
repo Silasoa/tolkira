@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for the `add-pdf-export` change (#13c).
+Accepted and implemented in the `add-pdf-export` change (#13c), 2026-11-20.
 
 ## Context
 
@@ -66,7 +66,8 @@ is Letter-only by default and puts the local `file://` URL in its footer.
   there is no second report layout to maintain.
 - Chromium-only output; page numbers/headers, a CLI filter, a forced landscape,
   tagged PDF/accessibility and a pure-JS/hosted route are out of slice 1. The
-  browser print remains the filtered/landscape route.
+  browser print remains the filtered/landscape route. Page identity and numbers
+  are B-021/B-022, tagged PDF is B-027 and a size cap/streaming is B-028.
 - No temporary HTML: `page.setContent` keeps report data out of the file system.
   The PDF can be large; the five-minute print timeout is API-overridable and the
   print volume limits apply.
@@ -92,6 +93,7 @@ is Letter-only by default and puts the local `file://` URL in its footer.
 ## References
 
 - `docs/research/pdf-engine-options.md`
+- `docs/PDF.md`
 - `docs/adr/0005-server-rendered-shell.md`
 - `docs/adr/0006-inline-attachments.md`
 - The print section of `DESIGN.md`

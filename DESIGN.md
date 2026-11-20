@@ -220,6 +220,13 @@ stay unchanged. A standard summary stays under 100 KB.
   German Trends case, and starts each present view on a new page. Without
   JavaScript the active Report prints with its closed state; a print button,
   repeated print title and custom page numbers are deliberately absent.
+- The opt-in PDF export prints that exact print state through Playwright
+  Chromium: `page.setContent` with the report HTML, fonts and images awaited, A4
+  with the print CSS 12 mm margins, `printBackground` and `preferCSSPageSize`, no
+  header/footer. It is a fresh page, so the CLI filter does not apply; the
+  browser print stays the filtered and landscape route. The engine is an optional
+  dynamic import (`src/pdf.ts`) and never enters the report bundle. See
+  [`docs/PDF.md`](docs/PDF.md).
 - Status is never colour-only: scenario badges carry text, step markers carry a
   shape glyph plus a screen-reader label, and forced-colours mode keeps the
   glyph, marker border and disclosure chevron visible.
@@ -274,6 +281,9 @@ Direction A is implemented in production:
   view), light palette, fitted tables and page breaks, with the screen state
   restored where `afterprint` fires and a no-JavaScript fallback for the active
   Report;
+- opt-in `--pdf` export of that complete print state through optional Playwright
+  Chromium, A4/12 mm with no header/footer or page numbers, composed with the
+  report, email, history, JSON and CI outputs;
 - an opt-in 600 px HTML email summary from the same status and counts, with the
   first five failed scenarios in summary order and the report basename (or a
   no-report note), but no image or script.

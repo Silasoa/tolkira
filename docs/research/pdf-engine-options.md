@@ -30,9 +30,9 @@ the date, title, page number and the local `file://` URL, so disable it
 Playwright defaults `displayHeaderFooter` to `false`
 ([`page.pdf`](https://playwright.dev/docs/api/class-page#page-pdf)).
 
-The Playwright CLI does it: `npx playwright-core pdf --paper-format A4 <url>
-<file>` (1.65.1); document it as the fallback. Browsers are a separate download
-(`npx playwright-core install chromium`; `--with-deps` on Linux); neither
+The Playwright CLI does it as a fallback: `npx playwright pdf --paper-format A4
+<url> <file>` (1.65); document it only beside the API. Browsers are a separate
+download (`npx playwright install chromium`; `--with-deps` on Linux); neither
 package has a browser postinstall ([browsers](https://playwright.dev/docs/browsers)).
 
 ## Pure JS and external binaries
@@ -80,9 +80,10 @@ download per OS.
 
 - **Vitest:** CLI parsing, `--pdf` path conflicts, input-directory containment,
   atomic binary write, missing-engine error, `%PDF-` magic; inject a fake engine.
-- **Playwright:** one Chromium-only spec. With `pdf-lib` (dev-only), assert that
-  the PDF loads, has more than one page, uses A4, includes a closed detail's
-  content, and that a screenshot fixture grows the PDF.
+- **Playwright:** one Chromium-only spec. The in-repo PDF reader in
+  `test/e2e/helpers.ts` (inflate plus font `ToUnicode` CMaps) asserts more than
+  one page, A4, the 12 mm inset, German text and embedded screenshot XObjects;
+  no extra PDF library is needed.
 - **Determinism:** creation timestamps make byte equality wrong; assert page
   count, page size and title.
 - **Budgets:** PDF code is Node-only and dynamically imported, so the 16 KB
@@ -128,7 +129,7 @@ page.pdf({ format: 'A4', printBackground: true, displayHeaderFooter: false,
 ```
 
 `preferCSSPageSize: true` plus the print CSS `@page { margin: 12mm }` yields A4
-with the inset (verified 594.96×841.92 pt, ~34 pt); explicit margins are not
+with the inset (verified 595.92×842.88 pt, ~34 pt); explicit margins are not
 required. A fresh page has no URL state, so the PDF covers the whole run with
 all details open; the browser print remains the filtered/landscape route.
 
@@ -144,8 +145,8 @@ Then: npx playwright install chromium
 Or omit --pdf.
 ```
 
-No `TOLKIRA_BROWSER`/browserPath in slice 1; the Playwright browser is the
-tested engine.
+No browser-path/channel option in slice 1; the Playwright-managed Chromium is
+the tested engine. A browser path is a follow-up, not part of the peer contract.
 
 **Cost:** the default dependency surface is unchanged; the opt-in adds about
 14 MB (`playwright-core`) plus a 130–280 MB browser. The Chromium gate already
@@ -154,12 +155,13 @@ installs the browser; CI adds no download.
 **First slice:** `src/pdf.ts` with `setContent`, `--pdf`, path/atomic/error,
 a mocked unit test, a Chromium PDF e2e and a missing-engine CLI/package smoke.
 
-**Follow-ups:** page numbers/tagged PDF, PDF size warning/streaming, a browser
-path option, landscape, Lambda/existing HTML.
+**Follow-ups:** page numbers/tagged PDF (B-021/B-022/B-027), PDF size
+warning/streaming (B-028), a browser path option, landscape, Lambda/existing HTML.
 
 ## ADR 0007
 
-**Status:** Proposed for #13c; final acceptance after the spec approval.
+**Status:** Accepted and implemented in `add-pdf-export` (#13c); see
+[ADR 0007](../adr/0007-optional-pdf-engine.md).
 
 **Decision:** Playwright Chromium `page.pdf()` as an optional engine;
 `playwright-core` is an optional peer imported only by `renderPdf`/`--pdf`.

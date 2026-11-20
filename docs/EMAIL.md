@@ -19,6 +19,9 @@ tolkira test-results/ --email email.html
 # Email plus machine output; stdout stays JSON only
 tolkira test-results/ --out report.html --email email.html --json > summary.json
 
+# PDF first, then the email that names it; no report HTML
+tolkira test-results/ --pdf report.pdf --email email.html
+
 # German email without a report
 tolkira test-results/ --email email.html --locale de
 ```
@@ -26,8 +29,9 @@ tolkira test-results/ --email email.html --locale de
 ## CLI and API
 
 `--email` is an output like `--out`, not a mode. It composes with `--out`,
-`--json`, `--ci` and `--ci-out`, alone or together; `--ci-out` still requires
-`--ci markdown`. At least one input and a non-empty email path are required. The
+`--json`, `--ci`, `--ci-out` and `--pdf`, alone or together; `--ci-out` still
+requires `--ci markdown`. At least one input and a non-empty email path are
+required. The
 CLI confirms the file with `Email written to <path>` only when stdout is free
 (the email alone or with `--out`); with `--json` or `--ci` on stdout, the machine
 output is unchanged and no extra line is printed. With `--ci-out`, the CI text
@@ -39,18 +43,24 @@ border colour even when no report is written. A title that carries a branch or
 build name therefore carries it into the email.
 
 `--locale` applies to the email as well as the report and is accepted with
-`--email` even without `--out`. With only `--json` or `--ci`, it remains a usage
+`--email` even without `--out`; `--pdf` is the other report-like output that
+accepts `--locale`. With only `--json` or `--ci`, it remains a usage
 error, and the CLI, JSON and CI text stay English.
 
 The email path is validated like the other outputs. It must not be empty, must
-not collide with an input, the logo, `--out`, `--ci-out` or `--history`
+not collide with an input, the logo, `--out`, `--ci-out`, `--history` or `--pdf`
 (resolved and case-aware on Windows and macOS), and must not be written inside an
 input directory, even when the target does not exist yet or is reached through a
-junction or symlink. It is written atomically after the report. The order is
-report, email, history, `--ci-out`, stdout. On an email write failure the CLI
+junction or symlink. It is written atomically after the report and the PDF. The
+order is
+report, PDF, email, history, `--ci-out`, stdout. On an email write failure the CLI
 exits 1, names the email path, keeps an already written report, skips the history
 and `--ci-out`, prints no JSON/CI stdout and leaves no temporary file behind. The
 `Email written to` confirmation strips control characters from the path.
+
+With `--pdf` the email note names the full artifact that exists: the `--out`
+report when one is written, otherwise the PDF. The PDF is always written before
+the email, so a PDF failure skips the email instead of naming a missing file.
 
 Library use returns exactly the same HTML for the same summary, options and
 clock:

@@ -1,11 +1,13 @@
 # Tolkira for agents
 
-Tolkira produces four things from the same input:
+Tolkira produces five things from the same input:
 
 - a self-contained HTML report for humans;
 - a stable JSON summary for programs and AI agents;
 - deterministic CI text: GitHub Actions annotations or a Markdown summary;
-- an opt-in HTML email summary for a status mail or chat message.
+- an opt-in HTML email summary for a status mail or chat message;
+- an opt-in PDF print archive when the optional Playwright Chromium engine is
+  installed.
 
 The HTML report is the artifact. The JSON summary is the interface. The CI text
 is a presentation of that same summary. Do not parse the HTML to decide whether
@@ -103,15 +105,16 @@ tolkira test-results/ --email email.html --locale de
   count.
 - `--title` sets the heading and suggested subject; `--accent` sets the top
   border even without `--out`. With `--out`, the report note names only the
-  report basename and says to attach or share it separately. Without `--out`, it
-  tells the recipient that no full report is attached, so the mail never points
-  at a file that does not exist.
+  report basename and says to attach or share it separately. Without `--out`
+  but with `--pdf`, it names the PDF basename because the PDF is the full
+  artifact and is written first. With neither, it says that no full report is
+  attached, so the mail never points at a file that does not exist.
 - The email path is validated like an output: no collision with an input, the
-  logo, `--out`, `--ci-out` or `--history`, and no path inside an input
+  logo, `--out`, `--ci-out`, `--history` or `--pdf`, and no path inside an input
   directory (including through a junction or symlink); an empty path exits 2 and
-  writes nothing. The write order is report, email, history, `--ci-out`, stdout.
-  A write failure exits 1, names the email path, keeps the report and skips later
-  outputs.
+  writes nothing. The write order is report, PDF, email, history, `--ci-out`,
+  stdout. A write failure exits 1, names the email path, keeps the report and
+  skips later outputs.
 - `Email written to <path>` is printed only when stdout is free. With `--json`
   or `--ci` on stdout, the machine bytes are unchanged and no email line is
   added; with `--ci-out` and no `--json`, the line is printed.
@@ -120,10 +123,47 @@ tolkira test-results/ --email email.html --locale de
   branch or build name) and the report basename are included and not redacted.
   See [`EMAIL.md`](EMAIL.md).
 
+## PDF export
+
+`--pdf <file>` prints the complete report archive through the optional
+Playwright Chromium engine. It is another output, not a mode, and composes with
+`--out`, `--email`, `--json`, `--ci`/`--ci-out` and `--history`:
+
+```shell
+npm i -D playwright && npx playwright install chromium
+tolkira test-results/ --out report.html --pdf report.pdf
+tolkira test-results/ --pdf report.pdf --json > summary.json
+tolkira test-results/ --pdf report.pdf --locale de
+```
+
+- The PDF is A4 with 12 mm print CSS margins, the light print palette and no
+  browser header, footer, URL or page number. Chromium only in this slice.
+- It is the complete archive (all views and details, screenshots, fitted tables)
+  from a fresh page: the CLI search/filter does not apply. Video/audio do not
+  print; use browser print for a filtered or landscape view.
+- `--locale` is accepted with `--pdf` even without `--out` or `--email`; the PDF
+  follows the report locale while CLI/JSON/CI stay English. `--accent` applies.
+- Without `--out`, no report HTML is written. `--logo` and `--history` still
+  require `--out` and exit 2.
+- Write order: **report → PDF → email → history → `--ci-out` → stdout**. A PDF
+  render or write failure exits 1, names the PDF path, keeps the report and skips
+  the email/history/`--ci-out`/stdout; no partial PDF remains. A missing engine
+  exits 1 with the install command.
+- `PDF written to <path>` is printed only when stdout is free, like the report and
+  email lines. JSON/CI stdout stays byte-identical.
+- The PDF path is validated like an output: no collision with an input, the logo,
+  `--out`, `--ci-out`, `--history` or `--email`, and no path inside an input
+  directory; a collision exits 2.
+- The email with `--out` names the report; without `--out` it names the PDF
+  because the PDF is written first.
+- The engine is optional and dynamically imported; the default install, report,
+  JSON, email and CI bytes are unchanged. See [`PDF.md`](PDF.md).
+
 ## Report locale
 
-`--locale <tag>` localizes the HTML report and the optional email summary. It
-requires `--out` or `--email`, defaults to `en`, and accepts `en` or `de`;
+`--locale <tag>` localizes the HTML report, the optional email summary and the
+PDF. It requires `--out`, `--pdf` or `--email`, defaults to `en`, and accepts
+`en` or `de`;
 `de-AT` keeps the regional tag for `<html lang>` and uses the German catalog. An
 empty or unknown tag exits 2 with the supported list before anything is written;
 the API throws instead. The JSON summary, CI text, exit codes, summary keys and
@@ -138,6 +178,7 @@ import {
   generateReport,
   readHistory,
   renderEmail,
+  renderPdf,
   renderReport,
   summarizeReport,
 } from 'tolkira';
@@ -162,6 +203,7 @@ const email = renderEmail(summary, {
   accent: '#1b5e20',
   now: new Date('2026-11-20T09:30:00.000Z'),
 });
+const pdf = await renderPdf(html, { timeoutMs: 300_000 });
 ```
 
 `renderEmail(summary, options)` is synchronous and returns the same HTML the CLI
@@ -172,6 +214,12 @@ status falls back to the `Unknown` label and colour, and an invalid `now` omits
 the generated date. The title, test names and report name are escaped; the report
 note keeps only the basename. The CLI strips control characters from its
 `Email written to` confirmation.
+
+`renderPdf(html, options)` returns the PDF bytes for already rendered report
+HTML. `PdfOptions` has only the optional `timeoutMs` (default five minutes). It
+writes no file, starts no server and uses the same optional Chromium engine as
+the CLI; a missing engine throws an install error. The CLI and API produce
+equivalent PDFs for the same HTML and engine.
 
 `skippedAttachments` is the number of Playwright path attachments skipped
 because they resolve outside every allowed root. It is a plain number, additive
@@ -193,8 +241,9 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | history | `--history <file>` reads and appends a sidecar; needs `--out` | `history` array; `generateReport` appends the current run, `renderReport` and the stream render it as given |
-| locale | `--locale <tag>` (`en` or `de`; needs `--out` or `--email`) | `locale` string; default `en` |
+| locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
+| pdf | `--pdf <file>` prints the report with optional Playwright Chromium | `renderPdf(html, { timeoutMs })` |
 | size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
 | CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
@@ -546,6 +595,10 @@ outside `features/`).
 - The email summary is opt-in and file-only. It has no sending, recipients,
   scheduling, `.eml` draft, logo, error snippets or redaction mode; the report
   basename (or the no-report note) is the only path-like content.
+- PDF export is opt-in, Chromium-only and file-only. It has no page numbers,
+  custom header/footer, tagged PDF, CLI filter, forced landscape, PDF-only logo
+  or PDF-only Trends; it needs a separate engine and browser install. See
+  [`PDF.md`](PDF.md).
 - Playwright path attachments are embedded only when the resolved regular file
   is inside the input file's directory or the process working directory.
   Symlinked, missing, non-regular and outside-tree paths are skipped; inline

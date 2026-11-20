@@ -125,7 +125,19 @@ it. The gap is the combination.
   prints with closed details unchanged. The failed-only filter plus print is the
   failures-only archival print. Browser headers/footers and page numbers stay
   user-controlled; video/audio do not print and unusually wide matrices may need
-  landscape. No PDF engine, print button or custom page numbers.
+  landscape. No print button or custom page numbers.
+
+### PDF export (in main)
+
+- Opt-in `--pdf <file>` prints the same complete archive through optional
+  Playwright Chromium: A4, 12 mm print CSS margins, light palette, fitted tables,
+  no header/footer/URL/page numbers, Chromium-only. It composes with the report,
+  email, history, JSON and CI outputs and follows the report locale; a fresh page
+  means no CLI filter state. The write order is report → PDF → email → history →
+  `--ci-out` → stdout. A missing engine exits 1 with the install command. The
+  PDF-only route has no logo or Trends (`--logo`/`--history` require `--out`).
+  The default install and one-file HTML default are unchanged. See
+  [`PDF.md`](PDF.md).
 
 ### Email summary (in main)
 
@@ -140,7 +152,8 @@ it. The gap is the combination.
 ### v0.3 and later
 
 - External attachments / split-assets mode for large media (ADR 0006).
-- A PDF engine (#13c); the print slice covers the browser route meanwhile.
+- PDF page numbers, tagged PDF/accessibility, custom headers and landscape
+  (B-021/B-022); the Chromium engine and the A4 archive ship in main.
 - An `.eml` draft with a real subject (B-023), a capped logo (B-024), optional
   metadata or error snippets (B-025) and a configurable failed-scenario cap
   (B-026).

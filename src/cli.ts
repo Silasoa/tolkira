@@ -8,6 +8,7 @@ import { renderEmail, type EmailOptions } from './email.js';
 import { readHistory, writeHistory, type HistoryRun } from './history.js';
 import { generateReport, summarizeReport, version } from './index.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
+import { renderPdf } from './pdf.js';
 import { resolveLocale } from './render/i18n.js';
 import type { ReportSummary } from './summary.js';
 import { ACCENT_PATTERN } from './validation.js';
@@ -24,19 +25,20 @@ const LOGO_MIME: Record<string, string> = {
   '.webp': 'image/webp',
 };
 
-const USAGE = `Usage: tolkira <input...> [--out <file>] [--email <file>] [options]
+const USAGE = `Usage: tolkira <input...> [--out <file>] [--pdf <file>] [--email <file>] [options]
 
 Generate one self-contained HTML report from Cucumber JSON, Messages, JUnit XML or Playwright JSON.
 
 Options:
   -o, --out <file>     Output HTML file
+      --pdf <file>     Write an A4 PDF through the optional Playwright engine
       --email <file>   Write an HTML email summary
       --json           Print a stable JSON summary to stdout
       --ci <format>    Print a CI summary: github or markdown
       --ci-out <file>  Write the markdown CI summary to a file
       --history <file> Read and append an aggregate run history; needs --out
       --title <text>   Report title, email subject/heading and Markdown CI heading
-      --locale <tag>   Report and email language: en or de (default en); needs --out or --email
+      --locale <tag>   Report, PDF and email language: en or de (default en); needs --out, --pdf or --email
       --meta key=value Add metadata (repeatable)
       --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo; needs --out
       --accent <color> Header accent as a hex colour, e.g. #1b5e20
@@ -44,10 +46,10 @@ Options:
   -h, --help           Show this help
   -v, --version        Show the version
 
-Without --out, --json, --ci or --email is required. --ci-out requires --ci markdown.
---history requires --out. Without --ci-out, --ci writes only the CI summary to
-stdout. --json and --ci share stdout only with --ci-out. Failing tests do not
-change the exit code.`;
+Without --out, --json, --ci or --email is required; --pdf alone is also an output. --ci-out requires
+--ci markdown. --history requires --out. Without --ci-out, --ci writes only the
+CI summary to stdout. --json and --ci share stdout only with --ci-out. Failing
+tests do not change the exit code.`;
 
 export interface CliIO {
   stdout: (text: string) => void;
@@ -60,6 +62,7 @@ function parseCliArgs(argv: string[]) {
     allowPositionals: true,
     options: {
       out: { type: 'string', short: 'o' },
+      pdf: { type: 'string' },
       email: { type: 'string' },
       title: { type: 'string' },
       locale: { type: 'string' },
@@ -178,6 +181,24 @@ async function writeEmailSummary(
   }
 }
 
+async function writePdf(file: string, html: string): Promise<void> {
+  let bytes: Uint8Array;
+  try {
+    bytes = await renderPdf(html);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Cannot render PDF for ${oneLine(file)}: ${detail}`);
+  }
+  try {
+    await writeAtomic(file, bytes);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    throw new Error(
+      `Cannot write PDF to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+    );
+  }
+}
+
 async function readLogo(file: string): Promise<string> {
   const extension = path.extname(file).toLowerCase();
   const mime = LOGO_MIME[extension];
@@ -250,6 +271,7 @@ export async function runCli(
 
   const inputs = parsed.positionals;
   const output = parsed.values.out;
+  const pdfPath = parsed.values.pdf;
   const emailPath = parsed.values.email;
   const wantsJson = parsed.values.json;
   const ciOut = parsed.values['ci-out'];
@@ -257,6 +279,11 @@ export async function runCli(
 
   if (parsed.values.out === '') {
     io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (pdfPath === '') {
+    io.stderr(`tolkira: --pdf requires a file path\n\n${USAGE}`);
     return 2;
   }
 
@@ -276,8 +303,13 @@ export async function runCli(
     }
   }
 
-  if (locale !== undefined && !output && emailPath === undefined) {
-    io.stderr(`tolkira: --locale requires --out or --email\n\n${USAGE}`);
+  if (
+    locale !== undefined &&
+    !output &&
+    emailPath === undefined &&
+    pdfPath === undefined
+  ) {
+    io.stderr(`tolkira: --locale requires --out, --pdf or --email\n\n${USAGE}`);
     return 2;
   }
 
@@ -322,7 +354,11 @@ export async function runCli(
 
   if (
     inputs.length === 0 ||
-    (!output && !wantsJson && ci === undefined && emailPath === undefined)
+    (!output &&
+      !wantsJson &&
+      ci === undefined &&
+      emailPath === undefined &&
+      pdfPath === undefined)
   ) {
     io.stderr(USAGE);
     return 2;
@@ -410,6 +446,39 @@ export async function runCli(
     }
   }
 
+  if (pdfPath !== undefined) {
+    if (output && samePath(pdfPath, output)) {
+      io.stderr(`tolkira: --pdf must not overwrite --out\n\n${USAGE}`);
+      return 2;
+    }
+    if (ciOut !== undefined && samePath(pdfPath, ciOut)) {
+      io.stderr(`tolkira: --pdf must not overwrite --ci-out\n\n${USAGE}`);
+      return 2;
+    }
+    if (historyFile !== undefined && samePath(pdfPath, historyFile)) {
+      io.stderr(`tolkira: --pdf must not overwrite --history\n\n${USAGE}`);
+      return 2;
+    }
+    if (emailPath !== undefined && samePath(pdfPath, emailPath)) {
+      io.stderr(`tolkira: --pdf must not overwrite --email\n\n${USAGE}`);
+      return 2;
+    }
+    if (
+      parsed.values.logo !== undefined &&
+      samePath(pdfPath, parsed.values.logo)
+    ) {
+      io.stderr(`tolkira: --pdf must not overwrite the logo\n\n${USAGE}`);
+      return 2;
+    }
+    if (await conflictsWithInputs(pdfPath, inputs)) {
+      io.stderr(
+        `tolkira: --pdf must not overwrite an input file or directory` +
+          `\n\n${USAGE}`,
+      );
+      return 2;
+    }
+  }
+
   let metadata: Record<string, string>;
   let maxSizeMb: number;
   let accent: string | undefined;
@@ -431,7 +500,7 @@ export async function runCli(
       history = await readHistory(historyFile);
     }
 
-    if (!output) {
+    if (!output && pdfPath === undefined) {
       const summary = await summarizeReport(inputs);
       if (emailPath !== undefined) {
         await writeEmailSummary(emailPath, summary, {
@@ -468,12 +537,17 @@ export async function runCli(
     });
     const { html, summary, skippedAttachments } = generated;
 
-    await writeAtomic(output, html);
+    if (output) {
+      await writeAtomic(output, html);
+    }
+    if (pdfPath !== undefined) {
+      await writePdf(pdfPath, html);
+    }
     if (emailPath !== undefined) {
       await writeEmailSummary(emailPath, summary, {
         title: parsed.values.title,
         locale,
-        reportName: path.basename(output),
+        reportName: path.basename(output ?? pdfPath ?? ''),
         accent,
         now: new Date(),
       });
@@ -481,14 +555,16 @@ export async function runCli(
     if (historyFile !== undefined && generated.history) {
       await writeHistory(historyFile, generated.history);
     }
-    const bytes = Buffer.byteLength(html, 'utf8');
-    const maxBytes = maxSizeMb * 1024 * 1024;
-    if (bytes > maxBytes) {
-      io.stderr(
-        `tolkira: warning: report is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
-          `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
-          `inflate the single-file report.\n`,
-      );
+    if (output) {
+      const bytes = Buffer.byteLength(html, 'utf8');
+      const maxBytes = maxSizeMb * 1024 * 1024;
+      if (bytes > maxBytes) {
+        io.stderr(
+          `tolkira: warning: report is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
+            `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
+            `inflate the single-file report.\n`,
+        );
+      }
     }
     if (skippedAttachments > 0) {
       io.stderr(
@@ -510,7 +586,12 @@ export async function runCli(
     } else if (ciText !== undefined && ciOut === undefined) {
       io.stdout(ciText);
     } else {
-      io.stdout(`Report written to ${output}\n`);
+      if (output) {
+        io.stdout(`Report written to ${output}\n`);
+      }
+      if (pdfPath !== undefined) {
+        io.stdout(`PDF written to ${oneLine(pdfPath)}\n`);
+      }
       if (emailPath !== undefined) {
         io.stdout(`Email written to ${oneLine(emailPath)}\n`);
       }

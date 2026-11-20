@@ -91,20 +91,16 @@ describe('renderPdf', () => {
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: false,
-      timeout: 300_000,
     });
   });
 
-  it('uses the five-minute print timeout by default and shares it', async () => {
+  it('uses the five-minute timeout to load the page by default', async () => {
     const renderPdf = await loadRenderPdf();
 
     await renderPdf(HTML);
 
     expect(engine.page.setContent).toHaveBeenCalledWith(
       HTML,
-      expect.objectContaining({ timeout: 300_000 }),
-    );
-    expect(engine.page.pdf).toHaveBeenCalledWith(
       expect.objectContaining({ timeout: 300_000 }),
     );
   });
@@ -118,9 +114,16 @@ describe('renderPdf', () => {
       HTML,
       expect.objectContaining({ timeout: 120_000 }),
     );
-    expect(engine.page.pdf).toHaveBeenCalledWith(
-      expect.objectContaining({ timeout: 120_000 }),
+  });
+
+  it('aborts a print that exceeds the timeout and closes the browser', async () => {
+    const renderPdf = await loadRenderPdf();
+    engine.page.pdf.mockImplementation(() => new Promise(() => {}));
+
+    await expect(renderPdf(HTML, { timeoutMs: 25 })).rejects.toThrow(
+      /timed out/i,
     );
+    expect(engine.browser.close).toHaveBeenCalledTimes(1);
   });
 
   it('awaits fonts and images before printing and leaves beforeprint to page.pdf', async () => {

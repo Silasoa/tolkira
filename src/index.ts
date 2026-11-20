@@ -33,6 +33,8 @@ export {
 export type { RenderReportOptions } from './options.js';
 export type { EmailOptions } from './email.js';
 export { renderEmail } from './email.js';
+export type { PdfOptions } from './pdf.js';
+export { renderPdf } from './pdf.js';
 export { CucumberHtmlStream } from './stream.js';
 
 export interface GeneratedReport {

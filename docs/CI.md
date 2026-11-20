@@ -15,6 +15,10 @@ tolkira test-results/ --ci markdown
 # Markdown in a standalone file, with or without HTML
 tolkira test-results/ --ci markdown --ci-out tolkira-summary.md
 tolkira test-results/ --out report.html --ci markdown --ci-out tolkira-summary.md
+
+# Report, PDF and CI file in one run; confirmations go to stdout
+tolkira test-results/ --out report.html --pdf report.pdf \
+  --ci markdown --ci-out tolkira-summary.md
 ```
 
 | Option | Meaning |
@@ -129,16 +133,20 @@ file:
 | yes | yes | yes | any | JSON summary only |
 | yes | yes | no | any | usage error |
 
-The human confirmation lines (`Report written to ...`, `Email written to ...`)
-are suppressed whenever CI text goes to stdout, so annotations and Markdown are
-never mixed with other output. `--email` writes its file whenever the command is
-accepted and changes neither the CI text nor the JSON bytes. Its own confirmation
-appears only when stdout is free.
+The human confirmation lines (`Report written to ...`,
+`PDF written to ...`, `Email written to ...`) are suppressed whenever CI text
+goes to stdout, so annotations and Markdown are never mixed with other output.
+`--email` and `--pdf` write their files whenever the command is accepted and
+change neither the CI text nor the JSON bytes. Their own confirmations appear
+only when stdout is free. The PDF is written after the report and before the
+email, history and CI file, so a PDF failure keeps the report and skips the
+later outputs; `PDF written to` appears between the report and email lines.
 
 Report warnings, such as skipped path attachments, go to stderr when HTML is
 written. They never enter stdout, the JSON summary or the CI text.
 
-`--ci-out` must not overwrite an input file, the logo, the `--out` file or the
+`--ci-out` must not overwrite an input file, the logo, the `--out` file, the
+`--pdf` file or the
 `--email` file. The check resolves each path through its nearest existing
 ancestor, so a symlinked or junctioned directory cannot hide a target that does
 not exist yet, and it treats paths as the same file regardless of case on Windows

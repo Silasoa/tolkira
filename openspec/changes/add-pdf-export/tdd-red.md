@@ -97,7 +97,9 @@ Observed: `5 failed | 1 passed` of 6.
 - `page.setContent(html, { waitUntil: 'load', timeout })`; no `page.goto`, so
   no temporary report file or URL state.
 - `page.pdf` exactly `format: 'A4'`, `printBackground: true`,
-  `preferCSSPageSize: true`, `displayHeaderFooter: false`, `timeout: 300000`.
+  `preferCSSPageSize: true`, `displayHeaderFooter: false`. Playwright's
+  `page.pdf` has no timeout option; the five-minute deadline wraps the print
+  promise and closes the browser on expiry.
 - Default five-minute timeout, shared with `setContent`; `renderPdf(html,
   { timeoutMs: 120000 })` overrides both.
 - Fonts/images await `document.fonts.ready` and image `decode()`; no manual
@@ -148,7 +150,23 @@ Observed: `5 failed | 1 passed` of 6.
 - Extractable German text: `Fehlgeschlagen`, `Szenarien mit Ergebnissen`,
   `Laufdetails`, `Überweisung ohne Deckung` (whitespace-insensitive), plus
   `Aufgezeichnete Läufe` on the `--out`/history route.
-- No header/footer/URL/temp path (`about:blank`, `file://`, the temp dir).
+- No header/footer/URL/temp path (`about:blank`, the temp dir, Chrome's
+  `Page N of M` chrome). The fixture's `links.txt` contains `file:///etc/passwd`
+  as user data; the complete archive prints it, so the original bare `file://`
+  assertion was corrected to the precise chrome markers during implementation.
+
+Amendment (2026-11-20, coordinator): the Red assertion `not.toContain('file://')`
+rejected correct output because the attachment fixture intentionally contains a
+`file://` URL as user data. It is replaced by `about:blank`, the report dir and
+the page-number chrome, which still fail on a browser footer/header. No other
+Red assertion was changed.
+
+Amendment 2 (2026-11-20, coordinator): Playwright's `page.pdf` accepts no
+`timeout` option and silently drops unknown fields, so the Red assertion that
+pinned `timeout` inside the print options was corrected. The five-minute
+default/API override is now enforced by a real deadline around the print
+promise, with an added hang test; the load timeout still applies to
+`page.setContent`.
 - `--out` route leaves `report.html` + `run.pdf`; PDF-only leaves only
   `run.pdf`.
 

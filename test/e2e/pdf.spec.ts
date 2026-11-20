@@ -42,10 +42,15 @@ function expectA4Pdf(file: PdfFile, bytes: Uint8Array) {
   expect(text).toContain('SzenarienmitErgebnissen');
   expect(text).toContain('Laufdetails');
   expect(text).toContain('ÜberweisungohneDeckung');
-  // No browser header/footer, URL, page number or temporary path.
+  // No browser header/footer, URL, page number or temporary path. `about:blank`
+  // is the page URL Chrome would print, `file.dir` any file URL from the report
+  // directory. The fixture's own links.txt carries `file:///etc/passwd` as user
+  // data; the complete archive must print it, so a bare `file://` check would
+  // reject correct output.
   expect(text).not.toContain('about:blank');
-  expect(text).not.toContain('file://');
   expect(text).not.toContain(file.dir);
+  // Chrome's default footer renders the page as `N/M`.
+  expect(text).not.toMatch(/Page\d+of\d+/i);
 
   return info;
 }

@@ -145,13 +145,15 @@ does not write that file.
   100 MB total attachments.
 - The shim is experimental. The option set is frozen; new features are added to
   the core CLI/API, not to the shim.
-- Printing is the browser's print/Save as PDF, not a reporter option or a PDF
-  API: with JavaScript the complete report prints by default (an active filter
-  still narrows the Report view), without it the active Report only. Video/audio
-  do not print, very wide matrices may need landscape, browser headers/footers
-  and page numbers stay user-controlled, and there is no PDF engine in this
-  compatibility surface. The shim itself has no email option; the core CLI/API
-  adds the opt-in `--email` summary.
+- Printing is the browser's print/Save as PDF, not a shim option: with
+  JavaScript the complete report prints by default (an active filter still
+  narrows the Report view), without it the active Report only. Video/audio do not
+  print, very wide matrices may need landscape, and browser headers/footers and
+  page numbers stay user-controlled. The core CLI/API also adds the opt-in
+  `--pdf <file>`/`renderPdf` Playwright Chromium export; it is not exposed as a
+  cucumber-html-reporter option. The shim itself has no email option either; the
+  core CLI/API adds the opt-in `--email` summary. See [`PDF.md`](PDF.md) and
+  [`EMAIL.md`](EMAIL.md).
 
 ## `multiple-cucumber-html-reporter`
 

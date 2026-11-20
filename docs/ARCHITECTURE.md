@@ -200,6 +200,24 @@ and is covered by real producer fixtures.
   ignored. Exported as `renderEmail` with `EmailOptions`; the CLI and API produce
   identical HTML for the same summary, options and clock.
 
+### `src/pdf`
+
+- Opt-in PDF export: `renderPdf(html, { timeoutMs? })` returns the PDF bytes for
+  already rendered report HTML; it writes no file and starts no server.
+- `playwright-core` is imported dynamically inside the call, launched headless,
+  and marked external in esbuild. It is an optional peer: the default install,
+  bundle and tarball stay unchanged, and a missing package or Chromium browser
+  becomes one install error.
+- The page receives the HTML with `page.setContent` (no temporary report or
+  `file://` page), then awaits `document.fonts.ready` and best-effort
+  `img.decode()`. The native `page.pdf` lifecycle fires `beforeprint`, so the
+  print script opens every detail without a manual dispatch. Print options are
+  A4, `printBackground`, `preferCSSPageSize`, `displayHeaderFooter: false` and a
+  five-minute default timeout shared with `setContent`. The browser is closed in
+  `finally`.
+- A fresh page has no CLI filter state; the browser print remains the filtered
+  and landscape route. Chromium-only in this slice. See `docs/PDF.md`.
+
 ### `src/history`
 
 - Owns the opt-in aggregate history sidecar: schema version 1, at most 30 runs
@@ -238,16 +256,24 @@ and is covered by real producer fixtures.
   failure exits 1 and names the file; a written HTML stays in place.
 - `--email` is an output: alone, with `--out`, `--json`, `--ci` or `--ci-out`
   (`--ci-out` still requires `--ci markdown`). It is validated like an output
-  path and must not collide with an input, the logo, `--out`, `--ci-out` or
-  `--history`, and must not be written inside an input directory. `--title` sets
-  the heading/suggested subject and `--accent` the top border, even standalone.
-  The order is report, email, history, `--ci-out`, stdout. An email write failure
-  exits 1, names the email path, keeps the report and skips later outputs; no
-  temporary file remains.
-- `--locale <tag>` requires `--out` or `--email`, defaults to `en` and validates
-  exact then primary-subtag matches (`de-AT` -> `de`) before generation. Unknown
-  or empty tags exit 2 with `en, de`. The requested canonical tag reaches
-  `<html lang>`; the JSON summary and CI text stay English.
+  path and must not collide with an input, the logo, `--out`, `--ci-out`,
+  `--history` or `--pdf`, and must not be written inside an input directory.
+  `--title` sets the heading/suggested subject and `--accent` the top border,
+  even standalone. The order is report, PDF, email, history, `--ci-out`, stdout.
+  An email write failure exits 1, names the email path, keeps the report and
+  skips later outputs; no temporary file remains.
+- `--pdf <file>` is an output and can be the only one; the report HTML is then
+  generated in memory. It composes with `--out`, `--email`, `--json`, `--ci` and
+  `--history`. It is written atomically after the report and before the email;
+  the path is validated against inputs, the logo, `--out`, `--ci-out`,
+  `--history`, `--email` and input directories. A render or write failure exits
+  1, names the PDF path, keeps the report and skips later outputs; no partial PDF
+  remains. A missing optional engine exits 1 with install guidance. `--logo` and
+  `--history` still require `--out`; the PDF-only route has no logo or Trends.
+- `--locale <tag>` requires `--out`, `--pdf` or `--email`, defaults to `en` and
+  validates exact then primary-subtag matches (`de-AT` -> `de`) before
+  generation. Unknown or empty tags exit 2 with `en, de`. The requested canonical
+  tag reaches `<html lang>`; the JSON summary and CI text stay English.
 - Warns when the report exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
@@ -261,6 +287,7 @@ generateReport(inputs, options): Promise<{
   html, summary, skippedAttachments, history?
 }>
 renderEmail(summary, options): string
+renderPdf(html, options?): Promise<Uint8Array>
 summarizeReport(inputs): Promise<ReportSummary>
 ```
 
@@ -269,8 +296,10 @@ the appended list; `renderReport` renders `options.history` without recording a
 run. `RenderReportOptions.locale` is optional and reaches the renderer through
 `renderOptions`; `de-AT` keeps its tag and uses the `de` catalog. `renderEmail`
 is the synchronous email renderer; it takes a `ReportSummary` and validated
-options, writes nothing and shares the translator. The CLI is a thin wrapper
-around the API.
+options, writes nothing and shares the translator. `renderPdf` takes rendered
+report HTML, returns PDF bytes and launches the optional engine only when
+called; it accepts `PdfOptions` (`timeoutMs`) and writes no file. The CLI is a
+thin wrapper around the API.
 
 ## Security
 
@@ -351,7 +380,12 @@ Test names, metadata, file names and attachments are untrusted input.
   two-run browser flow at 320, 1440 and 200 % text zoom. `test/email.test.ts`,
   `test/cli-email.test.ts`, `test/email-catalog.test.ts` and
   `test/e2e/email.spec.ts` pin the email template, metrics, escaping, locale,
-  size, CLI composition and 600/320 px rendering.
+  size, CLI composition and 600/320 px rendering. `test/pdf.test.ts` mocks
+  `playwright-core` and pins the print options, timeout, fonts/images, browser
+  close and install errors without launching a browser; `test/cli-pdf.test.ts`
+  pins `--pdf` order, paths, atomic binary write and failure; the Chromium-only
+  `test/e2e/pdf.spec.ts` asserts the real `%PDF`, page count, A4 MediaBox, 12 mm
+  inset, German text and embedded screenshots.
 - Fixtures: cucumber-js legacy JSON, Behave 1.3.3 real runs (statuses, doc
   strings, tables and inline images), cucumber-jvm and cucumber-ruby real runs,
   and a hand-built Messages stream with passing/failing scenarios and
