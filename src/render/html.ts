@@ -62,14 +62,16 @@ export async function renderHtml(
     (t.lang.split('-')[0] ?? '').toLowerCase() === 'en'
       ? ''
       : ':lang(de) .statusText{overflow-wrap:anywhere;text-align:center}' +
-        ':lang(de) .feature > summary .statusText{white-space:nowrap}' +
+        ':lang(de) .legendRow{overflow-wrap:anywhere}' +
+        ':lang(de) .legendRow > *{min-width:0}' +
         ':lang(de) .featureTable th:first-child,:lang(de) .featureTable td:first-child{min-width:9.5rem}' +
         ':lang(de) .featureTable .matrixName{overflow-wrap:break-word}' +
         ':lang(de) .panel h2{overflow-wrap:anywhere;hyphens:auto}' +
-        ':lang(de) .metaList{grid-template-columns:minmax(0,40%) minmax(0,60%)}' +
+        ':lang(de) .trendsPanel{overflow-wrap:anywhere}' +
+        ':lang(de) .metaList{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}' +
         ':lang(de) .metaList dt{min-width:0;overflow-wrap:anywhere}' +
-        '@media (max-width:900px){:lang(de) .feature > summary{grid-template-columns:minmax(6.25rem,max-content) minmax(0,1fr) 1.25rem}}' +
-        '@media (max-width:560px){.expand{flex-wrap:wrap}}';
+        '@container (min-width:260px){:lang(de) .feature > summary{grid-template-columns:minmax(6.25rem,max-content) minmax(0,1fr) 1.25rem}:lang(de) .feature > summary .statusText{white-space:nowrap}}' +
+        '@media (max-width:560px){.expand{flex-wrap:wrap}html:lang(de){scroll-padding-top:8em}}';
   const clientScript = `<script>${CLIENT_SCRIPT.replace(/<\/script/gi, '<\\/script')}</script>`;
   const skipped = options.skippedAttachments ?? 0;
   const notice =
