@@ -452,7 +452,7 @@ the import style changing is not the whole story:
 | Return value | Sync `true` on success without a callback, `undefined` with one; `undefined` for a bad report | Always a `Promise<CompatResult>` with `output`, `warnings` and `summary`; await every call |
 | Errors | The callback receives a string; without a callback a failure can be silent | The promise rejects with an `Error`, and the callback receives the same `Error` |
 | Callback | `callback()` on success, `callback(string)` on failure | `callback(error?)`; the promise still rejects |
-| `jsonDir` | Recursively merges features by `uri`, dedupes them and writes an `output + '.json'` sidecar | Scans recursively but passes the files as separate inputs; writes no sidecar and does not dedupe |
+| `jsonDir` | Recursively merges features by `uri`, dedupes them and writes an `output + '.json'` sidecar | Scans recursively; the `jsonDir`-only run writes the merged sidecar (merge by `uri`, previous sidecar excluded on the next run); the report inputs remain separate files |
 | Output timing | The HTML is written synchronously before `generate` returns | The HTML is complete only when the promise resolves |
 | Export | `require('cucumber-html-reporter').generate` | Named `generate`; no default export |
 

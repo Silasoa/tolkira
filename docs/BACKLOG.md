@@ -53,7 +53,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-029 | Report | P3 | Chromium OS sandbox for PDF renders | A CI runner or container supports the Chromium OS sandbox and the PDF path processes untrusted attachments; until then the accepted `--no-sandbox` risk is documented in PDF.md. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
-| B-032 | Compatibility | P2 | `jsonDir` group mode does not write `output + '.json'` | Seed-Test group mode or another old-reporter consumer reads the sidecar that `cucumber-html-reporter` writes; confirmed on 2026-11-21: the old reporter writes a 4,567 B merged array with `retried:0`, Tolkira writes nothing. Build it in the compat shim or make the host write it. | — |
 | B-034 | Input | P3 | Legacy JSON hook output is dropped | Cucumber-JVM carries `before/after[].output`; the report shows hook names/counts but not that output. A user needs hook diagnostics or a producer fixture with non-empty output; map it to hook output or document the limit. | — |
 | B-035 | Input | P3 | Playwright JSON scenario source has no line | The native Playwright report shows `movie-list.spec.ts:3`; Tolkira shows only the rule/spec path. A user needs line-level source links or the JSON location is otherwise missing from the report. | — |
 | B-036 | Input | P3 | JUnit nested test classes are folded into the outer feature | Surefire puts `Outer$Nested` cases in one `<testsuite>` and lists 15 class rows; Tolkira shows 12 features while keeping all 59 cases. A user needs the nested class distinction or a real report shows it. | — |
@@ -116,6 +115,18 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-032 Compatibility merged JSON sidecar** — implemented on 2026-11-21 in the
+  `compat-merged-json` change: a `jsonDir` run without `jsonFile` writes the
+  legacy merged array to `<output>.json` after the HTML. Features merge by
+  `uri` (fallback `Feature: URI Not Present`), duplicate features concatenate
+  their `elements`, every element gets `retried: 0` and the file is two-space
+  indented. Atomic write, parent creation, unique-source collision refusal and
+  no sidecar for `jsonFile`. A second same-directory run excludes and replaces
+  its own previous sidecar when every feature URI is represented by the other
+  inputs; on the strict path, invalid, unparsable or unique-source files at that
+  path are refused before the HTML, while `ignoreBadJsonFile: true` skips an
+  invalid reserved-path file and replaces the sidecar. No core CLI/API,
+  report-byte or dependency change.
 - **B-010 Email HTML summary (#13b)** — implemented on 2026-11-20 in the
   `add-email-summary` change: opt-in `--email <file>`, a 600 px inline HTML body
   with the attempted pass rate, all non-zero statuses plus unexecuted, counts,

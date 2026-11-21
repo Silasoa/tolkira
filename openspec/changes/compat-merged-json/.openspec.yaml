@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-21
+goal: Seed-Test group-mode drop-in without changing the core CLI/API, the
+  one-file default or adding a dependency.

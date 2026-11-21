@@ -125,6 +125,11 @@ export function flattenMetadata(
   return result;
 }
 
+/** Strips one leading UTF-8 BOM, as the core loader does. */
+export function stripBom(content: string): string {
+  return content.replace(/^\uFEFF/, '');
+}
+
 export async function resolveInputs(
   options: CucumberHtmlReporterOptions,
   warnings: string[],
@@ -171,7 +176,9 @@ export async function resolveInputs(
     }
     totalBytes = addInputBytes(totalBytes, info.size);
     try {
-      const parsed: unknown = JSON.parse(await readFile(file, 'utf8'));
+      const parsed: unknown = JSON.parse(
+        stripBom(await readFile(file, 'utf8')),
+      );
       if (!Array.isArray(parsed)) throw new Error('not a feature array');
       valid.push(file);
     } catch (error) {

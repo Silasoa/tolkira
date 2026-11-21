@@ -1,6 +1,11 @@
 # Seed-Test 2.0 integration plan for Tolkira
 
 **Status:** 2026-11-09. Research note, not a product commitment.
+
+> **Superseded 2026-11-21:** Tolkira's compat shim now writes `<output>.json` for
+> `jsonDir` and excludes a previous sidecar on the next run (B-032). The
+> pre-merge recommendation below is no longer required for Seed-Test group
+> mode; it remains a valid alternative.
 **Target:** Seed-Test branch `AI-integration-prototype`, commit
 `ce2cad890bfda23f49cb9b2c47182f49df846f20` (2026-11-02), backend version
 2.0.0.

@@ -7,6 +7,21 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Merged JSON sidecar for the `tolkira/compat/cucumber-html-reporter` shim. A
+  `jsonDir` run without `jsonFile` writes the old reporter's merged legacy array
+  to `<output>.json` after the HTML: features merge by `uri` (fallback
+  `Feature: URI Not Present`), duplicate elements concatenate, every element
+  gets `retried: 0` and the file uses two-space indentation. The write is
+  atomic, creates missing parent directories and keeps input order; the old
+  timestamp sort and filename-derived retry counter are not reproduced. A second
+  run with the report and sidecar inside `jsonDir` excludes and replaces its own
+  sidecar when every feature URI is represented by the other inputs. A file at
+  that path that is not a valid feature array, or has a unique feature URI, is
+  refused unchanged before the HTML is written. Sidecar runs preflight every
+  input as a legacy feature array (an array of objects) before the report, with
+  one leading UTF-8 BOM accepted; non-array, non-object or non-legacy content
+  fails first with an error naming the file. `jsonFile` never writes a sidecar,
+  and the core CLI/API, report bytes and dependency surface are unchanged.
 - Opt-in HTML email summary (#13b). `--email <file>` writes one self-contained
   600 px table body from the stable summary: title and status, generation time,
   attempted pass rate as a percentage with a full-sentence note that skipped

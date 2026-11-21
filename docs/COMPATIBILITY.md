@@ -95,6 +95,28 @@ legacy string. If the callback itself throws, handle that error yourself.
 `jsonFile` wins when both `jsonFile` and `jsonDir` are set. If both are missing,
 generation fails with a usage error.
 
+With `jsonDir` and no `jsonFile`, the shim also writes the old reporter's merged
+legacy array to `<output>.json` after the HTML. Features merge by `uri`, or
+under `Feature: URI Not Present` when the `uri` is absent; duplicate features
+concatenate their `elements`, every element gets `retried: 0`, and the file uses
+two-space indentation. The write is atomic and creates missing parent
+directories. The `<output>.json` path is reserved for the sidecar: if an earlier
+run left it inside `jsonDir`, it is excluded from the report inputs and replaced
+when every feature URI in it also appears in another input, so a second group
+run does not duplicate features. On the strict path a file at that path is
+refused before the report is written, and stays unchanged, when it is not a
+valid legacy feature array or has a feature URI that no other input represents;
+the error names the sidecar and the input. With `ignoreBadJsonFile: true`, an
+invalid file at that reserved path is skipped and the sidecar replaces it
+instead. Every input is parsed once before the report when the sidecar is
+written: it must be a legacy feature array (an array of objects), and one leading
+UTF-8 BOM is accepted. Non-array or non-object content, including Playwright
+JSON, fails before the HTML with an error naming the file. The old
+reporter's timestamp sort and filename-derived retry counter are not reproduced:
+features keep their input order and `retried` stays `0` for every element, which
+Seed-Test's group analysis does not read.
+`jsonFile` never writes the sidecar, even when `jsonDir` is also set.
+
 The shim consumes legacy Cucumber JSON, which has no Messages `meta.ci`
 envelope. CI job and git details therefore do not appear automatically; pass
 them as `metadata` entries (for example `CI`, `Build`, `Commit` and `Branch`).
@@ -109,8 +131,6 @@ The core Messages path reads `meta.ci` and renders it in HTML only.
   Very large runs can hit the 10 MB size warning; split assets are a later item.
 - **The old rendered HTML.** The shim consumes the input JSON and options, not
   the generated HTML. If you only have the old HTML, export the JSON again.
-- **The `output + '.json'` side effect.** Tolkira does not write a merged JSON
-  copy next to the report.
 - **Custom CSS/JS, MCHR's UI language set, CDN mode and browser launch.** MCHR
   4.6 chooses one UI language at build time (`language` or
   `--language`/`--lang`) from en, es, fr, pt and ar, including RTL Arabic;
@@ -131,8 +151,9 @@ the call before reading the HTML. The old default import becomes the named
 same subpath, then await `generate` or use its callback; its current
 `reporter.generate(options)` call without `await` must change too. The core
 package stays ESM-only.
-Seed-Test's group mode also expects a sidecar at `output + '.json'`; Tolkira
-does not write that file.
+Seed-Test's group mode also reads the merged array at `output + '.json'`; a
+`jsonDir` run writes it before `generate` resolves, so await the call and read
+the sidecar afterwards.
 
 ## Limits
 
