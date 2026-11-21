@@ -56,7 +56,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-034 | Input | P3 | Legacy JSON hook output is dropped | Cucumber-JVM carries `before/after[].output`; the report shows hook names/counts but not that output. A user needs hook diagnostics or a producer fixture with non-empty output; map it to hook output or document the limit. | — |
 | B-035 | Input | P3 | Playwright JSON scenario source has no line | The native Playwright report shows `movie-list.spec.ts:3`; Tolkira shows only the rule/spec path. A user needs line-level source links or the JSON location is otherwise missing from the report. | — |
 | B-036 | Input | P3 | JUnit nested test classes are folded into the outer feature | Surefire puts `Outer$Nested` cases in one `<testsuite>` and lists 15 class rows; Tolkira shows 12 features while keeping all 59 cases. A user needs the nested class distinction or a real report shows it. | — |
-| B-037 | Input | P3 | JUnit duration is testcase-sum, not suite wall time | Surefire reports suite wall time (49.92 s); Tolkira sums testcase times (16.72 s). A user compares the two numbers; document the semantic or show both. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -127,6 +126,10 @@ asks or a locale needs them:
   path are refused before the HTML, while `ignoreBadJsonFile: true` skips an
   invalid reserved-path file and replaces the sidecar. No core CLI/API,
   report-byte or dependency change.
+- **B-037 JUnit duration semantics** — documented on 2026-11-22 in
+  `docs/JUNIT-XML.md`: `Test time` is the sum of `<testcase time>` values; suite
+  wall time (Spring context and a Surefire total) is not included. No schema
+  change; compare the two numbers with that difference in mind.
 - **B-010 Email HTML summary (#13b)** — implemented on 2026-11-20 in the
   `add-email-summary` change: opt-in `--email <file>`, a 600 px inline HTML body
   with the attempted pass rate, all non-zero statuses plus unexecuted, counts,
