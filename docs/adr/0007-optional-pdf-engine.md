@@ -48,9 +48,9 @@ is Letter-only by default and puts the local `file://` URL in its footer.
   `--ci-out`/stdout: `report → PDF → email → history → --ci-out → stdout`. A
   PDF failure exits 1, names the PDF path, keeps the report and skips the email/
   later outputs; no partial PDF remains.
-- A missing engine exits 1 with install instructions (`playwright-core` plus a
-  Chromium browser, with one tested install command in the docs, run in the
-  project where Tolkira runs). The default install and runtime dependency
+- A missing engine exits 1 with install instructions (`playwright-core` plus the
+  Chromium headless shell, with one tested install command in the docs, run in
+  the project where Tolkira runs). The default install and runtime dependency
   surface, the report, JSON, CI, email and print view are unchanged; the package
   gains the PDF documentation.
 - The first slice is Chromium-only, A4, without page numbers, custom headers, a
@@ -63,8 +63,9 @@ is Letter-only by default and puts the local `file://` URL in its footer.
 
 ## Consequences
 
-- PDF users install about 14 MB (`playwright-core`) plus a 130–280 MB Chromium;
-  the default dependency surface stays small. The browser gate already installs
+- PDF users install about 13 MB (`playwright-core`) plus a 285.8 MB unpacked
+  Chromium headless shell; the full Chromium build is not required and the
+  default dependency surface stays small. The browser gate already installs
   Chromium, so the PDF e2e adds no browser download; the package job stays
   peer-free and checks the missing-engine exit 1, the guidance and the absent
   peer/PDF.

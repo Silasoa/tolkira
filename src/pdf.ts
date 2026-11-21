@@ -13,8 +13,8 @@ const DEFAULT_TIMEOUT_MS = 300_000;
 const CLOSE_TIMEOUT_MS = 5_000;
 
 const INSTALL_GUIDANCE = `PDF output needs the optional Playwright Chromium engine.
-In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-Then: npx playwright install chromium
+In your project: npm i -D playwright-core@^1.65.0
+Then: npx playwright-core install chromium-headless-shell
 A project-local Tolkira install is recommended. Or omit --pdf.`;
 
 type Chromium = typeof import('playwright-core').chromium;

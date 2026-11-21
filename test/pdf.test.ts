@@ -38,6 +38,7 @@ const INSTALL_GUIDANCE = {
   engine: /optional Playwright Chromium engine/i,
   install: /npm i(?:nstall)? -D playwright(?:-core)?/,
   browser: /playwright(?:-core)? install chromium/,
+  shell: /chromium-headless-shell/,
 };
 
 async function loadRenderPdf(): Promise<RenderPdf> {
@@ -238,6 +239,7 @@ describe('renderPdf', () => {
     expect(message).toMatch(INSTALL_GUIDANCE.engine);
     expect(message).toMatch(INSTALL_GUIDANCE.install);
     expect(message).toMatch(INSTALL_GUIDANCE.browser);
+    expect(message).toMatch(INSTALL_GUIDANCE.shell);
     expect(engine.chromium.launch).not.toHaveBeenCalled();
   });
 
@@ -290,6 +292,7 @@ describe('renderPdf', () => {
       expect(message).toMatch(INSTALL_GUIDANCE.engine);
       expect(message).toMatch(INSTALL_GUIDANCE.install);
       expect(message).toMatch(INSTALL_GUIDANCE.browser);
+      expect(message).toMatch(INSTALL_GUIDANCE.shell);
       expect(createRequire).toHaveBeenCalledWith(
         path.join(process.cwd(), 'package.json'),
       );
@@ -315,6 +318,7 @@ describe('renderPdf', () => {
     expect(message).toMatch(INSTALL_GUIDANCE.engine);
     expect(message).toMatch(INSTALL_GUIDANCE.install);
     expect(message).toMatch(INSTALL_GUIDANCE.browser);
+    expect(message).toMatch(INSTALL_GUIDANCE.shell);
   });
 
   it('is exported from the package root', async () => {

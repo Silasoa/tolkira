@@ -85,8 +85,8 @@ jobs:
             set -e
             test "$code" -eq 1
             grep -qF "PDF output needs the optional Playwright Chromium engine." "$log"
-            grep -qF "In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0" "$log"
-            grep -qF "Then: npx playwright install chromium" "$log"
+            grep -qF "In your project: npm i -D playwright-core@^1.65.0" "$log"
+            grep -qF "Then: npx playwright-core install chromium-headless-shell" "$log"
             grep -qF "A project-local Tolkira install is recommended. Or omit --pdf." "$log"
             test ! -e "$pdf"
           }

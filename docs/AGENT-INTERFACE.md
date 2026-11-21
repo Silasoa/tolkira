@@ -130,8 +130,8 @@ Playwright Chromium engine. It is another output, not a mode, and composes with
 `--out`, `--email`, `--json`, `--ci`/`--ci-out` and `--history`:
 
 ```shell
-npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-npx playwright install chromium
+npm i -D playwright-core@^1.65.0
+npx playwright-core install chromium-headless-shell
 tolkira test-results/ --out report.html --pdf report.pdf
 tolkira test-results/ --pdf report.pdf --json > summary.json
 tolkira test-results/ --pdf report.pdf --locale de
@@ -140,7 +140,8 @@ tolkira test-results/ --pdf report.pdf --pdf-timeout 600000
 
 - Run the install in the project where Tolkira runs; a project-local Tolkira
   install is recommended. The engine resolves beside Tolkira, then from the
-  current project directory.
+  current project directory. Only `playwright-core` and the Chromium headless
+  shell are needed; the `playwright` package and full Chromium are not.
 - The PDF is A4 portrait (`format: 'A4'`) with 12 mm `@page` print CSS margins,
   the light print palette and no browser header, footer, URL or page number.
   Chromium only in this slice; Letter/custom paper and landscape are not exposed.

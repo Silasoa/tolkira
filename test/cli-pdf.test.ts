@@ -40,8 +40,8 @@ const PDF_BYTES = Buffer.from([
 
 const INSTALL_GUIDANCE =
   'PDF output needs the optional Playwright Chromium engine.\n' +
-  'In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0\n' +
-  'Then: npx playwright install chromium\n' +
+  'In your project: npm i -D playwright-core@^1.65.0\n' +
+  'Then: npx playwright-core install chromium-headless-shell\n' +
   'A project-local Tolkira install is recommended. Or omit --pdf.';
 
 const dirs: string[] = [];
@@ -322,7 +322,9 @@ describe('CLI --pdf', () => {
     expect(result.stderr).toContain(output);
     expect(result.stderr).toMatch(/optional Playwright Chromium engine/i);
     expect(result.stderr).toMatch(/npm i(?:nstall)? -D playwright/);
-    expect(result.stderr).toMatch(/playwright install chromium/);
+    expect(result.stderr).toMatch(
+      /playwright-core install chromium-headless-shell/,
+    );
     await expect(readFile(report, 'utf8')).resolves.toContain('<html');
     await expect(stat(output)).rejects.toMatchObject({ code: 'ENOENT' });
     await expect(stat(email)).rejects.toMatchObject({ code: 'ENOENT' });

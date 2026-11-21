@@ -55,8 +55,9 @@ Package: https://www.npmjs.com/package/tolkira
   subject from `summary.json` (`status`), not from the job status.
 - Add `--pdf report.pdf` for the complete A4 portrait print archive only when the
   optional Playwright Chromium engine is installed in the project where Tolkira
-  runs (`npm i -D playwright-core@^1.65.0 playwright@^1.65.0`, then
-  `npx playwright install chromium`). The PDF is Chromium-only, has no CLI
-  filter, Letter/custom paper or page numbers, and is written before the email;
+  runs (`npm i -D playwright-core@^1.65.0`, then
+  `npx playwright-core install chromium-headless-shell`). The PDF is
+  Chromium-only, has no CLI filter, Letter/custom paper or page numbers, and is
+  written before the email;
   a missing engine exits 1. `--pdf-timeout <ms>` overrides the five-minute
   render deadline.

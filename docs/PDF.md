@@ -21,34 +21,40 @@ tolkira test-results/ --out report.html --pdf report.pdf \
 ## Install the engine
 
 The default `npm install tolkira` stays small: `playwright-core` is an optional
-peer and is not installed automatically. Install it together with the Chromium
-browser before the first `--pdf` run, in the project where Tolkira runs:
+peer and is not installed automatically. Install it and the Chromium headless
+shell before the first `--pdf` run, in the project where Tolkira runs:
 
 ```shell
-npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-npx playwright install chromium
+npm i -D playwright-core@^1.65.0
+npx playwright-core install chromium-headless-shell
 ```
 
-A project-local Tolkira install is recommended. A globally installed or
+The consumer does not need the `playwright` package, and the full Chromium build
+is not required: Tolkira launches headless, which uses the headless shell. A
+project-local Tolkira install is recommended. A globally installed or
 npx-cached Tolkira resolves `playwright-core` beside itself first, then from the
 current project directory, so the peer must be visible to that project.
 
 On Linux CI hosts without the browser system libraries:
 
 ```shell
-npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-npx playwright install --with-deps chromium
+npm i -D playwright-core@^1.65.0
+npx playwright-core install --with-deps chromium-headless-shell
 ```
 
-`playwright` includes `playwright-core`, so the pair satisfies the peer and
-downloads the browser. There is no browser postinstall: the download is
-explicit. Cost: about 14 MB for `playwright-core` plus 5 MB for `playwright`, and
-130–280 MB for Chromium. The default runtime dependencies, report, email, JSON
-and CI output do not change without `--pdf`.
+There is no browser postinstall: the download is explicit. Cost: about 13 MB for
+`playwright-core`, 285.8 MB unpacked for the headless shell, and about 4 MB of
+helpers (ffmpeg ~3.8 MB, winldd ~0.2 MB); roughly 303 MB unpacked all together,
+and the download is smaller. The shell-only command was verified manually on
+Windows on 2026-11-21. `npx playwright install chromium` would add both the full
+Chromium build and the headless shell (about 736 MB unpacked) and is not required
+for PDF. The CI e2e job still installs the full browsers for its tests. The
+default runtime dependencies, report, email, JSON and CI output do not change
+without `--pdf`.
 
-If `playwright-core` or the browser is missing, the CLI exits 1 with the install
-command; no partial PDF remains. The error also says to omit `--pdf` to keep the
-HTML-only route.
+If `playwright-core` or the headless shell is missing, the CLI exits 1 with the
+install command; no partial PDF remains. The error also says to omit `--pdf` to
+keep the HTML-only route.
 
 ## What the PDF contains
 
@@ -189,8 +195,8 @@ Without the optional engine, `--pdf` fails cleanly:
 
 ```text
 tolkira: Cannot render PDF for report.pdf: PDF output needs the optional Playwright Chromium engine.
-In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-Then: npx playwright install chromium
+In your project: npm i -D playwright-core@^1.65.0
+Then: npx playwright-core install chromium-headless-shell
 A project-local Tolkira install is recommended. Or omit --pdf.
 ```
 
@@ -200,15 +206,17 @@ outputs are skipped because the PDF comes first; no temporary PDF remains.
 ## CI example
 
 The browser gate already installs Chromium, so a job that runs Tolkira's e2e
-suite pays no extra download. A PDF-only job needs both the peer and the browser:
+suite pays no extra download. The CI e2e job still installs the full browsers for
+its tests; that is test tooling, not the PDF install path. A PDF-only job needs
+the peer and the headless shell:
 
 ```yaml
 - name: Generate report and PDF
   if: always()
   run: |
     npm ci
-    npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-    npx playwright install --with-deps chromium
+    npm i -D playwright-core@^1.65.0
+    npx playwright-core install --with-deps chromium-headless-shell
     npx tolkira test-results/ --out report.html --pdf report.pdf \
       --email email.html --json > summary.json
 
@@ -224,7 +232,7 @@ suite pays no extra download. A PDF-only job needs both the peer and the browser
       summary.json
 ```
 
-The PDF is local: no hosted renderer and no telemetry. The Chromium browser
+The PDF is local: no hosted renderer and no telemetry. The headless shell
 download is the only browser download the PDF feature adds; installing the npm
 packages is a normal network step.
 
@@ -240,6 +248,8 @@ packages is a normal network step.
   route.
 - Video/audio do not print. An unusually wide matrix may need browser landscape.
 - The PDF-only route has no logo or Trends; `--logo`/`--history` require `--out`.
-- The engine is an optional install: 19 MB of packages plus a 130–280 MB
-  browser, and the render is CPU/memory-heavy on very large suites.
+- The engine is an optional install: about 13 MB for `playwright-core`, a
+  285.8 MB unpacked headless shell and about 4 MB of helpers (ffmpeg/winldd),
+  roughly 303 MB unpacked; the full Chromium build is not required. The render is
+  CPU/memory-heavy on very large suites.
 - The PDF is not byte-deterministic across Chromium, font and OS versions.

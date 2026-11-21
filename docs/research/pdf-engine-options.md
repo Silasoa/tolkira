@@ -17,7 +17,7 @@ block, a closed `details` and a `beforeprint` handler.
 
 | Path | Cost | Print CSS / `beforeprint` | A4 and headers |
 | --- | --- | --- | --- |
-| Playwright `page.pdf()` | `playwright-core` 14 MB (`playwright` +5 MB); browser separate | Yes / yes | A4, margins, footers, `tagged` |
+| Playwright `page.pdf()` | `playwright-core` 13.3 MB; browser separate (285.8 MB headless shell unpacked) | Yes / yes | A4, margins, footers, `tagged` |
 | Puppeteer `page.pdf()` | `puppeteer-core` 6.4 MB; `puppeteer` auto-downloads 170–280 MB | Yes / yes | A4, footers |
 | Chrome/Edge `--print-to-pdf` | 0 npm bytes; installed browser | Yes / yes | Letter only; `@page size` ignored; no custom page numbers |
 | `@sparticuz/chromium` | 70 MB, Linux only | Via Chromium | Lambda only |
@@ -33,8 +33,10 @@ Playwright defaults `displayHeaderFooter` to `false`
 
 The Playwright CLI does it as a fallback: `npx playwright pdf --paper-format A4
 <url> <file>` (1.65); document it only beside the API. Browsers are a separate
-download (`npx playwright install chromium`; `--with-deps` on Linux); neither
-package has a browser postinstall ([browsers](https://playwright.dev/docs/browsers)).
+download (`npx playwright-core install chromium-headless-shell`; `--with-deps` on
+Linux). The consumer does not need the `playwright` wrapper or the full Chromium
+build, and neither package has a browser postinstall
+([browsers](https://playwright.dev/docs/browsers)).
 
 ## Pure JS and external binaries
 
@@ -61,7 +63,7 @@ wkhtmltopdf is a 2012 engine its maintainer calls unmaintained
 
 | Pattern | Default install | Opt-in |
 | --- | --- | --- |
-| `dependencies` | Adds ~14 MB for all; browser still separate | None |
+| `dependencies` | Adds ~13 MB for all; browser still separate | None |
 | `optionalDependencies` | Installed by default; failure tolerated | Weak |
 | `peerDependenciesMeta.optional` | Not installed automatically | Explicit |
 | Dynamic `import()` + typed error | Zero cost until `--pdf` | Explicit |
@@ -76,8 +78,8 @@ unpacked; the package gains `docs/PDF.md`, the runtime dependency surface does
 not change.
 CI cost is mostly paid: the Playwright gate (Linux/macOS) installs Chromium, and
 a PDF test can reuse it. Playwright advises against caching browsers
-([CI](https://playwright.dev/docs/ci)); a PDF-only job adds one 130–280 MB
-download per OS.
+([CI](https://playwright.dev/docs/ci)); a PDF-only job adds one 285.8 MB
+(unpacked) headless shell download per OS, and not the full Chromium build.
 
 ## Testing and CI
 
@@ -148,8 +150,8 @@ page numbers in slice 1; B-021/B-022 page identity is deferred.
 
 ```
 PDF output needs the optional Playwright Chromium engine.
-In your project: npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-Then: npx playwright install chromium
+In your project: npm i -D playwright-core@^1.65.0
+Then: npx playwright-core install chromium-headless-shell
 A project-local Tolkira install is recommended. Or omit --pdf.
 ```
 
@@ -162,8 +164,9 @@ No browser-path/channel option in slice 1; the Playwright-managed Chromium is
 the tested engine. A browser path is a follow-up, not part of the peer contract.
 
 **Cost:** the default dependency surface is unchanged; the opt-in adds about
-14 MB (`playwright-core`) plus a 130–280 MB browser. The Chromium gate already
-installs the browser; CI adds no download.
+13 MB (`playwright-core`) plus a 285.8 MB unpacked Chromium headless shell. The
+full Chromium build is not required. The Chromium gate already installs the
+browser; CI adds no download.
 
 **First slice:** `src/pdf.ts` with `setContent`, `--pdf`, path/atomic/error,
 a mocked unit test, a Chromium PDF e2e and a missing-engine CLI/package smoke.

@@ -121,8 +121,8 @@ without a print dialog. Install the optional engine in the project where Tolkira
 runs; a project-local Tolkira install is recommended:
 
 ```shell
-npm i -D playwright-core@^1.65.0 playwright@^1.65.0
-npx playwright install chromium
+npm i -D playwright-core@^1.65.0
+npx playwright-core install chromium-headless-shell
 tolkira test-results/ --out report.html --pdf report.pdf
 ```
 
@@ -176,8 +176,8 @@ even when tests fail, so derive the subject from `summary.json` (`jq -r .status`
 not from the job status. See [Email summary](docs/EMAIL.md).
 
 Add `--pdf report.pdf` to the same command for a print archive. It needs the
-optional engine in the project (`npm i -D playwright-core@^1.65.0
-playwright@^1.65.0 && npx playwright install chromium`) and composes with
+optional engine in the project (`npm i -D playwright-core@^1.65.0 &&
+npx playwright-core install chromium-headless-shell`) and composes with
 `--out`, `--email`, `--history`, `--json` and `--ci`; see
 [PDF export](docs/PDF.md). The PDF is written after the report and before the
 email, so a PDF failure keeps `report.html` and skips the later outputs.
@@ -520,13 +520,14 @@ for the mapping.
   basename. It is written only with `--email`; there is no redaction mode, no
   network request and no sending.
 - PDF export is opt-in and Chromium-only. It needs the optional `playwright-core`
-  peer and a Chromium browser (about 19 MB of packages plus a 130–280 MB
-  browser) in the project where Tolkira runs, prints A4 portrait with no
-  header/footer or page numbers, and has no CLI filter state, Letter/custom
-  paper, landscape or PDF-only logo/Trends. The default Chromium launch is not
-  OS-sandboxed; the report CSP and escaped attachments are the boundary, so run
-  untrusted attachments in a container or VM. The PDF is not byte-identical
-  across engine or font updates.
+  peer and the Chromium headless shell (about 13 MB of package, 286 MB unpacked
+  shell and 4 MB of helpers; roughly 303 MB unpacked, download smaller; the full
+  Chromium build is not required) in the project where Tolkira runs. It prints A4
+  portrait with no header/footer or page numbers and has no CLI filter state,
+  Letter/custom paper, landscape or PDF-only logo/Trends. The default Chromium
+  launch is not OS-sandboxed; the report CSP and escaped attachments are the
+  boundary, so run untrusted attachments in a container or VM. The PDF is not
+  byte-identical across engine or font updates.
 - One report is one file. External attachments for very large media are a
   future option.
 

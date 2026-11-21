@@ -169,6 +169,10 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- PDF install guidance now uses `playwright-core` alone with
+  `npx playwright-core install chromium-headless-shell`; the `playwright`
+  package and the full Chromium build are not required. The documented cost is
+  about 13 MB plus 285.8 MB unpacked for the headless shell.
 - English report output changes only by `dir="ltr"` on `<html>`, the inert
   `tolkira-messages` JSON block, the generated client script and its CSP hash.
   Visible English text, numbers, percentages, durations, dates and CSS are

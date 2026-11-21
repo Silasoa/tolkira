@@ -109,8 +109,9 @@ describe('PDF package metadata', () => {
     expect(packageJob).toContain('--pdf');
     expect(packageJob).toMatch(/test "\$code" -eq 1/);
     expect(packageJob).toContain('optional Playwright Chromium engine');
+    expect(packageJob).toContain('npm i -D playwright-core@^1.65.0');
     expect(packageJob).toContain(
-      'npm i -D playwright-core@^1.65.0 playwright@^1.65.0',
+      'Then: npx playwright-core install chromium-headless-shell',
     );
     // The missing peer must be resolved from an empty temp cwd, not the repo
     // root where npm ci installed playwright-core.
