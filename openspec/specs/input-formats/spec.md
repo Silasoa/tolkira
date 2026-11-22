@@ -946,14 +946,12 @@ none.
 
 ### Requirement: Bound earlier-attempt evidence per report
 
-Earlier evidence SHALL include at most one image per report, from the first
-failed displayed earlier attempt in the first eligible scenario. It SHALL be
-included only for a single-input Playwright report, when the final attachments
-leave at least 10 MB of the 100 MB cap, and when the image fits the 10 MB
-retry-evidence budget. Multi-input Playwright reports SHALL show earlier
-status/error/duration without an earlier image. Reading SHALL keep the existing
-root, symlink, media-type and size checks; final attachments SHALL be planned
-first across all scenarios so they always win the budget.
+Earlier evidence SHALL embed at most one image per single-input Playwright
+report, from the first failed displayed earlier attempt in the first eligible
+scenario. It SHALL be read after all final attachments, under a 10 MB budget
+and only when the final attachments leave at least 10 MB of the 100 MB cap.
+Multi-input reports SHALL show status/error/duration without an earlier image.
+Existing root, symlink, media-type and size checks SHALL apply.
 
 #### Scenario: Image within budget
 
