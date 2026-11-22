@@ -170,8 +170,8 @@ and is covered by real producer fixtures.
 
 ### `src/ci`
 
-- Formats the summary as GitHub Actions workflow commands or deterministic
-  Markdown for GitLab and step summaries.
+- Formats the summary as GitHub Actions workflow commands, Azure DevOps logging
+  commands or deterministic Markdown for GitLab and step summaries.
 - Pure and offline: no network, no report-model access and no schema change.
 - Caps annotations and lists while keeping the exact counts.
 
@@ -247,7 +247,7 @@ and is covered by real producer fixtures.
 ### `src/cli`
 
 - `tolkira <input...> [--out <file>] [--pdf <file>] [--pdf-timeout <ms>]`
-  `[--email <file>] [--json] [--ci github|markdown] [--ci-out <file>]`
+  `[--email <file>] [--json] [--ci github|azure|markdown] [--ci-out <file>]`
   `[--history <file>] [--locale <tag>] [--title <title>]`
   `[--meta key=value] [--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
@@ -257,7 +257,7 @@ and is covered by real producer fixtures.
 - Failing tests do not fail report generation; malformed input does.
 - Writes atomically through a temporary file in the output directory.
 - `--ci` may run without `--out`; `--ci-out` is a standalone atomic Markdown
-  file and is rejected for GitHub annotations.
+  file and is rejected for GitHub and Azure annotations.
 - `--history` requires `--out`. It is validated like an output path (inputs,
   logo, `--out`, `--ci-out`, `--email` and input directories, even when missing),
   read once before generation and written after the HTML. A history read or write

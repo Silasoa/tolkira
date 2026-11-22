@@ -6,7 +6,7 @@ import type {
 } from './summary.js';
 import { stripAnsi } from './text.js';
 
-export type CiFormat = 'github' | 'markdown';
+export type CiFormat = 'github' | 'azure' | 'markdown';
 
 export interface CiFormatOptions {
   /** Markdown heading; defaults to "Tolkira report". */
@@ -36,12 +36,16 @@ const STATUS_LABELS: Array<[SummaryStatus, string]> = [
 const GITHUB_MESSAGE_LIMIT = 4000;
 const GITHUB_ERROR_LIMIT = 50;
 const GITHUB_NOTICE_LIMIT = 20;
+const AZURE_MESSAGE_LIMIT = 4000;
+const AZURE_ERROR_LIMIT = 50;
+const AZURE_WARNING_LIMIT = 20;
 const MARKDOWN_MESSAGE_LIMIT = 500;
 const MARKDOWN_FAILED_LIMIT = 50;
 const MARKDOWN_SKIPPED_LIMIT = 20;
-const RUN_FAILED_ANNOTATION =
-  '::error title=Tolkira::Run failed: The report summary is failed ' +
+const RUN_FAILED_MESSAGE =
+  'Run failed: The report summary is failed ' +
   'but no scenario-level error was emitted.';
+const RUN_FAILED_ANNOTATION = `::error title=Tolkira::${RUN_FAILED_MESSAGE}`;
 
 function escapeGitHubProperty(value: string): string {
   return value
@@ -59,7 +63,7 @@ function escapeGitHubMessage(value: string): string {
     .replace(/\n/g, '%0A');
 }
 
-function truncate(text: string, limit: number): string {
+function truncateCodePoints(text: string, limit: number): string {
   if (text.length <= limit) return text;
   let end = 0;
   let codePoints = 0;
@@ -68,9 +72,12 @@ function truncate(text: string, limit: number): string {
     end += (text.codePointAt(end) ?? 0) > 0xffff ? 2 : 1;
     codePoints += 1;
   }
-  return end >= text.length
-    ? text
-    : `${text.slice(0, end)}[truncated]`;
+  return text.slice(0, end);
+}
+
+function truncate(text: string, limit: number): string {
+  const raw = truncateCodePoints(text, limit);
+  return raw === text ? text : `${raw}[truncated]`;
 }
 
 function scenarioIdentity(scenario: SummaryScenario): string {
@@ -182,6 +189,99 @@ export function formatGitHubAnnotations(summary: ReportSummary): string {
     lines.push(`::notice title=Tolkira::${omitted} more annotations omitted`);
   }
   lines.push(finalGitHubNotice(summary, runFailed));
+  return `${lines.join('\n')}\n`;
+}
+
+function escapeAzureMessage(value: string): string {
+  return value
+    .replace(/%/g, '%AZP25')
+    .replace(/\r/g, '%0D')
+    .replace(/[\n\u2028\u2029\u0085]/g, '%0A')
+    .replace(/]/g, '%5D');
+}
+
+// The truncation marker is presentation, not input data, so it stays readable.
+// shortcut: 4000 code points can expand to ~24 KB after % escaping; Azure line
+// limits are provider-specific, so the limit counts code points, not bytes.
+function azureMessage(value: string): string {
+  const text = stripAnsi(value);
+  const raw = truncateCodePoints(text, AZURE_MESSAGE_LIMIT);
+  const marker = raw === text ? '' : '[truncated]';
+  return `${escapeAzureMessage(raw)}${marker}`;
+}
+
+function finalAzureSection(
+  summary: ReportSummary,
+  runFailed: boolean,
+): string {
+  const unexecuted = unexecutedCount(summary);
+  const suffix = runFailed ? '; run failed' : '';
+  if (isEmptyRun(summary)) return `##[section]Tolkira: No scenarios${suffix}`;
+  if (summary.counts.scenarios.total === 0) {
+    return (
+      '##[section]Tolkira: 0 executed scenarios; ' +
+      `${unexecuted} unexecuted${suffix}`
+    );
+  }
+  const parts = nonZeroBuckets(summary.counts.scenarios);
+  return (
+    `##[section]Tolkira: ${summary.counts.scenarios.total} scenarios: ` +
+    `${parts.join(', ')}; ${unexecuted} unexecuted${suffix}`
+  );
+}
+
+/** Formats the summary as Azure DevOps logging commands. */
+export function formatAzureAnnotations(summary: ReportSummary): string {
+  const errorLines: string[] = [];
+  const warningLines: string[] = [];
+  let errorCount = 0;
+  let warningCount = 0;
+  let omitted = 0;
+
+  if (!isEmptyRun(summary)) {
+    for (const scenario of summary.scenarios) {
+      if (!scenario.executed || !ERROR_STATUSES.has(scenario.status)) continue;
+      if (errorCount >= AZURE_ERROR_LIMIT) {
+        omitted += 1;
+        continue;
+      }
+      errorCount += 1;
+      const message =
+        `${scenarioIdentity(scenario)} — ${failureMessage(scenario)}`;
+      errorLines.push(
+        `##vso[task.logissue type=error]${azureMessage(message)}`,
+      );
+    }
+    for (const scenario of summary.scenarios) {
+      if (!scenario.executed || !NOTICE_STATUSES.has(scenario.status)) continue;
+      if (warningCount >= AZURE_WARNING_LIMIT) {
+        omitted += 1;
+        continue;
+      }
+      warningCount += 1;
+      const message =
+        `${scenarioIdentity(scenario)} was ${scenario.status}`;
+      warningLines.push(
+        `##vso[task.logissue type=warning]${azureMessage(message)}`,
+      );
+    }
+  }
+
+  const lines = [...errorLines, ...warningLines];
+  // A failed run-level result (for example a global hook) has no scenario.
+  const runFailed = summary.status === 'failed' && errorCount === 0;
+  if (runFailed) {
+    lines.push(
+      '##vso[task.logissue type=error]' +
+        escapeAzureMessage(RUN_FAILED_MESSAGE),
+    );
+  }
+  if (omitted > 0) {
+    lines.push(
+      `##vso[task.logissue type=warning]Tolkira: ${omitted} more annotations omitted`,
+    );
+  }
+  lines.push(finalAzureSection(summary, runFailed));
   return `${lines.join('\n')}\n`;
 }
 
@@ -343,13 +443,13 @@ export function formatMarkdownSummary(
   return `${lines.join('\n')}\n`;
 }
 
-/** Dispatches between the two CI formats. */
+/** Dispatches between the CI formats. */
 export function formatCiOutput(
   summary: ReportSummary,
   format: CiFormat,
   options: CiFormatOptions = {},
 ): string {
-  return format === 'github'
-    ? formatGitHubAnnotations(summary)
-    : formatMarkdownSummary(summary, options);
+  if (format === 'github') return formatGitHubAnnotations(summary);
+  if (format === 'azure') return formatAzureAnnotations(summary);
+  return formatMarkdownSummary(summary, options);
 }

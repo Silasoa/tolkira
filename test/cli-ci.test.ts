@@ -400,4 +400,77 @@ describe('CLI CI output', () => {
     expect(run.code).toBe(2);
     expect(run.stderr).toContain('--logo requires --out');
   });
+
+  it('accepts --ci azure and exits 0 on a failed run', async () => {
+    const run = await cli([failed, '--ci', 'azure']);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toBe('');
+    const lines = run.stdout.trimEnd().split('\n');
+    expect(
+      lines.every(
+        (line) =>
+          line.startsWith('##vso[task.logissue ') ||
+          line.startsWith('##[section]Tolkira: '),
+      ),
+    ).toBe(true);
+    expect(lines.at(-1)).toBe(
+      '##[section]Tolkira: 6 scenarios: 5 passed, 1 failed; 0 unexecuted',
+    );
+    expect(run.stdout).toContain('##vso[task.logissue type=error]');
+    expect(run.stdout).not.toContain('Report written to');
+  });
+
+  it('rejects --ci azure with --ci-out before writing anything', async () => {
+    const dir = await tempDir();
+    const ciFile = path.join(dir, 'summary.md');
+    const run = await cli([
+      failed,
+      '--ci',
+      'azure',
+      '--ci-out',
+      ciFile,
+    ]);
+
+    expect(run.code).toBe(2);
+    const [error] = run.stderr.split('\n');
+    expect(error).toContain('--ci azure');
+    expect(error).toContain('writes annotations to stdout');
+    expect(error).toContain('--ci-out is only for --ci markdown');
+    expect(run.stdout).toBe('');
+    expect(await missing(ciFile)).toBe(true);
+  });
+
+  it('does not suggest adding --ci-out to --json --ci azure', async () => {
+    const run = await cli([failed, '--json', '--ci', 'azure']);
+
+    expect(run.code).toBe(2);
+    expect(run.stdout).toBe('');
+    const [error] = run.stderr.split('\n');
+    expect(error).toContain('azure');
+    expect(error).toMatch(/drop/);
+    expect(error).toMatch(/--ci markdown.*--ci-out/);
+    expect(error).not.toMatch(/add --ci-out/i);
+  });
+
+  it('lists azure for an invalid --ci value', async () => {
+    for (const value of ['yaml', 'Azure']) {
+      const run = await cli([failed, '--ci', value]);
+
+      expect(run.code, value).toBe(2);
+      expect(run.stdout, value).toBe('');
+      const [error] = run.stderr.split('\n');
+      expect(error, value).toContain(`Invalid --ci "${value}"`);
+      expect(error, value).toMatch(/github.*azure.*markdown/);
+    }
+  });
+
+  it('lists azure in --help', async () => {
+    const run = await cli(['--help']);
+
+    expect(run.code).toBe(0);
+    expect(run.stdout).toMatch(
+      /--ci <format>[^\n]*github, azure or markdown/,
+    );
+  });
 });

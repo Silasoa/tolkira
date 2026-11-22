@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Close the remaining small CI publishing gap after GitHub and GitLab, while
+  deferring the large all-expanded no-JS mode.

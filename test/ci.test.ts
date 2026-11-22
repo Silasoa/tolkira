@@ -8,6 +8,7 @@ import {
   type SummaryStep,
 } from '../src/index.js';
 import {
+  formatAzureAnnotations,
   formatCiOutput,
   formatGitHubAnnotations,
   formatMarkdownSummary,
@@ -90,6 +91,14 @@ function makeSummary(scenarios: SummaryScenario[]): ReportSummary {
 function annotationLines(text: string): string[] {
   return text.trimEnd().split('\n');
 }
+
+function azureOutput(summary: ReportSummary): string {
+  return formatCiOutput(summary, 'azure');
+}
+
+const RUN_FAILED =
+  '##vso[task.logissue type=error]Run failed: The report summary is failed ' +
+  'but no scenario-level error was emitted.';
 
 function annotationMessage(line: string): string {
   const separator = line.indexOf('::', 2);
@@ -519,15 +528,338 @@ describe('GitHub annotations', () => {
     expect(messages).toEqual(['Scenario failed', 'the failure']);
   });
 
-  it('dispatches both formats and forwards options', () => {
+  it('dispatches all formats and forwards options', () => {
     const summary = makeSummary([scenario({ name: 'Passes' })]);
 
     expect(formatCiOutput(summary, 'github')).toBe(
       formatGitHubAnnotations(summary),
     );
+    expect(formatCiOutput(summary, 'azure')).toBe(
+      formatAzureAnnotations(summary),
+    );
     expect(formatCiOutput(summary, 'markdown', { title: 'CI title' })).toBe(
       formatMarkdownSummary(summary, { title: 'CI title' }),
     );
+  });
+});
+
+describe('Azure DevOps annotations', () => {
+  it('annotates a failed scenario with its identity and failure message', () => {
+    const summary = makeSummary([
+      scenario({
+        feature: 'Checkout',
+        name: 'Pays with card',
+        status: 'failed',
+        steps: [
+          step({ status: 'passed', message: 'ignore this message' }),
+          step({ status: 'failed', message: 'Expected 1 to equal 2' }),
+        ],
+      }),
+      scenario({ feature: 'Checkout', name: 'Passes' }),
+    ]);
+
+    expect(annotationLines(azureOutput(summary))).toEqual([
+      '##vso[task.logissue type=error]Checkout: Pays with card — ' +
+        'Expected 1 to equal 2',
+      '##[section]Tolkira: 2 scenarios: 1 passed, 1 failed; 0 unexecuted',
+    ]);
+  });
+
+  it('maps every status, ignores unexecuted and states the exact counts', () => {
+    const summary = makeSummary([
+      scenario({ name: 'Passes' }),
+      scenario({ name: 'Fails', status: 'failed' }),
+      scenario({ name: 'Skipped', status: 'skipped' }),
+      scenario({ name: 'Pending', status: 'pending' }),
+      scenario({ name: 'Undefined', status: 'undefined' }),
+      scenario({ name: 'Ambiguous', status: 'ambiguous' }),
+      scenario({ name: 'Unknown', status: 'unknown' }),
+      scenario({ name: 'Not run failed', status: 'failed', executed: false }),
+      scenario({ name: 'Not run unknown', status: 'unknown', executed: false }),
+    ]);
+
+    expect(annotationLines(azureOutput(summary))).toEqual([
+      '##vso[task.logissue type=error]CI feature: Fails — Scenario failed',
+      '##vso[task.logissue type=error]CI feature: Undefined — Scenario failed',
+      '##vso[task.logissue type=error]CI feature: Ambiguous — Scenario failed',
+      '##vso[task.logissue type=warning]CI feature: Skipped was skipped',
+      '##vso[task.logissue type=warning]CI feature: Pending was pending',
+      '##vso[task.logissue type=warning]CI feature: Unknown was unknown',
+      '##[section]Tolkira: 7 scenarios: 1 passed, 1 failed, 1 skipped, ' +
+        '1 pending, 1 undefined, 1 ambiguous, 1 unknown; 2 unexecuted',
+    ]);
+    expect(azureOutput(summary)).not.toContain('Not run');
+  });
+
+  it('counts an all-unexecuted run without scenario annotations', () => {
+    const summary = makeSummary([
+      scenario({ name: 'One', status: 'failed', executed: false }),
+      scenario({ name: 'Two', status: 'unknown', executed: false }),
+    ]);
+
+    expect(annotationLines(azureOutput(summary))).toEqual([
+      '##[section]Tolkira: 0 executed scenarios; 2 unexecuted',
+    ]);
+  });
+
+  it('states an empty run', () => {
+    const summary = makeSummary([]);
+
+    expect(azureOutput(summary)).toBe('##[section]Tolkira: No scenarios\n');
+  });
+
+  it('emits one run error and marks the section for a failed run', () => {
+    const summary = makeSummary([
+      scenario({ name: 'Passes' }),
+      scenario({ name: 'Also passes' }),
+    ]);
+    summary.status = 'failed';
+
+    expect(annotationLines(azureOutput(summary))).toEqual([
+      RUN_FAILED,
+      '##[section]Tolkira: 2 scenarios: 2 passed; 0 unexecuted; run failed',
+    ]);
+  });
+
+  it('emits the run error and the no-scenarios section for a failed empty run', () => {
+    const summary = makeSummary([]);
+    summary.status = 'failed';
+
+    expect(annotationLines(azureOutput(summary))).toEqual([
+      RUN_FAILED,
+      '##[section]Tolkira: No scenarios; run failed',
+    ]);
+  });
+
+  it('does not repeat the run error when a scenario error exists', () => {
+    const summary = makeSummary([
+      scenario({ name: 'Fails', status: 'failed' }),
+    ]);
+    summary.status = 'failed';
+    const output = azureOutput(summary);
+
+    expect(output.match(/Run failed:/g)).toBeNull();
+    expect(output).not.toContain('; run failed');
+  });
+
+  it('caps 50 errors and 20 warnings, then states the total omitted once', () => {
+    const scenarios = [
+      ...Array.from({ length: 55 }, (_, index) =>
+        scenario({
+          name: `Fail ${String(index).padStart(2, '0')}`,
+          status: 'failed',
+        }),
+      ),
+      ...Array.from({ length: 25 }, (_, index) =>
+        scenario({
+          name: `Skip ${String(index).padStart(2, '0')}`,
+          status: 'skipped',
+        }),
+      ),
+    ];
+    const output = azureOutput(makeSummary(scenarios));
+    const lines = annotationLines(output);
+    const errors = lines.filter((line) =>
+      line.startsWith('##vso[task.logissue type=error]'),
+    );
+    const warnings = lines.filter(
+      (line) =>
+        line.startsWith('##vso[task.logissue type=warning]') &&
+        !line.includes('annotations omitted'),
+    );
+
+    expect(errors).toHaveLength(50);
+    expect(warnings).toHaveLength(20);
+    expect(errors[0]).toContain('Fail 00');
+    expect(errors[49]).toContain('Fail 49');
+    expect(output).not.toContain('Fail 50');
+    expect(output).not.toContain('Fail 54');
+    expect(warnings[0]).toContain('Skip 00');
+    expect(warnings[19]).toContain('Skip 19');
+    expect(output).not.toContain('Skip 20');
+    expect(output).not.toContain('Skip 24');
+    expect(lines.at(-2)).toBe(
+      '##vso[task.logissue type=warning]Tolkira: 10 more annotations omitted',
+    );
+    expect(lines.at(-1)).toBe(
+      '##[section]Tolkira: 80 scenarios: 55 failed, 25 skipped; 0 unexecuted',
+    );
+  });
+
+  it('does not add an omitted line at exactly 50 errors and 20 warnings', () => {
+    const scenarios = [
+      ...Array.from({ length: 50 }, (_, index) =>
+        scenario({ name: `Fail ${String(index)}`, status: 'failed' }),
+      ),
+      ...Array.from({ length: 20 }, (_, index) =>
+        scenario({ name: `Skip ${String(index)}`, status: 'skipped' }),
+      ),
+    ];
+    const output = azureOutput(makeSummary(scenarios));
+
+    expect(annotationLines(output)).toHaveLength(71);
+    expect(output).not.toContain('annotations omitted');
+  });
+
+  it('truncates the complete message before escaping', () => {
+    const raw = `${'a'.repeat(3990)}${'%'.repeat(20)}`;
+    const summary = makeSummary([
+      scenario({
+        name: 'Long',
+        status: 'failed',
+        steps: [step({ status: 'failed', message: raw })],
+      }),
+    ]);
+    const [line] = annotationLines(azureOutput(summary));
+
+    expect(line).toBe(
+      '##vso[task.logissue type=error]CI feature: Long — ' +
+        `${'a'.repeat(3981)}[truncated]`,
+    );
+    expect(line).not.toContain('%AZP25');
+  });
+
+  it('truncates a long identity on the error and warning paths', () => {
+    const errorSummary = makeSummary([
+      scenario({ feature: '', name: 'b'.repeat(4100), status: 'failed' }),
+    ]);
+    const [errorLine] = annotationLines(azureOutput(errorSummary));
+    expect(errorLine).toBe(
+      `##vso[task.logissue type=error]${'b'.repeat(4000)}[truncated]`,
+    );
+
+    const warningSummary = makeSummary([
+      scenario({ feature: '', name: 'c'.repeat(4100), status: 'skipped' }),
+    ]);
+    const [warningLine] = annotationLines(azureOutput(warningSummary));
+    expect(warningLine).toBe(
+      `##vso[task.logissue type=warning]${'c'.repeat(4000)}[truncated]`,
+    );
+  });
+
+  it('escapes percent, bracket and line breaks into one inert command', () => {
+    const summary = makeSummary([
+      scenario({
+        feature: 'Rate 50%, [v1]',
+        name: 'line1\nline2',
+        status: 'failed',
+        steps: [
+          step({ status: 'failed', message: '100% ] %AZP25\r\nnext' }),
+        ],
+      }),
+    ]);
+    const output = azureOutput(summary);
+
+    expect(annotationLines(output)).toHaveLength(2);
+    expect(annotationLines(output)[0]).toBe(
+      '##vso[task.logissue type=error]Rate 50%AZP25, ' +
+        '[v1%5D: line1%0Aline2 — 100%AZP25 %5D %AZP25AZP25%0D%0Anext',
+    );
+    expect(output).not.toContain('%25');
+    expect(output).not.toContain('\r');
+  });
+
+  it('keeps an injected logging command inert', () => {
+    const summary = makeSummary([
+      scenario({
+        name: 'evil\n##vso[task.logissue type=error]injected',
+        status: 'failed',
+      }),
+    ]);
+    const lines = annotationLines(azureOutput(summary));
+
+    expect(lines).toHaveLength(2);
+    expect(
+      lines.filter((line) =>
+        line.startsWith('##vso[task.logissue type=error]'),
+      ),
+    ).toHaveLength(1);
+    expect(lines[0]).toBe(
+      '##vso[task.logissue type=error]CI feature: evil%0A' +
+        '##vso[task.logissue type=error%5Dinjected — Scenario failed',
+    );
+  });
+
+  it('never sets the task result or a source path', () => {
+    const output = azureOutput(
+      makeSummary([scenario({ status: 'failed' })]),
+    );
+
+    expect(output).not.toContain('##vso[task.complete');
+    expect(output).not.toContain('sourcepath');
+  });
+
+  it('truncates before escaping so percent data survives the limit', () => {
+    const raw =
+      `${'%'.repeat(3900)}${'a'.repeat(200)}${'tail'.repeat(100)}`;
+    const summary = makeSummary([
+      scenario({
+        feature: '',
+        name: '',
+        status: 'failed',
+        steps: [step({ status: 'failed', message: raw })],
+      }),
+    ]);
+    const [line] = annotationLines(azureOutput(summary));
+
+    // Three prefix code points (" — ") leave 3997 of the 4000 for the raw
+    // message: 3900 percent signs and 97 of the "a" run.
+    expect(line.match(/%AZP25/g)).toHaveLength(3900);
+    expect(line).toBe(
+      '##vso[task.logissue type=error] — ' +
+        `${'%AZP25'.repeat(3900)}${'a'.repeat(97)}[truncated]`,
+    );
+    // Escaping first would cut the escaped run at 4000, leaving about 800
+    // groups; the 3900 groups prove the raw text was cut first.
+    expect(line).not.toContain('tail');
+  });
+
+  it('escapes a warning identity with percent, bracket and newline', () => {
+    const summary = makeSummary([
+      scenario({
+        feature: '',
+        name: 'rate 50%]line1\nline2',
+        status: 'skipped',
+      }),
+    ]);
+    const [line] = annotationLines(azureOutput(summary));
+
+    expect(line).toBe(
+      '##vso[task.logissue type=warning]rate 50%AZP25%5Dline1%0Aline2 ' +
+        'was skipped',
+    );
+  });
+
+  it('strips ANSI before wrapping an annotation', () => {
+    const summary = makeSummary([
+      scenario({
+        name: '\u001b[31mevil\u001b[0m\n##vso[task.logissue type=error]x',
+        status: 'failed',
+      }),
+    ]);
+    const [line] = annotationLines(azureOutput(summary));
+
+    expect(line).toBe(
+      '##vso[task.logissue type=error]CI feature: evil%0A' +
+        '##vso[task.logissue type=error%5Dx — Scenario failed',
+    );
+    expect(line).not.toContain('\u001b');
+  });
+
+  it('escapes Unicode line separators to %0A', () => {
+    const summary = makeSummary([
+      scenario({
+        name: 'line1\u2028line2\u2029line3',
+        status: 'skipped',
+      }),
+    ]);
+    const [line] = annotationLines(azureOutput(summary));
+
+    expect(line).toBe(
+      '##vso[task.logissue type=warning]CI feature: ' +
+        'line1%0Aline2%0Aline3 was skipped',
+    );
+    expect(line).not.toMatch(/[\u2028\u2029]/);
   });
 });
 

@@ -99,8 +99,10 @@ it. The gap is the combination.
 
 ### CI output (in main)
 
-- `--ci github` annotations and `--ci markdown` summary text for stdout,
-  `$GITHUB_STEP_SUMMARY`, a PR step or `--ci-out`; see [`CI.md`](CI.md).
+- `--ci github` annotations, `--ci azure` Azure DevOps logging commands and
+  `--ci markdown` summary text for stdout, `$GITHUB_STEP_SUMMARY`, a PR step or
+  `--ci-out`. [`CI.md`](CI.md) also documents Jenkins HTML Publisher and
+  sharded-report recipes (not live-tested).
 
 ### History and trends (in main)
 

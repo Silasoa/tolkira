@@ -35,7 +35,7 @@ Options:
       --pdf-timeout <ms> PDF render deadline in milliseconds (default 300000); needs --pdf
       --email <file>   Write an HTML email summary
       --json           Print a stable JSON summary to stdout
-      --ci <format>    Print a CI summary: github or markdown
+      --ci <format>    Print a CI summary: github, azure or markdown
       --ci-out <file>  Write the markdown CI summary to a file
       --history <file> Read and append an aggregate run history; needs --out
       --title <text>   Report title, email subject/heading and Markdown CI heading
@@ -49,8 +49,9 @@ Options:
 
 At least one of --out, --pdf, --json, --ci or --email is required. --ci-out requires
 --ci markdown. --history requires --out. Without --ci-out, --ci writes only the
-CI summary to stdout. --json and --ci share stdout only with --ci-out. Failing
-tests do not change the exit code.`;
+CI summary to stdout. --json and --ci markdown share stdout only with --ci-out;
+--ci github and --ci azure always own stdout. Failing tests do not change the
+exit code.`;
 
 export interface CliIO {
   stdout: (text: string) => void;
@@ -116,8 +117,10 @@ function parsePdfTimeout(value: string | undefined): number | undefined {
 
 function parseCiFormat(value: string | undefined): CiFormat | undefined {
   if (value === undefined) return undefined;
-  if (value === 'github' || value === 'markdown') return value;
-  throw new Error(`Invalid --ci "${value}". Use github or markdown.`);
+  if (value === 'github' || value === 'azure' || value === 'markdown') {
+    return value;
+  }
+  throw new Error(`Invalid --ci "${value}". Use github, azure or markdown.`);
 }
 
 function parseAccent(value: string | undefined): string | undefined {
@@ -369,9 +372,9 @@ export async function runCli(
     return 2;
   }
 
-  if (ci === 'github' && ciOut !== undefined) {
+  if ((ci === 'github' || ci === 'azure') && ciOut !== undefined) {
     io.stderr(
-      `tolkira: --ci github writes annotations to stdout; ` +
+      `tolkira: --ci ${ci} writes annotations to stdout; ` +
         `--ci-out is only for --ci markdown\n\n${USAGE}`,
     );
     return 2;
@@ -381,7 +384,9 @@ export async function runCli(
     const alternative =
       ci === 'github'
         ? 'drop --json or --ci github'
-        : 'add --ci-out for the Markdown summary or drop one';
+        : ci === 'azure'
+          ? 'drop --json or --ci azure, or use --ci markdown with --ci-out'
+          : 'add --ci-out for the Markdown summary or drop one';
     io.stderr(
       `tolkira: --json and --ci ${ci} both write to stdout; ` +
         `${alternative}\n\n${USAGE}`,

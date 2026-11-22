@@ -7,6 +7,15 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Azure DevOps CI output and publishing recipes. `--ci azure` emits capped,
+  escaped Azure logging commands and a final count section, emits no
+  `##vso[task.complete]`, and keeps exit 0; `type=error` may still mark the
+  Azure step failed, so publish artifacts in a later
+  `condition: succeededOrFailed()` step. `--ci-out` stays Markdown-only and
+  `--json --ci azure` names the Markdown alternative. `docs/CI.md` adds Azure
+  DevOps, Jenkins HTML Publisher (stock CSP and the download-the-artifact
+  default) and sharded-report recipes. GitHub, Markdown, JSON and report bytes
+  are unchanged; no dependency, schema or locale change.
 - Report size diagnostics. The Details Run panel now names the unique processed
   report files and their bytes, decoded attachment bytes, the exact final report
   HTML bytes and the three largest attachments by decoded bytes; a note states

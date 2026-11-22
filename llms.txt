@@ -17,7 +17,8 @@ Package: https://www.npmjs.com/package/tolkira
 - [Agent interface](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md):
   CLI, API, JSON summary schema 2 and exit codes.
 - [CI output](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md):
-  GitHub annotations, GitLab and step summaries, caps and exit codes.
+  GitHub and Azure annotations, Jenkins HTML Publisher, sharded reports,
+  GitLab and step summaries, caps and exit codes.
 - [Email summary](https://github.com/Silasoa/tolkira/blob/main/docs/EMAIL.md):
   opt-in HTML mail body with `--email`, 600 px inline template, report note and
   CI mail-step example; no sending, no SMTP and no network.
@@ -44,8 +45,9 @@ Package: https://www.npmjs.com/package/tolkira
 - Exit code 0 means the report was generated, not that the tests passed. Read
   `status` and `counts` from the summary.
 - Check `scenarios[].executed` before treating a scenario status as an outcome.
-- Use `tolkira <inputs> --ci github` for GitHub annotations on stdout, or
-  `--ci markdown` for a step summary or GitLab file. Messages are not redacted.
+- Use `tolkira <inputs> --ci github` for GitHub annotations on stdout,
+  `--ci azure` for Azure DevOps logging commands, or `--ci markdown` for a step
+  summary or GitLab file. Messages are not redacted.
 - Attach `report.html` as the human-facing artifact; keep the JSON summary for
   automation.
 - Use `tolkira <inputs> --out report.html --email email.html` for a small HTML

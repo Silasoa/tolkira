@@ -254,17 +254,24 @@ For a GitHub step summary, append Markdown so earlier steps survive:
 npx tolkira test-results/ --ci markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
+Azure Pipelines reads Azure logging commands from stdout:
+
+```shell
+npx tolkira test-results/ --ci azure
+```
+
 GitLab and other CI systems can keep the Markdown as a file:
 
 ```shell
 npx tolkira test-results/ --out report.html --ci markdown --ci-out tolkira-summary.md
 ```
 
-`--ci github` writes to stdout only; `--ci-out` requires `--ci markdown`, is
-written atomically and must not overwrite an input, the logo or `--out`. Exit
-codes do not change: a failed test run still exits 0. See
+`--ci github` and `--ci azure` write to stdout only; `--ci-out` requires
+`--ci markdown`, is written atomically and must not overwrite an input, the logo
+or `--out`. Exit codes do not change: a failed test run still exits 0. See
 [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) for the
-GitHub and GitLab examples, output caps and the unredacted-message warning.
+GitHub, Azure DevOps, Jenkins, sharded and GitLab recipes, output caps and the
+unredacted-message warning.
 
 ## What you get
 
@@ -554,8 +561,8 @@ for the dated limitations table (last verified 2026-11-20).
 - [`llms.txt`](https://github.com/Silasoa/tolkira/blob/main/llms.txt) — short entry point for AI agents.
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema, CLI
   contract and exit codes.
-- [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) — GitHub annotations, GitLab and step-summary
-  output.
+- [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) — GitHub and Azure annotations, Jenkins
+  HTML Publisher, sharded reports, GitLab and step-summary output.
 - [`docs/EMAIL.md`](https://github.com/Silasoa/tolkira/blob/main/docs/EMAIL.md) — opt-in HTML email summary, CLI/API and
   CI mail-step example.
 - [`docs/PDF.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PDF.md) — opt-in PDF export, engine install, CLI/API,

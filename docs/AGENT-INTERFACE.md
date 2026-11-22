@@ -4,7 +4,8 @@ Tolkira produces five things from the same input:
 
 - a self-contained HTML report for humans;
 - a stable JSON summary for programs and AI agents;
-- deterministic CI text: GitHub Actions annotations or a Markdown summary;
+- deterministic CI text: GitHub Actions or Azure DevOps annotations, or a
+  Markdown summary;
 - an opt-in HTML email summary for a status mail or chat message;
 - an opt-in PDF print archive when the optional Playwright Chromium engine is
   installed.
@@ -47,6 +48,9 @@ Format the same summary for CI instead of, or alongside, HTML and JSON:
 # GitHub Actions workflow commands on stdout; no HTML required
 tolkira test-results/ --ci github
 
+# Azure DevOps logging commands on stdout; no HTML required
+tolkira test-results/ --ci azure
+
 # Markdown on stdout, or in a standalone file
 tolkira test-results/ --ci markdown
 tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
@@ -55,6 +59,11 @@ tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
 - `--ci github` writes `::error` and `::notice` workflow commands. It needs no
   `--out` and rejects `--ci-out`: GitHub only reads workflow commands from
   stdout.
+- `--ci azure` writes `##vso[task.logissue ...]` commands and a final
+  `##[section]Tolkira:` count line for Azure Pipelines. It needs no `--out`,
+  rejects `--ci-out`, emits no `##vso[task.complete]` and keeps exit 0.
+  `type=error` commands may still mark the Azure step failed, so publish
+  artifacts in a later `condition: succeededOrFailed()` step.
 - `--ci markdown` writes deterministic Markdown with complete counts, a failed
   list and skipped names. `--title` sets the heading.
 - Without `--ci-out`, CI text is the only stdout and the human confirmation is
@@ -71,10 +80,12 @@ tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
 
 GitHub mode caps at 50 error and 20 notice annotations and states the
 remainder; the final count notice keeps the exact totals. A failed run status
-without a scenario-level error produces one run-level error annotation.
-Markdown caps the failed list at 50 scenarios, each message at 500 raw
-characters and the skipped name list at 20, while the counts and the overall
-`Status` row stay complete.
+without a scenario-level error produces one run-level error annotation. Azure
+mode caps error commands at 50 and warnings at 20, truncates each complete
+message at 4,000 code points and escapes `%`, `]`, CR, LF and Unicode line
+separators into one inert command line. Markdown caps the failed list at 50
+scenarios, each message at 500 raw characters and the skipped name list at 20,
+while the counts and the overall `Status` row stay complete.
 
 ## Email summary
 
@@ -284,7 +295,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
 | pdf | `--pdf <file>` prints the report with optional Playwright Chromium; `--pdf-timeout <ms>` (needs `--pdf`) overrides the deadline | `renderPdf(html, { timeoutMs })` |
 | size warning | `--max-size <mb>` (default 10) warns with the report HTML, report-file and decoded attachment sizes in MB | not applicable; the API returns HTML |
-| CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
+| CI output | `--ci github\|azure\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
 The CLI validates logo bytes and rejects unsupported types or a size over
 2 MB. The API only accepts a `data:image/...;base64,...` logo; anything else is
