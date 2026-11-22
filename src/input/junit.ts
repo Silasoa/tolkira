@@ -248,10 +248,17 @@ function elementFromTestcase(testcase: XmlNode, index: number): XmlNode {
   };
 }
 
-function featureFromSuite(suite: XmlNode, source: string, index: number): XmlNode {
-  const testcases = asArray(suite.testcase).filter(isObject);
-  const name =
-    stringOf(suite.name) || stringOf(suite.classname) || `JUnit suite ${index + 1}`;
+interface TestcaseEntry {
+  testcase: XmlNode;
+  index: number;
+}
+
+function featureFor(
+  suite: XmlNode,
+  source: string,
+  name: string,
+  entries: TestcaseEntry[],
+): XmlNode {
   return {
     keyword: 'Feature',
     name,
@@ -259,10 +266,56 @@ function featureFromSuite(suite: XmlNode, source: string, index: number): XmlNod
     uri: source,
     line: 1,
     tags: [],
-    elements: testcases.map((testcase, testIndex) =>
-      elementFromTestcase(testcase, testIndex),
+    elements: entries.map(({ testcase, index }) =>
+      elementFromTestcase(testcase, index),
     ),
   };
+}
+
+function isNestedClassShape(classnames: string[]): boolean {
+  if (classnames.length < 2) return false;
+  if (classnames.some((classname) => classname.includes('$'))) return true;
+  return classnames.some((outer) =>
+    classnames.some(
+      (inner) => inner !== outer && inner.startsWith(`${outer}.`),
+    ),
+  );
+}
+
+function featuresFromSuite(
+  suite: XmlNode,
+  source: string,
+  index: number,
+): XmlNode[] {
+  const name =
+    stringOf(suite.name) || stringOf(suite.classname) || `JUnit suite ${index + 1}`;
+  const entries: TestcaseEntry[] = asArray(suite.testcase)
+    .filter(isObject)
+    .map((testcase, testcaseIndex) => ({ testcase, index: testcaseIndex }));
+  const byClass = new Map<string, TestcaseEntry[]>();
+
+  for (const entry of entries) {
+    const classname = stringOf(entry.testcase.classname);
+    if (!classname) continue;
+    const group = byClass.get(classname) ?? [];
+    group.push(entry);
+    byClass.set(classname, group);
+  }
+
+  if (!isNestedClassShape([...byClass.keys()])) {
+    return [featureFor(suite, source, name, entries)];
+  }
+
+  const features = [...byClass.entries()].map(([classname, group]) =>
+    featureFor(suite, source, classname, group),
+  );
+  const unclassed = entries.filter(
+    ({ testcase }) => !stringOf(testcase.classname),
+  );
+  if (unclassed.length > 0) {
+    features.push(featureFor(suite, source, name, unclassed));
+  }
+  return features;
 }
 
 export function looksLikeJUnit(content: string): boolean {
@@ -320,8 +373,8 @@ export async function parseJUnitXml(
     );
   }
 
-  const legacy = suites.map((suite, index) =>
-    featureFromSuite(suite, source, index),
+  const legacy = suites.flatMap((suite, index) =>
+    featuresFromSuite(suite, source, index),
   );
   const envelopes = parseLegacyValue(legacy, source, {
     idPrefix: options.idPrefix ?? 'junit',

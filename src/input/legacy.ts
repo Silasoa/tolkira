@@ -67,6 +67,7 @@ interface LegacyStep {
   keyword?: string;
   name?: string;
   text?: string | string[];
+  output?: string | string[] | null;
   line?: number;
   hidden?: boolean;
   result?: LegacyResult;
@@ -143,11 +144,19 @@ function validateStep(
   step: Record<string, unknown>,
   source: string,
   where: string,
+  hook = false,
 ): void {
   if (step.text !== undefined && !isTextValue(step.text)) {
     throw invalidLegacy(
       source,
       `${where}.text must be a string or an array of strings.`,
+    );
+  }
+  // Only hook output is mapped; non-hook output is ignored, and null is absent.
+  if (hook && step.output != null && !isTextValue(step.output)) {
+    throw invalidLegacy(
+      source,
+      `${where}.output must be a string or an array of strings.`,
     );
   }
   if (step.embeddings !== undefined && !Array.isArray(step.embeddings)) {
@@ -289,7 +298,12 @@ function validateLegacyFeatures(
             `${where} step ${stepIndex + 1} must be an object.`,
           );
         }
-        validateStep(step, source, `${where} step ${stepIndex + 1}`);
+        validateStep(
+          step,
+          source,
+          `${where} step ${stepIndex + 1}`,
+          isHook(step),
+        );
       }
       for (const [stepIndex, step] of [
         ...(element.before ?? []),
@@ -298,7 +312,7 @@ function validateLegacyFeatures(
         if (!isRecord(step)) {
           throw invalidLegacy(source, `${where} hook ${stepIndex + 1} must be an object.`);
         }
-        validateStep(step, source, `${where} hook ${stepIndex + 1}`);
+        validateStep(step, source, `${where} hook ${stepIndex + 1}`, true);
       }
     }
   }
@@ -307,6 +321,7 @@ function validateLegacyFeatures(
 interface StepPlan {
   testStep: TestStep;
   legacyStep: LegacyStep;
+  hookOutputName?: string;
 }
 
 function createIdFactory(prefix: string): (kind: string) => string {
@@ -327,7 +342,7 @@ function normalizeUri(uri: string | undefined, index: number): string {
   return normalized || `features/legacy-${index}.feature`;
 }
 
-function normalizeText(value: string | string[] | undefined): string {
+function normalizeText(value: string | string[] | null | undefined): string {
   if (Array.isArray(value)) return value.join('\n');
   return value ?? '';
 }
@@ -763,6 +778,7 @@ export function parseLegacyValue(
         plans.push({
           testStep: { id: nextId('test-step'), hookId },
           legacyStep: hookStep,
+          hookOutputName: 'Before hook output',
         });
       }
 
@@ -788,6 +804,7 @@ export function parseLegacyValue(
         plans.push({
           testStep: { id: nextId('test-step'), hookId },
           legacyStep: hookStep,
+          hookOutputName: 'After hook output',
         });
       }
 
@@ -831,6 +848,23 @@ export function parseLegacyValue(
             timestamp: finishedAt,
           },
         });
+
+        if (plan.hookOutputName) {
+          const hookOutput = normalizeText(plan.legacyStep.output);
+          if (hookOutput) {
+            scenarioEnvelopes.push({
+              attachment: {
+                body: hookOutput,
+                contentEncoding: AttachmentContentEncoding.IDENTITY,
+                fileName: plan.hookOutputName,
+                mediaType: 'text/plain',
+                testCaseStartedId,
+                testStepId: plan.testStep.id,
+                timestamp: finishedAt,
+              },
+            });
+          }
+        }
 
         for (const embedding of plan.legacyStep.embeddings ?? []) {
           if (!embedding.data) continue;

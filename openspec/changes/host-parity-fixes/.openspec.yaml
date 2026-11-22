@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Close B-034 and B-036 before the 0.4.0 release candidate without schema or
+  dependency changes.

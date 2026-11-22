@@ -7,6 +7,27 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- JUnit XML nested-class split. When one `<testsuite>` has a nested-class shape
+  — more than one distinct non-empty testcase `classname` plus a `$` classname
+  or a dotted outer prefix — the report emits one feature per classname, named
+  for the class alone with no suite prefix; a suite with one classname keeps its
+  suite feature, and unclassed testcases stay in a suite-named feature.
+  Classname-template suites, such as jest-junit's `"{classname} {title}"`, keep
+  one suite feature instead of turning every test into a feature. Every testcase,
+  status, duration and the source file is preserved, so Surefire's
+  `Outer$Nested` class rows no longer fold into the outer feature. The JSON
+  summary schema, CI and email surfaces and dependencies are unchanged; the
+  feature total and `scenarios[].feature` names change.
+- Legacy JSON hook output. A `before` or `after` hook with a non-null string or
+  string-array `output` now renders a `text/plain` attachment named
+  `Before hook output` or `After hook output`, with lines joined by `\n`. Null,
+  empty strings/arrays and output on non-hook steps add none. The existing hook
+  renderer shows it and the summary, CI and email attachment totals count it like
+  any other attachment; there is no schema or locale change. This is better than
+  cucumber-html-reporter 7.2.0, which ignores hook output, not a parity claim.
+  The real 8.1.0 host fixture covers single-line outputs; the `\n` array join is
+  covered by the synthetic hook-output test.
+
 - Flaky visibility for `@flaky` scenarios. A scenario whose inherited tags
   include the lowercase `@flaky` tag shows a localized, decorative `flaky`
   badge in its summary row; when at least one exists, the run metadata adds a

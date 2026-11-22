@@ -18,7 +18,7 @@ The dated cross-format limitations table is
 | --- | --- | --- |
 | cucumber-js | 2.3.1, 3.2.1, 4.2.1, 5.1.0, 6.0.7, 7.3.2, 13.3.0 | The shape is stable enough. 2.x has no `type` on elements and uses absolute URIs; duration units vary below 6.0.5. |
 | Behave | 1.3.3 real runs (`test/fixtures/legacy/behave-real.json`, `test/fixtures/behave/behave-real-attachments.json`) | Duration is seconds and is normalised to milliseconds. The rich real run covers a multiline doc string, a data table, an inline PNG, a multiline error message and the `error` status. `test/fixtures/legacy/behave.json` is hand-shaped regression coverage, not proof of producer detection. |
-| cucumber-jvm | 7.22.1 real run | The legacy `json` formatter still ships in 7.x/8.x. The fixture covers `classpath:` URIs, nanosecond durations and a Java assertion. |
+| cucumber-jvm | 8.1.0 host run (`test/fixtures/legacy/cucumber-jvm-hook-output.json`) | The calculator example emits `before`/`after` hook `output`; 12 real single-line hook results render as `text/plain` hook attachments with the host text. The `\n` array join is unit-tested with a synthetic two-line output; the host capture itself is single-line. The 7.22.1 fixture still covers `classpath:` URIs, nanosecond durations and a Java assertion. |
 | cucumber-ruby | 12.0.1 real run | The legacy `json` formatter still ships; the fixture covers relative paths, nanosecond durations and a Ruby `RuntimeError`. |
 
 ## Messages
@@ -103,10 +103,17 @@ Hooks section below the feature list; a named run hook shows its bare name.
 The section is omitted when empty, while the official formatter shows an empty
 section.
 
-Legacy JSON has per-scenario before/after hooks but no test-run hooks. JUnit has
-no hooks. The JSON summary stays version 2: hooks stay in
-`scenarios[].steps` with `keyword: "Hook"`, plus an optional `name`. Summary
-step counts include hooks; the HTML counts steps and hooks separately.
+Legacy JSON has per-scenario before/after hooks but no test-run hooks. Hook
+`output` from a non-null string or string array is kept as a `text/plain`
+attachment named `Before hook output` or `After hook output`, with array lines
+joined by `\n`; null, empty strings/arrays and non-hook output add none. It
+counts as a normal scenario attachment and renders with the hook. This is an
+improvement over cucumber-html-reporter 7.2.0, which ignores hook output; it is
+not a parity claim. The real 8.1.0 host fixture uses single-line outputs; the
+`\n` array join is unit-tested with a synthetic two-line output. JUnit has no
+hooks. The JSON summary stays version 2: hooks stay in `scenarios[].steps` with
+`keyword: "Hook"`, plus an optional `name`. Summary step counts include hooks;
+the HTML counts steps and hooks separately.
 
 ## CI metadata and attachments
 

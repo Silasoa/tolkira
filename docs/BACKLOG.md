@@ -53,8 +53,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-029 | Report | P3 | Chromium OS sandbox for PDF renders | A CI runner or container supports the Chromium OS sandbox and the PDF path processes untrusted attachments; until then the accepted `--no-sandbox` risk is documented in PDF.md. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
-| B-034 | Input | P3 | Legacy JSON hook output is dropped | Cucumber-JVM carries `before/after[].output`; the report shows hook names/counts but not that output. A user needs hook diagnostics or a producer fixture with non-empty output; map it to hook output or document the limit. | — |
-| B-036 | Input | P3 | JUnit nested test classes are folded into the outer feature | Surefire puts `Outer$Nested` cases in one `<testsuite>` and lists 15 class rows; Tolkira shows 12 features while keeping all 59 cases. A user needs the nested class distinction or a real report shows it. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -113,6 +111,28 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-036 JUnit nested test classes** — resolved on 2026-11-22 in the
+  `host-parity-fixes` change: a `<testsuite>` with a nested-class shape (at least
+  two distinct non-empty testcase classnames plus a `$` classname or a dotted
+  outer prefix) becomes one feature per classname, using the classname alone as
+  the feature name. A one-class suite keeps its suite feature, unclassed
+  testcases stay in a suite-named feature, and classname-template suites such as
+  jest-junit's `"{classname} {title}"` keep one suite feature. Every testcase,
+  status, duration and the source file is preserved. The 2026-11-22 Spring host
+  run confirms 15 features / 59 scenarios / 59 passed, an exact match to
+  Surefire's 15 class rows. The JSON summary schema, CI, email and dependency
+  surface are unchanged; the feature total and `scenarios[].feature` names
+  change.
+- **B-034 Legacy JSON hook output** — resolved on 2026-11-22 in the
+  `host-parity-fixes` change: a `before`/`after` hook with a non-null string or
+  string-array `output` becomes a `text/plain` attachment named
+  `Before hook output` or `After hook output`, with lines joined by `\n`; null,
+  empty strings/arrays and non-hook output add none. The existing hook renderer
+  shows it and the summary, CI and email attachment totals count it normally. No
+  schema, locale or dependency change. This is better than
+  cucumber-html-reporter 7.2.0, which ignores hook output. The real 8.1.0 host
+  fixture covers single-line outputs; the `\n` array join is covered by the
+  synthetic hook-output test.
 - **B-035 Playwright JSON scenario source line** — implemented on 2026-11-22 in
   the `playwright-source-line` change: `ReportScenario` carries the Pickle
   location line (positive integer only), and the scenario summary shows

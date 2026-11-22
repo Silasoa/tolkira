@@ -469,6 +469,34 @@ describe('legacy JSON adapter', () => {
     }
   });
 
+  it('rejects number, object and mixed-array hook output shapes', () => {
+    const cases: unknown[] = [42, { line: 'one' }, ['ok', 1]];
+
+    for (const output of cases) {
+      expect(
+        () =>
+          parseLegacyJson(
+            JSON.stringify([
+              {
+                name: 'Invalid hook output',
+                elements: [
+                  {
+                    keyword: 'Scenario',
+                    name: 'Bad hook output',
+                    before: [
+                      { keyword: 'Before ', hidden: true, output },
+                    ],
+                  },
+                ],
+              },
+            ]),
+            'invalid-hook-output.json',
+          ),
+        JSON.stringify(output),
+      ).toThrow(/Invalid legacy JSON[\s\S]*hook 1\.output/);
+    }
+  });
+
   it('maps Behave hook and cleanup errors to failed', () => {
     const envelopes = parseLegacyJson(
       JSON.stringify([

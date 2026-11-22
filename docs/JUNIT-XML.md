@@ -25,6 +25,7 @@ tolkira reports/junit.xml reports/cucumber.json --out report.html
 | JUnit XML | Report |
 | --- | --- |
 | `<testsuite name="...">` | feature; `name` falls back to `classname` or `JUnit suite N` |
+| `<testcase classname="...">` | splits the suite only for a nested-class shape (a `$` name or a dotted outer prefix); classname templates keep the suite feature |
 | `<testsuite description="...">` | feature description, rendered as safe Markdown |
 | `<testcase name="...">` | scenario with one synthetic step |
 | `<testcase description="...">` | scenario description, rendered as safe Markdown |
@@ -87,9 +88,15 @@ one.
   instructions is data and is accepted.
 - A document with no test cases is rejected with a clear error instead of
   rendered as an empty run.
-- Grouping follows `<testsuite>`; a per-testcase `classname` is not used. Maven's
-  `Outer$Nested` cases stay in the outer feature, so a Surefire report with 15
-  class rows can show 12 Tolkira features while keeping all 59 cases (B-036).
+- Grouping follows `<testsuite>` except for a nested-class shape: at least two
+  distinct non-empty testcase `classname` values and either a classname with `$`
+  or one classname as a dotted outer prefix of another. Such a suite becomes one
+  feature per classname, using the classname alone as the feature name; testcases
+  without a classname stay in a suite-named feature. Other multi-classname
+  suites keep the suite feature, so a jest-junit `"{classname} {title}"` template
+  does not turn every test into a feature. All testcases, statuses, durations and
+  the source file are preserved, so Maven Surefire's `Outer$Nested` class rows
+  are no longer folded into the outer feature.
 - Test time is the sum of `<testcase time>` values. Suite wall time (including
   Spring context setup) is not included, so do not compare it directly with a
   Surefire total (B-037).
