@@ -8,7 +8,7 @@ import { renderHtml } from './render/html.js';
 import { summarizeIndex } from './summary.js';
 import type { ReportSummary } from './summary.js';
 
-export const version = '0.4.0';
+export const version = '0.5.0';
 export const phase = 'development';
 
 export type {
