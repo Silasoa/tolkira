@@ -19,6 +19,7 @@ import type {
   Scenario,
   Step,
   TestCase,
+  TestCaseStarted,
   TestStep,
   TestStepResult,
   Timestamp,
@@ -28,6 +29,7 @@ import {
   MAX_TOTAL_ATTACHMENT_BYTES,
 } from '../attachment.js';
 import { stripAnsi } from '../text.js';
+import { recordSkippedAttachments } from '../attempt-diagnostics.js';
 
 const FAILED_STATUSES = new Set(['failed', 'timedOut', 'interrupted']);
 const KNOWN_ANNOTATIONS = new Set(['skip', 'fixme', 'fail', 'slow']);
@@ -135,6 +137,7 @@ interface PlannedAttempt {
   timestamp: Timestamp;
   steps: CanonicalStep[];
   attachments: PlannedAttachment[];
+  skippedAttachments: number;
   willBeRetried: boolean;
 }
 
@@ -867,6 +870,7 @@ async function readAttachment(
 async function resolveAttachmentPath(
   file: string,
   context: PlanContext,
+  onSkip?: () => void,
 ): Promise<PlannedAttachment | undefined> {
   if (isNonLocalPath(file)) return undefined;
   // Relative paths use the input directory first, then cwd for CI layouts where
@@ -892,7 +896,10 @@ async function resolveAttachmentPath(
     const attachment = await readAttachment(candidate, context);
     if (attachment) return attachment;
   }
-  if (outside > 0 && inside === 0) context.skippedAttachments += 1;
+  if (outside > 0 && inside === 0) {
+    context.skippedAttachments += 1;
+    onSkip?.();
+  }
   return undefined;
 }
 
@@ -907,8 +914,9 @@ function playwrightMediaType(mediaType: string): string {
 async function attachmentsForResult(
   result: PlaywrightResult,
   context: PlanContext,
-): Promise<PlannedAttachment[]> {
+): Promise<{ attachments: PlannedAttachment[]; skipped: number }> {
   const planned: PlannedAttachment[] = [];
+  let skipped = 0;
 
   for (const attachment of result.attachments) {
     if (
@@ -928,7 +936,9 @@ async function attachmentsForResult(
       continue;
     }
     if (attachment.path === undefined) continue;
-    const file = await resolveAttachmentPath(attachment.path, context);
+    const file = await resolveAttachmentPath(attachment.path, context, () => {
+      skipped += 1;
+    });
     if (!file) continue;
     planned.push({
       ...file,
@@ -957,7 +967,7 @@ async function attachmentsForResult(
     }
   }
 
-  return planned;
+  return { attachments: planned, skipped };
 }
 
 function featureFor(
@@ -1136,18 +1146,23 @@ async function scenarioPlan(
       timestamp: context.runTimestamp,
       steps: skipped ? canonical : [],
       attachments: [],
+      skippedAttachments: 0,
       willBeRetried: false,
     });
   } else {
     for (const [index, result] of results.entries()) {
       const isFinal = index === finalIndex;
+      // Earlier attempts are never rendered; reading their attachments would
+      // spend the total byte budget twice per retry.
+      const finalAttachments = isFinal
+        ? await attachmentsForResult(result, context)
+        : undefined;
       plan.attempts.push({
         attempt: result.retry,
         timestamp: timestampOf(result.startTime, context.runTimestamp),
         steps: isFinal ? canonical : attemptSteps(result, context.inputDir),
-        // Earlier attempts are never rendered; reading their attachments would
-        // spend the total byte budget twice per retry.
-        attachments: isFinal ? await attachmentsForResult(result, context) : [],
+        attachments: finalAttachments?.attachments ?? [],
+        skippedAttachments: finalAttachments?.skipped ?? 0,
         willBeRetried: index < results.length - 1,
       });
     }
@@ -1261,6 +1276,7 @@ function addErrorFeature(
           timestamp: context.runTimestamp,
           steps: [{ text: 'Playwright error', durationMs: 0, status: FAILED, message }],
           attachments: [],
+          skippedAttachments: 0,
           willBeRetried: false,
         },
       ],
@@ -1390,13 +1406,17 @@ export async function parsePlaywrightJson(
         envelopes.push({ testCase: plan.testCase });
         for (const attempt of plan.attempts) {
           const startedId = nextId('test-case-started');
+          const started: TestCaseStarted = {
+            id: startedId,
+            testCaseId: plan.testCase.id,
+            attempt: attempt.attempt,
+            timestamp: attempt.timestamp,
+          };
+          if (attempt.skippedAttachments > 0) {
+            recordSkippedAttachments(started, attempt.skippedAttachments);
+          }
           envelopes.push({
-            testCaseStarted: {
-              id: startedId,
-              testCaseId: plan.testCase.id,
-              attempt: attempt.attempt,
-              timestamp: attempt.timestamp,
-            },
+            testCaseStarted: started,
           });
           let clock = attempt.timestamp;
           const count = Math.min(attempt.steps.length, plan.testCase.testSteps.length);

@@ -157,8 +157,15 @@ A path attachment that exists as a regular, non-symlink file but resolves
 outside every allowed root (the input file's folder and the working directory)
 is counted once. The count is exposed as `skippedAttachments` by
 `generateReport`, rendered as one notice in the report shell on both the Report
-and Details tabs, and written as one stderr warning when the CLI writes HTML.
-The notice names the roots by role and never contains a local path.
+and Details tabs, and written as one stderr warning whenever the CLI generates a report.
+The final attempt's count is also carried on the affected scenario and rendered
+in its detail with the same localized notice, so a run with several scenarios
+names the one that lost a file. The notice names the roots by role and never
+contains a local path.
+
+Earlier attempts and synthetic Playwright error scenarios carry zero; only the
+final attempt's path attachments are inspected. The scenario notice appears only
+for a positive count and leaves the run-level notice in place.
 
 These never count:
 

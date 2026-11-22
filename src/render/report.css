@@ -60,7 +60,7 @@ button { cursor: pointer; }
 img, video { max-width: 100%; height: auto; }
 .shell { max-width: 1320px; margin: 0 auto; padding: 0 2rem 6rem; container-type: inline-size; }
 .noticeShell { max-width: 1320px; margin: 0 auto; padding: 0.75rem 2rem 0; }
-.attachmentWarning { padding: 0.625rem 0.75rem; border: 1px solid color-mix(in oklab, var(--pending) 30%, var(--line)); border-left: 3px solid var(--pending); border-radius: var(--radius); background: var(--pending-soft); color: var(--ink); font-size: 0.8125rem; overflow-wrap: anywhere; }
+.attachmentWarning { padding: 0.625rem 0.75rem; border: 1px solid color-mix(in oklab, var(--pending) 30%, var(--line)); border-left: 3px solid var(--pending); border-radius: var(--radius); background: var(--pending-soft); color: var(--ink); font-size: 0.8125rem; overflow-wrap: anywhere; break-inside: avoid; }
 .topbar { position: sticky; top: 0; z-index: 200; background: var(--paper); border-bottom: 1px solid var(--line-strong); }
 .topbarInner { max-width: 1320px; margin: 0 auto; padding: 0.5rem 2rem; min-height: 3.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; }
 .brand { display: flex; align-items: center; min-width: 0; font-weight: 600; font-size: 1.0625rem; letter-spacing: -0.03em; margin-right: auto; }

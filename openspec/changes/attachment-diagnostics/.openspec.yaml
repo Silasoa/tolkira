@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Close the largest attachment-request gap without a schema change or a new
+  dependency.

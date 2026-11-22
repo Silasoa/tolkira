@@ -15,6 +15,7 @@ import {
   type AttachmentKind,
   type AttachmentTextFormat,
 } from '../attachment.js';
+import { skippedAttachmentsOf } from '../attempt-diagnostics.js';
 import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
@@ -132,6 +133,8 @@ export interface ReportScenario {
   hooks: ReportHook[];
   attachments: ReportAttachment[];
   extraAttachments: ReportAttachment[];
+  /** Path attachments skipped outside the roots on this scenario's final attempt. */
+  skippedAttachments?: number;
 }
 
 export interface ReportFeature {
@@ -226,6 +229,14 @@ export function positiveLine(value: number | undefined): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value > 0
     ? value
     : undefined;
+}
+
+// Only a trusted, serialisable count may reach the report; malformed Messages
+// must never fabricate a notice.
+function safePositiveInteger(value: unknown): number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+    ? value
+    : 0;
 }
 
 function timestampIso(
@@ -652,6 +663,9 @@ export function buildReportModel(
         }
       : undefined;
     const pickleLine = positiveLine(pickle.location?.line);
+    const skippedAttachments = safePositiveInteger(
+      skippedAttachmentsOf(latest),
+    );
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
@@ -678,6 +692,7 @@ export function buildReportModel(
       hooks: hookRows,
       attachments: scenarioAttachments,
       extraAttachments,
+      ...(skippedAttachments > 0 ? { skippedAttachments } : {}),
     };
     scenarioRows.push(row);
     if (executed) {

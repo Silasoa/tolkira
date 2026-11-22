@@ -39,11 +39,12 @@ Tolkira already answers them; a theme gallery would not.
 
 ## Top 5 for 0.4/0.5
 
-1. **Attachment reliability, small 0.5.** Make skipped or missing path
-   attachments visible per scenario and step (today only a run-level notice),
-   and surface attachments recorded on a failed hook beside the failed step.
-   Keep one inline file (ADR 0006), no split assets. Largest cluster; mostly
-   diagnostics.
+1. **Attachment reliability, small 0.5.** Make path attachments skipped because
+   they are outside Tolkira's allowed roots visible per scenario and step, and
+   surface attachments recorded on a failed hook beside the failed step. Missing
+   or unreadable files inside a root and per-attachment names remain separate
+   deferred warnings. Keep one inline file (ADR 0006), no split assets. Largest
+   cluster; mostly diagnostics.
 2. **Flaky/retry visibility, small 0.5.** Add a flaky count/badge, a flake rate
    in Trends and a disclosure for the earlier attempt's error/screenshot; keep
    folded passed status until schema v2. `Attempt: n` and `@flaky` are a start.

@@ -238,7 +238,7 @@ The CLI and API produce equivalent PDFs for the same HTML and engine.
 
 `skippedAttachments` is the number of Playwright path attachments skipped
 because they resolve outside every allowed root. It is a plain number, additive
-to the returned object; the HTML notice and the CLI stderr warning use it, while
+to the returned object; the run-level and per-scenario HTML notices and the CLI stderr warning use it, while
 the summary document keeps schema version 2 and no warning field.
 
 `history` is the aggregate run list the HTML was rendered with; it already
@@ -620,7 +620,7 @@ outside `features/`).
   Symlinked, missing, non-regular and outside-tree paths are skipped; inline
   base64 attachments are always preferred. An outside-tree path that exists as a
   regular file is counted in `generateReport().skippedAttachments` and surfaces
-  as an HTML notice and a CLI stderr warning; later-missing files, symlinks and
+  as run-level and per-scenario HTML notices plus a CLI stderr warning; later-missing files, symlinks and
   the other skipped causes are not counted. Trace zips and HTML-report replays
   are not read.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original

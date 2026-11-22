@@ -73,7 +73,7 @@ read.
 **Skipped attachment** — a Playwright path attachment that exists as a regular,
 non-symlink file but resolves outside every allowed root. It is not embedded,
 counts once in `generateReport().skippedAttachments`, and drives the report
-notice and the CLI stderr warning. Missing files, non-regular files, symlinks,
+run-level and per-scenario attachment notice and the CLI stderr warning. Missing files, non-regular files, symlinks,
 URL schemes, UNC paths, trace zips and earlier attempts are skipped without
 being counted; an inline body always wins.
 

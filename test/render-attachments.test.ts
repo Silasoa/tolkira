@@ -57,24 +57,26 @@ describe('skipped attachment notice', () => {
 
     const { html } = await generateReport(input, { title: 'Singular' });
     const shell = html.indexOf('class="noticeShell"');
+    const reportView = html.slice(
+      html.indexOf('id="report-view"'),
+      html.indexOf('id="analysis-view"'),
+    );
+    const analysisView = html.slice(html.indexOf('id="analysis-view"'));
 
     expect(warningText(html)).toBe(SINGULAR_NOTICE);
-    expect(html.match(/class="attachmentWarning"/g)).toHaveLength(1);
+    // One run-level notice in the shell, one on the affected scenario.
+    expect(html.match(/class="attachmentWarning"/g)).toHaveLength(2);
     expect(shell).toBeGreaterThan(-1);
     expect(shell).toBeLessThan(html.indexOf('id="report-view"'));
     expect(shell).toBeLessThan(html.indexOf('id="analysis-view"'));
-    expect(
-      html.slice(
-        html.indexOf('id="report-view"'),
-        html.indexOf('id="analysis-view"'),
-      ),
-    ).not.toContain('attachmentWarning');
-    expect(
-      html.slice(html.indexOf('id="analysis-view"')),
-    ).not.toContain('attachmentWarning');
+    expect(warningText(reportView)).toBe(SINGULAR_NOTICE);
+    expect(analysisView).not.toContain('attachmentWarning');
     expect(warningMarkup(html) ?? '').not.toContain(dir);
+    expect(warningMarkup(reportView) ?? '').not.toContain(dir);
     expect(warningMarkup(html) ?? '').not.toContain(outside);
+    expect(warningMarkup(reportView) ?? '').not.toContain(outside);
     expect(warningMarkup(html) ?? '').not.toContain(process.cwd());
+    expect(warningMarkup(reportView) ?? '').not.toContain(process.cwd());
   });
 
   it('renders the plural notice with the summed count', async () => {

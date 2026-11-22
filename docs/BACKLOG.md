@@ -297,9 +297,9 @@ asks or a locale needs them:
   and the HTML-writing CLI warn about outside-root path attachments; summary v2
   has no warning field. Trigger: an agent or CI consumer needs the signal in the
   summary or annotations, including when HTML is also written.
-- **Per-attachment diagnosis.** The notice is run-level only; it does not name
-  which scenarios or attachments were skipped. Trigger: a user needs to know
-  which scenarios lost attachments after seeing the notice.
+- **Per-attachment diagnosis.** The report now shows the skipped count on the
+  affected scenario; it still does not name each skipped attachment. Trigger: a
+  user needs the attachment name after seeing the scenario notice.
 - **Missing or unreadable attachment warning.** Only outside-root path
   attachments are counted for the report warning; missing and unreadable files
   inside a root stay silent. Trigger: a user reports a missing attachment the

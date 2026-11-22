@@ -7,6 +7,16 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Per-scenario skipped-attachment diagnostics for Playwright JSON. The final
+  attempt carries the number of path attachments skipped outside the allowed
+  roots, the report model copies a positive count to the scenario, and the
+  scenario detail renders the existing `report.attachmentNotice` text with that
+  count. The run-level count, shell notice and CLI warning stay; inline bodies,
+  missing paths, trace zips, earlier attempts and synthetic error attempts do not
+  count. The JSON summary, CI text, email and dependency surface are unchanged,
+  and the existing locale keys are reused. Existing failed-hook attachment
+  rendering stays and gains a regression test.
+
 - Merged JSON sidecar for the `tolkira/compat/cucumber-html-reporter` shim. A
   `jsonDir` run without `jsonFile` writes the old reporter's merged legacy array
   to `<output>.json` after the HTML: features merge by `uri` (fallback

@@ -18,7 +18,7 @@ const examplesAttachmentFixture = messagesFixture(
 
 async function noticeMetrics(page: Page, headerSelector: string) {
   const metrics = await page.evaluate((selector) => {
-    const notice = document.querySelector('.attachmentWarning');
+    const notice = document.querySelector('.noticeShell .attachmentWarning');
     const header = document.querySelector(selector);
     if (!notice || !header) return null;
     const noticeRect = notice.getBoundingClientRect();
@@ -90,7 +90,7 @@ test('keeps each example attachment on its own row', async ({ page }) => {
   }
 });
 
-test('shows an attachment warning on both tabs at 1440 and 320 px', async ({
+test('shows the skipped-attachment notice in the shell and on the scenario at 1440 and 320 px', async ({
   page,
 }) => {
   const outside = await mkdtemp(
@@ -115,15 +115,43 @@ test('shows an attachment warning on both tabs at 1440 and 320 px', async ({
 
   try {
     await page.goto(reportUrl(output));
-    const warning = page.locator('.attachmentWarning');
-    await expect(warning).toBeVisible();
-    await expect(warning).toHaveText(SINGULAR_NOTICE);
+    const shellWarning = page.locator('.noticeShell .attachmentWarning');
+    await expect(shellWarning).toBeVisible();
+    await expect(shellWarning).toHaveText(SINGULAR_NOTICE);
+    await expect(shellWarning).not.toContainText(outside);
+    await expect(page.locator('body')).not.toContainText(
+      'outside secret must not be read',
+    );
+
+    const scenario = page.locator(
+      'details.scenario[data-scenario-name="attachment test"]',
+    );
+    const scenarioWarning = scenario.locator('.attachmentWarning');
+    const feature = page.locator('details.feature').first();
+    if (
+      !(await feature.evaluate(
+        (element) => (element as HTMLDetailsElement).open,
+      ))
+    ) {
+      await feature.locator('summary').first().click();
+    }
 
     for (const width of [1440, 320]) {
       await page.setViewportSize({ width, height: 900 });
 
       await page.getByRole('tab', { name: 'Report' }).click();
-      await expect(warning).toBeVisible();
+      await expect(shellWarning).toBeVisible();
+      if (
+        !(await scenario.evaluate(
+          (element) => (element as HTMLDetailsElement).open,
+        ))
+      ) {
+        await scenario.locator('summary').first().click();
+      }
+      await expect(scenario).toHaveAttribute('open', '');
+      await expect(scenarioWarning).toBeVisible();
+      await expect(scenarioWarning).toHaveText(SINGULAR_NOTICE);
+      await expect(scenarioWarning).not.toContainText(outside);
       const report = await noticeMetrics(page, '#report-view .runHead');
       expect(report.overflow, `report overflow at ${width}`).toBeLessThanOrEqual(
         1,
@@ -138,7 +166,10 @@ test('shows an attachment warning on both tabs at 1440 and 320 px', async ({
       ).toBeLessThanOrEqual(1);
 
       await page.getByRole('tab', { name: 'Details' }).click();
-      await expect(warning).toBeVisible();
+      await expect(shellWarning).toBeVisible();
+      await expect(
+        page.locator('#analysis-view .attachmentWarning'),
+      ).toHaveCount(0);
       const details = await noticeMetrics(page, '#analysis-view .runHead');
       expect(
         details.overflow,
@@ -160,7 +191,7 @@ test('shows an attachment warning on both tabs at 1440 and 320 px', async ({
       document.documentElement.style.fontSize = '32px';
     });
     const zoomed = await page.evaluate(() => {
-      const notice = document.querySelector('.attachmentWarning');
+      const notice = document.querySelector('.noticeShell .attachmentWarning');
       if (!notice) return null;
       const rect = notice.getBoundingClientRect();
       const style = getComputedStyle(notice);
@@ -178,7 +209,7 @@ test('shows an attachment warning on both tabs at 1440 and 320 px', async ({
     expect(zoomed!.overflow).toBeLessThanOrEqual(1);
     expect(zoomed!.right).toBeLessThanOrEqual(320);
     expect(zoomed!.lines).toBeGreaterThan(1.5);
-    await expect(warning).toBeVisible();
+    await expect(shellWarning).toBeVisible();
   } finally {
     await removeReport(dir);
     await removeReport(input.dir);
