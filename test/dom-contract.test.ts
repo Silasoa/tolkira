@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { transformSync } from 'esbuild';
 import { describe, expect, it } from 'vitest';
 import { parseMessages } from '../src/input/messages.js';
 import {
@@ -364,7 +365,13 @@ describe('filter status styling contract', () => {
     const css = (
       await readFile(new URL('../src/render/report.css', import.meta.url), 'utf8')
     ).replace(/\r\n/g, '\n');
-    expect(REPORT_CSS).toBe(css);
+    expect(REPORT_CSS).toBe(
+      transformSync(css, {
+        loader: 'css',
+        minify: true,
+        target: 'esnext',
+      }).code.trimEnd(),
+    );
     expect(css).not.toMatch(/\.filter\[data-status=/);
 
     for (const status of COLORED_FILTER_STATUSES) {

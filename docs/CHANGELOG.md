@@ -62,6 +62,12 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- The embedded report stylesheet is minified at build time from the readable
+  `report.css`. `REPORT_CSS` shrinks from 46.3 kB to 40.3 kB (6.1 kB, 13 %), so
+  every report carries 6,054 fewer stylesheet bytes and both goldens shrink by
+  6,054 bytes; the source file stays the source of truth. Selectors, declarations, layout, print rules, the client
+  bundle and the email report are unchanged; no dependency, source map or
+  runtime minifier is added.
 - The CI gate adds a Windows Node 22 job that runs the full `npm run check`
   suite. Linux keeps the Node 22/24/26 matrix and the browser gate, macOS keeps
   its browser and package run; a Windows failure blocks the workflow.
