@@ -3,7 +3,7 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
-## [0.5.0] - 2026-11-22
+## [0.5.0] - 2026-11-23
 
 ### Added
 
@@ -59,10 +59,13 @@ Keep a Changelog and the project uses semantic versioning.
   sizes. Input bytes come from the loader groups, so duplicate-content files are
   not counted. The report-size row is solved from one document measurement with
   an empty-element marker, so it shows the exact UTF-8 byte length without a
-  second serialization or a CSP change. New English/German catalog keys, a
-  `.sizeList` style and `.gitattributes` fixture normalization ship with the
-  change; the summary schema, CI text, email, `RenderReportOptions`, one-file
-  rule and dependencies are unchanged. Goldens change intentionally.
+  second serialization or a CSP change. The Report HTML row leads with the exact
+  locale-formatted byte count and, at 1 MiB and above, adds one-decimal MB in
+  parentheses; below 1 MiB it stays the exact count alone. New English/German
+  catalog keys, a `.sizeList` style and `.gitattributes` fixture normalization
+  ship with the change; the summary schema, CI text, email,
+  `RenderReportOptions`, one-file rule and dependencies are unchanged. Goldens
+  change intentionally.
 - Metadata links. Safe absolute `http` or `https` metadata values render as
   links in the HTML report (and the print/PDF derived from it): the Report
   header and Details, with the normalized URL as `href` and the value trimmed

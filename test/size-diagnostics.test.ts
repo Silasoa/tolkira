@@ -17,8 +17,9 @@ import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadInputs } from '../src/input/load.js';
 import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
-import { REPORT_BYTES_MARKER } from '../src/render/details.js';
+import { applyReportSize, REPORT_BYTES_MARKER } from '../src/render/details.js';
 import { escapeHtml } from '../src/render/escape.js';
+import { exactSizeLabel } from '../src/render/format.js';
 import { renderHtml } from '../src/render/html.js';
 import { createTranslator, type Translator } from '../src/render/i18n.js';
 
@@ -358,13 +359,17 @@ describe('exact report HTML size', () => {
   it('uses the exact UTF-8 byte length for the report row', async () => {
     const generated = await generateReport(messages('screenshot.ndjson'));
     const bytes = Buffer.byteLength(generated.html, 'utf8');
+    const displayed = rowValue(analysisView(generated.html), [
+      t.t('details.reportHtml'),
+    ]);
 
-    expect(rowValue(analysisView(generated.html), [t.t('details.reportHtml')])).toBe(
-      bytesLabel(bytes),
-    );
+    expect(bytes).toBeLessThan(MIB);
+    expect(displayed).toBe(bytesLabel(bytes));
+    expect(displayed).not.toContain('MB');
+    expect(displayed).not.toContain('(');
   });
 
-  it('keeps exact bytes above 1 MiB', async () => {
+  it('leads with exact bytes and adds one-decimal MB above 1 MiB', async () => {
     const file = await writeSizeMessages('Large report', [
       {
         body: 'x'.repeat(1_100_000),
@@ -379,8 +384,33 @@ describe('exact report HTML size', () => {
     ]);
 
     expect(bytes).toBeGreaterThan(MIB);
-    expect(displayed).toBe(bytesLabel(bytes));
-    expect(displayed).not.toContain('MB');
+    expect(displayed).toBe(
+      `${bytesLabel(bytes)} (${megabytes(bytes)}\u00a0MB)`,
+    );
+  });
+
+  it('groups the German byte count and MB value above 1 MiB', async () => {
+    const file = await writeSizeMessages('Large report', [
+      {
+        body: 'x'.repeat(1_100_000),
+        fileName: 'large.txt',
+        mediaType: 'text/plain',
+      },
+    ]);
+    const de = createTranslator('de');
+    const generated = await generateReport(file, { locale: 'de' });
+    const bytes = Buffer.byteLength(generated.html, 'utf8');
+    const displayed = rowValue(analysisView(generated.html), [
+      de.t('details.reportHtml'),
+    ]);
+    const grouped = new Intl.NumberFormat('de').format(bytes);
+    const mb = new Intl.NumberFormat('de', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(bytes / MIB);
+
+    expect(bytes).toBeGreaterThan(MIB);
+    expect(displayed).toBe(`${grouped} Byte (${mb}\u00a0MB)`);
   });
 
   it('replaces the marker once and leaves escaped content unchanged', async () => {
@@ -399,6 +429,31 @@ describe('exact report HTML size', () => {
     expect(rowValue(analysisView(html), [t.t('details.reportHtml')])).toBe(
       bytesLabel(Buffer.byteLength(html, 'utf8')),
     );
+  });
+
+  it('keeps the leading count exact across the 1 MiB boundary', () => {
+    let below = 0;
+    let above = 0;
+
+    for (let base = MIB - 40; base <= MIB; base += 1) {
+      const html = `${'x'.repeat(base)}${REPORT_BYTES_MARKER}`;
+      const result = applyReportSize(html, t);
+      const label = /<dd>([^<]*)<\/dd>/.exec(result)?.[1] ?? '';
+      const leading = Number(/^\d+/.exec(label)?.[0]);
+      const bytes = Buffer.byteLength(result, 'utf8');
+
+      expect(leading, `${base} bytes`).toBe(bytes);
+      if (bytes >= MIB) {
+        above += 1;
+        expect(label, `${base} bytes MB`).toMatch(/\(\d+\.\d\u00a0MB\)$/);
+      } else {
+        below += 1;
+        expect(label, `${base} bytes no MB`).not.toContain('MB');
+      }
+    }
+
+    expect(below, 'sweep below 1 MiB').toBeGreaterThan(0);
+    expect(above, 'sweep at or above 1 MiB').toBeGreaterThan(0);
   });
 
   it('escapes HTML in attachment names in the size list', async () => {
@@ -422,10 +477,9 @@ describe('sizeLabel', () => {
     };
     const { sizeLabel } = format;
 
+    const mb = t.t('format.megabytes', { count: oneDecimal(1) });
     expect(sizeLabel(MIB - 1, t)).toBe(bytesLabel(MIB - 1));
-    expect(sizeLabel(MIB, t)).toBe(
-      t.t('format.megabytes', { count: oneDecimal(1) }),
-    );
+    expect(sizeLabel(MIB, t)).toBe(mb.replaceAll(' ', '\u00a0'));
     expect(sizeLabel(MIB, t)).not.toContain('bytes');
   });
 
@@ -435,7 +489,25 @@ describe('sizeLabel', () => {
     };
     const de = createTranslator('de');
 
-    expect(sizeLabel(MIB, de)).toBe('1,0 MB');
+    expect(sizeLabel(MIB, de)).toBe('1,0\u00a0MB');
+  });
+});
+
+describe('exactSizeLabel', () => {
+  it('keeps the exact bytes alone below 1 MiB', () => {
+    expect(exactSizeLabel(MIB - 1, t)).toBe(bytesLabel(MIB - 1));
+    expect(exactSizeLabel(MIB - 1, t)).not.toContain('(');
+    expect(exactSizeLabel(MIB - 1, t)).not.toContain('MB');
+  });
+
+  it('adds one-decimal MB at 1 MiB', () => {
+    expect(exactSizeLabel(MIB, t)).toBe('1048576 bytes (1.0\u00a0MB)');
+  });
+
+  it('formats 1 MiB as 1.048.576 Byte (1,0 MB) in German', () => {
+    expect(exactSizeLabel(MIB, createTranslator('de'))).toBe(
+      '1.048.576 Byte (1,0\u00a0MB)',
+    );
   });
 });
 

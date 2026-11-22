@@ -57,9 +57,16 @@ export function sizeLabel(bytes: number, t: Translator): string {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     }).format(bytes / MIB);
-    return t.t('format.megabytes', { count });
+    // Number and unit stay on one line at 200 % text zoom.
+    return t.t('format.megabytes', { count }).replaceAll(' ', '\u00a0');
   }
   return t.t('format.bytes', { count: t.number(bytes) });
+}
+
+/** Report size: the exact byte count, plus MB at 1 MiB and above. */
+export function exactSizeLabel(bytes: number, t: Translator): string {
+  const exact = t.t('format.bytes', { count: t.number(bytes) });
+  return bytes >= MIB ? `${exact} (${sizeLabel(bytes, t)})` : exact;
 }
 
 export function dateLabel(iso: string | undefined, t: Translator): string {

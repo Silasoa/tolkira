@@ -9,6 +9,7 @@ import {
   dateLabel,
   displayStatuses,
   durationLabel,
+  exactSizeLabel,
   healthMarkup,
   metadataValueHtml,
   sizeLabel,
@@ -28,18 +29,17 @@ export const REPORT_BYTES_MARKER = '<dd data-report-bytes></dd>';
 export function applyReportSize(html: string, t: Translator): string {
   const markerBytes = Buffer.byteLength(REPORT_BYTES_MARKER, 'utf8');
   const baseBytes = Buffer.byteLength(html, 'utf8') - markerBytes;
-  const replacement = (text: string): string => `<dd>${escapeHtml(text)}</dd>`;
-  let shown = '';
+  const replacement = (bytes: number): string =>
+    `<dd>${escapeHtml(exactSizeLabel(bytes, t))}</dd>`;
+  let displayed = 0;
+  // The label length changes only at digit and MB boundaries, so five rounds
+  // is a guard; the loop breaks on equality.
   for (let i = 0; i < 5; i += 1) {
-    const next = t.t('format.bytes', {
-      count: t.number(
-        baseBytes + Buffer.byteLength(replacement(shown), 'utf8'),
-      ),
-    });
-    if (next === shown) break;
-    shown = next;
+    const next = baseBytes + Buffer.byteLength(replacement(displayed), 'utf8');
+    if (next === displayed) break;
+    displayed = next;
   }
-  return html.replace(REPORT_BYTES_MARKER, () => replacement(shown));
+  return html.replace(REPORT_BYTES_MARKER, () => replacement(displayed));
 }
 
 function detailsHeader(model: ReportModel, t: Translator): string {

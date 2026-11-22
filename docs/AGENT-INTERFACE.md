@@ -284,7 +284,8 @@ behind the report rather than every path on the command line. The Details Run
 panel shows the input row only when both values are present; direct `renderHtml`
 callers and `CucumberHtmlStream` omit them, so their panel omits that row. The
 same panel shows the exact final report HTML bytes and the three largest
-attachments by decoded bytes. These are contributors, not a sum.
+attachments by decoded bytes. At 1 MiB and above the report row adds one-decimal
+MB in parentheses after the exact bytes. These are contributors, not a sum.
 `RenderReportOptions` is unchanged; `renderReport` computes the values
 internally.
 

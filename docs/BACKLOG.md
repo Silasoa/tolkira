@@ -55,9 +55,10 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
 | B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
-| B-041 | Report | P3 | Ungrouped exact report-byte row beside the MB contributor rows in Details | A user finds it hard to scan or asks for MB and exact bytes together; then group the row or show both forms. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
+| B-045 | Report | P3 | `format.bytes` receives a pre-formatted `t.number()` string from the render paths while the email path passes a raw number; a future target catalog with a plural branch on `format.bytes` would see `Number("1.048.576")` as `NaN` and throw | A target catalog adds a plural branch to `format.bytes`, or another caller passes a raw number where the renderer expects a pre-formatted string. | — |
+| B-046 | Report | P3 | German Details `.metaList` does not stack at 560 px and below because `:lang(de) .metaList` in `src/render/html.ts` beats `.sizeMeta` in `src/render/report.css`; proven at 320 px and 200% text (mid-number split), pre-existing | The next Details stacking or locale CSS change, or a German mobile report. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -116,6 +117,14 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-041 Report-size unit consistency** — implemented on 2026-11-23 in the
+  `report-size-units` change: the Details Report HTML row leads with the exact
+  locale-formatted byte count and, at 1 MiB and above, adds one-decimal MB in
+  parentheses with a non-breaking space between number and unit; below 1 MiB it
+  stays the exact count alone. The leading count still equals the final
+  document's UTF-8 byte length. The same non-breaking join reaches the
+  neighbouring MB rows through `sizeLabel`. No schema, catalog, CSS, golden,
+  email or dependency change.
 - **B-043 Earlier-attempt evidence** — implemented on 2026-11-22 in the
   `retry-evidence` change: a retried scenario shows a collapsed `Earlier
   attempts` block with up to three earlier starts (status, duration and the

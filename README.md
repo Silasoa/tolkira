@@ -317,8 +317,9 @@ unredacted-message warning.
   matrix, run metadata (absolute http(s) values become links), the Run
   environment (producer, runtime, OS, CPU, protocol) and size contributors: the
   unique report files and their total on-disk bytes, decoded attachment bytes,
-  the exact report HTML bytes and the three largest attachments by decoded
-  bytes. The rows are contributors, not a sum.
+  the exact report HTML bytes (at 1 MiB and above, paired with one-decimal MB in
+  parentheses) and the three largest attachments by decoded bytes. The rows are
+  contributors, not a sum.
 - **Opt-in run trends.** `--history <file>` keeps the last 30 aggregate runs and
   adds a Trends tab from the second run: a newest-first table with pass rate,
   flaky count and flaky share, plus a pass-rate sparkline. The flaky share is a

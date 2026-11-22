@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import {
   removeReport,
   reportUrl,
@@ -7,8 +8,9 @@ import {
 } from './helpers.js';
 
 const LONG_NAME = `screenshot-${'a'.repeat(160)}.png`;
+const MIB = 1024 * 1024;
 
-function sizeMessages(): string {
+function sizeMessages(largeBytes = 0): string {
   const attachments = [
     { body: 'tiny', fileName: 'tiny.txt', mediaType: 'text/plain' },
     { body: 'm'.repeat(500), fileName: 'medium.txt', mediaType: 'text/plain' },
@@ -17,6 +19,15 @@ function sizeMessages(): string {
       fileName: LONG_NAME,
       mediaType: 'text/plain',
     },
+    ...(largeBytes > 0
+      ? [
+          {
+            body: 'x'.repeat(largeBytes),
+            fileName: 'large.txt',
+            mediaType: 'text/plain',
+          },
+        ]
+      : []),
   ].map((attachment, index) => ({
     ...attachment,
     testCaseStartedId: 'size-started',
@@ -211,6 +222,55 @@ test('keeps the size list inside 320, 390 and 1440 px and 200% text', async ({
       await expectSizeList(page, `${width}px at 200% text`);
       await expectNoOverflow(page, `${width}px at 200% text`);
     }
+  } finally {
+    await removeReport(report.dir);
+    await removeReport(input.dir);
+  }
+});
+
+test('shows exact bytes with MB above 1 MiB without overflow', async ({
+  page,
+}) => {
+  const input = await writeInput('size-large.ndjson', sizeMessages(1_100_000));
+  const report = await writeReport([input.file], 'Size large');
+  try {
+    const bytes = Buffer.byteLength(
+      await readFile(report.output, 'utf8'),
+      'utf8',
+    );
+    const mb = new Intl.NumberFormat('en', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(bytes / MIB);
+    expect(bytes).toBeGreaterThan(MIB);
+
+    const check = async (label: string): Promise<void> => {
+      const row = page
+        .locator('dl.sizeMeta dt', { hasText: 'Report HTML' })
+        .locator('xpath=following-sibling::dd[1]');
+      await expect(row, `${label} report row`).toBeVisible();
+      const text = (await row.textContent())?.trim() ?? '';
+      expect(text, `${label} leading count`).toMatch(
+        new RegExp(`^${bytes} `),
+      );
+      expect(text, `${label} MB`).toContain(`(${mb}\u00a0MB)`);
+      await expectNoOverflow(page, label);
+    };
+
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(reportUrl(report.output));
+      await page.getByRole('tab', { name: 'Details' }).click();
+      await check(`${width}px`);
+    }
+
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(reportUrl(report.output));
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    await page.getByRole('tab', { name: 'Details' }).click();
+    await check('320px at 200% text');
   } finally {
     await removeReport(report.dir);
     await removeReport(input.dir);
