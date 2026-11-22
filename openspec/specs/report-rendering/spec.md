@@ -1852,23 +1852,23 @@ title.
 
 When the run skipped path attachments, the report SHALL render one static,
 escaped notice in the shared shell, visible on both the Report and Details
-tabs. The notice SHALL name the count and the allowed roots by role and SHALL
-NOT contain an absolute local path. The footer SHALL say that attachments are
-embedded when available and SHALL NOT claim that every screenshot is embedded.
+tabs. The notice SHALL name the count and point to the affected scenarios. It
+SHALL NOT contain an absolute local path or claim that every skip is outside the
+roots. The footer SHALL say that attachments are embedded when available and
+SHALL NOT claim that every screenshot is embedded.
 
 #### Scenario: Singular notice
 
 - **WHEN** exactly one path attachment was skipped
 - **THEN** the notice says that one path attachment was skipped
-- **AND** it names its input file's folder and Tolkira's working directory as the
-  allowed roots
+- **AND** it points to the affected scenario
 - **AND** it does not contain an absolute path
 
 #### Scenario: Plural notice
 
 - **WHEN** two or more path attachments were skipped
 - **THEN** the notice names the count and uses the plural wording
-- **AND** it refers to each input file's folder
+- **AND** it points to the affected scenarios
 
 #### Scenario: Both tabs
 
@@ -2252,15 +2252,20 @@ NOT appear in the JSON summary, CI text or email.
 ### Requirement: Show skipped attachments on the scenario
 
 When a scenario carries a positive skipped-attachment count, the scenario detail
-SHALL show the existing localized path-attachment notice with that count in
-addition to the run-level notice. A failed-hook attachment SHALL remain rendered
+SHALL show the localized notice with that count and up to three sanitized
+attachment name/reason entries. A failed-hook attachment SHALL remain rendered
 beside that hook. The notice SHALL be plain text, escaped and included in print.
 
 #### Scenario: Scenario notice
 
 - **WHEN** a rendered scenario has a skipped count of one
-- **THEN** its detail shows the path-attachment notice once
+- **THEN** its detail shows the notice once with the entry
 - **AND** the run-level notice still appears
+
+#### Scenario: Entry cap
+
+- **WHEN** a rendered scenario has five skipped entries
+- **THEN** its detail lists three and states that two more were skipped
 
 #### Scenario: Failed hook attachment
 
@@ -2549,3 +2554,32 @@ either direction, and that legacy JSON is tag-only.
 - **WHEN** the Trends table renders
 - **THEN** the note explains the tag/final-pass rule, the non-probability, the
   run-meta difference and the legacy limit
+
+### Requirement: Show skipped attachment names and reasons
+
+When a scenario has skipped path attachments, its detail SHALL show a localized
+notice with the count and up to three entries of the form `name - reason`. Names
+and reasons SHALL be escaped, included in print and readable without JavaScript.
+When more than three entries exist, the notice SHALL state the remaining count.
+
+#### Scenario: One skipped attachment
+
+- **WHEN** a scenario skipped `checkout.png` because it was missing
+- **THEN** the scenario notice shows the count and `checkout.png - missing`
+
+#### Scenario: Mixed reasons
+
+- **WHEN** a scenario skipped one outside-root and one unreadable attachment
+- **THEN** its notice lists both names with their own reasons
+
+#### Scenario: More than three
+
+- **WHEN** a scenario skipped five attachments
+- **THEN** its notice lists the first three
+- **AND** states that two more were skipped
+
+#### Scenario: Escaping and print
+
+- **WHEN** a skipped attachment name contains HTML, OSC or bidi characters
+- **THEN** the rendered name is escaped and sanitized
+- **AND** the notice is included in the print stylesheet
