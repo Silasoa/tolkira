@@ -319,16 +319,9 @@ asks or a locale needs them:
   or CI consumer wants trend data without a report file; then decide whether the
   sidecar is read-only, written, or both, and specify the flow.
 - **Attachment warning in `--json` and `--ci` without HTML.** The HTML report
-  and the HTML-writing CLI warn about outside-root path attachments; summary v2
-  has no warning field. Trigger: an agent or CI consumer needs the signal in the
+  and the HTML-writing CLI warn about skipped path attachments; summary v2 has
+  no warning field. Trigger: an agent or CI consumer needs the signal in the
   summary or annotations, including when HTML is also written.
-- **Per-attachment diagnosis.** The report now shows the skipped count on the
-  affected scenario; it still does not name each skipped attachment. Trigger: a
-  user needs the attachment name after seeing the scenario notice.
-- **Missing or unreadable attachment warning.** Only outside-root path
-  attachments are counted for the report warning; missing and unreadable files
-  inside a root stay silent. Trigger: a user reports a missing attachment the
-  report does not flag, or the CLI gains a general attachment diagnostic.
 - **Flaky status and retry history.** The report shows a display-only `flaky`
   badge and a tag-only run-metadata count; the history sidecar records an
   optional per-run `flaky` count that Trends renders as `Flaky` and `Flaky share`

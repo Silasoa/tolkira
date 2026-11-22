@@ -392,7 +392,9 @@ describe('attachment skip keys', () => {
     expect(en['report.attachmentSkipNotice']).toBe(
       '{count, plural, one {# path attachment was skipped.} other {# path attachments were skipped.}}',
     );
-    expect(en['report.attachmentSkipWhere']).toBe('See the affected scenarios.');
+    expect(en['report.attachmentSkipWhere']).toBe(
+      'See the affected scenarios on the Report tab.',
+    );
     expect(en['report.attachmentSkipOutside']).toBe(
       'outside the allowed roots',
     );

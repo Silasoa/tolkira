@@ -1,4 +1,4 @@
-﻿// An intentional output change runs `npx vitest run -u test/render-golden.test.ts`,
+// An intentional output change runs `npx vitest run -u test/render-golden.test.ts`,
 // then replaces the failing hashes from the failure output.
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';

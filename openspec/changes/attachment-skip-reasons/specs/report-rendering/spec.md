@@ -83,9 +83,9 @@ SHALL NOT claim that every screenshot is embedded.
 ### Requirement: Show skipped attachments on the scenario
 
 When a scenario carries a positive skipped-attachment count, the scenario detail
-SHALL show the localized notice with that count and up to three name/reason
-entries. A failed-hook attachment SHALL remain rendered beside that hook. The
-notice SHALL be plain text, escaped and included in print.
+SHALL show the localized notice with that count and up to three sanitized
+attachment name/reason entries. A failed-hook attachment SHALL remain rendered
+beside that hook. The notice SHALL be plain text, escaped and included in print.
 
 #### Scenario: Scenario notice
 

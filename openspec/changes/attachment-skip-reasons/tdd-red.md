@@ -135,9 +135,9 @@ Skipped in this run (platform-gated, must pass on Linux/macOS):
   skips stay at 0.
 - "Bound and sanitize skip entries" requires an entry cap of three in
   attachment order; the cap tests expect five counted but three retained.
-- "Path privacy" requires ANSI/OSC stripping before the base name is taken.
-  The OSC-8 test's payload contains `file:///home/secret/evil.png`; the expected
-  entry is only `checkout.png`.
+- "Path privacy" requires ANSI/OSC stripping before the attachment name is
+  reduced to its last segment. The OSC-8 test's payload contains
+  `file:///home/secret/evil.png`; the expected entry is only `checkout.png`.
 - `specs/report-rendering/spec.md` "Show skipped attachment names and reasons"
   requires `name - reason` entries, the remainder line, escaping and print.
   `ReportScenario` has no entries field and `scenarioBody` has no list.

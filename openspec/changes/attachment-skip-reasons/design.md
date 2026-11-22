@@ -70,8 +70,9 @@ from the latest started attempt. `ReportModel` needs no aggregate field.
 
 `src/render/html.ts` replaces the outside-root-specific run notice with the
 generic `report.attachmentSkipNotice` plus `report.attachmentSkipWhere`
-("See the affected scenarios."). `src/render/report.ts` renders the same notice
-and, when entries exist, a `<ul class="attachmentSkipList">` with
+("See the affected scenarios on the Report tab."). `src/render/report.ts`
+renders the same notice and, when entries exist, a
+`<ul class="attachmentSkipList">` with
 `<li><code>name</code> - reason</li>` and `report.attachmentSkipMore` for the
 remainder. Names and reason labels are escaped. A small `.attachmentSkipList`
 style keeps it readable at 320 px and in print; no client JS is involved.
@@ -93,8 +94,9 @@ control-character issues.
 ## Compatibility and security
 
 The summary schema stays 2; history stays 1; no dependency. The WeakMap survives
-`sanitizeEnvelopes` object identity. Only base names are stored; no path,
-content or media payload. Existing caps and symlink/root checks are unchanged.
+`sanitizeEnvelopes` object identity. Only sanitized attachment names are stored;
+no path, content or media payload. Existing caps and symlink/root checks are
+unchanged.
 Legacy and Messages attachments never enter this path.
 
 ## Tests and host

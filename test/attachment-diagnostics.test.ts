@@ -47,10 +47,7 @@ async function writeJson(
 // ReportScenario.skippedAttachments is optional and only set for a positive
 // count; a missing field and an explicit zero both mean "no skip".
 function skippedCount(scenario: ReportScenario | undefined): number {
-  const optional = scenario as
-    | (ReportScenario & { skippedAttachments?: number })
-    | undefined;
-  return optional?.skippedAttachments ?? 0;
+  return scenario?.skippedAttachments ?? 0;
 }
 
 // The scenario detail, including nested passed-hook details.
@@ -94,20 +91,10 @@ function escapedNotice(count: number): string {
   return skipNotice(count).replace(/'/g, '&#39;');
 }
 
-interface SkippedEntry {
-  name: string;
-  reason: string;
-}
-
-// ReportScenario gains the entries with the implementation; the cast keeps the
-// Red run on runtime behaviour instead of a static type error.
 function skippedEntries(
   scenario: ReportScenario | undefined,
-): SkippedEntry[] {
-  const optional = scenario as
-    | (ReportScenario & { skippedAttachmentEntries?: SkippedEntry[] })
-    | undefined;
-  return optional?.skippedAttachmentEntries ?? [];
+): NonNullable<ReportScenario['skippedAttachmentEntries']> {
+  return scenario?.skippedAttachmentEntries ?? [];
 }
 
 interface RetriedReport {
@@ -500,6 +487,27 @@ describe('attachment diagnostics', () => {
     );
     expect(generated.html).not.toContain('trace marker');
     expect(generated.html).toContain(inlineBody);
+  });
+
+  it('renders the German scenario skip notice and reason', async () => {
+    const dir = await tempDir();
+    const input = await writeAttachmentReport(
+      dir,
+      [{ name: 'fehlt.png', contentType: 'image/png', path: 'missing.png' }],
+      'deutsch.json',
+    );
+
+    const generated = await generateReport(input, {
+      title: 'Deutsch',
+      locale: 'de',
+    });
+    const detail = scenarioBlock(generated.html, 'attachment test');
+
+    expect(detail).toContain('1 Pfad-Anhang wurde übersprungen.');
+    expect(detail).toContain('<li><code>fehlt.png</code> - fehlt</li>');
+    expect(generated.html).toContain(
+      'Siehe die betroffenen Szenarien im Tab „Bericht“.',
+    );
   });
 
   it('lists three of five skips with their own reasons and counts the rest', async () => {

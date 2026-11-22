@@ -534,10 +534,10 @@ for the mapping.
 - No network requests, no telemetry, no remote fonts and no CDN.
 - A restrictive Content Security Policy is embedded in every report.
 - Test names, metadata and attachments are treated as untrusted input.
-- Playwright path attachment skips are counted by reason in the HTML
+- Playwright path attachment skips are listed with a reason in the HTML
   (outside the allowed roots, missing, unreadable, not a regular file or
-  non-local). Only sanitized base names are shown; the JSON summary, CI text,
-  email and history carry no names or paths.
+  non-local). Only sanitized attachment names are shown; the JSON summary, CI
+  text, email and history carry no names or paths.
 - Default limits: 100 MB total input, 50 MB per attachment and 100 MB total
   attachments. A warning appears when a report grows beyond 10 MB and names the
   report HTML, report-file and decoded attachment sizes.

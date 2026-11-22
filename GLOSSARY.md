@@ -76,9 +76,9 @@ read.
 embedded because it is non-local (URL, UNC or device path), missing, unreadable,
 not a regular file, or resolves outside every allowed root. It is not embedded,
 counts once in `generateReport().skippedAttachments`, and drives the report
-run-level count notice, up to three sanitized name/reason entries per scenario
-and the CLI stderr warning. Trace zips, earlier attempts and inline bodies that
-win over their path are skipped without being counted.
+run-level count notice, up to three sanitized attachment name/reason entries per
+scenario and the CLI stderr warning. Trace zips, earlier attempts and inline
+bodies that win over their path are skipped without being counted.
 
 **Flaky / @flaky** — a scenario tagged `@flaky`, either by the Playwright
 adapter when a retry passes or by a user on a scenario, feature, rule or outline.

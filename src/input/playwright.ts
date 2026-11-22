@@ -819,22 +819,30 @@ function attemptSteps(result: PlaywrightResult, inputDir: string): CanonicalStep
   );
 }
 
-const NON_LOCAL_PATH = /^(?:https?|file):/i;
+const NON_LOCAL_PATH = /^[a-z][a-z0-9+.-]+:/i;
 const MAX_SKIP_ENTRIES = 3;
 const MAX_SKIP_NAME_LENGTH = 120;
 
-// Only the base name is persisted, so a report or CLI warning cannot leak a
-// directory. Escape stripping runs before the split: an OSC-8 payload may carry
-// its own visible path after the terminator.
+// Only the sanitized name is persisted, so a report or CLI warning cannot leak
+// a directory. Escape stripping runs before the split: an OSC-8 payload may
+// carry its own visible path after the terminator.
 function displayAttachmentName(name: string): string {
   const stripped = stripBidiControls(stripAnsi(name));
   const base = stripped.replace(/\\/g, '/').split('/').at(-1) ?? '';
   const collapsed = base.replace(/\s+/g, ' ').trim();
-  return [...collapsed].slice(0, MAX_SKIP_NAME_LENGTH).join('') || 'attachment';
+  let displayed = '';
+  let length = 0;
+  for (const character of collapsed) {
+    if (length >= MAX_SKIP_NAME_LENGTH) break;
+    displayed += character;
+    length += 1;
+  }
+  return displayed || 'attachment';
 }
 
-// Reject URL schemes and UNC/device paths before any lstat, so a crafted JSON
-// report cannot make the adapter touch an SMB or device path.
+// A 2+ character scheme keeps Windows drive letters (`C:\`) local. Reject URL
+// schemes and UNC/device paths before any lstat, so a crafted JSON report cannot
+// make the adapter touch an SMB or device path.
 function isNonLocalPath(file: string): boolean {
   return (
     NON_LOCAL_PATH.test(file) ||
@@ -900,8 +908,9 @@ async function resolveAttachmentPath(
     ? [file]
     : [path.resolve(context.inputDir, file), path.resolve(process.cwd(), file)];
   // Classify before reading: only a file that exists and resolves outside every
-  // root is an outside skip. readAttachment keeps its own checks; a swap between
-  // the two can only cause a false negative, never a read outside the roots.
+  // root is an outside skip. readAttachment repeats the type and root checks on
+  // its own realpath before opening; a swap after that point is a TOCTOU the
+  // adapter does not claim to close.
   let outside = 0;
   let unreadable = 0;
   let notRegular = 0;

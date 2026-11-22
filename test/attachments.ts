@@ -11,7 +11,7 @@ export function skipNotice(count: number): string {
     : `${count} path attachments were skipped.`;
 }
 
-export const SKIP_WHERE = 'See the affected scenarios.';
+export const SKIP_WHERE = 'See the affected scenarios on the Report tab.';
 
 export const SKIP_REASON = {
   outside: 'outside the allowed roots',

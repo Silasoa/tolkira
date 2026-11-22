@@ -412,8 +412,8 @@
     "description": "Reason label: the attachment path exists but cannot be read"
   },
   "report.attachmentSkipWhere": {
-    "message": "See the affected scenarios.",
-    "description": "Run notice pointer to the scenarios that list the skipped attachment names"
+    "message": "See the affected scenarios on the Report tab.",
+    "description": "Run notice pointer to the scenarios on the Report tab that list the skipped attachment names"
   },
   "report.attachments": {
     "message": "Attachments",

@@ -27,7 +27,7 @@ existing backlog entry.
   the run-level notice stays a count and points to the affected scenarios.
 - The CLI warning becomes reason-neutral instead of claiming every skip is
   outside the roots. The report and CLI never show absolute paths, only a
-  sanitized base name.
+  sanitized attachment name.
 - No JSON summary, CI, email or schema change; no new dependency, no new file
   read outside the existing roots and caps, no attachment-budget change.
 - Earlier attempts and trace/no-body omissions stay out of scope.

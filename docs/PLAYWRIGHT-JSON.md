@@ -164,15 +164,17 @@ a symlink), or resolves outside every allowed root (the input file's folder and
 the working directory). The run-level count is exposed as `skippedAttachments`
 by `generateReport` and written as one stderr warning whenever the CLI generates
 a report. The count includes missing, unreadable, non-regular and non-local
-paths that earlier versions left silent.
+paths.
 
 The report shell shows the localized count notice and points to the affected
-scenarios. An affected scenario's detail shows the same count plus up to three
-sanitized base names with their own reasons, for example `checkout.png -
-missing`, and states how many more were skipped. Names are stripped of ANSI/OSC,
-bidi and control characters before the base name is taken, then whitespace is
-collapsed and the result is capped at 120 characters with `attachment` as the
-fallback. No absolute path is stored or rendered. The list is part of the
+scenarios on the Report tab. An affected scenario's detail shows the same count
+plus up to three sanitized attachment names with their own reasons, for example
+`checkout.png - missing`, and states how many more were skipped. Names are
+stripped of ANSI/OSC, bidi and control characters, then reduced to their last
+path segment, whitespace-collapsed and capped at 120 characters with
+`attachment` as the fallback. Playwright may give several attachments the same
+automatic name, such as `screenshot`, so the list can repeat a name without
+losing an entry. No absolute path is stored or rendered. The list is part of the
 static HTML, prints, and fits at 320 px; no client JavaScript is involved.
 
 Earlier attempts and synthetic Playwright error scenarios carry zero; only the

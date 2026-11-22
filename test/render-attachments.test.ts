@@ -1,8 +1,11 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { recordSkippedAttachments } from '../src/attempt-diagnostics.js';
 import { generateReport } from '../src/index.js';
+import { parseMessages } from '../src/input/messages.js';
+import { renderHtml } from '../src/render/html.js';
 import {
   NEUTRAL_FOOTER,
   SKIP_REASON,
@@ -10,6 +13,7 @@ import {
   skipNotice,
   writeAttachmentReport,
 } from './attachments.js';
+import { messagesFixture } from './fixtures.js';
 
 const tempDirs: string[] = [];
 
@@ -124,6 +128,28 @@ describe('skipped attachment notice', () => {
     expect(html).not.toContain('class="attachmentSkipList"');
     expect(html).toContain(NEUTRAL_FOOTER);
     expect(html).not.toContain('Screenshots are embedded');
+  });
+
+  it('renders recorded entries when the count is zero', async () => {
+    const envelopes = parseMessages(
+      await readFile(messagesFixture('hooks.ndjson'), 'utf8'),
+      'hooks.ndjson',
+    );
+    const started = envelopes.find((envelope) => envelope.testCaseStarted)
+      ?.testCaseStarted;
+    if (!started) throw new Error('missing testCaseStarted envelope');
+    recordSkippedAttachments(started, 0, [
+      { name: 'edge.png', reason: 'missing' },
+    ]);
+
+    const html = await renderHtml(envelopes, { title: 'Zero count' });
+
+    expect(html).toContain(skipNotice(1));
+    expect(html).not.toContain(skipNotice(0));
+    expect(html).toContain('class="attachmentSkipList"');
+    expect(html).toContain(
+      `<li><code>edge.png</code> - ${SKIP_REASON.missing}</li>`,
+    );
   });
 
   it('keeps the neutral footer when the notice is shown', async () => {

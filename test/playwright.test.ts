@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Envelope } from '@cucumber/messages';
 import { afterEach, describe, expect, it } from 'vitest';
-import * as diagnostics from '../src/attempt-diagnostics.js';
+import { skippedAttachmentEntriesOf } from '../src/attempt-diagnostics.js';
 import { runCli } from '../src/cli.js';
 import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadEnvelopes, loadInputs } from '../src/input/load.js';
@@ -238,21 +238,6 @@ async function parsePlaywright(
   source: string,
 ): Promise<PlaywrightParseResult> {
   return parsePlaywrightJson(value, source);
-}
-
-interface SkipEntry {
-  name: string;
-  reason: string;
-}
-
-// The entries reader lands with the implementation; read it off the module so
-// the Red run fails on the behaviour, not on a missing static import.
-function skipEntriesOf(started: object): SkipEntry[] {
-  const reader = (diagnostics as unknown as Record<string, unknown>)
-    .skippedAttachmentEntriesOf;
-  return typeof reader === 'function'
-    ? ((reader as (value: object) => SkipEntry[] | undefined)(started) ?? [])
-    : [];
 }
 
 function finalStarted(envelopes: Envelope[]): object {
@@ -862,7 +847,7 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(1);
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
       { name: 'absolute-outside', reason: 'outside' },
     ]);
     expect(attachmentTexts(envelopes)).toEqual([]);
@@ -884,7 +869,7 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(0);
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([]);
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([]);
     expect(attachmentTexts(envelopes)).toEqual([
       'path attachment for the Playwright adapter fixture\n',
     ]);
@@ -910,7 +895,7 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(0);
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([]);
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([]);
     expect(attachmentTexts(envelopes)).toEqual(['from the body']);
   });
 
@@ -926,7 +911,7 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(1);
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
       { name: 'missing.png', reason: 'missing' },
     ]);
     expect(attachmentTexts(envelopes)).toEqual([]);
@@ -945,7 +930,7 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(1);
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
       { name: 'shots', reason: 'not-regular' },
     ]);
   });
@@ -986,10 +971,44 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(5);
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
       { name: 'http', reason: 'non-local' },
       { name: 'file-url', reason: 'non-local' },
       { name: 'unc', reason: 'non-local' },
+    ]);
+    expect(attachmentTexts(envelopes)).toEqual([]);
+  });
+
+  it('treats any 2+ character URL scheme as non-local but not a drive path', async () => {
+    const dir = await tempDir();
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        {
+          name: 'ftp',
+          contentType: 'text/plain',
+          path: 'ftp://example.com/secret.txt',
+        },
+        {
+          name: 'data',
+          contentType: 'text/plain',
+          path: 'data:text/plain;base64,c2VjcmV0',
+        },
+        {
+          name: 'drive',
+          contentType: 'text/plain',
+          path: 'C:\\tolkira-missing\\secret.txt',
+        },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(3);
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'ftp', reason: 'non-local' },
+      { name: 'data', reason: 'non-local' },
+      { name: 'drive', reason: 'missing' },
     ]);
     expect(attachmentTexts(envelopes)).toEqual([]);
   });
@@ -1013,7 +1032,7 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(1);
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
       { name: 'relative-outside', reason: 'outside' },
     ]);
     expect(attachmentTexts(envelopes)).toEqual([]);
@@ -1042,7 +1061,7 @@ describe('Playwright JSON input', () => {
       source,
     );
 
-    const entries = skipEntriesOf(finalStarted(envelopes));
+    const entries = skippedAttachmentEntriesOf(finalStarted(envelopes));
     expect(skippedAttachments).toBe(5);
     expect(entries).toHaveLength(3);
     expect(entries).toEqual([
@@ -1080,7 +1099,7 @@ describe('Playwright JSON input', () => {
       source,
     );
 
-    const entries = skipEntriesOf(finalStarted(envelopes));
+    const entries = skippedAttachmentEntriesOf(finalStarted(envelopes));
     expect(skippedAttachments).toBe(3);
     expect(entries).toEqual([
       { name: 'checkout.png', reason: 'outside' },
@@ -1118,7 +1137,7 @@ describe('Playwright JSON input', () => {
       source,
     );
 
-    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
       { name: 'a'.repeat(120), reason: 'outside' },
       { name: 'attachment', reason: 'outside' },
     ]);
@@ -1142,7 +1161,7 @@ describe('Playwright JSON input', () => {
       );
 
       expect(skippedAttachments).toBe(1);
-      expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
         { name: 'locked.png', reason: 'unreadable' },
       ]);
     },
@@ -1167,7 +1186,7 @@ describe('Playwright JSON input', () => {
       );
 
       expect(skippedAttachments).toBe(1);
-      expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
         { name: 'symlink', reason: 'not-regular' },
       ]);
       expect(attachmentTexts(envelopes)).toEqual([]);
@@ -1214,7 +1233,7 @@ describe('Playwright JSON input', () => {
 
     expect(skippedAttachments).toBe(0);
     for (const started of everyStarted(envelopes)) {
-      expect(skipEntriesOf(started)).toEqual([]);
+      expect(skippedAttachmentEntriesOf(started)).toEqual([]);
     }
     expect(attachmentTexts(envelopes)).toEqual([]);
   });

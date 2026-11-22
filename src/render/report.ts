@@ -291,9 +291,9 @@ function skippedAttachmentNotice(
   scenario: ReportScenario,
   t: Translator,
 ): string {
-  const count = scenario.skippedAttachments ?? 0;
-  if (count <= 0) return '';
   const entries = scenario.skippedAttachmentEntries ?? [];
+  const count = Math.max(scenario.skippedAttachments ?? 0, entries.length);
+  if (count <= 0) return '';
   const items = entries
     .map(
       (entry) =>

@@ -66,8 +66,7 @@ function hides(css: string, selector: string): boolean {
 }
 
 function declaration(block: string, property: string): string | undefined {
-  // The last declaration before `}` carries no trailing `;` once minified.
-  const match = new RegExp(`${property}\\s*:\\s*([^;}]+)`).exec(block);
+  const match = new RegExp(`${property}\\s*:\\s*([^;]+);`).exec(block);
   return match?.[1]?.trim();
 }
 
@@ -84,10 +83,8 @@ describe('print stylesheet', () => {
   });
 
   it('ships a print media block after the dark-scheme palette', () => {
-    const print = REPORT_CSS.search(/@media\s+print\b/);
-    const dark = REPORT_CSS.search(
-      /@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/,
-    );
+    const print = REPORT_CSS.indexOf(PRINT_MEDIA);
+    const dark = REPORT_CSS.indexOf('@media (prefers-color-scheme: dark)');
 
     expect(dark, 'dark-scheme block').toBeGreaterThan(-1);
     expect(print, 'print block').toBeGreaterThan(-1);
@@ -219,13 +216,11 @@ describe('print stylesheet', () => {
       .map((rule) => rule.declarations)
       .join(';');
     for (const width of ['13%', '20%', '14%', '6.625%']) {
-      expect(trendsDeclarations, `Trends ${width} column`).toMatch(
-        new RegExp(`width\\s*:\\s*${width.replace('.', '\\.')}`),
+      expect(trendsDeclarations, `Trends ${width} column`).toContain(
+        `width: ${width}`,
       );
     }
-    expect(trendsDeclarations, 'Trends print type').toMatch(
-      /font-size\s*:\s*7pt/,
-    );
+    expect(trendsDeclarations, 'Trends print type').toContain('font-size: 7pt');
     expect(
       rules(block).some(
         (rule) =>

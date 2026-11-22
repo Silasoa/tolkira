@@ -131,6 +131,17 @@ Trends host check uses the Playwright artifact; the Seed-Test report-shell row
 from size-diagnostics still applies. A4 print is covered by
 `test/e2e/print.spec.ts` with the 7 pt Trends table.
 
+**`attachment-skip-reasons` re-check (2026-11-22).** Local Playwright 1.65.0
+JSON fixture rendered with the built 0.5.0 CLI: one outside-root, one missing
+and one Windows-locked unreadable path attachment. The run counts 3 and the
+report lists `outside.png` / `missing.png` / `locked.png` with reasons outside /
+missing / unreadable; the names lose their `shots/` prefix and no absolute
+fixture, outside or working-directory path appears in the HTML. The stderr
+warning stays count-only. The run-level count now includes missing, unreadable,
+not-regular and non-local paths. Playwright movies-app pin `5d2cdf0` over
+`playwright.json`: 8/8 scenarios, no document overflow at 1440 or 390 and no
+console errors.
+
 The 2026-11-20 wild-install probe is separate from this matrix but recorded
 here: the packed tarball is 522,870 B with three runtime dependencies; a clean
 consumer install is 6.71 MB and has no playwright; global, npx, pnpm and Yarn PnP

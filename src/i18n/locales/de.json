@@ -102,7 +102,7 @@
   "report.attachmentSkipNotice": "{count, plural, one {# Pfad-Anhang wurde übersprungen.} other {# Pfad-Anhänge wurden übersprungen.}}",
   "report.attachmentSkipOutside": "außerhalb der erlaubten Basisverzeichnisse",
   "report.attachmentSkipUnreadable": "nicht lesbar",
-  "report.attachmentSkipWhere": "Siehe die betroffenen Szenarien.",
+  "report.attachmentSkipWhere": "Siehe die betroffenen Szenarien im Tab „Bericht“.",
   "report.attachments": "Anhänge",
   "report.attemptMeta": "Versuch: {count}",
   "report.collapseAll": "Alle einklappen",

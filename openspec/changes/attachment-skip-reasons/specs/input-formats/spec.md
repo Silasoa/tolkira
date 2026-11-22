@@ -49,10 +49,10 @@ attachments SHALL keep their current behaviour.
 ### Requirement: Bound and sanitize skip entries
 
 The report SHALL keep at most three entries per scenario, in attachment order,
-and SHALL state how many further entries exist. Display names SHALL be base
-names without directories, control or bidi characters, capped at 120 characters;
-no absolute path SHALL be retained. ANSI/OSC sequences SHALL be removed before
-the base name is taken.
+and SHALL state how many further entries exist. Display names SHALL be sanitized
+attachment names without directories, control or bidi characters, capped at 120
+characters; no absolute path SHALL be retained. ANSI/OSC sequences SHALL be
+removed before the attachment name is reduced to its last path segment.
 
 #### Scenario: Entry cap
 
@@ -65,7 +65,7 @@ the base name is taken.
 
 - **WHEN** an attachment name contains a directory, OSC-8 link, control, bidi or
   ANSI text
-- **THEN** the recorded name is a sanitized base name
+- **THEN** the recorded name is a sanitized attachment name
 - **AND** no absolute path is persisted or rendered
 
 ### Requirement: Keep skipped attachments out of the summary
@@ -139,7 +139,8 @@ input; `generateReport` SHALL sum the counts across inputs.
 
 The Playwright parser SHALL count path attachments skipped for any recorded
 reason on the final attempt and SHALL carry the count and up to three
-name/reason entries on the attempt. The run-level skipped count SHALL remain.
+sanitized attachment name/reason entries on the attempt. The run-level skipped
+count SHALL remain.
 The report model SHALL copy the final attempt's count and entries to the
 internal `ReportScenario`. No JSON, CI or email schema changes.
 

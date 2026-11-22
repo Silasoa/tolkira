@@ -260,10 +260,10 @@ The CLI and API produce equivalent PDFs for the same HTML and engine.
 `skippedAttachments` is the number of Playwright path attachments skipped
 on the final attempt because they resolve outside every allowed root, are
 missing, unreadable, not a regular file or non-local (a URL, UNC or device
-path). It now includes those previously silent causes. It is a plain number,
-additive to the returned object; the run-level HTML count notice, up to three
-sanitized name/reason entries per affected scenario and the CLI stderr warning
-use it, while the summary document keeps schema version 2 and no warning field.
+path). It is a plain number, additive to the returned object; the run-level
+HTML count notice, up to three sanitized attachment name/reason entries per
+affected scenario and the CLI stderr warning use it, while the summary document
+keeps schema version 2 and no warning field.
 
 `inputFiles` and `inputBytes` are additive numbers on `GeneratedReport`: the
 unique report files that formed loader groups (including validation-only files
@@ -691,11 +691,11 @@ outside `features/`).
   is inside the input file's directory or the process working directory.
   Symlinked, missing, non-regular, unreadable, non-local and outside-tree paths
   are skipped and counted; inline base64 attachments are always preferred. The
-  HTML names up to three skipped base names and reasons per scenario and shows a
-  run-level count notice; the CLI warning carries the count without names. The
-  JSON summary, CI text, email and history carry no skip names. Only final-attempt
-  paths are inspected; earlier attempts, trace zips and HTML-report replays are
-  not read or counted.
+  HTML names up to three sanitized attachment names and reasons per scenario and
+  shows a run-level count notice; the CLI warning carries the count without
+  names. The JSON summary, CI text, email and history carry no skip names. Only
+  final-attempt paths are inspected; earlier attempts, trace zips and
+  HTML-report replays are not read or counted.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave durations are seconds
   and are normalised to milliseconds; multiline doc strings and error messages
