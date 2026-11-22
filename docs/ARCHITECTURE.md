@@ -147,7 +147,7 @@ and is covered by real producer fixtures.
   block. The browser bundle contains no non-English catalog. See
   [`docs/I18N.md`](I18N.md).
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
-  generates `src/render/styles.ts` for the inline report.
+  minifies it into `src/render/styles.ts` for the inline report.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
   helpers; `src/render/report-client.ts` is the browser script.
   `src/render/print-script.ts` is the static print lifecycle, imported only by

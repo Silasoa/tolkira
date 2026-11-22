@@ -142,6 +142,14 @@ not-regular and non-local paths. Playwright movies-app pin `5d2cdf0` over
 `playwright.json`: 8/8 scenarios, no document overflow at 1440 or 390 and no
 console errors.
 
+**`report-css-minify` re-check (2026-11-22).** Playwright movies-app pin
+`5d2cdf0`, `playwright.json` (24,760 B; 8/8 tests, 36/36 steps, 3 attachments /
+85 B), rendered with the minified report from the current tree (`--title
+"Movies app size"`): 84,752 B. Playwright 1.62.1 / Chromium 151.0.7922.34 at
+1440x900 and 390x844: no document overflow (1425/1440 and 375/390 px), all 8
+scenarios expand, no console or page errors. Locally `REPORT_CSS` is 46,344 B
+source -> 40,290 B minified, 6,054 B (13.06 %) smaller.
+
 The 2026-11-20 wild-install probe is separate from this matrix but recorded
 here: the packed tarball is 522,870 B with three runtime dependencies; a clean
 consumer install is 6.71 MB and has no playwright; global, npx, pnpm and Yarn PnP

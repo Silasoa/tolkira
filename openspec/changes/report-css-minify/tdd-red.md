@@ -25,13 +25,15 @@ the two guards assert exactly that build shape.
 The adapted print assertions pass on raw CSS: `declaration()` no longer requires
 a trailing `;`, the dark-mode query is whitespace-tolerant, and widths (13 %,
 20 %, 14 %, 6.625 %) plus `7pt` use regexes. Verified against the esbuild output
-through a temporary module alias: 24/25 pass, only the unrelated test below
+through a temporary module alias: 24/25 pass, only the concurrent test below
 fails. Temporary alias config removed.
 
-## Unrelated RED
+## Concurrent failure
 
 `render-print > keeps the skipped-attachment list styled and visible in print`
-fails because `.attachmentSkipList` is absent from `report.css`. It belongs to
-the in-flight `attachment-skip-reasons` change and was not touched.
+also failed in that run. It came from the concurrent in-flight
+`attachment-skip-reasons` change in the same working tree, not from this
+change: its `.attachmentSkipList` rule is present in `report.css`. It is not
+part of this RED.
 
 Goldens and characterization hashes were not changed.
