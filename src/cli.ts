@@ -596,8 +596,12 @@ export async function runCli(
       const bytes = Buffer.byteLength(html, 'utf8');
       const maxBytes = maxSizeMb * 1024 * 1024;
       if (bytes > maxBytes) {
+        const mb = (value: number): string =>
+          (value / 1024 / 1024).toFixed(1);
         io.stderr(
-          `tolkira: warning: report HTML is ${(bytes / 1024 / 1024).toFixed(1)} MB, ` +
+          `tolkira: warning: report HTML is ${mb(bytes)} MB ` +
+            `(input ${mb(generated.inputBytes)} MB, ` +
+            `attachments ${mb(summary.attachments.bytes)} MB decoded), ` +
             `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
             `inflate the HTML and the PDF.\n`,
         );

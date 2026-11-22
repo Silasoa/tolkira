@@ -201,19 +201,25 @@ import {
 const inputs = ['test-results/'];
 const summary = await summarizeReport(inputs);
 const previousRuns = await readHistory('.history/history.json');
-const { html, summary: sameSummary, skippedAttachments, history } =
-  await generateReport(inputs, {
-    title: 'Nightly',
-    locale: 'de',
-    metadata: {
-      'CI run': 'https://github.com/acme/tolkira/actions/runs/42',
-      Commit:
-        'https://github.com/acme/tolkira/commit/abcdef1234567890abcdef1234567890abcdef12',
-    },
-    logo: 'data:image/png;base64,...',
-    accent: '#1b5e20',
-    history: previousRuns,
-  });
+const {
+  html,
+  summary: sameSummary,
+  skippedAttachments,
+  inputFiles,
+  inputBytes,
+  history,
+} = await generateReport(inputs, {
+  title: 'Nightly',
+  locale: 'de',
+  metadata: {
+    'CI run': 'https://github.com/acme/tolkira/actions/runs/42',
+    Commit:
+      'https://github.com/acme/tolkira/commit/abcdef1234567890abcdef1234567890abcdef12',
+  },
+  logo: 'data:image/png;base64,...',
+  accent: '#1b5e20',
+  history: previousRuns,
+});
 const htmlOnly = await renderReport(inputs, { title: 'Nightly', locale: 'de' });
 const email = renderEmail(summary, {
   title: 'Nightly',
@@ -245,6 +251,20 @@ because they resolve outside every allowed root. It is a plain number, additive
 to the returned object; the run-level and per-scenario HTML notices and the CLI stderr warning use it, while
 the summary document keeps schema version 2 and no warning field.
 
+`inputFiles` and `inputBytes` are additive numbers on `GeneratedReport`: the
+unique report files that formed loader groups (including validation-only files
+that produced no envelopes) and their total size on disk. Inline media inside a
+report file counts toward that file's bytes; Playwright path attachments are
+external and are not added, so the attachment row covers their decoded payloads.
+Duplicate-content files are not counted, so `inputBytes` describes the files
+behind the report rather than every path on the command line. The Details Run
+panel shows the input row only when both values are present; direct `renderHtml`
+callers and `CucumberHtmlStream` omit them, so their panel omits that row. The
+same panel shows the exact final report HTML bytes and the three largest
+attachments by decoded bytes. These are contributors, not a sum.
+`RenderReportOptions` is unchanged; `renderReport` computes the values
+internally.
+
 `history` is the aggregate run list the HTML was rendered with; it already
 contains the current run. `generateReport` appends the current run to
 `options.history` and returns the appended list. `renderReport` and
@@ -263,7 +283,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
 | pdf | `--pdf <file>` prints the report with optional Playwright Chromium; `--pdf-timeout <ms>` (needs `--pdf`) overrides the deadline | `renderPdf(html, { timeoutMs })` |
-| size warning | `--max-size <mb>` (default 10) | not applicable; the API returns HTML |
+| size warning | `--max-size <mb>` (default 10) warns with the report HTML, report-file and decoded attachment sizes in MB | not applicable; the API returns HTML |
 | CI output | `--ci github\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
 The CLI validates logo bytes and rejects unsupported types or a size over

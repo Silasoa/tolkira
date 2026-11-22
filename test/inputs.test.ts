@@ -206,11 +206,13 @@ describe('input merging', () => {
       {
         file: path.resolve('one.json'),
         envelopes: legacyFeature('features/shared.feature', 'one'),
+        bytes: 0,
         skippedAttachments: 0,
       },
       {
         file: path.resolve('two.json'),
         envelopes: legacyFeature('features/shared.feature', 'two'),
+        bytes: 0,
         skippedAttachments: 0,
       },
     ];
@@ -223,11 +225,13 @@ describe('input merging', () => {
       {
         file: path.resolve('a/report.json'),
         envelopes: legacyFeature('features/a.feature', 'a'),
+        bytes: 0,
         skippedAttachments: 0,
       },
       {
         file: path.resolve('b/report.json'),
         envelopes: legacyFeature('features/b.feature', 'b'),
+        bytes: 0,
         skippedAttachments: 0,
       },
     ];
@@ -240,11 +244,13 @@ describe('input merging', () => {
       {
         file: path.resolve('a/report.json'),
         envelopes: legacyFeature('features/real.feature', 'real'),
+        bytes: 0,
         skippedAttachments: 0,
       },
       {
         file: path.resolve('b/report.json'),
         envelopes: [],
+        bytes: 0,
         skippedAttachments: 0,
       },
     ]);
@@ -259,8 +265,8 @@ describe('input merging', () => {
     if (pickle?.pickle) pickle.pickle.uri = 'features/one.feature';
 
     const provenance = provenanceFor([
-      { file: path.resolve('a.json'), envelopes: one, skippedAttachments: 0 },
-      { file: path.resolve('b.json'), envelopes: two, skippedAttachments: 0 },
+      { file: path.resolve('a.json'), bytes: 0, envelopes: one, skippedAttachments: 0 },
+      { file: path.resolve('b.json'), bytes: 0, envelopes: two, skippedAttachments: 0 },
     ]);
 
     expect(provenance.has('features/one.feature')).toBe(false);

@@ -7,6 +7,19 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Report size diagnostics. The Details Run panel now names the unique processed
+  report files and their bytes, decoded attachment bytes, the exact final report
+  HTML bytes and the three largest attachments by decoded bytes; a note states
+  that these rows are contributors, not a sum.
+  `GeneratedReport` gains additive `inputFiles` and `inputBytes`, and the
+  `--max-size` warning names the report HTML, input and decoded attachment
+  sizes. Input bytes come from the loader groups, so duplicate-content files are
+  not counted. The report-size row is solved from one document measurement with
+  an empty-element marker, so it shows the exact UTF-8 byte length without a
+  second serialization or a CSP change. New English/German catalog keys, a
+  `.sizeList` style and `.gitattributes` fixture normalization ship with the
+  change; the summary schema, CI text, email, `RenderReportOptions`, one-file
+  rule and dependencies are unchanged. Goldens change intentionally.
 - Metadata links. Safe absolute `http` or `https` metadata values render as
   links in the HTML report (and the print/PDF derived from it): the Report
   header and Details, with the normalized URL as `href` and the value trimmed

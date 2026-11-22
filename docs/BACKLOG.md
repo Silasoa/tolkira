@@ -54,6 +54,8 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
 | B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
+| B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
+| B-041 | Report | P3 | Ungrouped exact report-byte row beside the MB contributor rows in Details | A user finds it hard to scan or asks for MB and exact bytes together; then group the row or show both forms. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.

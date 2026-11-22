@@ -1,0 +1,2 @@
+test/fixtures/** text eol=lf
+test/fixtures/**/*.png binary

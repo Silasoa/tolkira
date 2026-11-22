@@ -48,6 +48,20 @@ export function durationLabel(
   return t.duration(milliseconds);
 }
 
+const MIB = 1024 * 1024;
+
+/** Contributor size: one-decimal MB at 1 MiB and above, exact bytes below. */
+export function sizeLabel(bytes: number, t: Translator): string {
+  if (bytes >= MIB) {
+    const count = new Intl.NumberFormat(t.lang, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(bytes / MIB);
+    return t.t('format.megabytes', { count });
+  }
+  return t.t('format.bytes', { count: t.number(bytes) });
+}
+
 export function dateLabel(iso: string | undefined, t: Translator): string {
   return t.date(iso);
 }

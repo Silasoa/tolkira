@@ -10,9 +10,29 @@ import {
   type RenderReportOptions,
 } from '../src/index.js';
 import { parseMessages } from '../src/input/messages.js';
+import { createTranslator } from '../src/render/i18n.js';
 import { messagesFixture } from './fixtures.js';
 
 const fixture = messagesFixture('second.ndjson');
+const en = createTranslator('en');
+
+/**
+ * The file API adds the input-size row and its own exact report size; the
+ * stream has no file origin, so the input row is the documented difference and
+ * the report size is normalized to a placeholder before the parity compare.
+ */
+function withoutFileOrigin(html: string): string {
+  return html
+    .replace(/<dt>(?:Input data|Eingabedaten)<\/dt><dd>[^<]*<\/dd>/, '')
+    .replace(
+      /(<dt>(?:Report HTML|Bericht-HTML)<\/dt>)<dd>[^<]*<\/dd>/,
+      '$1<dd>[report bytes]</dd>',
+    );
+}
+
+function reportRow(html: string): string | undefined {
+  return /<dt>(?:Report HTML|Bericht-HTML)<\/dt><dd>([^<]*)<\/dd>/.exec(html)?.[1];
+}
 
 async function streamHtml(
   title?: string,
@@ -30,13 +50,23 @@ async function streamHtml(
 describe('CucumberHtmlStream', () => {
   it('renders the same HTML as renderReport from a real stream', async () => {
     const html = await streamHtml('Stream parity');
+    const fileHtml = await renderReport(fixture, { title: 'Stream parity' });
 
-    expect(html).toBe(await renderReport(fixture, { title: 'Stream parity' }));
+    expect(withoutFileOrigin(html)).toBe(withoutFileOrigin(fileHtml));
+    expect(html).not.toContain('<dt>Input data</dt>');
+    expect(fileHtml).toContain('<dt>Input data</dt>');
+    expect(reportRow(html)).toBe(
+      en.t('format.bytes', {
+        count: en.number(Buffer.byteLength(html, 'utf8')),
+      }),
+    );
     expect(html).toContain('<title>Stream parity</title>');
   });
 
   it('uses the API defaults when no options are passed', async () => {
-    expect(await streamHtml()).toBe(await renderReport(fixture));
+    expect(withoutFileOrigin(await streamHtml())).toBe(
+      withoutFileOrigin(await renderReport(fixture)),
+    );
   });
 
   it('passes metadata and accent to the same renderer as the API', async () => {
@@ -46,8 +76,10 @@ describe('CucumberHtmlStream', () => {
     };
     const html = await streamHtml('Stream options', options);
 
-    expect(html).toBe(
-      await renderReport(fixture, { title: 'Stream options', ...options }),
+    expect(withoutFileOrigin(html)).toBe(
+      withoutFileOrigin(
+        await renderReport(fixture, { title: 'Stream options', ...options }),
+      ),
     );
     expect(html).toContain('CI');
     expect(html).toContain('abc1234');
@@ -58,15 +90,19 @@ describe('CucumberHtmlStream', () => {
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
     const html = await streamHtml('Stream logo', { logo });
 
-    expect(html).toBe(await renderReport(fixture, { title: 'Stream logo', logo }));
+    expect(withoutFileOrigin(html)).toBe(
+      withoutFileOrigin(await renderReport(fixture, { title: 'Stream logo', logo })),
+    );
     expect(html).toContain('class="logo"');
   });
 
   it('passes the locale to the renderer and rejects an invalid locale', async () => {
     const html = await streamHtml('Stream locale', { locale: 'de' });
 
-    expect(html).toBe(
-      await renderReport(fixture, { title: 'Stream locale', locale: 'de' }),
+    expect(withoutFileOrigin(html)).toBe(
+      withoutFileOrigin(
+        await renderReport(fixture, { title: 'Stream locale', locale: 'de' }),
+      ),
     );
     expect(html).toContain('<html lang="de" dir="ltr">');
     expect(html).toContain('>Bericht</button>');
@@ -84,8 +120,10 @@ describe('CucumberHtmlStream', () => {
     const options = { history };
     const html = await streamHtml('Stream history', options);
 
-    expect(html).toBe(
-      await renderReport(fixture, { title: 'Stream history', ...options }),
+    expect(withoutFileOrigin(html)).toBe(
+      withoutFileOrigin(
+        await renderReport(fixture, { title: 'Stream history', ...options }),
+      ),
     );
     expect(html).toContain('data-view="trends"');
   });

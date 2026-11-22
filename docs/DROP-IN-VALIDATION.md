@@ -103,6 +103,19 @@ still apply: live cucumber-js, MongoDB/auth/full backend, Linux/Node 22; the
 per-story JSON is synthetic and the ESM AI branch still needs the named/await
 import.
 
+**`size-diagnostics` re-check (2026-11-22).** Seed-Test pin `ce2cad8` with the
+unreleased `size-diagnostics` working-tree tarball (546,574 B, package version
+0.4.0): `tsc -b` and `report.service.spec.ts` 35/35. The story report (116,113
+B) and group report (117,137 B) show the input row, decoded attachment row,
+exact report HTML row and largest-attachment list; the group input is the
+20,550 B sidecar, with 2 attachments / 13,295 B and the top two listed. No
+overflow at 1440, 390 or 320 + 200% and no console errors. The Playwright
+movies-app host at `5d2cdf0` (`playwright.json`, Playwright 1.65.0 / Chromium
+158, 8/8 tests) renders 24,760 B input, 3 attachments / 85 B, the three largest
+and 89,904 B exact report HTML; no overflow at the same widths. The temporary
+`CI run` metadata from the metadata-links check remains in the temp host only.
+The Seed-Test row's unrun limits apply.
+
 The 2026-11-20 wild-install probe is separate from this matrix but recorded
 here: the packed tarball is 522,870 B with three runtime dependencies; a clean
 consumer install is 6.71 MB and has no playwright; global, npx, pnpm and Yarn PnP

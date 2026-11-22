@@ -40,6 +40,9 @@ export type MessageKey =
   | "details.features"
   | "details.fullSummary"
   | "details.hooks"
+  | "details.inputData"
+  | "details.inputFiles"
+  | "details.largestAttachments"
   | "details.matrixHint"
   | "details.matrixLabel"
   | "details.os"
@@ -47,11 +50,13 @@ export type MessageKey =
   | "details.path"
   | "details.producer"
   | "details.protocol"
+  | "details.reportHtml"
   | "details.run"
   | "details.runAttachments"
   | "details.runEnvironment"
   | "details.runtime"
   | "details.scenarios"
+  | "details.sizeNote"
   | "details.source"
   | "details.statusDistribution"
   | "details.steps"
@@ -78,6 +83,7 @@ export type MessageKey =
   | "format.attemptedRatio"
   | "format.bytes"
   | "format.emptyRatio"
+  | "format.megabytes"
   | "format.noAttempts"
   | "format.passedOfAttempted"
   | "format.skippedNotAttempts"
@@ -213,6 +219,9 @@ export const en: Record<MessageKey, string> = {
   "details.features": "Features",
   "details.fullSummary": "Full summary:",
   "details.hooks": "Hooks",
+  "details.inputData": "Input data",
+  "details.inputFiles": "{count, plural, one {# file} other {# files}}",
+  "details.largestAttachments": "Largest attachments",
   "details.matrixHint": "Executed scenarios only. Scroll for all status columns.",
   "details.matrixLabel": "Feature status matrix",
   "details.os": "OS",
@@ -220,11 +229,13 @@ export const en: Record<MessageKey, string> = {
   "details.path": "details",
   "details.producer": "Producer",
   "details.protocol": "Protocol",
+  "details.reportHtml": "Report HTML",
   "details.run": "Run",
   "details.runAttachments": "Run attachments",
   "details.runEnvironment": "Run environment",
   "details.runtime": "Runtime",
   "details.scenarios": "Scenarios",
+  "details.sizeNote": "Input bytes are the report file sizes; attachment bytes are decoded payloads from inline or external files. The rows are contributions and do not add up.",
   "details.source": "Source",
   "details.statusDistribution": "Status distribution",
   "details.steps": "Steps (excl. hooks)",
@@ -251,6 +262,7 @@ export const en: Record<MessageKey, string> = {
   "format.attemptedRatio": "{passed} / {attempted} attempted",
   "format.bytes": "{count} bytes",
   "format.emptyRatio": "0 / 0 passed",
+  "format.megabytes": "{count} MB",
   "format.noAttempts": "No scenarios attempted",
   "format.passedOfAttempted": "{passed} of {attempted} attempted scenarios passed",
   "format.skippedNotAttempts": "Skipped scenarios are results, not pass attempts.",
@@ -387,6 +399,9 @@ export const de: Record<MessageKey, string> = {
   "details.features": "Features",
   "details.fullSummary": "Vollständige Zusammenfassung:",
   "details.hooks": "Hooks",
+  "details.inputData": "Eingabedaten",
+  "details.inputFiles": "{count, plural, one {# Datei} other {# Dateien}}",
+  "details.largestAttachments": "Größte Anhänge",
   "details.matrixHint": "Nur ausgeführte Szenarien. Für alle Statusspalten scrollen.",
   "details.matrixLabel": "Feature-Statusmatrix",
   "details.os": "Betriebssystem",
@@ -394,11 +409,13 @@ export const de: Record<MessageKey, string> = {
   "details.path": "Details",
   "details.producer": "Erzeuger",
   "details.protocol": "Protokoll",
+  "details.reportHtml": "Bericht-HTML",
   "details.run": "Lauf",
   "details.runAttachments": "Laufanhänge",
   "details.runEnvironment": "Laufumgebung",
   "details.runtime": "Laufzeit",
   "details.scenarios": "Szenarien",
+  "details.sizeNote": "Eingabe-Bytes sind die Größen der Berichtsdateien; Anhangs-Bytes sind dekodierte Nutzlasten aus eingebetteten oder externen Dateien. Die Zeilen sind Anteile und ergeben keine Summe.",
   "details.source": "Quelle",
   "details.statusDistribution": "Statusverteilung",
   "details.steps": "Schritte (ohne Hooks)",
@@ -425,6 +442,7 @@ export const de: Record<MessageKey, string> = {
   "format.attemptedRatio": "{passed} / {attempted} ausgeführt",
   "format.bytes": "{count} Byte",
   "format.emptyRatio": "0 / 0 bestanden",
+  "format.megabytes": "{count} MB",
   "format.noAttempts": "Keine Szenarien ausgeführt",
   "format.passedOfAttempted": "{passed} von {attempted, plural, one {# ausgeführten Szenario} other {# ausgeführten Szenarien}} bestanden",
   "format.skippedNotAttempts": "Übersprungene Szenarien sind Ergebnisse, keine Ausführungsversuche.",

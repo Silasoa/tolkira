@@ -41,6 +41,10 @@ export interface GeneratedReport {
   html: string;
   summary: ReportSummary;
   skippedAttachments: number;
+  /** Unique input files that formed loader groups, including files with no envelopes. */
+  inputFiles: number;
+  /** Total size on disk of those input files. */
+  inputBytes: number;
   /** The history the report was rendered with, current run appended. */
   history?: HistoryRun[];
 }
@@ -50,6 +54,8 @@ interface LoadedRun {
   index: RunIndex;
   summary: ReportSummary;
   skippedAttachments: number;
+  inputFiles: number;
+  inputBytes: number;
   provenance?: Map<string, string>;
 }
 
@@ -67,6 +73,8 @@ async function loadRun(inputs: string | string[]): Promise<LoadedRun> {
       (sum, group) => sum + group.skippedAttachments,
       0,
     ),
+    inputFiles: groups.length,
+    inputBytes: groups.reduce((sum, group) => sum + group.bytes, 0),
     provenance: groups.length > 1 ? provenanceFor(groups) : undefined,
   };
 }
@@ -83,6 +91,8 @@ function render(
     index: run.index,
     provenance: run.provenance,
     skippedAttachments: run.skippedAttachments,
+    inputFiles: run.inputFiles,
+    inputBytes: run.inputBytes,
   });
 }
 
@@ -102,6 +112,8 @@ export async function generateReport(
     html: await render(run, options, history),
     summary: run.summary,
     skippedAttachments: run.skippedAttachments,
+    inputFiles: run.inputFiles,
+    inputBytes: run.inputBytes,
     ...(history === undefined ? {} : { history }),
   };
 }

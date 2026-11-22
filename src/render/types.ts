@@ -19,6 +19,9 @@ export interface RenderOptions {
   index?: RunIndex;
   /** Path attachments skipped because they resolve outside every allowed root. */
   skippedAttachments?: number;
+  /** Unique processed input files and their total bytes; absent for direct renders. */
+  inputFiles?: number;
+  inputBytes?: number;
 }
 
 export type DisplayStatus = ReportStatus;

@@ -159,6 +159,18 @@
     "message": "Hooks",
     "description": "Label for the hook count in the run details"
   },
+  "details.inputData": {
+    "message": "Input data",
+    "description": "Label for the processed input files and their total size in the run details"
+  },
+  "details.inputFiles": {
+    "message": "{count, plural, one {# file} other {# files}}",
+    "description": "Processed input file count in the run details"
+  },
+  "details.largestAttachments": {
+    "message": "Largest attachments",
+    "description": "Label for the three largest attachments by decoded bytes in the run details"
+  },
   "details.matrixHint": {
     "message": "Executed scenarios only. Scroll for all status columns.",
     "description": "Hint above the feature status matrix"
@@ -187,6 +199,10 @@
     "message": "Protocol",
     "description": "Environment protocol label"
   },
+  "details.reportHtml": {
+    "message": "Report HTML",
+    "description": "Label for the exact final HTML report size in the run details"
+  },
   "details.run": {
     "message": "Run",
     "description": "Heading of the run summary panel"
@@ -206,6 +222,10 @@
   "details.scenarios": {
     "message": "Scenarios",
     "description": "Label for the scenario count in the run details"
+  },
+  "details.sizeNote": {
+    "message": "Input bytes are the report file sizes; attachment bytes are decoded payloads from inline or external files. The rows are contributions and do not add up.",
+    "description": "Explains that the size rows are contributors, not a total"
   },
   "details.source": {
     "message": "Source",
@@ -310,6 +330,10 @@
   "format.emptyRatio": {
     "message": "0 / 0 passed",
     "description": "Screen-reader pass ratio for an empty run"
+  },
+  "format.megabytes": {
+    "message": "{count} MB",
+    "description": "Megabyte size with one decimal; count is already locale-formatted"
   },
   "format.noAttempts": {
     "message": "No scenarios attempted",

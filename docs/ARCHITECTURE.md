@@ -295,7 +295,7 @@ Programmatic API:
 ```ts
 renderReport(inputs, options): Promise<string>
 generateReport(inputs, options): Promise<{
-  html, summary, skippedAttachments, history?
+  html, summary, skippedAttachments, inputFiles, inputBytes, history?
 }>
 renderEmail(summary, options): string
 renderPdf(html, options?): Promise<Uint8Array>
@@ -304,7 +304,11 @@ summarizeReport(inputs): Promise<ReportSummary>
 
 `generateReport` accepts `history`, appends the current aggregate run and returns
 the appended list; `renderReport` renders `options.history` without recording a
-run. `RenderReportOptions.locale` is optional and reaches the renderer through
+run. `inputFiles` and `inputBytes` are the unique report files that formed
+loader groups (including validation-only files with no envelopes) and their
+total size on disk; inline media inside a report file is part of that file,
+while external path attachments are not counted. `RenderReportOptions.locale` is
+optional and reaches the renderer through
 `renderOptions`; `de-AT` keeps its tag and uses the `de` catalog. `renderEmail`
 is the synchronous email renderer; it takes a `ReportSummary` and validated
 options, writes nothing and shares the translator. `renderPdf` takes rendered

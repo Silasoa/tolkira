@@ -37,7 +37,9 @@ test('renders a messages report in the browser', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Attach a screenshot' }),
     ).toBeVisible();
-    await expect(page.getByText('screenshot.png')).toBeVisible();
+    await expect(
+      page.locator('#report-view').getByText('screenshot.png'),
+    ).toBeVisible();
     await expect(
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
@@ -202,7 +204,9 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'Happy HTML reporting' }),
     ).toBeVisible();
-    await expect(page.getByText('attachment.png')).toBeVisible();
+    await expect(
+      page.locator('#report-view').getByText('attachment.png'),
+    ).toBeVisible();
     const hookGroup = page.locator('details.hookGroup').first();
     await expect(hookGroup).toBeVisible();
     await hookGroup.locator('summary').click();
@@ -212,9 +216,13 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'Collapse all' }).click();
-    await expect(page.getByText('attachment.png')).toBeHidden();
+    await expect(
+      page.locator('#report-view').getByText('attachment.png'),
+    ).toBeHidden();
     await page.getByRole('button', { name: 'Expand all' }).click();
-    await expect(page.getByText('attachment.png')).toBeVisible();
+    await expect(
+      page.locator('#report-view').getByText('attachment.png'),
+    ).toBeVisible();
   } finally {
     await removeReport(dir);
   }

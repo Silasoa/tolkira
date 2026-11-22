@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Continue the 0.5 Trust & ship direction with a small report-shell
+  diagnostic that makes large reports explainable.

@@ -62,6 +62,8 @@ function collectGherkinIds(value: unknown): string[] {
 
 export interface LoadedInput {
   file: string;
+  /** Size of this input file in bytes. */
+  bytes: number;
   envelopes: Envelope[];
   skippedAttachments: number;
 }
@@ -168,7 +170,12 @@ export async function loadInputs(
         break;
     }
 
-    groups.push({ file: input.file, envelopes: parsed, skippedAttachments });
+    groups.push({
+      file: input.file,
+      bytes: info.size,
+      envelopes: parsed,
+      skippedAttachments,
+    });
   }
 
   if (groups.every((group) => group.envelopes.length === 0)) {

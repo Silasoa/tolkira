@@ -301,8 +301,11 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
 - **A Details view when you need it.** Status distribution, a feature-by-status
-  matrix, run metadata (absolute http(s) values become links) and the Run
-  environment (producer, runtime, OS, CPU, protocol).
+  matrix, run metadata (absolute http(s) values become links), the Run
+  environment (producer, runtime, OS, CPU, protocol) and size contributors: the
+  unique report files and their total on-disk bytes, decoded attachment bytes,
+  the exact report HTML bytes and the three largest attachments by decoded
+  bytes. The rows are contributors, not a sum.
 - **Opt-in run trends.** `--history <file>` keeps the last 30 aggregate runs and
   adds a Trends tab from the second run: a newest-first table and a pass-rate
   sparkline. The sidecar holds counts, status, the resolved title, duration and
@@ -516,7 +519,8 @@ for the mapping.
 - A restrictive Content Security Policy is embedded in every report.
 - Test names, metadata and attachments are treated as untrusted input.
 - Default limits: 100 MB total input, 50 MB per attachment and 100 MB total
-  attachments. A warning appears when a report grows beyond 10 MB.
+  attachments. A warning appears when a report grows beyond 10 MB and names the
+  report HTML, report-file and decoded attachment sizes.
 - JUnit XML is intentionally basic; use the native Playwright JSON adapter for
   Playwright projects that can write the JSON reporter.
 - History is opt-in and aggregate-only. `--history <file>` stores counts, status,
