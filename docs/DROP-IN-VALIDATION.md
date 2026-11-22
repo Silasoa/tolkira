@@ -91,6 +91,18 @@ Tolkira view carries, record that functional gap.
 | Cucumber-JVM examples | 2026-11-22 | Pass | Pin `f71480f`. 3 features / 9 scenarios / 52 step results, all passed; 12 real single-line `before`/`after` hook results render as `text/plain` hook attachments (`Before hook output`/`After hook output`) with the host text. The `\n` array join is synthetic-test-only; the host capture is single-line. No overflow at 1440 or 390. All-green, so failure/skip/retry coverage stays limited. |
 | `cucumber-html-reporter@7.2.0` reference | 2026-11-20 | Content PASS | Same fixture; screenshots at 1440/390; no visual parity; old install 144 packages/7 vulnerabilities. |
 
+**`metadata-links` re-check (2026-11-22).** Seed-Test pin `ce2cad8` was re-run
+with the unreleased `metadata-links` working-tree tarball (540,724 B, package
+version 0.4.0). The patched host compiles with `tsc -b` and passes
+`report.service.spec.ts` 35/35. The story report is 115,005 B and the group
+report 116,054 B plus its sidecar. A temporary `CI run` URL was added to the
+temporary host only; the header and Details links carry the normalized `href`
+and `rel="noopener noreferrer"` in both reports. No overflow at 1440, 390 or
+320 + 200 % text zoom, and no console errors. The Seed-Test row's unrun limits
+still apply: live cucumber-js, MongoDB/auth/full backend, Linux/Node 22; the
+per-story JSON is synthetic and the ESM AI branch still needs the named/await
+import.
+
 The 2026-11-20 wild-install probe is separate from this matrix but recorded
 here: the packed tarball is 522,870 B with three runtime dependencies; a clean
 consumer install is 6.71 MB and has no playwright; global, npx, pnpm and Yarn PnP

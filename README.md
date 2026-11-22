@@ -69,6 +69,16 @@ tolkira test-results/ --out report.html --email email.html
 tolkira test-results/ --out report.html --pdf report.pdf
 ```
 
+`--meta` values that are absolute `http` or `https` URLs render as links in the
+Report header and in Details; all other values, including URLs with an internal
+tab, line feed or carriage return, stay plain text. The `href` is the normalized
+URL; the label is the value trimmed and stripped of the report's bidi-control
+set (U+202A–202E and U+2066–2069). Use the full URL, not a raw SHA, and suggested
+keys are `CI run`, `Commit`, `Browser` and `Project` (for example
+`--meta "CI run=https://github.com/acme/tolkira/actions/runs/42"` or
+`--meta "Commit=https://github.com/acme/tolkira/commit/<sha>"`). The same rule
+applies to the compatibility shim's `metadata` object.
+
 Tolkira accepts one or more files and directories. A directory is scanned
 recursively for supported result files. Everything is merged into one report.
 The optional history file is a separate sidecar: without `--history` no history
@@ -291,8 +301,8 @@ GitHub and GitLab examples, output caps and the unredacted-message warning.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
 - **A Details view when you need it.** Status distribution, a feature-by-status
-  matrix, run metadata and the Run environment (producer, runtime, OS, CPU,
-  protocol).
+  matrix, run metadata (absolute http(s) values become links) and the Run
+  environment (producer, runtime, OS, CPU, protocol).
 - **Opt-in run trends.** `--history <file>` keeps the last 30 aggregate runs and
   adds a Trends tab from the second run: a newest-first table and a pass-rate
   sparkline. The sidecar holds counts, status, the resolved title, duration and

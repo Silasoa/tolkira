@@ -10,6 +10,7 @@ import {
   displayStatuses,
   durationLabel,
   healthMarkup,
+  metadataValueHtml,
   statusBar,
   statusClass,
   statusLabel,
@@ -67,10 +68,10 @@ export function renderAnalysisView(
     attachments: summary.attachments,
   };
   const customRows = Object.entries(options.metadata ?? {})
-    .filter(([key, value]) => key.length > 0 && value.length > 0)
+    .filter(([key, value]) => key.length > 0 && String(value ?? '').length > 0)
     .map(
       ([key, value]) =>
-        `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`,
+        `<dt>${escapeHtml(key)}</dt><dd>${metadataValueHtml(value)}</dd>`,
     )
     .join('');
   return `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis">${detailsHeader(model, t)}<div class="analysisGrid"><section class="panel"><h2>${t.t('details.features')}</h2><p>${t.t('details.featureSpend')}</p><p class="matrixHint">${t.t('details.matrixHint')}</p><div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('details.matrixLabel')}">${renderFeatureMatrix(model, t)}</div></section><section class="panel"><h2>${t.t('details.statusDistribution')}</h2><p>${t.t('details.passRateNote')}</p><div class="legend">${displayStatuses(model)

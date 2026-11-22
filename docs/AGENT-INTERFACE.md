@@ -205,7 +205,11 @@ const { html, summary: sameSummary, skippedAttachments, history } =
   await generateReport(inputs, {
     title: 'Nightly',
     locale: 'de',
-    metadata: { CI: 'true', Commit: process.env.GITHUB_SHA ?? '' },
+    metadata: {
+      'CI run': 'https://github.com/acme/tolkira/actions/runs/42',
+      Commit:
+        'https://github.com/acme/tolkira/commit/abcdef1234567890abcdef1234567890abcdef12',
+    },
     logo: 'data:image/png;base64,...',
     accent: '#1b5e20',
     history: previousRuns,
@@ -252,7 +256,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | Option | CLI | API |
 | ------ | --- | --- |
 | title | `--title` sets the report heading, Markdown CI heading and email heading/suggested subject | `title` |
-| metadata | `--meta key=value` (repeatable) | `metadata` object |
+| metadata | `--meta key=value` (repeatable); absolute http(s) values become links in the HTML report | `metadata` object |
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | history | `--history <file>` reads and appends a sidecar; needs `--out` | `history` array; `generateReport` appends the current run, `renderReport` and the stream render it as given |
@@ -554,12 +558,22 @@ Field contract:
   the image or file. Unnamed attachments use a deterministic
   `attachment.<ext>` fallback in HTML; unknown media types normalise to
   `application/octet-stream` and `attachment.bin`.
-- CI metadata from Messages `meta.ci` is HTML-only. It renders in the report
-  header and Details, but no CI field appears in the summary and
-  `schemaVersion` stays 2. When `ci.name` is missing, the http(s) `ci.url` is
-  the link text. In a mixed input the first non-empty CI block wins, and
-  meta synthesized by the legacy adapter cannot erase it. Legacy JSON and
-  JUnit never invent CI metadata; use the `metadata` option for a legacy path.
+- CI metadata from Messages `meta.ci` renders in the HTML report (and the
+  print/PDF derived from it). It appears in the report header and Details, but
+  no CI field appears in the summary and `schemaVersion` stays 2. When
+  `ci.name` is missing, the http(s) `ci.url` is the link text. In a mixed input
+  the first non-empty CI block wins, and meta synthesized by the legacy adapter
+  cannot erase it. Legacy JSON and JUnit never invent CI metadata; use the
+  `metadata` option for a legacy path.
+- Custom metadata values follow the same safe-URL rule: an absolute `http` or
+  `https` value renders as a link in the Report header and Details, with the
+  normalized URL as `href` and the value trimmed and stripped of the report's
+  bidi-control set (U+202A–202E, U+2066–2069) as the label. Other schemes,
+  scheme-less hosts, malformed URLs, plain text and values with an internal tab,
+  line feed or carriage return stay escaped text. Pass the full URL (for example
+  under `CI run` or `Commit`), not a raw SHA. The summary keeps no metadata
+  field; this link appears only in the HTML report (and the print/PDF derived
+  from it), while the JSON summary, CI text and email stay unchanged.
 
 ## Migrating to schema version 2
 

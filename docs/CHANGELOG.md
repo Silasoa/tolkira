@@ -3,6 +3,20 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Metadata links. Safe absolute `http` or `https` metadata values render as
+  links in the HTML report (and the print/PDF derived from it): the Report
+  header and Details, with the normalized URL as `href` and the value trimmed
+  and stripped of the report's bidi-control set (U+202A–202E, U+2066–2069) as
+  the label. Other schemes, scheme-less or malformed URLs, plain text and values
+  containing an internal tab, line feed or carriage return stay escaped text.
+  The same rule applies to `--meta` and the compatibility shim's `metadata`
+  object. The JSON summary, CI text, email, summary schema, locale catalogs and
+  dependencies are unchanged.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added

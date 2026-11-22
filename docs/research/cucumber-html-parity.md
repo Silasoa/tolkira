@@ -96,7 +96,7 @@ Legend: **Match** = equivalent for the user; **Exceeds** = Tolkira does more;
 | Entry points | ESM `CucumberHtmlStream` Transform; Java/Ruby/.NET wrappers; no CLI since v19 | CommonJS `generate(options, callback?)`; no CLI | CLI, ESM API (`generateReport`, `renderReport`, `summarizeReport`, `CucumberHtmlStream`), compat shim | **Exceeds** |
 | Attachments | Inline base64 and external `attachment.url`; image, video, log, text, `text/uri-list`, JSON, binary; image/video collapsed in `<details>`; download button | Inline images or external screenshot files; text/JSON/binary; no video/audio special handling | Inline only; image (lightbox), video, audio, text, binary; JSON, URI-list and ANSI logs rendered; 50 MB each / 100 MB total; rejects remote URLs | **Match, except external URLs** |
 | Attachment naming | `fileName`, else `attachment.<mime-extension>`, else `attachment` | Sanitised name or generated file | `fileName`, else deterministic `attachment.<ext>` for known types, else `application/octet-stream` / `attachment.bin` | **Match** |
-| Metadata | `meta.implementation/runtime/os`; `meta.ci` job link and git revision/branch/tag | Arbitrary `metadata` key/value; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; `meta` producer/runtime/OS/CPU/protocol; `meta.ci` job link and git revision/branch/tag | **Match** |
+| Metadata | `meta.implementation/runtime/os`; structured `meta.ci` job link and GitHub commit link (`CICommitLink`) | Arbitrary `metadata` key/value, printed as text; `name`/`brandTitle`; reads `package.json` | Arbitrary CLI/API metadata; safe absolute http(s) values link by default in the Report header and Details; `meta` producer/runtime/OS/CPU/protocol; `meta.ci` job link and git revision/branch/tag | **Match** on environment/CI; **Exceeds** on arbitrary metadata |
 | Search | Full-text Gherkin index; text or tag expression; 500 ms debounce; URL query state. The index covers feature/scenario/rule/background names and descriptions and steps, but not examples block names, examples table values, substituted pickle names, errors or attachments | None | Substring over scenario/feature/URI/keyword/description/tags/steps incl. error messages; single-tag dropdown; `?query=`/`?hide=`/`?tag=` URL state | **Partial** |
 | Status filters | Checkboxes that hide statuses; counts; only shown when more than one status exists | None | Toggle buttons per status with counts; a `Failed only` preset hides other statuses and unexecuted rows | **Match** |
 | Status counts | Scenario counts by worst final status; pie chart; pass rate | Feature and scenario counts; pass/fail/pending/undefined/ambiguous/skipped/rerun; pie chart | Feature, scenario and step counts; pass rate; attachments; duration | **Exceeds** |
@@ -114,6 +114,18 @@ Legend: **Match** = equivalent for the user; **Exceeds** = Tolkira does more;
 | Output / exit codes | No CLI; formatter writes a file; host Cucumber process owns exit codes | No CLI; callback error only | CLI exit 0 for a generated report even when tests failed, 1 parse/render/write failure, 2 invalid usage | **Exceeds** |
 | JSON summary | None | None | Versioned `--json` summary | **Exceeds** |
 | Security | Markdown sanitised with `rehype-sanitize`; no CSP in the default template; external attachment URLs allowed | Historical XSS issues; CDN scripts | Escaping, hash-based CSP, attachment size caps, remote URLs rejected | **Exceeds** |
+
+Metadata links are a deliberate improvement, not a parity claim. The official
+formatter links its structured CI job and GitHub commit (`CICommitLink`), not
+arbitrary metadata. Playwright links `ci`/`gitCommit` and ordinary metadata
+through its linkifier, with other metadata hidden until `?show-metadata-other`.
+cucumber-html-reporter and MCHR print metadata as text. Tolkira links arbitrary
+safe metadata by default, with the value trimmed and stripped of the report's
+bidi-control set (U+202A–202E, U+2066–2069) as the label.
+
+The Metadata row reflects the `metadata-links` change (2026-11-22); the rest of
+the matrix and its measurements remain the 0.2.0 snapshot described in
+section 3.
 
 The legacy reporter option surface is `theme`, `jsonFile`/`jsonDir`, `output`,
 `reportSuiteAsScenarios`, `scenarioTimestamp`, `columnLayout`,

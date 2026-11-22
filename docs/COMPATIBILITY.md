@@ -84,7 +84,7 @@ legacy string. If the callback itself throws, handle that error yourself.
 | `jsonDir` | Directory scanned recursively for `.json` files. |
 | `output` | Exact HTML path; missing parent directories are created. |
 | `brandTitle` / `name` | Report title. `brandTitle` wins if both differ. |
-| `metadata` | Flat string/number/boolean values become report metadata. |
+| `metadata` | Flat string/number/boolean values become report metadata; absolute http(s) values become links in the Report header and Details, with a normalized `href` and a trimmed, bidi-control-stripped label. |
 | `ignoreBadJsonFile` | Invalid or non-array `.json` files are skipped with a warning. |
 | `theme` | Warned, ignored. Tolkira uses its own theme. |
 | `reportSuiteAsScenarios`, `scenarioTimestamp`, `columnLayout`, `failedSummaryReport` | Warned, ignored. |
@@ -119,8 +119,14 @@ Seed-Test's group analysis does not read.
 
 The shim consumes legacy Cucumber JSON, which has no Messages `meta.ci`
 envelope. CI job and git details therefore do not appear automatically; pass
-them as `metadata` entries (for example `CI`, `Build`, `Commit` and `Branch`).
-The core Messages path reads `meta.ci` and renders it in HTML only.
+them as `metadata` entries (for example `CI run`, `Build`, `Commit` and
+`Branch`). The core Messages path reads `meta.ci` and renders it in the HTML
+report (and the print/PDF derived from it); the JSON summary, CI text and email
+do not carry it. Shim metadata uses the same link rule as `--meta`: an absolute
+http(s) value becomes a link with a normalized `href` and the value trimmed and
+stripped of the report's bidi-control set (U+202A–202E, U+2066–2069) as its
+label; use a full URL for `CI run` or `Commit`, not a raw SHA. Other values stay
+text.
 
 ## What is not reproduced
 

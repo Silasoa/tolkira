@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: "Start the 0.5 Trust & ship direction with the smallest no-schema slice:
+  make CI, commit and browser/project URLs usable from the report."

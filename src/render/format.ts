@@ -260,6 +260,17 @@ export function safeHttpUrl(value: string | undefined): string | undefined {
   }
 }
 
+export function metadataValueHtml(value: string): string {
+  const text = String(value ?? '');
+  const trimmed = stripBidiControls(text).trim();
+  // The URL parser deletes tabs and newlines, so a link could disagree with
+  // the visible label.
+  if (/[\t\n\r]/.test(trimmed)) return escapeHtml(text);
+  const url = safeHttpUrl(trimmed);
+  if (!url) return escapeHtml(text);
+  return `<a href="${escapeHtml(url)}" rel="noopener noreferrer">${escapeHtml(trimmed)}</a>`;
+}
+
 export function hookLabel(
   hook: ReportHook | ReportRunHook,
   bareName = false,
