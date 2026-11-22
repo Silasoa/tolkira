@@ -15,7 +15,7 @@ import { runCli } from '../src/cli.js';
 import { summarizeReport, type ReportSummary } from '../src/index.js';
 import {
   CLI_HINT,
-  SINGULAR_NOTICE,
+  attachmentWarning,
   writeAttachmentReport,
 } from './attachments.js';
 
@@ -560,7 +560,7 @@ describe('CLI input edge cases', () => {
     await expect(readFile(output, 'utf8')).resolves.toContain('<html');
   });
 
-  it('warns once on stderr when HTML skips an attachment', async () => {
+  it('warns once on stderr with a reason-neutral count and no names', async () => {
     const input = await skippedAttachmentInput();
     const output = path.join(await tempDir(), 'report.html');
 
@@ -569,8 +569,33 @@ describe('CLI input edge cases', () => {
     expect(run.code).toBe(0);
     expect(run.stdout).toBe(`Report written to ${output}\n`);
     expect(run.stderr).toBe(
-      `tolkira: warning: ${SINGULAR_NOTICE} ${CLI_HINT}\n`,
+      `tolkira: warning: ${attachmentWarning(1)} ${CLI_HINT}\n`,
     );
+    expect(run.stderr).not.toContain('secret');
+    expect(run.stderr).not.toContain('(its input file');
+  });
+
+  it('warns with the plural count and still keeps names off stderr', async () => {
+    const dir = await tempDir('tolkira-cli-attachment-');
+    const outside = await tempDir('tolkira-cli-attachment-outside-');
+    const first = path.join(outside, 'first.png');
+    const second = path.join(outside, 'second.png');
+    await writeFile(first, 'first outside secret', 'utf8');
+    await writeFile(second, 'second outside secret', 'utf8');
+    const input = await writeAttachmentReport(dir, [
+      { name: 'first', contentType: 'image/png', path: first },
+      { name: 'second', contentType: 'image/png', path: second },
+    ]);
+    const output = path.join(dir, 'report.html');
+
+    const run = await cli([input, '--out', output]);
+
+    expect(run.code).toBe(0);
+    expect(run.stderr).toBe(
+      `tolkira: warning: ${attachmentWarning(2)} ${CLI_HINT}\n`,
+    );
+    expect(run.stderr).not.toContain('first.png');
+    expect(run.stderr).not.toContain('second.png');
   });
 
   it('keeps stdout JSON-only with --out --json while warning on stderr', async () => {

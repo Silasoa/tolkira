@@ -5,8 +5,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { generateReport } from '../src/index.js';
 import {
   NEUTRAL_FOOTER,
-  SINGULAR_NOTICE,
-  pluralNotice,
+  SKIP_REASON,
+  SKIP_WHERE,
+  skipNotice,
   writeAttachmentReport,
 } from './attachments.js';
 
@@ -63,14 +64,19 @@ describe('skipped attachment notice', () => {
     );
     const analysisView = html.slice(html.indexOf('id="analysis-view"'));
 
-    expect(warningText(html)).toBe(SINGULAR_NOTICE);
+    expect(warningText(html)).toBe(`${skipNotice(1)} ${SKIP_WHERE}`);
     // One run-level notice in the shell, one on the affected scenario.
     expect(html.match(/class="attachmentWarning"/g)).toHaveLength(2);
     expect(shell).toBeGreaterThan(-1);
     expect(shell).toBeLessThan(html.indexOf('id="report-view"'));
     expect(shell).toBeLessThan(html.indexOf('id="analysis-view"'));
-    expect(warningText(reportView)).toBe(SINGULAR_NOTICE);
+    expect(warningText(reportView)).toContain(skipNotice(1));
     expect(analysisView).not.toContain('attachmentWarning');
+    // The run notice is generic; the reason lives only on the scenario list.
+    expect(warningMarkup(html) ?? '').not.toContain(SKIP_REASON.outside);
+    expect(html).toContain(
+      `<li><code>outside</code> - ${SKIP_REASON.outside}</li>`,
+    );
     expect(warningMarkup(html) ?? '').not.toContain(dir);
     expect(warningMarkup(reportView) ?? '').not.toContain(dir);
     expect(warningMarkup(html) ?? '').not.toContain(outside);
@@ -93,9 +99,15 @@ describe('skipped attachment notice', () => {
 
     const { html } = await generateReport(input, { title: 'Plural' });
 
-    expect(warningText(html)).toBe(pluralNotice(2));
+    expect(warningText(html)).toBe(`${skipNotice(2)} ${SKIP_WHERE}`);
     expect(warningMarkup(html) ?? '').not.toContain(dir);
     expect(warningMarkup(html) ?? '').not.toContain(outside);
+    expect(html).toContain(
+      `<li><code>first</code> - ${SKIP_REASON.outside}</li>`,
+    );
+    expect(html).toContain(
+      `<li><code>second</code> - ${SKIP_REASON.outside}</li>`,
+    );
   });
 
   it('keeps a clean report free of warning markup and uses the neutral footer', async () => {
@@ -109,6 +121,7 @@ describe('skipped attachment notice', () => {
 
     expect(html).not.toContain('class="attachmentWarning"');
     expect(html).not.toContain('class="noticeShell"');
+    expect(html).not.toContain('class="attachmentSkipList"');
     expect(html).toContain(NEUTRAL_FOOTER);
     expect(html).not.toContain('Screenshots are embedded');
   });
@@ -126,6 +139,7 @@ describe('skipped attachment notice', () => {
 
     expect(html).toContain(NEUTRAL_FOOTER);
     expect(html).not.toContain('Screenshots are embedded');
-    expect(html).toContain('1 path attachment was skipped');
+    expect(html).toContain(skipNotice(1));
+    expect(html).toContain(SKIP_WHERE);
   });
 });

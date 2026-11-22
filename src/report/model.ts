@@ -15,7 +15,11 @@ import {
   type AttachmentKind,
   type AttachmentTextFormat,
 } from '../attachment.js';
-import { skippedAttachmentsOf } from '../attempt-diagnostics.js';
+import {
+  skippedAttachmentEntriesOf,
+  skippedAttachmentsOf,
+  type SkippedAttachment,
+} from '../attempt-diagnostics.js';
 import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
@@ -133,8 +137,10 @@ export interface ReportScenario {
   hooks: ReportHook[];
   attachments: ReportAttachment[];
   extraAttachments: ReportAttachment[];
-  /** Path attachments skipped outside the roots on this scenario's final attempt. */
+  /** Path attachments skipped on this scenario's final attempt. */
   skippedAttachments?: number;
+  /** Up to three sanitized names and reasons for those skips. */
+  skippedAttachmentEntries?: SkippedAttachment[];
 }
 
 export interface ReportFeature {
@@ -666,6 +672,7 @@ export function buildReportModel(
     const skippedAttachments = safePositiveInteger(
       skippedAttachmentsOf(latest),
     );
+    const skippedAttachmentEntries = skippedAttachmentEntriesOf(latest);
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
@@ -693,6 +700,9 @@ export function buildReportModel(
       attachments: scenarioAttachments,
       extraAttachments,
       ...(skippedAttachments > 0 ? { skippedAttachments } : {}),
+      ...(skippedAttachmentEntries.length > 0
+        ? { skippedAttachmentEntries }
+        : {}),
     };
     scenarioRows.push(row);
     if (executed) {

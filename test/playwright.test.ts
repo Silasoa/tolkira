@@ -1,4 +1,5 @@
 import {
+  chmod,
   copyFile,
   mkdir,
   mkdtemp,
@@ -11,7 +12,9 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { Envelope } from '@cucumber/messages';
 import { afterEach, describe, expect, it } from 'vitest';
+import * as diagnostics from '../src/attempt-diagnostics.js';
 import { runCli } from '../src/cli.js';
 import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadEnvelopes, loadInputs } from '../src/input/load.js';
@@ -235,6 +238,36 @@ async function parsePlaywright(
   source: string,
 ): Promise<PlaywrightParseResult> {
   return parsePlaywrightJson(value, source);
+}
+
+interface SkipEntry {
+  name: string;
+  reason: string;
+}
+
+// The entries reader lands with the implementation; read it off the module so
+// the Red run fails on the behaviour, not on a missing static import.
+function skipEntriesOf(started: object): SkipEntry[] {
+  const reader = (diagnostics as unknown as Record<string, unknown>)
+    .skippedAttachmentEntriesOf;
+  return typeof reader === 'function'
+    ? ((reader as (value: object) => SkipEntry[] | undefined)(started) ?? [])
+    : [];
+}
+
+function finalStarted(envelopes: Envelope[]): object {
+  const started = envelopes.flatMap((envelope) =>
+    envelope.testCaseStarted ? [envelope.testCaseStarted] : [],
+  );
+  const value = started.at(-1);
+  if (!value) throw new Error('missing testCaseStarted envelope');
+  return value;
+}
+
+function everyStarted(envelopes: Envelope[]): object[] {
+  return envelopes.flatMap((envelope) =>
+    envelope.testCaseStarted ? [envelope.testCaseStarted] : [],
+  );
 }
 
 describe('Playwright JSON input', () => {
@@ -802,12 +835,16 @@ describe('Playwright JSON input', () => {
       ]),
     );
 
-    const summary = await summarizeReport(input);
-    const html = await renderReport(input, { title: 'Unsafe attachments' });
+    const generated = await generateReport(input, {
+      title: 'Unsafe attachments',
+    });
 
-    expect(summary.scenarios[0]?.attachments).toBe(0);
-    expect(summary.attachments.total).toBe(0);
-    expect(html).not.toContain('outside secret must not be read');
+    expect(generated.summary.scenarios[0]?.attachments).toBe(0);
+    expect(generated.summary.attachments.total).toBe(0);
+    expect(generated.skippedAttachments).toBe(4);
+    expect(generated.html).not.toContain('outside secret must not be read');
+    expect(generated.html).not.toContain(secret);
+    expect(generated.html).not.toContain(outside);
   });
 
   it('counts a final-attempt path attachment outside the input folder and cwd', async () => {
@@ -825,6 +862,9 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(1);
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'absolute-outside', reason: 'outside' },
+    ]);
     expect(attachmentTexts(envelopes)).toEqual([]);
   });
 
@@ -844,6 +884,7 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(0);
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([]);
     expect(attachmentTexts(envelopes)).toEqual([
       'path attachment for the Playwright adapter fixture\n',
     ]);
@@ -869,22 +910,61 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(0);
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([]);
     expect(attachmentTexts(envelopes)).toEqual(['from the body']);
   });
 
-  it('does not count missing, directory, URL-scheme or UNC attachment paths', async () => {
+  it('records a missing final-attempt attachment with the missing reason', async () => {
     const dir = await tempDir();
-    await mkdir(path.join(dir, 'folder'));
     const source = path.join(dir, 'report.json');
 
     const { envelopes, skippedAttachments } = await parsePlaywright(
       reportWithAttachments([
-        { name: 'missing', contentType: 'text/plain', path: 'missing.md' },
-        { name: 'folder', contentType: 'text/plain', path: 'folder' },
+        { name: 'missing.png', contentType: 'image/png', path: 'missing.png' },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(1);
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'missing.png', reason: 'missing' },
+    ]);
+    expect(attachmentTexts(envelopes)).toEqual([]);
+  });
+
+  it('records a directory as not a regular file', async () => {
+    const dir = await tempDir();
+    await mkdir(path.join(dir, 'shots'));
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        { name: 'shots', contentType: 'image/png', path: 'shots' },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(1);
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'shots', reason: 'not-regular' },
+    ]);
+  });
+
+  it('records URL, file, UNC and device paths as non-local', async () => {
+    const dir = await tempDir();
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
         {
           name: 'http',
           contentType: 'text/plain',
           path: 'http://example.com/secret.txt',
+        },
+        {
+          name: 'file-url',
+          contentType: 'text/plain',
+          path: 'file:///etc/passwd',
         },
         {
           name: 'unc',
@@ -896,16 +976,180 @@ describe('Playwright JSON input', () => {
           contentType: 'text/plain',
           path: '//server/share/file.png',
         },
+        {
+          name: 'device',
+          contentType: 'text/plain',
+          path: '\\\\.\\pipe\\tolkira',
+        },
       ]),
       source,
     );
 
-    expect(skippedAttachments).toBe(0);
+    expect(skippedAttachments).toBe(5);
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'http', reason: 'non-local' },
+      { name: 'file-url', reason: 'non-local' },
+      { name: 'unc', reason: 'non-local' },
+    ]);
     expect(attachmentTexts(envelopes)).toEqual([]);
   });
 
+  it('records one entry for a relative path that resolves only outside', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const secret = path.join(outside, 'secret.md');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        {
+          name: 'relative-outside',
+          contentType: 'text/plain',
+          path: path.relative(dir, secret),
+        },
+      ]),
+      source,
+    );
+
+    expect(skippedAttachments).toBe(1);
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'relative-outside', reason: 'outside' },
+    ]);
+    expect(attachmentTexts(envelopes)).toEqual([]);
+  });
+
+  it('caps recorded entries at three while the count includes every skip', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const secret = path.join(outside, 'secret.md');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    await mkdir(path.join(dir, 'folder'));
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        { name: 'outside.png', contentType: 'image/png', path: secret },
+        { name: 'missing.png', contentType: 'image/png', path: 'missing.png' },
+        { name: 'folder', contentType: 'image/png', path: 'folder' },
+        {
+          name: 'http',
+          contentType: 'image/png',
+          path: 'http://example.com/secret.png',
+        },
+        { name: 'later.png', contentType: 'image/png', path: 'later.png' },
+      ]),
+      source,
+    );
+
+    const entries = skipEntriesOf(finalStarted(envelopes));
+    expect(skippedAttachments).toBe(5);
+    expect(entries).toHaveLength(3);
+    expect(entries).toEqual([
+      { name: 'outside.png', reason: 'outside' },
+      { name: 'missing.png', reason: 'missing' },
+      { name: 'folder', reason: 'not-regular' },
+    ]);
+  });
+
+  it('sanitizes OSC-8, directory, ANSI and bidi names before recording', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const secret = path.join(outside, 'secret.md');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        {
+          name: '\u001b]8;;file:///home/secret/evil.png\u0007checkout.png\u001b]8;;\u0007',
+          contentType: 'image/png',
+          path: secret,
+        },
+        {
+          name: 'C:\\Users\\secret\\shots\\login.png',
+          contentType: 'image/png',
+          path: secret,
+        },
+        {
+          name: '\u202Eevil\u202C.png',
+          contentType: 'image/png',
+          path: secret,
+        },
+      ]),
+      source,
+    );
+
+    const entries = skipEntriesOf(finalStarted(envelopes));
+    expect(skippedAttachments).toBe(3);
+    expect(entries).toEqual([
+      { name: 'checkout.png', reason: 'outside' },
+      { name: 'login.png', reason: 'outside' },
+      { name: 'evil.png', reason: 'outside' },
+    ]);
+    const recorded = JSON.stringify(entries);
+    expect(recorded).not.toContain('secret');
+    expect(recorded).not.toContain('file:///');
+    expect(recorded).not.toContain('C:');
+    expect(recorded).not.toContain('\u001b');
+    expect(recorded).not.toContain('\u202E');
+  });
+
+  it('caps a long name at 120 code points and falls back to attachment', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-playwright-outside-');
+    const secret = path.join(outside, 'secret.md');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    const source = path.join(dir, 'report.json');
+
+    const { envelopes } = await parsePlaywright(
+      reportWithAttachments([
+        {
+          name: `${'a'.repeat(130)}.png`,
+          contentType: 'image/png',
+          path: secret,
+        },
+        {
+          name: '\u001b[31m\u001b[0m',
+          contentType: 'image/png',
+          path: secret,
+        },
+      ]),
+      source,
+    );
+
+    expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'a'.repeat(120), reason: 'outside' },
+      { name: 'attachment', reason: 'outside' },
+    ]);
+  });
+
+  it.skipIf(process.platform === 'win32' || typeof process.getuid !== 'function')(
+    'records an unreadable file inside a root as unreadable',
+    async () => {
+      if (process.getuid?.() === 0) return;
+      const dir = await tempDir();
+      const locked = path.join(dir, 'locked.png');
+      await writeFile(locked, 'locked attachment must not be read', 'utf8');
+      await chmod(locked, 0o000);
+      const source = path.join(dir, 'report.json');
+
+      const { envelopes, skippedAttachments } = await parsePlaywright(
+        reportWithAttachments([
+          { name: 'locked.png', contentType: 'image/png', path: 'locked.png' },
+        ]),
+        source,
+      );
+
+      expect(skippedAttachments).toBe(1);
+      expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+        { name: 'locked.png', reason: 'unreadable' },
+      ]);
+    },
+  );
+
   it.skipIf(process.platform === 'win32')(
-    'does not count a symlinked attachment path',
+    'records a symlinked attachment path as not a regular file',
     async () => {
       const dir = await tempDir();
       const outside = await tempDir('tolkira-playwright-outside-');
@@ -922,7 +1166,10 @@ describe('Playwright JSON input', () => {
         source,
       );
 
-      expect(skippedAttachments).toBe(0);
+      expect(skippedAttachments).toBe(1);
+      expect(skipEntriesOf(finalStarted(envelopes))).toEqual([
+        { name: 'symlink', reason: 'not-regular' },
+      ]);
       expect(attachmentTexts(envelopes)).toEqual([]);
     },
   );
@@ -966,7 +1213,32 @@ describe('Playwright JSON input', () => {
     );
 
     expect(skippedAttachments).toBe(0);
+    for (const started of everyStarted(envelopes)) {
+      expect(skipEntriesOf(started)).toEqual([]);
+    }
     expect(attachmentTexts(envelopes)).toEqual([]);
+  });
+
+  it('still throws for an attachment above the 50 MB cap instead of skipping it', async () => {
+    const dir = await tempDir();
+    const large = path.join(dir, 'large.bin');
+    const handle = await open(large, 'w');
+    await handle.truncate(50 * 1024 * 1024 + 1);
+    await handle.close();
+    const source = path.join(dir, 'report.json');
+
+    await expect(
+      parsePlaywright(
+        reportWithAttachments([
+          {
+            name: 'large',
+            contentType: 'application/octet-stream',
+            path: 'large.bin',
+          },
+        ]),
+        source,
+      ),
+    ).rejects.toThrow(/50 MB/);
   });
 
   it('sums skipped attachments across inputs and counts same-content duplicates once', async () => {
@@ -1084,13 +1356,13 @@ describe('Playwright JSON input', () => {
       ]),
     );
 
-    const summary = await summarizeReport(input);
-    const html = await renderReport(input, { title: 'Remote paths' });
+    const generated = await generateReport(input, { title: 'Remote paths' });
 
-    expect(summary.scenarios[0]?.attachments).toBe(1);
-    expect(html).toContain('safe local attachment');
-    expect(html).not.toContain('UNC secret must not be read');
-    expect(html).not.toContain('server/share');
+    expect(generated.summary.scenarios[0]?.attachments).toBe(1);
+    expect(generated.skippedAttachments).toBe(5);
+    expect(generated.html).toContain('safe local attachment');
+    expect(generated.html).not.toContain('UNC secret must not be read');
+    expect(generated.html).not.toContain('server/share');
   });
 
   it('resolves a relative attachment path against the input directory, then cwd', async () => {
@@ -1204,12 +1476,12 @@ describe('Playwright JSON input', () => {
       ]),
     );
 
-    const summary = await summarizeReport(input);
-    const html = await renderReport(input, { title: 'Traces' });
+    const generated = await generateReport(input, { title: 'Traces' });
 
-    expect(summary.scenarios[0]?.attachments).toBe(1);
-    expect(html).not.toContain('trace body marker');
-    expect(html).not.toContain('trace path marker');
+    expect(generated.summary.scenarios[0]?.attachments).toBe(1);
+    expect(generated.skippedAttachments).toBe(0);
+    expect(generated.html).not.toContain('trace body marker');
+    expect(generated.html).not.toContain('trace path marker');
   });
 
   it('removes absolute local paths from error messages and snippets', async () => {
@@ -1392,11 +1664,15 @@ describe('Playwright JSON input', () => {
         ]),
       );
 
-      const summary = await summarizeReport(input);
-      const html = await renderReport(input, { title: 'Symlink attachment' });
+      const generated = await generateReport(input, {
+        title: 'Symlink attachment',
+      });
 
-      expect(summary.scenarios[0]?.attachments).toBe(0);
-      expect(html).not.toContain('symlink secret must not be read');
+      expect(generated.summary.scenarios[0]?.attachments).toBe(0);
+      expect(generated.skippedAttachments).toBe(1);
+      expect(generated.html).toContain('symlink');
+      expect(generated.html).toContain('not a regular file');
+      expect(generated.html).not.toContain('symlink secret must not be read');
     },
   );
 

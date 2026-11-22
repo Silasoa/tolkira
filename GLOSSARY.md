@@ -72,12 +72,13 @@ attachment from: the input file's folder and the process working directory.
 Both are resolved to real paths; a target outside every allowed root is not
 read.
 
-**Skipped attachment** — a Playwright path attachment that exists as a regular,
-non-symlink file but resolves outside every allowed root. It is not embedded,
+**Skipped attachment** — a Playwright final-attempt path attachment that is not
+embedded because it is non-local (URL, UNC or device path), missing, unreadable,
+not a regular file, or resolves outside every allowed root. It is not embedded,
 counts once in `generateReport().skippedAttachments`, and drives the report
-run-level and per-scenario attachment notice and the CLI stderr warning. Missing
-files, non-regular files, symlinks, URL schemes, UNC paths, trace zips and
-earlier attempts are skipped without being counted; an inline body always wins.
+run-level count notice, up to three sanitized name/reason entries per scenario
+and the CLI stderr warning. Trace zips, earlier attempts and inline bodies that
+win over their path are skipped without being counted.
 
 **Flaky / @flaky** — a scenario tagged `@flaky`, either by the Playwright
 adapter when a retry passes or by a user on a scenario, feature, rule or outline.

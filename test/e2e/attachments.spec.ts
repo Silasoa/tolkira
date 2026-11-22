@@ -2,7 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { attachmentReport, SINGULAR_NOTICE } from '../attachments.js';
+import {
+  attachmentReport,
+  SKIP_REASON,
+  SKIP_WHERE,
+  skipNotice,
+} from '../attachments.js';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
 import {
   removeReport,
@@ -117,7 +122,7 @@ test('shows the skipped-attachment notice in the shell and on the scenario at 14
     await page.goto(reportUrl(output));
     const shellWarning = page.locator('.noticeShell .attachmentWarning');
     await expect(shellWarning).toBeVisible();
-    await expect(shellWarning).toHaveText(SINGULAR_NOTICE);
+    await expect(shellWarning).toHaveText(`${skipNotice(1)} ${SKIP_WHERE}`);
     await expect(shellWarning).not.toContainText(outside);
     await expect(page.locator('body')).not.toContainText(
       'outside secret must not be read',
@@ -150,7 +155,11 @@ test('shows the skipped-attachment notice in the shell and on the scenario at 14
       }
       await expect(scenario).toHaveAttribute('open', '');
       await expect(scenarioWarning).toBeVisible();
-      await expect(scenarioWarning).toHaveText(SINGULAR_NOTICE);
+      await expect(scenarioWarning).toContainText(skipNotice(1));
+      await expect(scenarioWarning).toContainText(
+        `screenshot - ${SKIP_REASON.outside}`,
+      );
+      await expect(scenario.locator('.attachmentSkipList li')).toHaveCount(1);
       await expect(scenarioWarning).not.toContainText(outside);
       const report = await noticeMetrics(page, '#report-view .runHead');
       expect(report.overflow, `report overflow at ${width}`).toBeLessThanOrEqual(
@@ -184,6 +193,24 @@ test('shows the skipped-attachment notice in the shell and on the scenario at 14
         `details right edge at ${width}`,
       ).toBeLessThanOrEqual(1);
     }
+
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+    });
+    await page.emulateMedia({ media: 'print' });
+    const printedList = await scenario
+      .locator('.attachmentSkipList')
+      .evaluate((element) => ({
+        display: getComputedStyle(element).display,
+        width: element.getBoundingClientRect().width,
+      }));
+    expect(printedList.display).not.toBe('none');
+    expect(printedList.width).toBeGreaterThan(0);
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    await page.emulateMedia({ media: 'screen' });
 
     await page.setViewportSize({ width: 320, height: 900 });
     await page.getByRole('tab', { name: 'Report' }).click();

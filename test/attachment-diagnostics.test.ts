@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -10,10 +10,12 @@ import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel, type ReportScenario } from '../src/report/model.js';
 import { renderHtml } from '../src/render/html.js';
 import {
-  SINGULAR_NOTICE,
+  SKIP_REASON,
+  SKIP_WHERE,
   attachmentReport,
   attachmentTexts,
-  pluralNotice,
+  skipMore,
+  skipNotice,
   writeAttachmentReport,
 } from './attachments.js';
 import { messagesFixture } from './fixtures.js';
@@ -79,10 +81,33 @@ function occurrences(text: string, needle: string): number {
   return text.split(needle).length - 1;
 }
 
+function shellNotice(html: string): string {
+  return (
+    /<div class="noticeShell"><div class="attachmentWarning"[^>]*>([\s\S]*?)<\/div><\/div>/.exec(
+      html,
+    )?.[1] ?? ''
+  );
+}
+
 // The report escapes the catalog notice, including its apostrophes.
 function escapedNotice(count: number): string {
-  const notice = count === 1 ? SINGULAR_NOTICE : pluralNotice(count);
-  return notice.replace(/'/g, '&#39;');
+  return skipNotice(count).replace(/'/g, '&#39;');
+}
+
+interface SkippedEntry {
+  name: string;
+  reason: string;
+}
+
+// ReportScenario gains the entries with the implementation; the cast keeps the
+// Red run on runtime behaviour instead of a static type error.
+function skippedEntries(
+  scenario: ReportScenario | undefined,
+): SkippedEntry[] {
+  const optional = scenario as
+    | (ReportScenario & { skippedAttachmentEntries?: SkippedEntry[] })
+    | undefined;
+  return optional?.skippedAttachmentEntries ?? [];
 }
 
 interface RetriedReport {
@@ -205,16 +230,31 @@ describe('attachment diagnostics', () => {
     );
     const detail = scenarioBlock(generated.html, 'attachment test');
 
-    // The scenario owns the notice, once, with the count. These are the Red
-    // assertions for the new behaviour; soft so every gap is reported.
+    // The scenario owns the notice, once, with the count and both entries.
+    // These are the Red assertions for the new behaviour; soft so every gap is
+    // reported.
     expect.soft(skippedCount(scenario)).toBe(2);
+    expect.soft(skippedEntries(scenario)).toEqual([
+      { name: 'first', reason: 'outside' },
+      { name: 'second', reason: 'outside' },
+    ]);
     expect.soft(detail).toContain('<div class="attachmentWarning"');
+    expect.soft(detail).toContain('class="attachmentSkipList"');
     expect.soft(occurrences(detail, escapedNotice(2))).toBe(1);
+    expect.soft(detail).toContain(
+      `<li><code>first</code> - ${SKIP_REASON.outside}</li>`,
+    );
+    expect.soft(detail).toContain(
+      `<li><code>second</code> - ${SKIP_REASON.outside}</li>`,
+    );
+    expect.soft(detail).not.toContain('attachmentSkipMore');
 
-    // Run-level count and notice stay.
+    // Run-level count and notice stay, now generic and pointing at scenarios.
     expect(generated.skippedAttachments).toBe(2);
     expect(generated.html).toContain('<div class="noticeShell">');
     expect(occurrences(generated.html, escapedNotice(2))).toBe(2);
+    expect(generated.html).toContain(SKIP_WHERE);
+    expect(shellNotice(generated.html)).not.toContain(SKIP_REASON.outside);
 
     // Outside roots are counted, never read or embedded.
     expect(scenario?.attachments).toEqual([]);
@@ -262,9 +302,11 @@ describe('attachment diagnostics', () => {
 
     expect(generated.skippedAttachments).toBe(0);
     expect(skippedCount(scenario)).toBe(0);
+    expect(skippedEntries(scenario)).toEqual([]);
     expect(scenario?.attachments).toHaveLength(1);
     expect(generated.html).toContain(inside);
     expect(generated.html).not.toContain('<div class="attachmentWarning"');
+    expect(generated.html).not.toContain('class="attachmentSkipList"');
     expect(generated.html).not.toContain(escapedNotice(1));
     expect(generated.html).not.toContain(escapedNotice(2));
   });
@@ -302,7 +344,9 @@ describe('attachment diagnostics', () => {
     expect(scenario?.attempt).toBe(1);
     expect(generated.skippedAttachments).toBe(0);
     expect(skippedCount(scenario)).toBe(0);
+    expect(skippedEntries(scenario)).toEqual([]);
     expect(generated.html).not.toContain('<div class="attachmentWarning"');
+    expect(generated.html).not.toContain('class="attachmentSkipList"');
     expect(generated.html).not.toContain(earlierSecret);
   });
 
@@ -337,16 +381,24 @@ describe('attachment diagnostics', () => {
 
     expect(generated.skippedAttachments).toBe(1);
     expect(skippedCount(outsideScenario)).toBe(1);
+    expect(skippedEntries(outsideScenario)).toEqual([
+      { name: 'outside', reason: 'outside' },
+    ]);
     expect(outsideScenario?.attachments).toEqual([]);
     expect(outsideDetail).toContain('<div class="attachmentWarning"');
     expect(occurrences(outsideDetail, escapedNotice(1))).toBe(1);
+    expect(outsideDetail).toContain(
+      `<li><code>outside</code> - ${SKIP_REASON.outside}</li>`,
+    );
     expect(skippedCount(insideScenario)).toBe(0);
+    expect(skippedEntries(insideScenario)).toEqual([]);
     expect(insideDetail).not.toContain('<div class="attachmentWarning"');
     expect(insideDetail).toContain(insideBody);
     expect(insideScenario?.attachments.map((entry) => entry.fileName)).toEqual([
       'inside',
     ]);
     expect(occurrences(generated.html, escapedNotice(1))).toBe(2);
+    expect(occurrences(generated.html, SKIP_WHERE)).toBe(1);
     expect(generated.html).not.toContain(outsideSecret);
   });
 
@@ -387,6 +439,10 @@ describe('attachment diagnostics', () => {
         model.scenarios.every((entry) => skippedCount(entry) === 0),
         label,
       ).toBe(true);
+      expect(
+        model.scenarios.every((entry) => skippedEntries(entry).length === 0),
+        label,
+      ).toBe(true);
       expect(generated.skippedAttachments, label).toBe(0);
       expect(generated.html, label).not.toContain(
         '<div class="attachmentWarning"',
@@ -404,7 +460,7 @@ describe('attachment diagnostics', () => {
     }
   });
 
-  it('does not count trace, inline or missing path attachments on the scenario', async () => {
+  it('counts a missing attachment but not trace or inline attachments', async () => {
     const dir = await tempDir();
     const outside = await tempDir('tolkira-attachment-outside-');
     const trace = path.join(outside, 'trace.zip');
@@ -421,22 +477,139 @@ describe('attachment diagnostics', () => {
         },
         { name: 'missing', contentType: 'text/plain', path: 'missing.md' },
       ],
-      'not-counted.json',
+      'counted-missing.json',
     );
 
-    const generated = await generateReport(input, { title: 'Not counted' });
+    const generated = await generateReport(input, { title: 'Counted missing' });
     const model = buildReportModel(await loadEnvelopes(input));
     const scenario = model.scenarios.find(
       (entry) => entry.name === 'attachment test',
     );
 
-    expect(generated.skippedAttachments).toBe(0);
-    expect(skippedCount(scenario)).toBe(0);
+    expect(generated.skippedAttachments).toBe(1);
+    expect(skippedCount(scenario)).toBe(1);
+    expect(skippedEntries(scenario)).toEqual([
+      { name: 'missing', reason: 'missing' },
+    ]);
     expect(scenario?.attachments.map((entry) => entry.fileName)).toEqual([
       'inline',
     ]);
-    expect(generated.html).not.toContain('<div class="attachmentWarning"');
+    expect(generated.html).toContain('<div class="attachmentWarning"');
+    expect(generated.html).toContain(
+      `<li><code>missing</code> - ${SKIP_REASON.missing}</li>`,
+    );
+    expect(generated.html).not.toContain('trace marker');
     expect(generated.html).toContain(inlineBody);
+  });
+
+  it('lists three of five skips with their own reasons and counts the rest', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-attachment-outside-');
+    const secret = path.join(outside, 'secret.png');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    await mkdir(path.join(dir, 'shots'));
+    const input = await writeAttachmentReport(
+      dir,
+      [
+        { name: 'outside.png', contentType: 'image/png', path: secret },
+        { name: 'missing.png', contentType: 'image/png', path: 'missing.png' },
+        { name: 'shots', contentType: 'image/png', path: 'shots' },
+        {
+          name: 'remote.png',
+          contentType: 'image/png',
+          path: 'http://example.com/secret.png',
+        },
+        { name: 'later.png', contentType: 'image/png', path: 'later.png' },
+      ],
+      'five-skips.json',
+    );
+
+    const generated = await generateReport(input, { title: 'Five skips' });
+    const model = buildReportModel(await loadEnvelopes(input));
+    const scenario = model.scenarios.find(
+      (entry) => entry.name === 'attachment test',
+    );
+    const detail = scenarioBlock(generated.html, 'attachment test');
+
+    expect(generated.skippedAttachments).toBe(5);
+    expect(skippedCount(scenario)).toBe(5);
+    expect(skippedEntries(scenario)).toEqual([
+      { name: 'outside.png', reason: 'outside' },
+      { name: 'missing.png', reason: 'missing' },
+      { name: 'shots', reason: 'not-regular' },
+    ]);
+    expect(detail).toContain(
+      `<li><code>outside.png</code> - ${SKIP_REASON.outside}</li>`,
+    );
+    expect(detail).toContain(
+      `<li><code>missing.png</code> - ${SKIP_REASON.missing}</li>`,
+    );
+    expect(detail).toContain(
+      `<li><code>shots</code> - ${SKIP_REASON['not-regular']}</li>`,
+    );
+    expect(occurrences(detail, '<li><code>')).toBe(3);
+    expect(detail).toContain(skipMore(2));
+    expect(generated.html).not.toContain('outside secret must not be read');
+  });
+
+  it('lists a mixed outside, missing and non-local reason', async () => {
+    const dir = await tempDir();
+    const outside = await tempDir('tolkira-attachment-outside-');
+    const secret = path.join(outside, 'secret.png');
+    await writeFile(secret, 'outside secret must not be read', 'utf8');
+    const input = await writeAttachmentReport(
+      dir,
+      [
+        { name: 'outside.png', contentType: 'image/png', path: secret },
+        { name: 'missing.png', contentType: 'image/png', path: 'missing.png' },
+        {
+          name: 'file.png',
+          contentType: 'image/png',
+          path: 'file:///etc/passwd',
+        },
+      ],
+      'mixed-reasons.json',
+    );
+
+    const generated = await generateReport(input, { title: 'Mixed' });
+    const model = buildReportModel(await loadEnvelopes(input));
+    const scenario = model.scenarios.find(
+      (entry) => entry.name === 'attachment test',
+    );
+    const detail = scenarioBlock(generated.html, 'attachment test');
+
+    expect(skippedEntries(scenario)).toEqual([
+      { name: 'outside.png', reason: 'outside' },
+      { name: 'missing.png', reason: 'missing' },
+      { name: 'file.png', reason: 'non-local' },
+    ]);
+    expect(detail).toContain(SKIP_REASON.outside);
+    expect(detail).toContain(SKIP_REASON.missing);
+    expect(detail).toContain(SKIP_REASON['non-local']);
+    expect(detail).not.toContain('attachmentSkipMore');
+  });
+
+  it('escapes a skipped name that looks like HTML', async () => {
+    const dir = await tempDir();
+    const input = await writeAttachmentReport(
+      dir,
+      [
+        {
+          name: '<img src=x onerror=alert(1)>.png',
+          contentType: 'image/png',
+          path: 'missing.png',
+        },
+      ],
+      'html-name.json',
+    );
+
+    const generated = await generateReport(input, { title: 'Escaped name' });
+    const detail = scenarioBlock(generated.html, 'attachment test');
+
+    expect(detail).toContain(
+      `&lt;img src=x onerror=alert(1)&gt;.png</code> - ${SKIP_REASON.missing}`,
+    );
+    expect(generated.html).not.toContain('<img src=x');
   });
 
   it('renders a failed hook attachment beside the hook and in the scenario list', async () => {

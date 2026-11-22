@@ -156,17 +156,24 @@ files live in unrelated trees is unsupported; those path attachments are
 skipped, while inline attachments still work. The one-file decision and its
 revisit trigger are in [ADR 0006](adr/0006-inline-attachments.md).
 
-### Skipped attachment count and notice
+### Skipped attachment count, names and reasons
 
-A path attachment that exists as a regular, non-symlink file but resolves
-outside every allowed root (the input file's folder and the working directory)
-is counted once. The count is exposed as `skippedAttachments` by
-`generateReport`, rendered as one notice in the report shell on both the Report
-and Details tabs, and written as one stderr warning whenever the CLI generates a report.
-The final attempt's count is also carried on the affected scenario and rendered
-in its detail with the same localized notice, so a run with several scenarios
-names the one that lost a file. The notice names the roots by role and never
-contains a local path.
+A final-attempt path attachment is skipped once when it is non-local (URL
+scheme, UNC or device path), missing, unreadable, not a regular file (including
+a symlink), or resolves outside every allowed root (the input file's folder and
+the working directory). The run-level count is exposed as `skippedAttachments`
+by `generateReport` and written as one stderr warning whenever the CLI generates
+a report. The count includes missing, unreadable, non-regular and non-local
+paths that earlier versions left silent.
+
+The report shell shows the localized count notice and points to the affected
+scenarios. An affected scenario's detail shows the same count plus up to three
+sanitized base names with their own reasons, for example `checkout.png -
+missing`, and states how many more were skipped. Names are stripped of ANSI/OSC,
+bidi and control characters before the base name is taken, then whitespace is
+collapsed and the result is capped at 120 characters with `attachment` as the
+fallback. No absolute path is stored or rendered. The list is part of the
+static HTML, prints, and fits at 320 px; no client JavaScript is involved.
 
 Earlier attempts and synthetic Playwright error scenarios carry zero; only the
 final attempt's path attachments are inspected. The scenario notice appears only
@@ -175,8 +182,6 @@ for a positive count and leaves the run-level notice in place.
 These never count:
 
 - an attachment with a non-empty inline body;
-- a missing path, a symlink, a non-regular file, a URL scheme or a UNC/device
-  path;
 - a trace zip or an earlier-attempt attachment;
 - a relative path that misses the input folder but resolves inside the working
   directory.

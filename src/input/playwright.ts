@@ -28,8 +28,12 @@ import {
   MAX_ATTACHMENT_BYTES,
   MAX_TOTAL_ATTACHMENT_BYTES,
 } from '../attachment.js';
-import { stripAnsi } from '../text.js';
-import { recordSkippedAttachments } from '../attempt-diagnostics.js';
+import { stripAnsi, stripBidiControls } from '../text.js';
+import {
+  recordSkippedAttachments,
+  type AttachmentSkipReason,
+  type SkippedAttachment,
+} from '../attempt-diagnostics.js';
 
 const FAILED_STATUSES = new Set(['failed', 'timedOut', 'interrupted']);
 const KNOWN_ANNOTATIONS = new Set(['skip', 'fixme', 'fail', 'slow']);
@@ -138,6 +142,7 @@ interface PlannedAttempt {
   steps: CanonicalStep[];
   attachments: PlannedAttachment[];
   skippedAttachments: number;
+  skippedEntries: SkippedAttachment[];
   willBeRetried: boolean;
 }
 
@@ -815,6 +820,18 @@ function attemptSteps(result: PlaywrightResult, inputDir: string): CanonicalStep
 }
 
 const NON_LOCAL_PATH = /^(?:https?|file):/i;
+const MAX_SKIP_ENTRIES = 3;
+const MAX_SKIP_NAME_LENGTH = 120;
+
+// Only the base name is persisted, so a report or CLI warning cannot leak a
+// directory. Escape stripping runs before the split: an OSC-8 payload may carry
+// its own visible path after the terminator.
+function displayAttachmentName(name: string): string {
+  const stripped = stripBidiControls(stripAnsi(name));
+  const base = stripped.replace(/\\/g, '/').split('/').at(-1) ?? '';
+  const collapsed = base.replace(/\s+/g, ' ').trim();
+  return [...collapsed].slice(0, MAX_SKIP_NAME_LENGTH).join('') || 'attachment';
+}
 
 // Reject URL schemes and UNC/device paths before any lstat, so a crafted JSON
 // report cannot make the adapter touch an SMB or device path.
@@ -870,35 +887,58 @@ async function readAttachment(
 async function resolveAttachmentPath(
   file: string,
   context: PlanContext,
-  onSkip?: () => void,
+  onSkip?: (reason: AttachmentSkipReason) => void,
 ): Promise<PlannedAttachment | undefined> {
-  if (isNonLocalPath(file)) return undefined;
+  if (isNonLocalPath(file)) {
+    context.skippedAttachments += 1;
+    onSkip?.('non-local');
+    return undefined;
+  }
   // Relative paths use the input directory first, then cwd for CI layouts where
   // reports/results.json and test-results/ are siblings.
   const candidates = path.isAbsolute(file)
     ? [file]
     : [path.resolve(context.inputDir, file), path.resolve(process.cwd(), file)];
   // Classify before reading: only a file that exists and resolves outside every
-  // root is a skip. readAttachment keeps its own checks; a swap between the two
-  // can only cause a false negative, never a read outside the roots.
+  // root is an outside skip. readAttachment keeps its own checks; a swap between
+  // the two can only cause a false negative, never a read outside the roots.
   let outside = 0;
-  let inside = 0;
+  let unreadable = 0;
+  let notRegular = 0;
+  let missing = 0;
   for (const candidate of candidates) {
     const info = await lstat(candidate).catch(() => undefined);
-    if (!info || info.isSymbolicLink() || !info.isFile()) continue;
+    if (!info) {
+      missing += 1;
+      continue;
+    }
+    if (info.isSymbolicLink() || !info.isFile()) {
+      notRegular += 1;
+      continue;
+    }
     const target = await realpath(candidate).catch(() => undefined);
-    if (!target) continue;
+    if (!target) {
+      unreadable += 1;
+      continue;
+    }
     if (!context.roots.some((root) => isInside(root, target))) {
       outside += 1;
       continue;
     }
-    inside += 1;
     const attachment = await readAttachment(candidate, context);
     if (attachment) return attachment;
+    unreadable += 1;
   }
-  if (outside > 0 && inside === 0) {
+  // One attachment is skipped at most once; the first reason that explains a
+  // lost read wins over a candidate that is merely absent.
+  let reason: AttachmentSkipReason | undefined;
+  if (unreadable > 0) reason = 'unreadable';
+  else if (outside > 0) reason = 'outside';
+  else if (notRegular > 0) reason = 'not-regular';
+  else if (missing > 0) reason = 'missing';
+  if (reason) {
     context.skippedAttachments += 1;
-    onSkip?.();
+    onSkip?.(reason);
   }
   return undefined;
 }
@@ -914,8 +954,13 @@ function playwrightMediaType(mediaType: string): string {
 async function attachmentsForResult(
   result: PlaywrightResult,
   context: PlanContext,
-): Promise<{ attachments: PlannedAttachment[]; skipped: number }> {
+): Promise<{
+  attachments: PlannedAttachment[];
+  skipped: number;
+  skippedEntries: SkippedAttachment[];
+}> {
   const planned: PlannedAttachment[] = [];
+  const skippedEntries: SkippedAttachment[] = [];
   let skipped = 0;
 
   for (const attachment of result.attachments) {
@@ -936,9 +981,19 @@ async function attachmentsForResult(
       continue;
     }
     if (attachment.path === undefined) continue;
-    const file = await resolveAttachmentPath(attachment.path, context, () => {
-      skipped += 1;
-    });
+    const file = await resolveAttachmentPath(
+      attachment.path,
+      context,
+      (reason) => {
+        skipped += 1;
+        if (skippedEntries.length < MAX_SKIP_ENTRIES) {
+          skippedEntries.push({
+            name: displayAttachmentName(attachment.name),
+            reason,
+          });
+        }
+      },
+    );
     if (!file) continue;
     planned.push({
       ...file,
@@ -967,7 +1022,7 @@ async function attachmentsForResult(
     }
   }
 
-  return { attachments: planned, skipped };
+  return { attachments: planned, skipped, skippedEntries };
 }
 
 function featureFor(
@@ -1147,6 +1202,7 @@ async function scenarioPlan(
       steps: skipped ? canonical : [],
       attachments: [],
       skippedAttachments: 0,
+      skippedEntries: [],
       willBeRetried: false,
     });
   } else {
@@ -1163,6 +1219,7 @@ async function scenarioPlan(
         steps: isFinal ? canonical : attemptSteps(result, context.inputDir),
         attachments: finalAttachments?.attachments ?? [],
         skippedAttachments: finalAttachments?.skipped ?? 0,
+        skippedEntries: finalAttachments?.skippedEntries ?? [],
         willBeRetried: index < results.length - 1,
       });
     }
@@ -1277,6 +1334,7 @@ function addErrorFeature(
           steps: [{ text: 'Playwright error', durationMs: 0, status: FAILED, message }],
           attachments: [],
           skippedAttachments: 0,
+          skippedEntries: [],
           willBeRetried: false,
         },
       ],
@@ -1412,8 +1470,15 @@ export async function parsePlaywrightJson(
             attempt: attempt.attempt,
             timestamp: attempt.timestamp,
           };
-          if (attempt.skippedAttachments > 0) {
-            recordSkippedAttachments(started, attempt.skippedAttachments);
+          if (
+            attempt.skippedAttachments > 0 ||
+            attempt.skippedEntries.length > 0
+          ) {
+            recordSkippedAttachments(
+              started,
+              attempt.skippedAttachments,
+              attempt.skippedEntries,
+            );
           }
           envelopes.push({
             testCaseStarted: started,

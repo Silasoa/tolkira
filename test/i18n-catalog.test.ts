@@ -364,6 +364,54 @@ describe('shipped catalogs', () => {
   });
 });
 
+const ATTACHMENT_SKIP_KEYS = [
+  'report.attachmentSkipMissing',
+  'report.attachmentSkipMore',
+  'report.attachmentSkipNonLocal',
+  'report.attachmentSkipNotRegular',
+  'report.attachmentSkipNotice',
+  'report.attachmentSkipOutside',
+  'report.attachmentSkipUnreadable',
+  'report.attachmentSkipWhere',
+] as const;
+
+describe('attachment skip keys', () => {
+  const en = generatedEn as unknown as Record<string, string>;
+  const de = generatedDe as unknown as Record<string, string>;
+
+  it('ships every attachment skip key in English and German', () => {
+    expect(en).not.toHaveProperty('report.attachmentNotice');
+    expect(de).not.toHaveProperty('report.attachmentNotice');
+    for (const key of ATTACHMENT_SKIP_KEYS) {
+      expect(en[key], `en: ${key}`).toBeTruthy();
+      expect(de[key], `de: ${key}`).toBeTruthy();
+    }
+  });
+
+  it('pins the generic English notice, where-line, reasons and more-line', () => {
+    expect(en['report.attachmentSkipNotice']).toBe(
+      '{count, plural, one {# path attachment was skipped.} other {# path attachments were skipped.}}',
+    );
+    expect(en['report.attachmentSkipWhere']).toBe('See the affected scenarios.');
+    expect(en['report.attachmentSkipOutside']).toBe(
+      'outside the allowed roots',
+    );
+    expect(en['report.attachmentSkipMissing']).toBe('missing');
+    expect(en['report.attachmentSkipUnreadable']).toBe('unreadable');
+    expect(en['report.attachmentSkipNotRegular']).toBe('not a regular file');
+    expect(en['report.attachmentSkipNonLocal']).toBe('non-local');
+    expect(en['report.attachmentSkipMore']).toBe(
+      '{count, plural, one {# more was skipped.} other {# more were skipped.}}',
+    );
+  });
+
+  it('keeps the notice and every reason translated in German', () => {
+    for (const key of ATTACHMENT_SKIP_KEYS) {
+      expect(de[key], `de: ${key}`).not.toBe(en[key]);
+    }
+  });
+});
+
 describe('catalog checker fixtures', () => {
   it('accepts a valid pair', () => {
     validatePair(

@@ -2,12 +2,34 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Envelope } from '@cucumber/messages';
 
-// Copy pinned by openspec/changes/surface-skipped-attachments/design.md.
-export const SINGULAR_NOTICE =
-  "1 path attachment was skipped: it is outside the allowed roots (its input file's folder and Tolkira's working directory). The report may be missing screenshots or files.";
+// Copy pinned by openspec/changes/attachment-skip-reasons/design.md: the notice
+// is generic, the where-line points at the scenarios, and each reason has a
+// stable English label.
+export function skipNotice(count: number): string {
+  return count === 1
+    ? '1 path attachment was skipped.'
+    : `${count} path attachments were skipped.`;
+}
 
-export function pluralNotice(count: number): string {
-  return `${count} path attachments were skipped: they are outside the allowed roots (each input file's folder and Tolkira's working directory). The report may be missing screenshots or files.`;
+export const SKIP_WHERE = 'See the affected scenarios.';
+
+export const SKIP_REASON = {
+  outside: 'outside the allowed roots',
+  missing: 'missing',
+  unreadable: 'unreadable',
+  'not-regular': 'not a regular file',
+  'non-local': 'non-local',
+} as const;
+
+export function skipMore(count: number): string {
+  return count === 1 ? '1 more was skipped.' : `${count} more were skipped.`;
+}
+
+// CLI/compat copy: reason-neutral, count-only, no names.
+export function attachmentWarning(count: number): string {
+  return count === 1
+    ? '1 path attachment was skipped. It may be outside the allowed roots, missing, unreadable, not a regular file or non-local. The report may be missing screenshots or files.'
+    : `${count} path attachments were skipped. They may be outside the allowed roots, missing, unreadable, not a regular file or non-local. The report may be missing screenshots or files.`;
 }
 
 export const CLI_HINT =

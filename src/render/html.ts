@@ -85,7 +85,7 @@ export async function renderHtml(
   const skipped = options.skippedAttachments ?? 0;
   const notice =
     skipped > 0
-      ? `<div class="noticeShell"><div class="attachmentWarning" role="note">${escapeHtml(t.t('report.attachmentNotice', { count: skipped }))}</div></div>`
+      ? `<div class="noticeShell"><div class="attachmentWarning" role="note">${escapeHtml(t.t('report.attachmentSkipNotice', { count: skipped }))} ${escapeHtml(t.t('report.attachmentSkipWhere'))}</div></div>`
       : '';
   const trends = history.length >= 2 ? renderTrendsView(history, t) : '';
   const messages = `<script type="application/json" id="${DOM_IDS.i18nMessages}">${t.clientMessages()}</script>`;

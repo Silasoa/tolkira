@@ -286,7 +286,10 @@ unredacted-message warning.
   source at 900 px or narrower; the Details matrix keeps the source label.
 - **Screenshots and attachments that survive.** Images, text, video, audio and
   files are preserved through the input adapters where available; skipped path
-  attachments are named in the report.
+  attachments are named in the report with their reason (up to three per
+  scenario), and the run-level count includes outside-root, missing, unreadable,
+  non-regular and non-local paths. Only final-attempt paths are inspected;
+  earlier attempts stay out of scope.
 - **Search and filters.** Search scenarios, features, steps and tags; filter by
   status and tag; a `Failed only` preset hides other statuses and unexecuted
   rows; open matching features automatically and highlight matches.
@@ -531,6 +534,10 @@ for the mapping.
 - No network requests, no telemetry, no remote fonts and no CDN.
 - A restrictive Content Security Policy is embedded in every report.
 - Test names, metadata and attachments are treated as untrusted input.
+- Playwright path attachment skips are counted by reason in the HTML
+  (outside the allowed roots, missing, unreadable, not a regular file or
+  non-local). Only sanitized base names are shown; the JSON summary, CI text,
+  email and history carry no names or paths.
 - Default limits: 100 MB total input, 50 MB per attachment and 100 MB total
   attachments. A warning appears when a report grows beyond 10 MB and names the
   report HTML, report-file and decoded attachment sizes.

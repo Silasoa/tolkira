@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { generate } from '../src/compat/cucumber-html-reporter.js';
 import {
   CLI_HINT,
-  SINGULAR_NOTICE,
+  attachmentWarning,
   writeAttachmentReport,
 } from './attachments.js';
 
@@ -36,7 +36,9 @@ describe('cucumber-html-reporter compat attachments', () => {
 
     const result = await generate({ jsonFile: input, output });
 
-    expect(result.warnings).toEqual([`${SINGULAR_NOTICE} ${CLI_HINT}`]);
+    expect(result.warnings).toEqual([`${attachmentWarning(1)} ${CLI_HINT}`]);
+    expect(result.warnings[0]).not.toContain('secret');
+    expect(result.warnings[0]).not.toContain('(its input file');
   });
 
   it('adds no attachment warning for a clean run', async () => {

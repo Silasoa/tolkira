@@ -9,6 +9,7 @@ import type {
   ReportScenario,
   ReportStep,
 } from '../report/model.js';
+import type { SkippedAttachment } from '../attempt-diagnostics.js';
 import type { ReportStatus } from '../report/status.js';
 import { worstExecutedStatus } from '../report/status.js';
 import { displayUri } from '../summary.js';
@@ -48,13 +49,20 @@ import {
   tagsMarkup,
 } from './format.js';
 import { renderDescription } from './markdown.js';
-import type { Translator } from './i18n.js';
+import type { MessageKey, Translator } from './i18n.js';
 import { renderSourceStrip, renderTriage } from './triage.js';
 import type { OrderedFeature, RenderOptions } from './types.js';
 
 const SEARCH_MESSAGE_LIMIT = 2000;
 const UNDEFINED_LEAD = 'No step definition found.';
 const AMBIGUOUS_LEAD = 'Multiple matching step definitions found:';
+const SKIP_REASON_KEYS: Record<SkippedAttachment['reason'], MessageKey> = {
+  outside: 'report.attachmentSkipOutside',
+  missing: 'report.attachmentSkipMissing',
+  unreadable: 'report.attachmentSkipUnreadable',
+  'not-regular': 'report.attachmentSkipNotRegular',
+  'non-local': 'report.attachmentSkipNonLocal',
+};
 
 function scenarioTags(model: ReportModel): string[] {
   return [...new Set(model.scenarios.flatMap((scenario) => scenario.tags))].sort(
@@ -279,6 +287,28 @@ function scenarioSummary(
   return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${flakyBadge}${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
 }
 
+function skippedAttachmentNotice(
+  scenario: ReportScenario,
+  t: Translator,
+): string {
+  const count = scenario.skippedAttachments ?? 0;
+  if (count <= 0) return '';
+  const entries = scenario.skippedAttachmentEntries ?? [];
+  const items = entries
+    .map(
+      (entry) =>
+        `<li><code>${escapeHtml(entry.name)}</code> - ${escapeHtml(t.t(SKIP_REASON_KEYS[entry.reason]))}</li>`,
+    )
+    .join('');
+  const list = items ? `<ul class="attachmentSkipList">${items}</ul>` : '';
+  const remaining = count - entries.length;
+  const more =
+    entries.length > 0 && remaining > 0
+      ? `<p class="attachmentSkipMore">${escapeHtml(t.t('report.attachmentSkipMore', { count: remaining }))}</p>`
+      : '';
+  return `<div class="attachmentWarning" role="note">${escapeHtml(t.t('report.attachmentSkipNotice', { count }))}${list}${more}</div>`;
+}
+
 function scenarioBody({
   scenario,
   description,
@@ -306,9 +336,7 @@ function scenarioBody({
   const rule = scenario.ruleName
     ? `<span>${t.t('report.ruleMeta', { name: escapeHtml(scenario.ruleName) })}</span>`
     : '';
-  const attachmentNotice = scenario.skippedAttachments
-    ? `<div class="attachmentWarning" role="note">${escapeHtml(t.t('report.attachmentNotice', { count: scenario.skippedAttachments }))}</div>`
-    : '';
+  const attachmentNotice = skippedAttachmentNotice(scenario, t);
   return `<div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">${t.t('report.steps')}</p>${copyFailure}</div><ol class="steps" aria-label="${t.t('report.stepsAndHooks')}">${inlineItems}</ol>${passedHooksGroup}${attachmentNotice}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>${t.t('report.featureMeta', { name: escapeHtml(scenario.featureName) })}</span><span>${t.t('report.attemptMeta', { count: scenario.attempt + 1 })}</span>${started}${rule}</div></div>`;
 }
 

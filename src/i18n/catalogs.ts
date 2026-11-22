@@ -96,7 +96,14 @@ export type MessageKey =
   | "matrix.total"
   | "report.allTags"
   | "report.attachmentCount"
-  | "report.attachmentNotice"
+  | "report.attachmentSkipMissing"
+  | "report.attachmentSkipMore"
+  | "report.attachmentSkipNonLocal"
+  | "report.attachmentSkipNotRegular"
+  | "report.attachmentSkipNotice"
+  | "report.attachmentSkipOutside"
+  | "report.attachmentSkipUnreadable"
+  | "report.attachmentSkipWhere"
   | "report.attachments"
   | "report.attemptMeta"
   | "report.collapseAll"
@@ -279,7 +286,14 @@ export const en: Record<MessageKey, string> = {
   "matrix.total": "Total",
   "report.allTags": "All tags",
   "report.attachmentCount": "{count, plural, one {# attachment} other {# attachments}}",
-  "report.attachmentNotice": "{count, plural, one {# path attachment was skipped: it is outside the allowed roots (its input file's folder and Tolkira's working directory). The report may be missing screenshots or files.} other {# path attachments were skipped: they are outside the allowed roots (each input file's folder and Tolkira's working directory). The report may be missing screenshots or files.}}",
+  "report.attachmentSkipMissing": "missing",
+  "report.attachmentSkipMore": "{count, plural, one {# more was skipped.} other {# more were skipped.}}",
+  "report.attachmentSkipNonLocal": "non-local",
+  "report.attachmentSkipNotRegular": "not a regular file",
+  "report.attachmentSkipNotice": "{count, plural, one {# path attachment was skipped.} other {# path attachments were skipped.}}",
+  "report.attachmentSkipOutside": "outside the allowed roots",
+  "report.attachmentSkipUnreadable": "unreadable",
+  "report.attachmentSkipWhere": "See the affected scenarios.",
   "report.attachments": "Attachments",
   "report.attemptMeta": "Attempt: {count}",
   "report.collapseAll": "Collapse all",
@@ -463,7 +477,14 @@ export const de: Record<MessageKey, string> = {
   "matrix.total": "Gesamt",
   "report.allTags": "Alle Tags",
   "report.attachmentCount": "{count, plural, one {# Anhang} other {# Anhänge}}",
-  "report.attachmentNotice": "{count, plural, one {# Pfad-Anhang wurde übersprungen: Er liegt außerhalb der erlaubten Basisverzeichnisse (des Ordners der Eingabedatei und von Tolkias Arbeitsverzeichnis). Im Bericht können Screenshots oder Dateien fehlen.} other {# Pfad-Anhänge wurden übersprungen: Sie liegen außerhalb der erlaubten Basisverzeichnisse (der Ordner der Eingabedateien und von Tolkias Arbeitsverzeichnis). Im Bericht können Screenshots oder Dateien fehlen.}}",
+  "report.attachmentSkipMissing": "fehlt",
+  "report.attachmentSkipMore": "{count, plural, one {# weiterer wurde übersprungen.} other {# weitere wurden übersprungen.}}",
+  "report.attachmentSkipNonLocal": "nicht lokal",
+  "report.attachmentSkipNotRegular": "keine reguläre Datei",
+  "report.attachmentSkipNotice": "{count, plural, one {# Pfad-Anhang wurde übersprungen.} other {# Pfad-Anhänge wurden übersprungen.}}",
+  "report.attachmentSkipOutside": "außerhalb der erlaubten Basisverzeichnisse",
+  "report.attachmentSkipUnreadable": "nicht lesbar",
+  "report.attachmentSkipWhere": "Siehe die betroffenen Szenarien.",
   "report.attachments": "Anhänge",
   "report.attemptMeta": "Versuch: {count}",
   "report.collapseAll": "Alle einklappen",

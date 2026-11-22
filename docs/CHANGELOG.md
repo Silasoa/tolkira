@@ -7,6 +7,17 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Skipped Playwright path attachments now carry a sanitized base name and one
+  reason: outside the allowed roots, missing, unreadable, not a regular file or
+  non-local. The scenario detail lists up to three entries and says how many
+  more were skipped; the run-level notice stays a count and points to the
+  scenarios. The run-level `skippedAttachments` count now includes the
+  previously silent missing, unreadable, non-regular and non-local paths, and
+  the CLI/compat warning is reason-neutral with no names. Names are stripped of
+  ANSI/OSC, bidi and control characters before the base name is taken, so no
+  path is persisted or rendered. Summary schema, CI, email, history,
+  dependencies and the 50 MB/100 MB caps are unchanged; earlier attempts stay
+  out of scope.
 - Flaky trends. The history sidecar gains an optional `flaky` count: executed,
   non-skipped scenarios tagged `@flaky` (any final status) or passed after at
   least one retry. Trends adds `Flaky` and `Flaky share` columns after the pass

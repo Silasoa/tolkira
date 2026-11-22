@@ -383,9 +383,37 @@
     "message": "{count, plural, one {# attachment} other {# attachments}}",
     "description": "Attachment count in a scenario row"
   },
-  "report.attachmentNotice": {
-    "message": "{count, plural, one {# path attachment was skipped: it is outside the allowed roots (its input file's folder and Tolkira's working directory). The report may be missing screenshots or files.} other {# path attachments were skipped: they are outside the allowed roots (each input file's folder and Tolkira's working directory). The report may be missing screenshots or files.}}",
-    "description": "Report notice when path attachments were skipped"
+  "report.attachmentSkipMissing": {
+    "message": "missing",
+    "description": "Reason label: the attachment path does not exist"
+  },
+  "report.attachmentSkipMore": {
+    "message": "{count, plural, one {# more was skipped.} other {# more were skipped.}}",
+    "description": "Remainder line after the three shown skipped attachments"
+  },
+  "report.attachmentSkipNonLocal": {
+    "message": "non-local",
+    "description": "Reason label: the attachment path is a URL, UNC or device path"
+  },
+  "report.attachmentSkipNotRegular": {
+    "message": "not a regular file",
+    "description": "Reason label: the attachment path is a directory, symlink or other non-file"
+  },
+  "report.attachmentSkipNotice": {
+    "message": "{count, plural, one {# path attachment was skipped.} other {# path attachments were skipped.}}",
+    "description": "Count notice for path attachments skipped for any recorded reason"
+  },
+  "report.attachmentSkipOutside": {
+    "message": "outside the allowed roots",
+    "description": "Reason label: the attachment path resolves outside the input folder and working directory"
+  },
+  "report.attachmentSkipUnreadable": {
+    "message": "unreadable",
+    "description": "Reason label: the attachment path exists but cannot be read"
+  },
+  "report.attachmentSkipWhere": {
+    "message": "See the affected scenarios.",
+    "description": "Run notice pointer to the scenarios that list the skipped attachment names"
   },
   "report.attachments": {
     "message": "Attachments",
