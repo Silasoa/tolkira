@@ -150,6 +150,17 @@ console errors.
 scenarios expand, no console or page errors. Locally `REPORT_CSS` is 46,344 B
 source -> 40,290 B minified, 6,054 B (13.06 %) smaller.
 
+**`retry-evidence` re-check (2026-11-22).** Checked-in
+`test/fixtures/playwright/retry-evidence.json` (2,616 B, synthetic Playwright
+JSON shape per `test/fixtures/playwright/PROVENANCE.md`, config version 1.65.0)
+rendered with the built 0.5.0 CLI (`--title "Retry evidence"`): 1 scenario, 1
+earlier attempt, 67,516 B report. Playwright 1.65.1 / Chromium 159.0.8154.6 at
+1440x900 and 390x844: the collapsed `Earlier attempts (1)` block shows a failed
+attempt, 1.2 s and `Error: payment gateway timed out`, expands to exactly one
+image, and the final summary keeps its own attachment count. No document
+overflow (1425/1440 and 375/390 px), no earlier-block overflow and no console or
+page errors.
+
 The 2026-11-20 wild-install probe is separate from this matrix but recorded
 here: the packed tarball is 522,870 B with three runtime dependencies; a clean
 consumer install is 6.71 MB and has no playwright; global, npx, pnpm and Yarn PnP

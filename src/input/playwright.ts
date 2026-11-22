@@ -29,6 +29,7 @@ import {
   MAX_RETRY_EVIDENCE_BYTES,
   MAX_TOTAL_ATTACHMENT_BYTES,
   attachmentBytes,
+  retryEvidenceFits,
   safeMediaType,
 } from '../attachment.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
@@ -1093,8 +1094,11 @@ async function readRetryEvidence(
         contentEncoding: AttachmentContentEncoding.BASE64,
       });
       if (
-        bytes > remaining ||
-        context.totalAttachmentBytes + bytes > MAX_TOTAL_ATTACHMENT_BYTES
+        !retryEvidenceFits(
+          context.totalAttachmentBytes,
+          context.retryEvidenceBytes,
+          bytes,
+        )
       ) {
         return undefined;
       }
@@ -1140,8 +1144,11 @@ async function readRetryEvidence(
 async function planRetryEvidence(context: PlanContext): Promise<void> {
   if (!context.allowRetryImages || context.retryEvidenceImageUsed) return;
   if (
-    MAX_TOTAL_ATTACHMENT_BYTES - context.totalAttachmentBytes <
-    MAX_RETRY_EVIDENCE_BYTES
+    !retryEvidenceFits(
+      context.totalAttachmentBytes,
+      0,
+      MAX_RETRY_EVIDENCE_BYTES,
+    )
   ) {
     return;
   }

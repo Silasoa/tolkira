@@ -3,6 +3,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { skippedAttachmentEntriesOf } from '../src/attempt-diagnostics.js';
+import {
+  MAX_RETRY_EVIDENCE_BYTES,
+  MAX_TOTAL_ATTACHMENT_BYTES,
+  retryEvidenceFits,
+} from '../src/attachment.js';
 import { generateReport, summarizeReport } from '../src/index.js';
 import { parsePlaywrightJson } from '../src/input/playwright.js';
 import { indexRun } from '../src/report/index-run.js';
@@ -60,6 +65,34 @@ describe('Playwright retry evidence', () => {
     expect(
       (attachment as Record<string, unknown>).MAX_RETRY_EVIDENCE_BYTES,
     ).toBe(RETRY_EVIDENCE_BUDGET);
+  });
+
+  describe('final-first reserve', () => {
+    it('accepts exactly 10 MB of evidence and rejects one byte more', () => {
+      expect(retryEvidenceFits(0, 0, MAX_RETRY_EVIDENCE_BYTES)).toBe(true);
+      expect(retryEvidenceFits(0, 0, MAX_RETRY_EVIDENCE_BYTES + 1)).toBe(false);
+      expect(
+        retryEvidenceFits(0, MAX_RETRY_EVIDENCE_BYTES - 1, 1),
+      ).toBe(true);
+      expect(retryEvidenceFits(0, MAX_RETRY_EVIDENCE_BYTES, 1)).toBe(false);
+    });
+
+    it('accepts a final total leaving exactly 10 MB and rejects one byte less', () => {
+      const leavingExactlyTen = MAX_TOTAL_ATTACHMENT_BYTES - MAX_RETRY_EVIDENCE_BYTES;
+      expect(retryEvidenceFits(leavingExactlyTen, 0, MAX_RETRY_EVIDENCE_BYTES)).toBe(
+        true,
+      );
+      expect(
+        retryEvidenceFits(leavingExactlyTen + 1, 0, MAX_RETRY_EVIDENCE_BYTES),
+      ).toBe(false);
+    });
+
+    it('accepts a normal image inside the evidence budget and total cap', () => {
+      expect(retryEvidenceFits(1024, 0, 4096)).toBe(true);
+      expect(retryEvidenceFits(MAX_TOTAL_ATTACHMENT_BYTES - 4096, 0, 4096)).toBe(
+        true,
+      );
+    });
   });
 
   it('exposes the failed earlier attempt and keeps the passed final result', async () => {

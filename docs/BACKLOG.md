@@ -56,7 +56,8 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-041 | Report | P3 | Ungrouped exact report-byte row beside the MB contributor rows in Details | A user finds it hard to scan or asks for MB and exact bytes together; then group the row or show both forms. | — |
-| B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | - |
+| B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
+| B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -115,6 +116,15 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-043 Earlier-attempt evidence** — implemented on 2026-11-22 in the
+  `retry-evidence` change: a retried scenario shows a collapsed `Earlier
+  attempts` block with up to three earlier starts (status, duration and the
+  first failure message) in the HTML only. A single-input Playwright report
+  embeds at most one marked earlier image under a 10 MB evidence budget after
+  final attachments; multi-input Playwright reports and Messages inputs show no
+  earlier image. Summary schema 2, `--json`, CI, email, history, attachment
+  counts/bytes and the dependency surface stay final-attempt-only. Legacy JSON
+  has no earlier data.
 - **B-036 JUnit nested test classes** — resolved on 2026-11-22 in the
   `host-parity-fixes` change: a `<testsuite>` with a nested-class shape (at least
   two distinct non-empty testcase classnames plus a `$` classname or a dotted
@@ -369,9 +379,11 @@ asks or a locale needs them:
 - **Playwright adapter structure.** Keep one adapter until about 1,800 lines or
   a second JSON shape; then split validation at the existing `validate*` seam.
   A shared millisecond time helper waits for a third adapter.
-- **Playwright retry artifacts.** Only the final attempt is rendered; earlier
-  screenshots and error context are not exposed. Revisit if flake forensics
-  becomes a requirement.
+- **Playwright retry artifacts.** The earlier-attempt block shows status,
+  duration and the first failure, and a single-input report embeds at most one
+  marked earlier image under 10 MB. All other earlier attachments, the trace
+  viewer, search over earlier errors and expected-failure nuance remain
+  deferred. Revisit if flake forensics needs more.
 - **Attachment containment.** `realpath` blocks symlink and UNC escapes;
   hardlinks inside the roots and growth after the descriptor size check require
   local write access and are accepted for local CI artifacts. Revisit for

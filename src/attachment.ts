@@ -9,6 +9,18 @@ export const MAX_RETRY_EVIDENCE_BYTES = 10 * 1024 * 1024;
 /** Text attachments above this size skip JSON pretty-printing and ANSI colouring. */
 export const MAX_TEXT_ATTACHMENT_BYTES = 262_144;
 
+/** Whether one earlier-attempt image fits the evidence budget and the total cap. */
+export function retryEvidenceFits(
+  totalAttachmentBytes: number,
+  retryEvidenceBytes: number,
+  size: number,
+): boolean {
+  return (
+    size <= MAX_RETRY_EVIDENCE_BYTES - retryEvidenceBytes &&
+    totalAttachmentBytes + size <= MAX_TOTAL_ATTACHMENT_BYTES
+  );
+}
+
 export type AttachmentKind = 'image' | 'video' | 'audio' | 'text' | 'binary';
 export type AttachmentTextFormat = 'json' | 'uri-list' | 'log' | 'plain';
 

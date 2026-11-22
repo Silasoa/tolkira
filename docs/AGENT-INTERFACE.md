@@ -703,8 +703,9 @@ outside `features/`).
   HTML names up to three sanitized attachment names and reasons per scenario and
   shows a run-level count notice; the CLI warning carries the count without
   names. The JSON summary, CI text, email and history carry no skip names. Only
-  final-attempt paths are inspected; earlier attempts, trace zips and
-  HTML-report replays are not read or counted.
+  final-attempt paths are counted; earlier attempts, trace zips and
+  HTML-report replays are not counted. One marked earlier image from a
+  single-input Playwright report may be read for the earlier-attempt block.
 - Legacy Cucumber JSON outlines arrive as expanded scenarios; the original
   outline `examples` table is not reconstructed. Behave durations are seconds
   and are normalised to milliseconds; multiline doc strings and error messages
