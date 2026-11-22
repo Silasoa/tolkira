@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Close the Windows drop-in gap with a real CI job.

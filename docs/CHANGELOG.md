@@ -49,6 +49,12 @@ Keep a Changelog and the project uses semantic versioning.
   object. The JSON summary, CI text, email, summary schema, locale catalogs and
   dependencies are unchanged.
 
+### Changed
+
+- The CI gate adds a Windows Node 22 job that runs the full `npm run check`
+  suite. Linux keeps the Node 22/24/26 matrix and the browser gate, macOS keeps
+  its browser and package run; a Windows failure blocks the workflow.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added

@@ -17,6 +17,10 @@ Run the required hosts:
 This is not part of every pull request. A small code change can rely on the
 fixture/e2e gate; record in the change why the host rows were not run.
 
+CI itself runs the check gate on Linux (Node 22/24/26), Windows (Node 22) and
+macOS (browser and package). A Windows check failure blocks the workflow; the
+host rows below remain separate, live-project evidence.
+
 ## Required hosts
 
 | # | Coverage | Host and pin | Artifact | Why this host |
