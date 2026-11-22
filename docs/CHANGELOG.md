@@ -7,6 +7,16 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Flaky visibility for `@flaky` scenarios. A scenario whose inherited tags
+  include the lowercase `@flaky` tag shows a localized, decorative `flaky`
+  badge in its summary row; when at least one exists, the run metadata adds a
+  separate count such as `1 tagged @flaky`, distinct from the status counts. The
+  badge uses the pending palette, wraps long labels, survives print and keeps
+  the existing tag and status. The two new report catalog keys
+  (`report.flakySummary`, `report.flakyBadge`) ship in English and German. The
+  JSON summary, CI text, email, status model, counts, filters and dependency
+  surface are unchanged, and there is no new schema field or flake-rate claim.
+
 - Per-scenario skipped-attachment diagnostics for Playwright JSON. The final
   attempt carries the number of path attachments skipped outside the allowed
   roots, the report model copies a positive count to the scenario, and the

@@ -146,6 +146,49 @@ test('renders a Playwright JSON report in the browser', async ({ page }) => {
   }
 });
 
+test('shows the flaky badge and tagged run count at 1440 and 320', async ({
+  page,
+}) => {
+  const { dir, output } = await writeReport(
+    [playwrightFixture('real-run.json')],
+    'Playwright flaky E2E',
+    'tolkira-flaky-e2e-',
+  );
+
+  try {
+    const flakyRow = page.locator('details.scenario:has(.flakyBadge)');
+    const flakyMeta = page.locator('#report-view .meta .flakyMeta');
+    const counts = page.locator('#report-view .counts');
+
+    for (const width of [1440, 320]) {
+      await page.setViewportSize({ width, height: width === 320 ? 700 : 900 });
+      await page.goto(reportUrl(output));
+
+      await expect(flakyRow).toHaveCount(1);
+      await expect(flakyRow.locator('.flakyBadge')).toHaveText('flaky');
+      await expect(flakyRow.locator('.flakyBadge')).toHaveAttribute(
+        'aria-hidden',
+        'true',
+      );
+      await expect(flakyRow.locator('.statusText')).toHaveText('Passed');
+      await expect(
+        flakyRow.locator('.tag').filter({ hasText: '@flaky' }),
+      ).toBeVisible();
+      await expect(flakyMeta).toHaveText('1 tagged @flaky');
+      await expect(counts.locator('.pass')).toContainText('7 passed');
+      await expect(counts).not.toContainText('flaky');
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        ),
+        `${width}px overflow`,
+      ).toBeLessThanOrEqual(1);
+    }
+  } finally {
+    await removeReport(dir);
+  }
+});
+
 test('renders a legacy screenshot in the browser', async ({ page }) => {
   const { dir, output } = await writeReport(
     [legacyScreenshot],

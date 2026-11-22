@@ -85,6 +85,7 @@ img, video { max-width: 100%; height: auto; }
 .runHead h1 { margin: 0; font-size: 2.074rem; line-height: 1.08; letter-spacing: -0.02em; overflow-wrap: anywhere; hyphens: auto; }
 .meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0.625rem 0 0; color: var(--muted); font-size: 0.875rem; }
 .meta b { color: var(--ink-2); font-weight: 500; }
+.flakyMeta { color: var(--pending); overflow-wrap: anywhere; }
 .health { border-left: 1px solid var(--line-strong); padding: 0.5rem 0 0.5rem 1.5rem; }
 .healthTop { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
 .healthTop strong { font-family: var(--font-mono); font-size: 2.6rem; font-weight: 400; line-height: 1; letter-spacing: -0.06em; color: var(--ink); font-variant-numeric: tabular-nums slashed-zero; }
@@ -218,6 +219,7 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .scenarioSource { display: block; color: var(--muted); font-family: var(--font-mono); font-size: 0.6875rem; overflow-wrap: anywhere; }
 .tags { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.125rem; }
 .tag { color: var(--accent-text); font-family: var(--font-mono); font-size: 0.6875rem; overflow-wrap: anywhere; }
+.flakyBadge { display: inline-block; padding: 0 0.3125rem; border: 1px solid color-mix(in oklab, var(--pending) 30%, var(--line)); border-radius: 999px; background: var(--pending-soft); color: var(--pending); font-size: 0.6875rem; font-weight: 500; overflow-wrap: anywhere; }
 .thumbCell { display: block; }
 .thumb { display: block; width: 6rem; height: 3.75rem; object-fit: cover; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface-3); }
 .rowRight { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -542,7 +544,7 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
   .scenario:has(.attachment) { break-inside: auto; }
   pre, .json, .error, .ansiLog { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
   .shot { max-width: 100%; max-height: 16cm; }
-  body, .statusText, .legendRow, .marker, .bar i, .sparkLine, .sparkPoint { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  body, .statusText, .flakyBadge, .legendRow, .marker, .bar i, .sparkLine, .sparkPoint { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 </style>
 </head>

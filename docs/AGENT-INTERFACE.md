@@ -523,7 +523,15 @@ Field contract:
   scenario tags render on the scenario row or, for an outline, on the outline
   heading, and examples tags on the examples heading. Example rows repeat
   neither scenario nor examples tags. The summary does not expose rules,
-  backgrounds or the own/inherited distinction.
+  backgrounds or the own/inherited distinction. A scenario whose pickle tag set
+  (own or inherited) includes `@flaky` (lowercase, exact match) gets a
+  report-only (HTML/PDF) badge, and when at least one exists the run metadata
+  gets a separate count such as `1 tagged @flaky`, distinct from the status
+  counts. Feature, rule and outline-level `@flaky` tags badge every affected row,
+  including every outline example, so the count can exceed the number of visible
+  tag labels; a failed or unexecuted tagged scenario also counts. The count is
+  not a computed flake rate or detection, and neither badge nor count appears in
+  the summary, CI or email or changes a status.
 - `attempt` is the latest started Cucumber attempt for that scenario, even when
   that attempt reported no result. An earlier retried attempt is ignored. For a
   Playwright JSON input it is the Playwright retry index of the final result;
@@ -604,7 +612,8 @@ outside `features/`).
 - History is an opt-in aggregate sidecar (`--history`); there is no
   scenario-level history, dashboard or server. Retries beyond the latest attempt
   and a trace viewer are not supported. Playwright JSON has a native adapter;
-  the final attempt is the rendered one. JUnit XML is a basic input mode; see
+  the final attempt is the rendered one, and `@flaky` is report-only
+  (HTML/PDF): the summary, CI and email keep the final status. JUnit XML is a basic input mode; see
   [`LIMITATIONS.md`](LIMITATIONS.md). Playwright producer metadata and
   annotation descriptions are HTML-only and do not change schema version 2.
 - The email summary is opt-in and file-only. It has no sending, recipients,

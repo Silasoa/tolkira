@@ -76,6 +76,11 @@ the scenario:
 - failed, `timedOut` or `interrupted` -> failed; the status is never treated as
   passed;
 - `test.status: "flaky"` with a passed final result -> passed, plus `@flaky`;
+  the report (HTML/PDF) shows a localized `flaky` badge and the run metadata a
+  separate count such as `1 tagged @flaky`, while the JSON summary, CI text and
+  email keep the passed status and only the tag. This is a tagged `@flaky`
+  count, not a computed flake rate or detection; a failed or unexecuted tagged
+  scenario also counts, and inherited tags badge every affected row;
 - `test.status: "expected"` (or `expectedStatus: "failed"`) with a failed,
   timed-out or interrupted final result -> an expected failure: all step results
   are passed, the error text sits in the scenario description, and the scenario

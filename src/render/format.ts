@@ -214,6 +214,18 @@ export function tagsMarkup(tags: string[], extraClass = ''): string {
     : '';
 }
 
+export function isFlakyScenario(scenario: ReportScenario): boolean {
+  return scenario.tags.includes('@flaky');
+}
+
+export function flakyScenarioCount(model: ReportModel): number {
+  return model.features.reduce(
+    (total, feature) =>
+      total + feature.scenarios.filter(isFlakyScenario).length,
+    0,
+  );
+}
+
 export function statusBar(model: ReportModel): string {
   const total = model.counts.scenarios.total;
   if (total === 0) return '';

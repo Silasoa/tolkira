@@ -108,6 +108,8 @@
   "report.featureCountsZero": "{passed} von 0 bestanden",
   "report.featureCountsZeroAttention": "{passed} von 0 bestanden · {attention}",
   "report.featureMeta": "Feature: {name}",
+  "report.flakyBadge": "flaky",
+  "report.flakySummary": "{count} mit @flaky markiert",
   "report.footer": "Erstellt von Tolkira. Eine Datei. Keine Netzwerkanfragen. Anhänge sind eingebettet, wenn verfügbar.",
   "report.hookCount": "{count, plural, one {# Hook} other {# Hooks}}",
   "report.noMatches": "Keine Szenarien entsprechen der aktuellen Suche oder den Filtern.",

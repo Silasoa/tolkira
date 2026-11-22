@@ -35,8 +35,10 @@ import {
   executedOnly,
   featureBar,
   featureSourceLabel,
+  flakyScenarioCount,
   healthMarkup,
   hookLabel,
+  isFlakyScenario,
   orderFeatures,
   scenarioSourceLabel,
   statusBar,
@@ -259,6 +261,7 @@ function scenarioSummary(
   rowTags: string,
   t: Translator,
 ): string {
+  const flaky = isFlakyScenario(scenario);
   const statusCell = scenario.executed
     ? `<span class="statusCell"><span class="statusText ${statusClass(scenario.status)}">${statusLabel(scenario.status, t)}</span></span>`
     : `<span class="statusCell"><span class="sr">${t.t('report.notExecuted')}</span></span>`;
@@ -269,7 +272,10 @@ function scenarioSummary(
     ? `<br>${t.t('report.attachmentCount', { count: scenario.attachments.length })}`
     : '';
   const source = scenarioSourceLabel(scenario);
-  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
+  const flakyBadge = flaky
+    ? `<span class="flakyBadge" aria-hidden="true">${escapeHtml(t.t('report.flakyBadge'))}</span> `
+    : '';
+  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${flakyBadge}${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
 }
 
 function scenarioBody({
@@ -677,10 +683,15 @@ function reportHeader(
   const unexecuted = model.scenarios.filter(
     (scenario) => !scenario.executed,
   ).length;
+  const flaky = flakyScenarioCount(model);
   const meta = metadataLine(options.metadata);
   const ci = ciHeaderMarkup(model.environment?.ci, t);
   const date = dateLabel(model.startedAt, t);
-  return `<header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${t.t('report.featureCount', { count: model.counts.features })}</span><span>${t.t('report.scenarioWithResults', { count: total })}</span>${unexecuted > 0 ? `<span>${t.t('report.unexecuted', { count: unexecuted })}</span>` : ''}<span title="${t.t('report.testTimeTitle')}"><b>${t.t('report.testTime')}</b> ${durationLabel(model.durationMs, t)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health">${healthMarkup(model, t)}${statusBar(model)}${countPills(model, t)}</div></header>`;
+  const flakyMeta =
+    flaky > 0
+      ? `<span class="flakyMeta">${t.t('report.flakySummary', { count: flaky })}</span>`
+      : '';
+  return `<header class="runHead"><div><p class="path">${escapeHtml(model.source)} / ${escapeHtml(options.title)}</p><h1>${escapeHtml(options.title)}</h1><p class="meta">${date ? `<span>${date}</span>` : ''}<span>${t.t('report.featureCount', { count: model.counts.features })}</span><span>${t.t('report.scenarioWithResults', { count: total })}</span>${flakyMeta}${unexecuted > 0 ? `<span>${t.t('report.unexecuted', { count: unexecuted })}</span>` : ''}<span title="${t.t('report.testTimeTitle')}"><b>${t.t('report.testTime')}</b> ${durationLabel(model.durationMs, t)}</span><span>${escapeHtml(model.source)}</span>${ci}${meta}</p></div><div class="health">${healthMarkup(model, t)}${statusBar(model)}${countPills(model, t)}</div></header>`;
 }
 
 function toolbar(model: ReportModel, t: Translator): string {

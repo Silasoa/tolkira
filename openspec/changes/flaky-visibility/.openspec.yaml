@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Make existing Playwright @flaky tags visible without schema v2 or
+  earlier-attempt storage.

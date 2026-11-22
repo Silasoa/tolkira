@@ -41,6 +41,7 @@ and the old English fallback map is gone.
 | Test time | Testzeit |
 | Feature | Feature |
 | Hook | Hook |
+| Flaky | flaky |
 | Rule | Rule |
 | URI | URI |
 
@@ -73,9 +74,15 @@ read.
 **Skipped attachment** — a Playwright path attachment that exists as a regular,
 non-symlink file but resolves outside every allowed root. It is not embedded,
 counts once in `generateReport().skippedAttachments`, and drives the report
-run-level and per-scenario attachment notice and the CLI stderr warning. Missing files, non-regular files, symlinks,
-URL schemes, UNC paths, trace zips and earlier attempts are skipped without
-being counted; an inline body always wins.
+run-level and per-scenario attachment notice and the CLI stderr warning. Missing
+files, non-regular files, symlinks, URL schemes, UNC paths, trace zips and
+earlier attempts are skipped without being counted; an inline body always wins.
+
+**Flaky / @flaky** — a scenario tagged `@flaky`, either by the Playwright
+adapter when a retry passes or by a user on a scenario, feature, rule or outline.
+The report shows a decorative badge and a run-metadata `N tagged @flaky` count;
+it is display-only, never a computed flake rate or status, and the scenario keeps
+its existing status in the JSON summary, CI and email.
 
 **CI metadata** — the optional Messages `meta.ci` block: CI name and URL plus
 git remote, revision, branch and tag. It renders in the HTML header and Details

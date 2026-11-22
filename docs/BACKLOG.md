@@ -304,11 +304,12 @@ asks or a locale needs them:
   attachments are counted for the report warning; missing and unreadable files
   inside a root stay silent. Trigger: a user reports a missing attachment the
   report does not flag, or the CLI gains a general attachment diagnostic.
-- **Flaky status and retry history.** The #24 comparison found one incidental
-  flake in a teaching fixture, not a user need for flake forensics. Keep flaky
-  folded into passed with `@flaky`; a flaky count/status or first-attempt
-  evidence would need a schema v2 decision. Trigger: a user asks for flake
-  forensics or a reported flaky rate becomes a problem.
+- **Flaky status and retry history.** The report now shows a display-only
+  `flaky` badge and a separate run-metadata `@flaky` count (for example
+  `1 tagged @flaky`), while the status stays folded into passed and the JSON
+  summary, CI and email are unchanged. A flaky status, flake rate, filter or
+  first-attempt evidence would still need a schema v2 decision. Trigger: a user
+  asks for flake forensics or a reported flaky rate becomes a problem.
 - **CR-only message text.** The fast-path probe excludes CR while the scan strips
   it, so a CR-only message is returned unchanged and a message with CR plus
   another control loses CR. This predates #17; the benchmark excludes CR to keep
