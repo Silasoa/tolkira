@@ -57,6 +57,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-041 | Report | P3 | Ungrouped exact report-byte row beside the MB contributor rows in Details | A user finds it hard to scan or asks for MB and exact bytes together; then group the row or show both forms. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
+| B-043 | Report | P3 | First-attempt error and screenshot evidence for flaky scenarios | A user needs first-attempt evidence or a flake investigation; earlier attempts are currently parsed away, so this needs an attachment/summary decision before code. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -328,12 +329,13 @@ asks or a locale needs them:
   attachments are counted for the report warning; missing and unreadable files
   inside a root stay silent. Trigger: a user reports a missing attachment the
   report does not flag, or the CLI gains a general attachment diagnostic.
-- **Flaky status and retry history.** The report now shows a display-only
-  `flaky` badge and a separate run-metadata `@flaky` count (for example
-  `1 tagged @flaky`), while the status stays folded into passed and the JSON
-  summary, CI and email are unchanged. A flaky status, flake rate, filter or
-  first-attempt evidence would still need a schema v2 decision. Trigger: a user
-  asks for flake forensics or a reported flaky rate becomes a problem.
+- **Flaky status and retry history.** The report shows a display-only `flaky`
+  badge and a tag-only run-metadata count; the history sidecar records an
+  optional per-run `flaky` count that Trends renders as `Flaky` and `Flaky share`
+  (a flagged share, not a probability). A per-scenario flaky status, filter,
+  summary field or first-attempt history would still need a schema decision;
+  first-attempt evidence is B-043. Trigger: a user asks for flake forensics or a
+  reported flaky rate becomes a problem.
 - **CR-only message text.** The fast-path probe excludes CR while the scan strips
   it, so a CR-only message is returned unchanged and a message with CR plus
   another control loses CR. This predates #17; the benchmark excludes CR to keep

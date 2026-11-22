@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { copyFile, mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
 import {
+  legacyFlakyReport,
   removeReport,
   reportUrl,
   writeInput,
@@ -134,6 +135,54 @@ async function wrappingText(page: Page, selector: string): Promise<string[]> {
       })
       .map((element) => element.textContent?.trim() ?? ''),
   );
+}
+
+// A table header that broke into one-character lines (an overflow symptom).
+async function oneCharacterStacks(
+  page: Page,
+  selector: string,
+): Promise<string[]> {
+  return page.locator(selector).evaluateAll((elements) =>
+    elements
+      .filter((element) => {
+        const text = (element.textContent ?? '').trim();
+        if (text.length < 2) return false;
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return range.getClientRects().length > Math.ceil(text.length / 2);
+      })
+      .map((element) => element.textContent?.trim() ?? ''),
+  );
+}
+
+// The fixed print columns: title width, duration line count and status fit.
+async function trendsPrintMetrics(page: Page): Promise<{
+  titleWidth: number;
+  durationLines: number;
+  statusOverflow: number;
+  statusGap: number;
+}> {
+  return page.locator('#trends-view tbody tr').first().evaluate((row) => {
+    const cells = [...row.querySelectorAll('td')];
+    const title = cells[1];
+    const status = cells[2];
+    const next = cells[3];
+    const duration = cells[10];
+    if (!title || !status || !next || !duration) {
+      throw new Error('Trends row cells are missing');
+    }
+    const range = document.createRange();
+    range.selectNodeContents(duration);
+    const pill = status.querySelector('.statusText');
+    const pillBox = pill?.getBoundingClientRect();
+    const nextBox = next.getBoundingClientRect();
+    return {
+      titleWidth: title.getBoundingClientRect().width,
+      durationLines: range.getClientRects().length,
+      statusOverflow: status.scrollWidth - status.clientWidth,
+      statusGap: pillBox ? nextBox.left - pillBox.right : -1,
+    };
+  });
 }
 
 async function luminance(
@@ -355,7 +404,7 @@ test('prints without interactive chrome and fits the A4 tables', async ({
 
   const layouts: Record<string, string> = {
     '#analysis-view .featureTable': 'fixed',
-    '#trends-view .trendsTable': 'auto',
+    '#trends-view .trendsTable': 'fixed',
   };
   for (const [table, expected] of Object.entries(layouts)) {
     expect(
@@ -641,13 +690,28 @@ test('prints the German history report at the A4 content width', async ({
     'German Trends overflow',
   ).toBeLessThanOrEqual(1);
   expect(
-    await wrappingText(page, '#trends-view .trendsTable thead th'),
-    'German Trends headers split',
+    await oneCharacterStacks(page, '#trends-view .trendsTable thead th'),
+    'German Trends header character stacks',
   ).toEqual([]);
   expect(
     await wrappingText(page, '#trends-view .trendsTable tbody .statusText'),
     'German Trends status pills split',
   ).toEqual([]);
+  const metrics = await trendsPrintMetrics(page);
+  expect(metrics.titleWidth, 'German Trends title width').toBeGreaterThan(100);
+  expect(metrics.durationLines, 'German Trends duration lines').toBe(1);
+  expect(
+    metrics.statusOverflow,
+    'German Trends status overflow',
+  ).toBeLessThanOrEqual(1);
+  expect(metrics.statusGap, 'German Trends status gap').toBeGreaterThanOrEqual(
+    0,
+  );
+  const oldest = page.locator('#trends-view tbody tr').last();
+  await expect(oldest.locator('td').nth(8), 'old Flaky cell').toHaveText('—');
+  await expect(oldest.locator('td').nth(9), 'old Flaky share cell').toHaveText(
+    '—',
+  );
   expect(await documentOverflow(page), 'German document overflow').toBeLessThanOrEqual(
     1,
   );
@@ -726,4 +790,82 @@ test('writes a multi-page A4 PDF with the complete print state', async ({
   expect(pages.length, 'Report, Details and Trends pages').toBeGreaterThanOrEqual(
     3,
   );
+});
+
+test('prints the German flaky Trends columns without clipping', async ({
+  page,
+}) => {
+  const historyDir = await mkdtemp(path.join(tmpdir(), 'tolkira-print-flaky-'));
+  const history = path.join(historyDir, 'history.json');
+  const input = await writeInput(
+    'flaky-de.json',
+    legacyFlakyReport([0, 1]),
+    'tolkira-print-flaky-input-',
+  );
+  let file: ReportFile | undefined;
+  try {
+    await copyFile(historyFixture, history);
+    file = await writeReportWithHistory(
+      [input.file],
+      history,
+      'Druckbericht',
+      'tolkira-print-flaky-report-',
+      'de',
+    );
+    const de = JSON.parse(
+      await readFile(
+        new URL('../../src/i18n/locales/de.json', import.meta.url),
+        'utf8',
+      ),
+    ) as Record<string, string>;
+
+    await page.setViewportSize({ width: A4_CONTENT_WIDTH, height: 1200 });
+    await page.emulateMedia({ media: 'print' });
+    await page.goto(reportUrl(file.output));
+    await dispatchPrint(page, 'beforeprint');
+
+    await expect(page.locator('#trends-view')).toBeVisible();
+    expect(de['trends.flaky'], 'de trends.flaky').toBeTruthy();
+    expect(de['trends.flakyShare'], 'de trends.flakyShare').toBeTruthy();
+    await expect(page.locator('#trends-view thead')).toContainText(
+      de['trends.flaky'] as string,
+    );
+    await expect(page.locator('#trends-view thead')).toContainText(
+      de['trends.flakyShare'] as string,
+    );
+    await expect(page.locator('#trends-view tbody tr').first()).toContainText(
+      new Intl.NumberFormat('de', {
+        style: 'percent',
+        maximumFractionDigits: 1,
+      }).format(0.05),
+    );
+
+    expect(
+      await regionOverflow(page, '#trends-view .tableWrap'),
+      'flaky Trends overflow',
+    ).toBeLessThanOrEqual(1);
+    expect(
+      await oneCharacterStacks(page, '#trends-view .trendsTable thead th'),
+      'flaky Trends header character stacks',
+    ).toEqual([]);
+    const metrics = await trendsPrintMetrics(page);
+    expect(metrics.titleWidth, 'flaky Trends title width').toBeGreaterThan(100);
+    expect(metrics.durationLines, 'flaky Trends duration lines').toBe(1);
+    expect(
+      metrics.statusOverflow,
+      'flaky Trends status overflow',
+    ).toBeLessThanOrEqual(1);
+    expect(
+      metrics.statusGap,
+      'flaky Trends status gap',
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      await documentOverflow(page),
+      'flaky document overflow',
+    ).toBeLessThanOrEqual(1);
+  } finally {
+    if (file) await removeReport(file.dir);
+    await rm(input.dir, { recursive: true, force: true });
+    await rm(historyDir, { recursive: true, force: true });
+  }
 });

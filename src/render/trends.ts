@@ -85,6 +85,33 @@ function rateLabel(run: HistoryRun, t: Translator): string {
   return percent === null ? '—' : t.percent(percent);
 }
 
+/** Absent means an older run; only a finite number is a recorded count. */
+function flakyValue(run: HistoryRun): number | null {
+  const value = run?.flaky;
+  return typeof value === 'number' && Number.isFinite(value)
+    ? whole(value)
+    : null;
+}
+
+/** Clamped for API input; an absent count is an old entry, not a zero. */
+function flakyLabel(run: HistoryRun, attempted: number, t: Translator): string {
+  const flaky = flakyValue(run);
+  return flaky === null ? '—' : t.number(Math.min(flaky, attempted));
+}
+
+/** Flagged share of attempted scenarios, clamped for hostile API input. */
+function flakyShareLabel(run: HistoryRun, t: Translator): string {
+  const { attempted } = passRate(scenarioCounts(run));
+  const flaky = flakyValue(run);
+  if (flaky === null || attempted === 0) return '—';
+  const clamped = Math.min(flaky, attempted);
+  const share = Math.round((clamped / attempted) * 1000) / 10;
+  // Compare the raw boundary: 1/1001 is below 0.1%, 1/1000 is exactly 0.1%.
+  return clamped > 0 && clamped * 1000 < attempted
+    ? t.t('trends.flakyShareBelow', { percent: t.percent(0.1) })
+    : t.percent(share);
+}
+
 function sparkPoints(runs: HistoryRun[]): Array<{ x: number; y: number } | null> {
   const ascending = [...runs].sort(byTime);
   const span = Math.max(ascending.length - 1, 1);
@@ -139,11 +166,12 @@ function rowMarkup(
   t: Translator,
 ): string {
   const counts = scenarioCounts(run);
+  const { attempted } = passRate(counts);
   const status = statusOf(run, t);
   const title = typeof run?.title === 'string' ? run.title : '';
   const recordedAt =
     typeof run?.recordedAt === 'string' ? run.recordedAt : undefined;
-  return `<tr><td>${escapeHtml(dateLabel(recordedAt, t))}${current ? `<span class="currentTag">${t.t('trends.current')}</span>` : ''}</td><td>${escapeHtml(title)}</td><td><span class="statusText ${status.className}">${status.label}</span></td><td class="num">${t.number(counts.passed)}</td><td class="num">${t.number(counts.failed)}</td><td class="num">${t.number(counts.skipped)}</td><td class="num">${t.number(counts.total)}</td><td class="num">${rateLabel(run, t)}</td><td class="num">${durationLabel(typeof run?.durationMs === 'number' ? run.durationMs : 0, t)}</td></tr>`;
+  return `<tr><td>${escapeHtml(dateLabel(recordedAt, t))}${current ? `<span class="currentTag">${t.t('trends.current')}</span>` : ''}</td><td>${escapeHtml(title)}</td><td><span class="statusText ${status.className}">${status.label}</span></td><td class="num">${t.number(counts.passed)}</td><td class="num">${t.number(counts.failed)}</td><td class="num">${t.number(counts.skipped)}</td><td class="num">${t.number(counts.total)}</td><td class="num">${rateLabel(run, t)}</td><td class="num">${flakyLabel(run, attempted, t)}</td><td class="num">${flakyShareLabel(run, t)}</td><td class="num">${durationLabel(typeof run?.durationMs === 'number' ? run.durationMs : 0, t)}</td></tr>`;
 }
 
 function rowsMarkup(runs: HistoryRun[], t: Translator): string {
@@ -161,5 +189,5 @@ export function renderTrendsView(
   history: HistoryRun[],
   t: Translator,
 ): string {
-  return `<div class="tabPanel" id="${DOM_IDS.trendsView}" role="tabpanel" aria-labelledby="view-trends" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${t.t('trends.path')}</p><h1>${t.t('trends.title')}</h1><p class="meta"><span>${t.t('trends.runs', { count: history.length })}</span><span>${t.t('trends.newestFirst')}</span><span>${t.t('trends.passRateNote')}</span></p></div></header><section class="panel trendsPanel"><h2>${t.t('trends.recordedRuns')}</h2><p class="matrixHint">${t.t('trends.tableHint')}</p><div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('trends.tableLabel')}"><table class="trendsTable"><thead><tr><th scope="col">${t.t('trends.recorded')}</th><th scope="col">${t.t('trends.titleColumn')}</th><th scope="col">${t.t('trends.status')}</th><th scope="col" class="num">${statusLabel('passed', t)}</th><th scope="col" class="num">${statusLabel('failed', t)}</th><th scope="col" class="num">${statusLabel('skipped', t)}</th><th scope="col" class="num">${t.t('trends.total')}</th><th scope="col" class="num">${t.t('trends.passRate')}</th><th scope="col" class="num">${t.t('trends.duration')}</th></tr></thead><tbody>${rowsMarkup(history, t)}</tbody></table></div><p class="sparkLead">${t.t('trends.sparkLead')}</p>${sparkline(history)}</section></main></div>`;
+  return `<div class="tabPanel" id="${DOM_IDS.trendsView}" role="tabpanel" aria-labelledby="view-trends" tabindex="0" hidden><main class="shell analysis"><header class="runHead"><div><p class="path">${t.t('trends.path')}</p><h1>${t.t('trends.title')}</h1><p class="meta"><span>${t.t('trends.runs', { count: history.length })}</span><span>${t.t('trends.newestFirst')}</span><span>${t.t('trends.passRateNote')}</span></p></div></header><section class="panel trendsPanel"><h2>${t.t('trends.recordedRuns')}</h2><p class="matrixHint">${t.t('trends.tableHint')}</p><div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('trends.tableLabel')}"><table class="trendsTable"><thead><tr><th scope="col">${t.t('trends.recorded')}</th><th scope="col">${t.t('trends.titleColumn')}</th><th scope="col">${t.t('trends.status')}</th><th scope="col" class="num">${statusLabel('passed', t)}</th><th scope="col" class="num">${statusLabel('failed', t)}</th><th scope="col" class="num">${statusLabel('skipped', t)}</th><th scope="col" class="num">${t.t('trends.total')}</th><th scope="col" class="num">${t.t('trends.passRate')}</th><th scope="col" class="num">${t.t('trends.flaky')}</th><th scope="col" class="num">${t.t('trends.flakyShare')}</th><th scope="col" class="num">${t.t('trends.duration')}</th></tr></thead><tbody>${rowsMarkup(history, t)}</tbody></table></div><p class="flakyNote">${t.t('trends.flakyNote')}</p><p class="sparkLead">${t.t('trends.sparkLead')}</p>${sparkline(history)}</section></main></div>`;
 }

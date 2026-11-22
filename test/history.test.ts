@@ -17,7 +17,7 @@ import {
   type HistoryRun,
 } from '../src/history.js';
 import { summarizeReport } from '../src/index.js';
-import type { StatusCounts } from '../src/summary.js';
+import type { ReportSummary, StatusCounts } from '../src/summary.js';
 
 const execFileAsync = promisify(execFile);
 const fixtures = fileURLToPath(new URL('./fixtures/history/', import.meta.url));
@@ -83,6 +83,202 @@ async function writeRaw(name: string, raw: string): Promise<string> {
   const file = path.join(dir, name);
   await writeFile(file, raw, 'utf8');
   return file;
+}
+
+interface LegacyScenarioInput {
+  name: string;
+  status?: string;
+  tags?: string[];
+}
+
+// One legacy feature; legacy JSON has no attempt data, so every attempt is 0.
+async function summaryFromLegacy(
+  scenarios: LegacyScenarioInput[],
+): Promise<ReportSummary> {
+  const dir = await tempDir();
+  const file = path.join(dir, 'run.json');
+  await writeFile(
+    file,
+    JSON.stringify([
+      {
+        uri: 'features/flaky.feature',
+        name: 'Flaky feature',
+        elements: scenarios.map((scenario) => ({
+          keyword: 'Scenario',
+          type: 'scenario',
+          name: scenario.name,
+          tags: (scenario.tags ?? []).map((name, index) => ({
+            name,
+            line: index + 1,
+          })),
+          steps: [
+            {
+              keyword: 'Given ',
+              name: 'a step',
+              result: { status: scenario.status ?? 'passed', duration: 1 },
+            },
+          ],
+        })),
+      },
+    ]),
+    'utf8',
+  );
+  return summarizeReport(file);
+}
+
+interface MessagesScenarioInput {
+  name: string;
+  tags?: string[];
+  attempt?: number;
+  status?: 'PASSED' | 'FAILED' | 'SKIPPED';
+  started?: boolean;
+}
+
+// Minimal Messages run: one pickle per scenario, started at the given attempt.
+async function summaryFromMessages(
+  scenarios: MessagesScenarioInput[],
+): Promise<ReportSummary> {
+  const dir = await tempDir();
+  const file = path.join(dir, 'run.ndjson');
+  const lines: unknown[] = [];
+  scenarios.forEach((scenario, index) => {
+    const pickleId = `pickle-${index}`;
+    const caseId = `case-${index}`;
+    const startedId = `started-${index}`;
+    lines.push({
+      pickle: {
+        id: pickleId,
+        uri: 'features/flaky.feature',
+        name: scenario.name,
+        language: 'en',
+        astNodeIds: [`scenario-${index}`],
+        tags: (scenario.tags ?? []).map((name) => ({ name, astNodeId: 'tag' })),
+        steps: [
+          {
+            id: `${pickleId}-step`,
+            text: 'a step',
+            type: 'Context',
+            astNodeIds: [`step-${index}`],
+          },
+        ],
+      },
+    });
+    lines.push({
+      testCase: {
+        id: caseId,
+        pickleId,
+        testSteps: [{ id: `${caseId}-step`, pickleStepId: `${pickleId}-step` }],
+      },
+    });
+    if (scenario.started === false) return;
+    lines.push({
+      testCaseStarted: {
+        id: startedId,
+        testCaseId: caseId,
+        attempt: scenario.attempt ?? 0,
+        timestamp: { seconds: 0, nanos: index },
+      },
+    });
+    lines.push({
+      testStepFinished: {
+        testCaseStartedId: startedId,
+        testStepId: `${caseId}-step`,
+        testStepResult: {
+          status: scenario.status ?? 'PASSED',
+          duration: { seconds: 0, nanos: 1 },
+        },
+        timestamp: { seconds: 1, nanos: index },
+      },
+    });
+    lines.push({
+      testCaseFinished: {
+        testCaseStartedId: startedId,
+        timestamp: { seconds: 2, nanos: index },
+        willBeRetried: false,
+      },
+    });
+  });
+  await writeFile(
+    file,
+    lines.map((line) => JSON.stringify(line)).join('\n'),
+    'utf8',
+  );
+  return summarizeReport(file);
+}
+
+function playwrightResult(retry: number, status: string) {
+  return {
+    status,
+    duration: 1,
+    retry,
+    startTime: '2026-11-22T09:00:00.000Z',
+    stdout: [],
+    stderr: [],
+    annotations: [],
+    attachments: [],
+  };
+}
+
+// A final passed attempt after a failed retry, or the same retries still failing.
+function playwrightReport(status: 'flaky' | 'unexpected'): unknown {
+  const results = [
+    playwrightResult(0, 'failed'),
+    playwrightResult(1, status === 'flaky' ? 'passed' : 'failed'),
+  ];
+  return {
+    config: {
+      version: '1.65.0',
+      configFile: 'playwright.config.ts',
+      rootDir: 'tests',
+      projects: [{ id: 'chromium', name: 'chromium', retries: 1 }],
+    },
+    suites: [
+      {
+        title: 'flaky.spec.ts',
+        file: 'flaky.spec.ts',
+        line: 0,
+        column: 0,
+        specs: [
+          {
+            title: 'retried test',
+            ok: status === 'flaky',
+            tags: [],
+            id: 'flaky-spec-1',
+            file: 'flaky.spec.ts',
+            line: 7,
+            column: 1,
+            tests: [
+              {
+                timeout: 30000,
+                annotations: [],
+                expectedStatus: 'passed',
+                projectId: 'chromium',
+                projectName: 'chromium',
+                status,
+                results,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    errors: [],
+    stats: {
+      startTime: '2026-11-22T09:00:00.000Z',
+      duration: 2,
+      expected: 0,
+      unexpected: status === 'unexpected' ? 1 : 0,
+      flaky: status === 'flaky' ? 1 : 0,
+      skipped: 0,
+    },
+  };
+}
+
+async function summaryFromPlaywright(report: unknown): Promise<ReportSummary> {
+  const dir = await tempDir();
+  const file = path.join(dir, 'playwright.json');
+  await writeFile(file, JSON.stringify(report), 'utf8');
+  return summarizeReport(file);
 }
 
 describe('reading the history sidecar', () => {
@@ -307,6 +503,7 @@ describe('building history runs', () => {
         'attachments',
         'counts',
         'durationMs',
+        'flaky',
         'id',
         'recordedAt',
         'status',
@@ -440,5 +637,215 @@ describe('writing the history sidecar', () => {
     expect(Array.from(written.runs[0]?.title ?? '')).toHaveLength(
       HISTORY_MAX_TITLE,
     );
+  });
+});
+
+describe('counting flaky scenarios', () => {
+  it('counts an executed tagged scenario once, including a final failure', async () => {
+    const summary = await summaryFromLegacy([
+      { name: 'tagged pass', tags: ['@flaky'] },
+      { name: 'tagged fail', status: 'failed', tags: ['@flaky'] },
+      { name: 'plain pass' },
+    ]);
+
+    const byName = new Map(
+      summary.scenarios.map((scenario) => [scenario.name, scenario]),
+    );
+    // Legacy JSON is tag-only: every attempt stays 0.
+    expect(byName.get('tagged pass')?.attempt).toBe(0);
+    expect(byName.get('tagged fail')?.status).toBe('failed');
+    expect(buildHistoryRun(summary, 'Nightly build').flaky).toBe(2);
+  });
+
+  it('counts a retry pass and both branches once, but not a retry failure', async () => {
+    const summary = await summaryFromMessages([
+      { name: 'retried pass', attempt: 1 },
+      { name: 'retried fail', attempt: 1, status: 'FAILED' },
+      { name: 'tagged and retried', attempt: 2, tags: ['@flaky'] },
+    ]);
+
+    const byName = new Map(
+      summary.scenarios.map((scenario) => [scenario.name, scenario]),
+    );
+    expect(byName.get('retried pass')?.status).toBe('passed');
+    expect(byName.get('retried pass')?.attempt).toBe(1);
+    expect(byName.get('retried pass')?.tags).toEqual([]);
+    expect(byName.get('retried fail')?.status).toBe('failed');
+    expect(byName.get('tagged and retried')?.tags).toEqual(['@flaky']);
+    expect(buildHistoryRun(summary, 'Nightly build').flaky).toBe(2);
+  });
+
+  // Tag and retry are independent branches: the final status only matters to
+  // the retry branch.
+  it.each([
+    { tagged: true, attempt: 1, status: 'FAILED' as const, expected: 1 },
+    { tagged: true, attempt: 1, status: 'PASSED' as const, expected: 1 },
+    { tagged: false, attempt: 1, status: 'PASSED' as const, expected: 1 },
+    { tagged: false, attempt: 1, status: 'FAILED' as const, expected: 0 },
+    { tagged: true, attempt: 0, status: 'FAILED' as const, expected: 1 },
+    { tagged: false, attempt: 0, status: 'PASSED' as const, expected: 0 },
+  ])(
+    'counts tagged=$tagged attempt=$attempt final=$status as $expected',
+    async ({ tagged, attempt, status, expected }) => {
+      const summary = await summaryFromMessages([
+        {
+          name: 'decision case',
+          attempt,
+          status,
+          ...(tagged ? { tags: ['@flaky'] } : {}),
+        },
+      ]);
+
+      expect(summary.scenarios[0]?.status).toBe(
+        status === 'PASSED' ? 'passed' : 'failed',
+      );
+      expect(buildHistoryRun(summary, 'Nightly build').flaky).toBe(expected);
+    },
+  );
+
+  it('excludes a skipped and an unexecuted tagged scenario', async () => {
+    const summary = await summaryFromMessages([
+      { name: 'tagged skipped', tags: ['@flaky'], status: 'SKIPPED' },
+      { name: 'tagged unstarted', tags: ['@flaky'], started: false },
+    ]);
+
+    expect(summary.scenarios.map((scenario) => scenario.name)).toEqual([
+      'tagged skipped',
+    ]);
+    expect(summary.scenarios[0]?.executed).toBe(true);
+    expect(summary.scenarios[0]?.status).toBe('skipped');
+    expect(buildHistoryRun(summary, 'Nightly build').flaky).toBe(0);
+  });
+
+  it('counts a Playwright retry pass and not a retry failure', async () => {
+    const retried = await summaryFromPlaywright(playwrightReport('flaky'));
+    expect(retried.scenarios[0]?.attempt).toBe(1);
+    expect(retried.scenarios[0]?.tags).toEqual(['@flaky']);
+    expect(buildHistoryRun(retried, 'Nightly build').flaky).toBe(1);
+
+    const failed = await summaryFromPlaywright(playwrightReport('unexpected'));
+    expect(failed.scenarios[0]?.status).toBe('failed');
+    expect(failed.scenarios[0]?.attempt).toBe(1);
+    expect(failed.scenarios[0]?.tags).toEqual([]);
+    expect(buildHistoryRun(failed, 'Nightly build').flaky).toBe(0);
+  });
+
+  it('keeps the summary schema free of a flaky field', async () => {
+    const summary = await summaryFromLegacy([
+      { name: 'tagged', tags: ['@flaky'] },
+    ]);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(Object.hasOwn(summary, 'flaky')).toBe(false);
+  });
+});
+
+describe('flaky in the history sidecar', () => {
+  it('leaves old entries field-less on read and append', async () => {
+    const old = await readHistory(fixture('two-runs.json'));
+    expect(old.every((run) => !Object.hasOwn(run, 'flaky'))).toBe(true);
+
+    const summary = await summaryFromLegacy([
+      { name: 'tagged', tags: ['@flaky'] },
+    ]);
+    const next = buildHistoryRun(summary, 'Nightly build');
+    const dir = await tempDir();
+    const file = path.join(dir, 'history.json');
+    await writeHistory(file, appendHistory(old, next));
+
+    const runs = await readHistory(file);
+    expect(runs).toHaveLength(3);
+    for (const run of runs.slice(0, 2)) {
+      expect(Object.hasOwn(run, 'flaky')).toBe(false);
+    }
+    expect(runs[2]?.flaky).toBe(1);
+  });
+
+  it('round-trips a present count, including the lower and attempted bounds', async () => {
+    const exact = makeRun(0, {
+      flaky: 1,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 2, passed: 1, skipped: 1 }),
+        steps: counts({ total: 2, passed: 1, skipped: 1 }),
+      },
+    });
+    const lower = makeRun(1, { flaky: 0 });
+
+    const rawFile = await writeRaw('flaky.json', sidecar([lower, exact]));
+    await expect(readHistory(rawFile)).resolves.toStrictEqual([lower, exact]);
+
+    const dir = await tempDir();
+    const file = path.join(dir, 'history.json');
+    await writeHistory(file, [lower, exact]);
+    await expect(readHistory(file)).resolves.toStrictEqual([lower, exact]);
+    expect(lower.flaky).toBe(0);
+  });
+
+  it.each([
+    ['a negative', -1],
+    ['a fractional', 0.5],
+    ['an above-attempted', 2],
+  ])('rejects %s flaky count without a rewrite', async (_, flaky) => {
+    const file = await writeRaw('invalid-flaky.json', sidecar([
+      makeRun(0, { flaky }),
+    ]));
+    const before = await readFile(file, 'utf8');
+
+    await expect(readHistory(file)).rejects.toThrow(/invalid-flaky\.json/);
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects a count above attempted when skipped scenarios reduce the bound', async () => {
+    const file = await writeRaw(
+      'skipped-boundary.json',
+      sidecar([
+        makeRun(0, {
+          flaky: 1,
+          counts: {
+            features: 1,
+            scenarios: counts({ total: 1, passed: 0, skipped: 1 }),
+            steps: counts({ total: 1, passed: 0, skipped: 1 }),
+          },
+        }),
+      ]),
+    );
+    const before = await readFile(file, 'utf8');
+
+    await expect(readHistory(file)).rejects.toThrow(/skipped-boundary\.json/);
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('changes the aggregate id with the flaky count', async () => {
+    const tagged = await summaryFromLegacy([
+      { name: 'retried', tags: ['@flaky'] },
+    ]);
+    const plain = await summaryFromLegacy([{ name: 'retried' }]);
+    expect(plain.counts).toEqual(tagged.counts);
+
+    const withFlaky = buildHistoryRun(tagged, 'Nightly build');
+    const without = buildHistoryRun(plain, 'Nightly build');
+    expect(withFlaky.flaky).toBe(1);
+    expect(without.flaky).toBe(0);
+    expect(withFlaky.id).not.toBe(without.id);
+  });
+
+  it('appends an unchanged run once after an old entry, then dedupes', async () => {
+    const summary = await summaryFromLegacy([
+      { name: 'tagged', tags: ['@flaky'] },
+    ]);
+    const next = buildHistoryRun(summary, 'Nightly');
+    const old = makeRun(0);
+
+    const once = appendHistory([old], next);
+    expect(once).toHaveLength(2);
+    expect(once[1]?.flaky).toBe(1);
+
+    const twice = appendHistory(once, {
+      ...next,
+      recordedAt: '2026-12-01T00:00:00.000Z',
+    });
+    expect(twice).toHaveLength(2);
+    expect(twice[1]?.recordedAt).toBe(next.recordedAt);
   });
 });

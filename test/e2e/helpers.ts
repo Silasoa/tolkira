@@ -33,6 +33,39 @@ export async function writeInput(
   return { dir, file };
 }
 
+// A 40-scenario legacy run for the Trends and print specs. The last two
+// scenarios fail; the given indices carry the @flaky tag, so [0, 1] is a 5%
+// share and [] is a flat 0.
+export function legacyFlakyReport(tagged: number[]): string {
+  const scenarios = 40;
+  return JSON.stringify([
+    {
+      uri: 'features/flaky-trends.feature',
+      name: 'Flaky trends',
+      keyword: 'Feature',
+      elements: Array.from({ length: scenarios }, (_, index) => ({
+        keyword: 'Scenario',
+        type: 'scenario',
+        name: `scenario ${index + 1}`,
+        line: index + 3,
+        tags: tagged.includes(index)
+          ? [{ name: '@flaky', line: index + 3 }]
+          : [],
+        steps: [
+          {
+            keyword: 'Given ',
+            name: 'a step',
+            result: {
+              status: index < scenarios - 2 ? 'passed' : 'failed',
+              duration: 1,
+            },
+          },
+        ],
+      })),
+    },
+  ]);
+}
+
 export async function writeReport(
   inputs: string[],
   title = '',

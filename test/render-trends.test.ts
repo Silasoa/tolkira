@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import type { HistoryRun } from '../src/history.js';
 import { renderHtml } from '../src/render/html.js';
@@ -46,6 +47,31 @@ function renderTrends(history?: HistoryRun[]): Promise<string> {
     ...(history === undefined ? {} : { history }),
   };
   return renderHtml(envelopes, options);
+}
+
+function renderLocalizedTrends(history: HistoryRun[], locale: string): Promise<string> {
+  return renderHtml(envelopes, { title: 'Trends report', history, locale });
+}
+
+async function catalogMessages(locale: 'en' | 'de'): Promise<Record<string, string>> {
+  const raw = JSON.parse(
+    await readFile(
+      new URL(`../src/i18n/locales/${locale}.json`, import.meta.url),
+      'utf8',
+    ),
+  ) as Record<string, string | { message: string }>;
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? value : value.message,
+    ]),
+  );
+}
+
+function numericHeaders(panel: string): string[] {
+  return [...panel.matchAll(/<th scope="col" class="num">([\s\S]*?)<\/th>/g)].map(
+    (match) => match[1] ?? '',
+  );
 }
 
 function viewTabs(html: string): string[] {
@@ -183,7 +209,7 @@ describe('Trends view', () => {
       expect(panel).toContain(`<th scope="col" class="num">${header}</th>`);
     }
     expect(panel).toContain(
-      'Scroll for status, counts, pass rate and duration.',
+      'Scroll for status, counts, pass rate, flaky count, flaky share and duration.',
     );
   });
 
@@ -390,5 +416,232 @@ describe('Trends view', () => {
 
     expect(openingTag(html, 'id="report-view"')).not.toContain('hidden');
     expect(openingTag(html, 'id="trends-view"')).toContain('hidden');
+  });
+});
+
+describe('Trends flaky columns', () => {
+  it('shows the flaky count and share between pass rate and duration', async () => {
+    const newest = run({
+      id: 'new',
+      recordedAt: '2026-03-01T00:00:00.000Z',
+      flaky: 2,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 42, passed: 38, failed: 2, skipped: 2 }),
+        steps: counts(),
+      },
+    });
+    const oldest = run({
+      id: 'old',
+      recordedAt: '2026-02-01T00:00:00.000Z',
+      flaky: 0,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 40, passed: 35, failed: 5 }),
+        steps: counts(),
+      },
+    });
+
+    const panel = trendsPanel(await renderTrends([oldest, newest]));
+    const rows = tableRows(panel);
+
+    expect(numericHeaders(panel).slice(-4)).toEqual([
+      'Pass rate',
+      'Flaky',
+      'Flaky share',
+      'Duration',
+    ]);
+    expect(rows[0]).toContain('<td class="num">2</td><td class="num">5%</td>');
+    expect(rows[1]).toContain(
+      '<td class="num">40</td><td class="num">87.5%</td><td class="num">0</td><td class="num">0%</td>',
+    );
+  });
+
+  it('shows a dash for an old entry without the field', async () => {
+    const old = run({
+      id: 'old',
+      recordedAt: '2026-02-01T00:00:00.000Z',
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 4, passed: 3, failed: 1 }),
+        steps: counts(),
+      },
+    });
+    const current = run({
+      id: 'new',
+      recordedAt: '2026-03-01T00:00:00.000Z',
+      flaky: 2,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 4, passed: 3, failed: 1 }),
+        steps: counts(),
+      },
+    });
+
+    const rows = tableRows(trendsPanel(await renderTrends([old, current])));
+
+    expect(rows[0]).toContain(
+      '<td class="num">75%</td><td class="num">2</td><td class="num">50%</td>',
+    );
+    expect(rows[1]).toContain(
+      '<td class="num">75%</td><td class="num">—</td><td class="num">—</td>',
+    );
+  });
+
+  it('shows a dash when nothing was attempted', async () => {
+    const skipped = run({
+      id: 'skipped',
+      recordedAt: '2026-03-01T00:00:00.000Z',
+      status: 'skipped',
+      flaky: 0,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 4, passed: 0, skipped: 4 }),
+        steps: counts({ total: 4, passed: 0, skipped: 4 }),
+      },
+    });
+    const empty = run({
+      id: 'empty',
+      recordedAt: '2026-02-01T00:00:00.000Z',
+      counts: {
+        features: 0,
+        scenarios: counts({ total: 0, passed: 0 }),
+        steps: counts({ total: 0, passed: 0 }),
+      },
+    });
+
+    const rows = tableRows(trendsPanel(await renderTrends([empty, skipped])));
+
+    expect(rows[0]).toContain('<td class="num">0</td><td class="num">—</td>');
+    expect(rows[1]).toContain('<td class="num">—</td><td class="num">—</td>');
+  });
+
+  it('renders a positive share below 0.1% as a less-than boundary', async () => {
+    const tiny = run({
+      id: 'tiny',
+      recordedAt: '2026-03-01T00:00:00.000Z',
+      flaky: 1,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 2001, passed: 2000, failed: 1 }),
+        steps: counts(),
+      },
+    });
+
+    const english = trendsPanel(await renderTrends([tiny, run({ id: 'b' })]));
+    const englishRow = tableRows(english)[0] ?? '';
+    expect(englishRow).toContain('<td class="num">1</td>');
+    // Catalog messages stay HTML-free, so &lt; is the rendered < sign.
+    expect(englishRow).toContain('<td class="num">&lt;0.1%</td>');
+    expect(englishRow).not.toMatch(/<td class="num">0%<\/td>/);
+
+    const german = trendsPanel(
+      await renderLocalizedTrends([tiny, run({ id: 'b' })], 'de'),
+    );
+    const expected = new Intl.NumberFormat('de', {
+      style: 'percent',
+      maximumFractionDigits: 1,
+    }).format(0.001);
+    expect(tableRows(german)[0]).toContain(
+      `<td class="num">&lt;${expected}</td>`,
+    );
+  });
+
+  it('renders 1 in 1001 as below the 0.1 percent boundary', async () => {
+    const tiny = run({
+      id: 'tiny',
+      recordedAt: '2026-03-01T00:00:00.000Z',
+      flaky: 1,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 1001, passed: 1000, failed: 1 }),
+        steps: counts(),
+      },
+    });
+
+    const row =
+      tableRows(trendsPanel(await renderTrends([tiny, run({ id: 'b' })])))[0] ??
+      '';
+    expect(row).toContain(
+      '<td class="num">1</td><td class="num">&lt;0.1%</td>',
+    );
+  });
+
+  it('renders 1 in 1000 as exactly 0.1 percent', async () => {
+    const tiny = run({
+      id: 'tiny',
+      recordedAt: '2026-03-01T00:00:00.000Z',
+      flaky: 1,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 1000, passed: 999, failed: 1 }),
+        steps: counts(),
+      },
+    });
+
+    const row =
+      tableRows(trendsPanel(await renderTrends([tiny, run({ id: 'b' })])))[0] ??
+      '';
+    expect(row).toContain('<td class="num">1</td><td class="num">0.1%</td>');
+    expect(row).not.toContain('&lt;0.1%');
+  });
+
+  it('clamps an above-attempted API history count and share to attempted', async () => {
+    const hostile = run({
+      id: 'hostile',
+      recordedAt: '2026-03-01T00:00:00.000Z',
+      flaky: 5,
+      counts: {
+        features: 1,
+        scenarios: counts({ total: 2, passed: 2 }),
+        steps: counts({ total: 2, passed: 2 }),
+      },
+    });
+
+    const panel = trendsPanel(
+      await renderTrends([
+        run({ id: 'old', recordedAt: '2026-02-01T00:00:00.000Z' }),
+        hostile,
+      ]),
+    );
+
+    expect(panel).toContain('<td class="num">2</td><td class="num">100%</td>');
+    expect(panel).not.toContain('<td class="num">5</td>');
+    expect(panel).not.toContain('250%');
+  });
+
+  it('explains the count as a proxy in English and German', async () => {
+    const en = await catalogMessages('en');
+    const de = await catalogMessages('de');
+
+    const history = [
+      run({ id: 'old', recordedAt: '2026-02-01T00:00:00.000Z' }),
+      run({
+        id: 'new',
+        recordedAt: '2026-03-01T00:00:00.000Z',
+        flaky: 2,
+        counts: {
+          features: 1,
+          scenarios: counts({ total: 42, passed: 38, failed: 2, skipped: 2 }),
+          steps: counts(),
+        },
+      }),
+    ];
+
+    const english = trendsPanel(await renderTrends(history));
+    expect(english).toContain(en['trends.flakyNote']);
+    expect(numericHeaders(english)).toContain(en['trends.flaky']);
+    expect(numericHeaders(english)).toContain(en['trends.flakyShare']);
+
+    const german = trendsPanel(await renderLocalizedTrends(history, 'de'));
+    expect(german).toContain(de['trends.flakyNote']);
+    expect(numericHeaders(german)).toContain(de['trends.flaky']);
+    expect(numericHeaders(german)).toContain(de['trends.flakyShare']);
+    expect(german).toContain(
+      new Intl.NumberFormat('de', {
+        style: 'percent',
+        maximumFractionDigits: 1,
+      }).format(0.05),
+    );
   });
 });

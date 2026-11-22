@@ -607,6 +607,22 @@
     "message": "Duration",
     "description": "Duration column header"
   },
+  "trends.flaky": {
+    "message": "Flaky",
+    "description": "Flaky count column header"
+  },
+  "trends.flakyNote": {
+    "message": "Flaky counts executed, non-skipped scenarios tagged @flaky or passed after a retry. A tagged final failure counts; a retried final failure counts only when tagged. The share is not a flake probability. The run's tagged @flaky count can differ in either direction, runs recorded before this field show —, and legacy JSON has no retry data (attempt 0), so it is tag-only.",
+    "description": "Note below the trends table"
+  },
+  "trends.flakyShare": {
+    "message": "Flaky share",
+    "description": "Flaky share column header"
+  },
+  "trends.flakyShareBelow": {
+    "message": "&lt;{percent}",
+    "description": "Flaky share below the smallest shown percentage"
+  },
   "trends.newestFirst": {
     "message": "Newest first",
     "description": "Sort hint in the trends header"
@@ -648,7 +664,7 @@
     "description": "Top navigation tab that shows run history"
   },
   "trends.tableHint": {
-    "message": "Scroll for status, counts, pass rate and duration.",
+    "message": "Scroll for status, counts, pass rate, flaky count, flaky share and duration.",
     "description": "Hint above the trends table"
   },
   "trends.tableLabel": {

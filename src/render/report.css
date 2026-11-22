@@ -267,7 +267,7 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .dataTable { border-collapse: collapse; margin: 0.4375rem 0 0.125rem; background: var(--surface-2); font-size: 0.6875rem; }
 .dataTable th, .dataTable td { border: 1px solid var(--line); padding: 0.25rem 0.4375rem; text-align: left; }
 .dataTable th { color: var(--muted); font-weight: 500; background: var(--surface-3); }
-.panel p.sparkLead { margin: 0.875rem 0 0; font-size: 0.75rem; }
+.panel p.sparkLead, .panel p.flakyNote { margin: 0.875rem 0 0; font-size: 0.75rem; }
 .spark { display: block; width: 100%; max-width: 22rem; height: 4rem; margin-top: 0.375rem; }
 .sparkLine { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .sparkPoint { fill: var(--paper); stroke: var(--accent); stroke-width: 1.5; }
@@ -327,13 +327,15 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .featureTable tr:last-child td { border-bottom: 0; }
 .featureTable .num { text-align: right; font-family: var(--font-mono); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .featureTable .zero { color: var(--muted); }
-.trendsTable { width: 100%; min-width: 44rem; border-collapse: collapse; font-size: 0.8125rem; }
+.trendsTable { width: 100%; min-width: 72rem; table-layout: fixed; border-collapse: collapse; font-size: 0.8125rem; }
 .trendsTable th { padding: 0.5rem 0.5rem 0.5rem 0; border-bottom: 1px solid var(--line-strong); color: var(--muted); font-size: 0.6875rem; font-weight: 500; text-align: left; }
 .trendsTable td { padding: 0.5rem 0.5rem 0.5rem 0; border-bottom: 1px solid var(--line); text-align: left; }
-.trendsTable th:first-child, .trendsTable td:first-child { width: 10rem; min-width: 10rem; }
-.trendsTable th:nth-child(2), .trendsTable td:nth-child(2) { min-width: 18rem; overflow-wrap: anywhere; }
-.trendsTable th:nth-child(3), .trendsTable td:nth-child(3) { width: 7rem; min-width: 7rem; }
+.trendsTable th:first-child, .trendsTable td:first-child { width: 12%; }
+.trendsTable th:nth-child(2), .trendsTable td:nth-child(2) { width: 22%; overflow-wrap: anywhere; }
+.trendsTable th:nth-child(3), .trendsTable td:nth-child(3) { width: 12%; }
+.trendsTable th:nth-child(n + 4), .trendsTable td:nth-child(n + 4) { width: 6.75%; }
 .trendsTable .num { text-align: right; font-family: var(--font-mono); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.trendsTable td.num { white-space: nowrap; }
 .trendsTable .currentTag { display: inline-block; margin-left: 0.375rem; padding: 0 0.3125rem; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); font-size: 0.625rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
 .trendsTable tr:last-child td { border-bottom: 0; }
 .matrixHint { display: none; }
@@ -528,15 +530,19 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
   .panel { padding: 0.75rem; }
   .tableWrap { overflow: visible; }
   .tableWrap table, .featureTable { width: 100%; min-width: 0; table-layout: fixed; font-size: 8pt; }
-  .tableWrap table.trendsTable { width: 100%; min-width: 0; table-layout: auto; font-size: 8pt; }
+  .tableWrap table.trendsTable { width: 100%; min-width: 0; table-layout: fixed; font-size: 8pt; }
   .tableWrap table th, .tableWrap table td, .featureTable th, .featureTable td, .trendsTable th, .trendsTable td { width: auto; min-width: 0; padding: 0.2rem 0.3rem 0.2rem 0; overflow-wrap: anywhere; }
   .featureTable th:first-child, .featureTable td:first-child { width: 38%; }
-  .trendsTable th:first-child, .trendsTable td:first-child { width: 14%; min-width: 0; }
-  .trendsTable th:nth-child(2), .trendsTable td:nth-child(2), .trendsTable th:nth-child(3), .trendsTable td:nth-child(3) { width: auto; min-width: 0; }
+  .trendsTable th:first-child, .trendsTable td:first-child { width: 13%; min-width: 0; }
+  .trendsTable th:nth-child(2), .trendsTable td:nth-child(2) { width: 20%; min-width: 0; }
+  .trendsTable th:nth-child(3), .trendsTable td:nth-child(3) { width: 14%; min-width: 0; }
+  .trendsTable th:nth-child(n + 4), .trendsTable td:nth-child(n + 4) { width: 6.625%; min-width: 0; }
   .trendsTable th, .trendsTable td { padding-right: 0; }
-  .trendsTable th, .trendsTable th.num, .trendsTable td, .trendsTable td.num, .trendsTable .statusText { font-size: 8pt; }
-  .trendsTable th, .trendsTable .statusText, .trendsTable .currentTag { white-space: nowrap; }
+  .trendsTable th, .trendsTable th.num, .trendsTable td, .trendsTable td.num, .trendsTable .statusText { font-size: 7pt; }
+  .trendsTable th, .trendsTable td { padding-left: 0.15rem; }
+  .trendsTable .statusText, .trendsTable .currentTag { white-space: nowrap; }
   .trendsTable td:nth-child(2) { white-space: normal; }
+  .trendsTable td.num { white-space: nowrap; }
   #tolkira-live { position: static; width: auto; height: auto; margin: 0.75rem 0 0; overflow: visible; clip: auto; white-space: normal; font-size: 0.8125rem; }
   #tolkira-live:empty { display: none; }
   #analysis-view, #trends-view { break-before: page; }

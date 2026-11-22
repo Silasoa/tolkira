@@ -114,7 +114,7 @@ describe the viewport, not the font.
 | Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
 | Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Run environment / Custom metadata blocks, agent summary |
-| Trends | `.trendsTable`, `.tableWrap`, `.spark` | Opt-in third view with two or more history runs: newest-first table of recorded time, title, status, passed/failed/skipped counts, scenario total, attempted pass rate and duration, plus a decorative pass-rate sparkline oldest to newest. The newest row is marked `Current`; the table sits in a labelled, focusable region, spans the panel and scrolls at 320 px; the sparkline is `aria-hidden` and skips runs without attempts |
+| Trends | `.trendsTable`, `.tableWrap`, `.spark` | Opt-in third view with two or more history runs: newest-first table of recorded time, title, status, passed/failed/skipped counts, scenario total, attempted pass rate, flaky count, flaky share and duration, plus a decorative pass-rate sparkline oldest to newest and a note on the tag-or-retry proxy. The newest row is marked `Current`; old runs without a `flaky` count show `—`; the table sits in a labelled, focusable region, spans the panel, keeps readable numeric cells behind a horizontal scroll at 320 px and prints with fixed columns; the sparkline is `aria-hidden` and skips runs without attempts |
 
 ### Renderer modules
 
@@ -125,7 +125,8 @@ describe the viewport, not the font.
 - `report.ts` - report header, toolbar, features, scenarios, steps, hooks and
   feature-row chrome.
 - `details.ts` - Details header, run/environment panels and analysis layout.
-- `trends.ts` - Trends header, recorded-runs table and pass-rate sparkline.
+- `trends.ts` - Trends header, recorded-runs table with Flaky and Flaky share
+  columns and the proxy note, and the pass-rate sparkline.
 - `triage.ts` - needs-attention index and source strip.
 - `matrix.ts` - feature-by-status matrix.
 - `attachments.ts` - image, text, video, log and file rendering.
@@ -196,9 +197,11 @@ stay unchanged. A standard summary stays under 100 KB.
   not restored. Each tab toggles the panel named by its `aria-controls`, so
   Report, Details and the conditional Trends tab share one path; a missing panel
   is ignored.
-- Trends shows attempted (non-skipped) pass rates and `—` when a run had no
-  attempt. The sparkline is decorative and skips those runs; two points form a
-  line only when they are adjacent in time.
+- Trends shows attempted (non-skipped) pass rates and flaky shares and `—` when a
+  run had no attempt; an old run without a `flaky` count shows `—` in both flaky
+  cells, and a positive share below 0.1% shows a less-than boundary. The
+  sparkline is decorative and skips those runs; two points form a line only when
+  they are adjacent in time.
 - The lightbox locks background scrolling, restores focus to its trigger on
   Escape, Close, backdrop click and padding click, and reserves header space so
   Close never covers the screenshot.
@@ -275,8 +278,9 @@ Direction A is implemented in production:
 - feature counts/proportion bars and a feature-by-status matrix in Details;
 - `undefined` is a distinct status, not a neutral one;
 - Details tab with producer, runtime, OS, CPU, protocol and user metadata;
-- Trends tab with an aggregate run table and pass-rate sparkline when the report
-  carries two or more history runs;
+- Trends tab with an aggregate run table (pass rate, flaky count and flaky
+  share) and a pass-rate sparkline, plus a note on the tag-or-retry proxy, when
+  the report carries two or more history runs;
 - English and German report chrome from one catalog, with test data verbatim;
 - empty state for search/filter results;
 - screenshot lightbox with a close button and Escape support;

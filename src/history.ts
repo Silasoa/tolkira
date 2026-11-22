@@ -26,6 +26,8 @@ export interface HistoryRun {
     total: number;
     bytes: number;
   };
+  /** Executed non-skipped tagged or passed-after-retry scenarios. */
+  flaky?: number;
 }
 
 const STATUSES = new Set<SummaryStatus>([
@@ -148,14 +150,19 @@ function parseRun(value: unknown, file: string, index: number): HistoryRun {
     fail(file, `${at}.attachments must be an object`);
   }
   const attachments = run.attachments as Record<string, unknown>;
-  return {
+  const scenarios = statusCounts(
+    counts.scenarios,
+    file,
+    `${at}.counts.scenarios`,
+  );
+  const parsed: HistoryRun = {
     id: run.id,
     recordedAt: run.recordedAt,
     title: run.title,
     status: run.status as SummaryStatus,
     counts: {
       features: whole(counts.features, file, `${at}.counts.features`),
-      scenarios: statusCounts(counts.scenarios, file, `${at}.counts.scenarios`),
+      scenarios,
       steps: statusCounts(counts.steps, file, `${at}.counts.steps`),
     },
     durationMs: amount(run.durationMs, file, `${at}.durationMs`),
@@ -164,6 +171,26 @@ function parseRun(value: unknown, file: string, index: number): HistoryRun {
       bytes: whole(attachments.bytes, file, `${at}.attachments.bytes`),
     },
   };
+  // Old entries stay field-less; only a present value is validated.
+  if (Object.hasOwn(run, 'flaky')) {
+    const flaky = whole(run.flaky, file, `${at}.flaky`);
+    if (flaky > scenarios.total - scenarios.skipped) {
+      fail(file, `${at}.flaky must not exceed attempted scenarios`);
+    }
+    parsed.flaky = flaky;
+  }
+  return parsed;
+}
+
+/** Tagged, executed non-skipped scenarios plus passed-after-retry ones. */
+function flakyCount(summary: ReportSummary): number {
+  return summary.scenarios.filter(
+    (scenario) =>
+      scenario.executed &&
+      scenario.status !== 'skipped' &&
+      (scenario.tags.includes('@flaky') ||
+        (scenario.attempt > 0 && scenario.status === 'passed')),
+  ).length;
 }
 
 /**
@@ -185,6 +212,7 @@ export function buildHistoryRun(
     },
     durationMs: summary.durationMs,
     attachments: summary.attachments,
+    flaky: flakyCount(summary),
   };
   return {
     id: createHash('sha256')

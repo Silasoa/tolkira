@@ -166,11 +166,11 @@ describe('print stylesheet', () => {
   it('fits the matrix and Trends tables to the printed page', () => {
     const block = printBlock();
 
-    // The Trends table keeps its German headers and pills on one line, so it
-    // uses auto layout; the matrix stays fixed.
+    // Both tables use fixed layout; the Trends table splits its columns
+    // explicitly so the title keeps room and the numeric cells stay whole.
     const layouts: Record<string, RegExp> = {
       '.featureTable': /table-layout\s*:\s*fixed/,
-      '.trendsTable': /table-layout\s*:\s*auto/,
+      '.trendsTable': /table-layout\s*:\s*fixed/,
     };
 
     for (const table of ['.featureTable', '.trendsTable']) {
@@ -203,6 +203,35 @@ describe('print stylesheet', () => {
       );
       expect(child, `${table} child widths reset`).toBeDefined();
     }
+
+    const trendsDeclarations = rules(block)
+      .filter((rule) =>
+        selectorParts(rule).some((part) => part.includes('.trendsTable')),
+      )
+      .map((rule) => rule.declarations)
+      .join(';');
+    for (const width of ['13%', '20%', '14%', '6.625%']) {
+      expect(trendsDeclarations, `Trends ${width} column`).toContain(
+        `width: ${width}`,
+      );
+    }
+    expect(trendsDeclarations, 'Trends print type').toContain('font-size: 7pt');
+    expect(
+      rules(block).some(
+        (rule) =>
+          selectorParts(rule).includes('.trendsTable td.num') &&
+          /white-space\s*:\s*nowrap/.test(rule.declarations),
+      ),
+      'Trends numeric nowrap',
+    ).toBe(true);
+    expect(
+      rules(block).some(
+        (rule) =>
+          selectorParts(rule).includes('.trendsTable th') &&
+          /white-space\s*:\s*nowrap/.test(rule.declarations),
+      ),
+      'Trends headers may wrap',
+    ).toBe(false);
   });
 
   it('fits every other wrapped table, including step data tables', () => {

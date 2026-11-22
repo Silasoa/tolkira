@@ -116,6 +116,16 @@ and 89,904 B exact report HTML; no overflow at the same widths. The temporary
 `CI run` metadata from the metadata-links check remains in the temp host only.
 The Seed-Test row's unrun limits apply.
 
+**`flaky-trends` re-check (2026-11-22).** Playwright movies-app pin `5d2cdf0`:
+two CLI runs over the host JSON and a temporary copy with one `@flaky` tag,
+sharing a history sidecar. The Trends table shows two rows, Flaky `0`/`1` and
+Flaky share `0%`/`12.5%`, plus the proxy note; no document overflow at 1440,
+390 or 320 + 200%, the table scrolls internally (947/1895 px), and there are no
+console errors. The Seed-Test compat shim has no `--history` option, so the
+Trends host check uses the Playwright artifact; the Seed-Test report-shell row
+from size-diagnostics still applies. A4 print is covered by
+`test/e2e/print.spec.ts` with the 7 pt Trends table.
+
 The 2026-11-20 wild-install probe is separate from this matrix but recorded
 here: the packed tarball is 522,870 B with three runtime dependencies; a clean
 consumer install is 6.71 MB and has no playwright; global, npx, pnpm and Yarn PnP

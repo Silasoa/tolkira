@@ -375,7 +375,8 @@ The sidecar is UTF-8 JSON with schema version 1:
         }
       },
       "durationMs": 12345.678,
-      "attachments": { "total": 2, "bytes": 4096 }
+      "attachments": { "total": 2, "bytes": 4096 },
+      "flaky": 2
     }
   ]
 }
@@ -388,6 +389,17 @@ Contract:
 - `id` is the SHA-256 of the aggregates and the resolved title, excluding
   `recordedAt`. When the last entry has the same id, the new run is not
   appended and the old `recordedAt` stays.
+- `flaky` is optional and new entries always carry it: the number of executed,
+  non-skipped scenarios tagged `@flaky` (any final status) or whose final status
+  is passed after at least one retry (`attempt > 0`). It is a flagged share
+  input, not a flake probability. Old entries without the key stay absent on
+  read and on append and show `—` for both flaky cells; a present value must be
+  a whole number from 0 to the attempted scenarios (`scenarios.total -
+  scenarios.skipped`), and a negative, fractional or above-attempted value
+  rejects the file. The key is part of the aggregate id, so the first
+  same-count run after an upgrade is appended once; later identical runs
+  dedupe. The schema version stays 1, and older readers ignore the key but drop
+  it if they rewrite the sidecar, so write the file with 0.5.
 - The sidecar keeps the newest 30 runs; older entries are dropped on read, on
   append and on write. A file above 1 MiB is rejected before it is read.
 - `title` is the resolved report title (`Tolkira report` when `--title` is
@@ -396,9 +408,9 @@ Contract:
   duration, not wall-clock time.
 - Only aggregates are stored: no scenario names, step text, paths, tags or
   attachment content. The report embeds the prior-run aggregates it was
-  generated with, so anyone who receives the HTML can read the pass-rate
-  history. Use one sidecar per suite and variant; mixing runs makes the trend
-  meaningless.
+  generated with, so anyone who receives the HTML can read the pass-rate and
+  flaky-share history. Use one sidecar per suite and variant; mixing runs makes
+  the trend meaningless.
 - A missing file starts empty. Invalid JSON, a wrong schema version, an
   oversized file, a malformed entry or a write failure exits 1 and names the
   file. A bad file is never overwritten. The HTML is written first; a failed
@@ -566,7 +578,8 @@ Field contract:
   including every outline example, so the count can exceed the number of visible
   tag labels; a failed or unexecuted tagged scenario also counts. The count is
   not a computed flake rate or detection, and neither badge nor count appears in
-  the summary, CI or email or changes a status.
+  the summary, CI or email or changes a status. The history sidecar's optional
+  `flaky` count is a separate per-run field; see Run history.
 - `attempt` is the latest started Cucumber attempt for that scenario, even when
   that attempt reported no result. An earlier retried attempt is ignored. For a
   Playwright JSON input it is the Playwright retry index of the final result;
@@ -657,8 +670,10 @@ outside `features/`).
 - History is an opt-in aggregate sidecar (`--history`); there is no
   scenario-level history, dashboard or server. Retries beyond the latest attempt
   and a trace viewer are not supported. Playwright JSON has a native adapter;
-  the final attempt is the rendered one, and `@flaky` is report-only
-  (HTML/PDF): the summary, CI and email keep the final status. JUnit XML is a basic input mode; see
+  the final attempt is the rendered one; the `@flaky` badge and run-meta tagged
+  count are report-only (HTML/PDF), while the history `flaky` count is a separate
+  per-run field: the summary, CI and email keep the final status. JUnit XML is a
+  basic input mode; see
   [`LIMITATIONS.md`](LIMITATIONS.md). Playwright producer metadata and
   annotation descriptions are HTML-only and do not change schema version 2.
 - The email summary is opt-in and file-only. It has no sending, recipients,

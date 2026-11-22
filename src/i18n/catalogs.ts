@@ -152,6 +152,10 @@ export type MessageKey =
   | "status.unknown"
   | "trends.current"
   | "trends.duration"
+  | "trends.flaky"
+  | "trends.flakyNote"
+  | "trends.flakyShare"
+  | "trends.flakyShareBelow"
   | "trends.newestFirst"
   | "trends.passRate"
   | "trends.passRateNote"
@@ -331,6 +335,10 @@ export const en: Record<MessageKey, string> = {
   "status.unknown": "Unknown",
   "trends.current": "Current",
   "trends.duration": "Duration",
+  "trends.flaky": "Flaky",
+  "trends.flakyNote": "Flaky counts executed, non-skipped scenarios tagged @flaky or passed after a retry. A tagged final failure counts; a retried final failure counts only when tagged. The share is not a flake probability. The run's tagged @flaky count can differ in either direction, runs recorded before this field show —, and legacy JSON has no retry data (attempt 0), so it is tag-only.",
+  "trends.flakyShare": "Flaky share",
+  "trends.flakyShareBelow": "&lt;{percent}",
   "trends.newestFirst": "Newest first",
   "trends.passRate": "Pass rate",
   "trends.passRateNote": "Pass rate counts attempted (non-skipped) scenarios",
@@ -341,7 +349,7 @@ export const en: Record<MessageKey, string> = {
   "trends.sparkLead": "Pass rate, oldest to newest. The table is newest first; runs without attempted scenarios are skipped.",
   "trends.status": "Status",
   "trends.tab": "Trends",
-  "trends.tableHint": "Scroll for status, counts, pass rate and duration.",
+  "trends.tableHint": "Scroll for status, counts, pass rate, flaky count, flaky share and duration.",
   "trends.tableLabel": "Recorded runs",
   "trends.title": "Trends",
   "trends.titleColumn": "Title",
@@ -511,6 +519,10 @@ export const de: Record<MessageKey, string> = {
   "status.unknown": "Unbekannt",
   "trends.current": "Aktuell",
   "trends.duration": "Dauer",
+  "trends.flaky": "Flaky",
+  "trends.flakyNote": "Flaky zählt ausgeführte, nicht übersprungene Szenarien mit @flaky oder Szenarien, die nach einem Wiederholungslauf bestanden wurden. Ein markierter endgültiger Fehlschlag zählt; ein wiederholter endgültiger Fehlschlag zählt nur mit Tag. Der Anteil ist keine Flake-Wahrscheinlichkeit. Die Anzahl der mit @flaky markierten Szenarien im Lauf kann in beide Richtungen abweichen, vor diesem Feld aufgezeichnete Läufe zeigen —, und Legacy-JSON hat keine Wiederholungsdaten (Versuch 0) und zählt nur Tags.",
+  "trends.flakyShare": "Flaky-Anteil",
+  "trends.flakyShareBelow": "&lt;{percent}",
   "trends.newestFirst": "Neueste zuerst",
   "trends.passRate": "Erfolgsquote",
   "trends.passRateNote": "Die Erfolgsquote zählt ausgeführte (nicht übersprungene) Szenarien",
@@ -521,7 +533,7 @@ export const de: Record<MessageKey, string> = {
   "trends.sparkLead": "Erfolgsquote, älteste zuerst. Die Tabelle zeigt die neuesten zuerst; Läufe ohne ausgeführte Szenarien werden übersprungen.",
   "trends.status": "Status",
   "trends.tab": "Trends",
-  "trends.tableHint": "Für Status, Anzahlen, Erfolgsquote und Dauer scrollen.",
+  "trends.tableHint": "Für Status, Anzahlen, Erfolgsquote, Flaky-Anzahl, Flaky-Anteil und Dauer scrollen.",
   "trends.tableLabel": "Aufgezeichnete Läufe",
   "trends.title": "Trends",
   "trends.titleColumn": "Titel",

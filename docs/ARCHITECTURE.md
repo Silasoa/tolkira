@@ -104,9 +104,14 @@ and is covered by real producer fixtures.
 - Details tab: feature-by-status matrix, status distribution, environment and
   the agent summary.
 - Trends tab (only with two or more history runs): newest-first table of the
-  recorded runs with attempted pass rate, and a decorative pass-rate sparkline
-  oldest to newest. One `passRate` helper in `format.ts` feeds both the health
-  panel and the table, so `attempted === 0` states the same thing in both.
+  recorded runs with attempted pass rate, flaky count and flaky share, and a
+  decorative pass-rate sparkline oldest to newest. One `passRate` helper in
+  `format.ts` feeds both the health panel and the table, so `attempted === 0`
+  states the same thing in both. The flaky share is a flagged share, not a
+  probability; a positive share below 0.1% shows a less-than boundary and an old
+  run without the field shows `—` for both flaky cells. A note below the table
+  explains the tag-or-retry proxy, the run-meta tagged-count difference and the
+  legacy `attempt: 0` limit.
 - Renderer module map (top to bottom; a module imports only lower layers, and
   same-layer modules never import each other — `report.ts`, `details.ts` and
   `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and
@@ -234,13 +239,16 @@ and is covered by real producer fixtures.
 - `buildHistoryRun` hashes the aggregates and the resolved title (capped at 200
   characters), excluding the recorded time; `appendHistory` keeps one copy of an
   identical last run and the old timestamp; `readHistory` rejects non-regular
-  files, validates every documented field including cross-field count totals,
-  ignores unknown fields and never writes; `writeHistory` bounds the list and
-  titles, then writes atomically with a trailing newline.
+  files, validates every documented field including cross-field count totals and
+  the optional `flaky` bound, ignores unknown fields and never writes;
+  `writeHistory` bounds the list and titles, then writes atomically with a
+  trailing newline.
 - Stores only id, recorded time, title, status, feature/scenario/step counts,
-  duration and attachment totals. There is no scenario-level history, and the
-  CLI is the only automatic writer, so concurrent processes can still lose an
-  update.
+  duration, attachment totals and the optional flaky count. Old entries without
+  `flaky` stay absent on read and append and render as `—`; new entries carry
+  it, and it is part of the aggregate id. There is no scenario-level history,
+  and the CLI is the only automatic writer, so concurrent processes can still
+  lose an update.
 - Exported through `src/index`; `generateReport` appends the current run,
   `renderReport` and `CucumberHtmlStream` render the list they are given.
 
@@ -392,7 +400,8 @@ Test names, metadata, file names and attachments are untrusted input.
   sidecar schema, validation, dedupe, retention and atomic write;
   `test/cli-history.test.ts` and `test/render-trends.test.ts` cover the
   `--history` flow and the Trends view; `test/e2e/trends.spec.ts` covers the
-  two-run browser flow at 320, 1440 and 200 % text zoom. `test/email.test.ts`,
+  two-run browser flow at 320, 390, 1440 and 200 % text zoom.
+  `test/email.test.ts`,
   `test/cli-email.test.ts`, `test/email-catalog.test.ts` and
   `test/e2e/email.spec.ts` pin the email template, metrics, escaping, locale,
   size, CLI composition and 600/320 px rendering. `test/pdf.test.ts` mocks

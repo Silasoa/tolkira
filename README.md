@@ -314,10 +314,16 @@ unredacted-message warning.
   the exact report HTML bytes and the three largest attachments by decoded
   bytes. The rows are contributors, not a sum.
 - **Opt-in run trends.** `--history <file>` keeps the last 30 aggregate runs and
-  adds a Trends tab from the second run: a newest-first table and a pass-rate
-  sparkline. The sidecar holds counts, status, the resolved title, duration and
-  attachment totals only, never scenario names or paths; a report embeds the runs
-  it was generated with, so share it with that in mind.
+  adds a Trends tab from the second run: a newest-first table with pass rate,
+  flaky count and flaky share, plus a pass-rate sparkline. The flaky share is a
+  flagged share, not a flake probability; a positive share below 0.1% shows a
+  less-than boundary, and runs recorded without the count show `—` for both
+  flaky cells. A note explains that it counts executed non-skipped tagged or
+  passed-after-retry scenarios, which can differ in either direction from the
+  header's tag-only count. The sidecar holds counts, status, the resolved title,
+  duration, attachment totals and the optional flaky count only, never scenario
+  names or paths; a report embeds the runs it was generated with, so share it
+  with that in mind.
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure
   messages.
@@ -531,11 +537,12 @@ for the mapping.
 - JUnit XML is intentionally basic; use the native Playwright JSON adapter for
   Playwright projects that can write the JSON reporter.
 - History is opt-in and aggregate-only. `--history <file>` stores counts, status,
-  the resolved title (capped at 200 characters), duration and attachment totals
-  for the last 30 runs; the report embeds those prior-run aggregates. The CLI is
-  the only automatic writer, so use one sidecar per suite and variant and one
-  generation at a time. No scenario names, steps, paths, tags or attachment
-  content are stored.
+  the resolved title (capped at 200 characters), duration, attachment totals and
+  the optional flaky count for the last 30 runs; runs recorded without the count
+  show `—`. The report embeds those prior-run aggregates. The CLI is the only
+  automatic writer, so use one sidecar per suite and variant and one generation
+  at a time. No scenario names, steps, paths, tags or attachment content are
+  stored.
 - The opt-in email summary contains feature and scenario names, statuses, counts,
   durations, the title (which may carry a branch or build name) and the report
   basename. It is written only with `--email`; there is no redaction mode, no

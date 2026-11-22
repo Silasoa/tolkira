@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: "Deliver the remaining flaky/retry visibility as a small Trends slice:
+  retried or @flaky scenarios, a rate, and backward-compatible history."

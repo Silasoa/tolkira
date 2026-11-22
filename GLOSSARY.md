@@ -42,6 +42,7 @@ and the old English fallback map is gone.
 | Feature | Feature |
 | Hook | Hook |
 | Flaky | flaky |
+| Flaky share | Flaky-Anteil |
 | Rule | Rule |
 | URI | URI |
 
@@ -81,8 +82,18 @@ earlier attempts are skipped without being counted; an inline body always wins.
 **Flaky / @flaky** — a scenario tagged `@flaky`, either by the Playwright
 adapter when a retry passes or by a user on a scenario, feature, rule or outline.
 The report shows a decorative badge and a run-metadata `N tagged @flaky` count;
-it is display-only, never a computed flake rate or status, and the scenario keeps
-its existing status in the JSON summary, CI and email.
+the history sidecar adds an optional per-run `flaky` count and Trends shows
+`Flaky` and `Flaky share`. Both are display-only, never a computed flake
+probability or status, and the scenario keeps its existing status in the JSON
+summary, CI and email.
+
+**Flaky share** — the Trends percentage `flaky / attempted`, where attempted is
+total minus skipped; it shows `—` when nothing was attempted or the run predates
+the field, and a positive share below 0.1% shows a less-than boundary rather
+than 0%. The count is executed, non-skipped scenarios tagged `@flaky` (any final
+status) or passed after at least one retry, so it can differ in either direction
+from the run-metadata tag-only count. It is a flagged share, not a flake
+probability; legacy JSON has no attempts and is tag-only.
 
 **CI metadata** — the optional Messages `meta.ci` block: CI name and URL plus
 git remote, revision, branch and tag. It renders in the HTML header and Details
@@ -158,18 +169,19 @@ version 1 and is read, appended and written atomically by the CLI. Without the
 flag no history is read or written.
 
 **History run** — one aggregate entry in the history file: id, recorded time,
-resolved title, overall status, feature/scenario/step counts, duration and
-attachment totals. It never carries scenario names, step text, paths, tags or
-attachment content.
+resolved title, overall status, feature/scenario/step counts, duration,
+attachment totals and the optional flaky count. It never carries scenario names,
+step text, paths, tags or attachment content.
 
-**Aggregate id** — the SHA-256 in a history run. It hashes the aggregates and
-the title but not the recorded time, so an identical rerun is not appended and
-keeps the old timestamp.
+**Aggregate id** — the SHA-256 in a history run. It hashes the aggregates,
+including the optional flaky count, and the title but not the recorded time, so
+an identical rerun is not appended and keeps the old timestamp.
 
 **Trends view** — the optional third tab, rendered when a report is generated
-with two or more history runs. It lists the runs newest first and adds a
-decorative pass-rate sparkline oldest to newest; the table is the accessible
-source.
+with two or more history runs. It lists the runs newest first with pass rate,
+flaky count and flaky share and adds a decorative pass-rate sparkline oldest to
+newest; the table is the accessible source, and a note states the tag-or-retry
+proxy limits.
 
 **Unexecuted scenario** — a scenario whose selected test case started but
 reported no raw step result, including a started-but-unfinished case. It stays

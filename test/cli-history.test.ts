@@ -66,6 +66,30 @@ async function readSidecar(file: string): Promise<Sidecar> {
   return JSON.parse(await readFile(file, 'utf8')) as Sidecar;
 }
 
+function legacyRun(name: string, tags: string[]): string {
+  return JSON.stringify([
+    {
+      uri: `features/${name}.feature`,
+      name,
+      elements: [
+        {
+          keyword: 'Scenario',
+          type: 'scenario',
+          name,
+          tags: tags.map((tag, index) => ({ name: tag, line: index + 1 })),
+          steps: [
+            {
+              keyword: 'Given ',
+              name: 'a step',
+              result: { status: 'passed', duration: 1 },
+            },
+          ],
+        },
+      ],
+    },
+  ]);
+}
+
 describe('CLI history sidecar', () => {
   it('creates the file on the first run and shows Trends on the second', async () => {
     const dir = await tempDir();
@@ -85,6 +109,7 @@ describe('CLI history sidecar', () => {
       'attachments',
       'counts',
       'durationMs',
+      'flaky',
       'id',
       'recordedAt',
       'status',
@@ -465,5 +490,44 @@ describe('CLI history sidecar', () => {
       'report-a.html',
       'report-b.html',
     ]);
+  });
+});
+
+describe('CLI flaky history count', () => {
+  it('writes the flaky count and appends a different count', async () => {
+    const dir = await tempDir();
+    const history = path.join(dir, 'history.json');
+    const flakyInput = path.join(dir, 'flaky.json');
+    const plainInput = path.join(dir, 'plain.json');
+    await writeFile(flakyInput, legacyRun('flaky', ['@flaky']), 'utf8');
+    await writeFile(plainInput, legacyRun('plain', []), 'utf8');
+
+    const first = await cli([
+      flakyInput,
+      '--out',
+      path.join(dir, 'first.html'),
+      '--history',
+      history,
+    ]);
+
+    expect(first.code, first.stderr).toBe(0);
+    const afterFirst = await readSidecar(history);
+    expect(afterFirst.runs).toHaveLength(1);
+    expect(afterFirst.runs[0]?.flaky).toBe(1);
+
+    const second = await cli([
+      plainInput,
+      '--out',
+      path.join(dir, 'second.html'),
+      '--history',
+      history,
+      '--title',
+      'Plain run',
+    ]);
+
+    expect(second.code, second.stderr).toBe(0);
+    const afterSecond = await readSidecar(history);
+    expect(afterSecond.runs).toHaveLength(2);
+    expect(afterSecond.runs.map((entry) => entry.flaky)).toEqual([1, 0]);
   });
 });

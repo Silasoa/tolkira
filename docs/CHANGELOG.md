@@ -7,6 +7,16 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- Flaky trends. The history sidecar gains an optional `flaky` count: executed,
+  non-skipped scenarios tagged `@flaky` (any final status) or passed after at
+  least one retry. Trends adds `Flaky` and `Flaky share` columns after the pass
+  rate. Both show `—` when nothing was attempted or an old entry has no count,
+  and a positive share below 0.1% shows a less-than boundary; a note states that
+  the tag-or-retry share is a proxy, not a flake probability. A present value
+  must be a whole number no greater than attempted. The field is part of the
+  aggregate id, and the history schema stays 1. The summary schema, report
+  header, JSON, CI, email, dependencies and one-file rule are unchanged; print
+  keeps 7 pt with fixed column widths and wrapping headers.
 - Azure DevOps CI output and publishing recipes. `--ci azure` emits capped,
   escaped Azure logging commands and a final count section, emits no
   `##vso[task.complete]`, and keeps exit 0; `type=error` may still mark the
