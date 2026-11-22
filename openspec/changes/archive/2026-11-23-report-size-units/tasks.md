@@ -45,8 +45,7 @@
 - [x] 4.3 Run SCR, CR, DAR, UXR, ILA, CMP and STR. ILA runs because the row
   composes two localized units, even though no catalog key changes.
 - [x] 4.4 Fix findings; record deferred decisions.
-- [ ] 4.5 Commit and push; the coordinator archives after the gate. (Open:
-  commit/archive bookkeeping only.)
+- [x] 4.5 Commit and push; the coordinator archives after the gate.
 
 ## Gate record
 
