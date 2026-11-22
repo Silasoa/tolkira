@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Include backlog item B-041 in 0.5 with the smallest complete report
+  change: consistent size units plus the exact byte count.
