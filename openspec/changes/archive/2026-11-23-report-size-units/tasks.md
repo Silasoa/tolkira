@@ -38,10 +38,10 @@
 - [x] 4.2 Record the small-change decision: last recorded final host reports
   are Seed-Test 116,113/117,137 B and Playwright movies-app 89,904 B, largest
   117,137 B; the two Java hosts were not re-measured for this slice, and their
-  reports embed the same ~40 KB stylesheet and client bundle. So no host row is
-  re-run for this slice; the release gate re-runs every row before any 0.5.0
-  tag. The reason is written in `docs/DROP-IN-VALIDATION.md` and the Gate
-  record.
+  reports embed the same ~40 KB stylesheet and client bundle. So no host row was
+  re-run for this slice; the maintainer approved this documented exception for
+  0.5.0 on 2026-11-23. The reason is written in `docs/DROP-IN-VALIDATION.md` and
+  the Gate record.
 - [x] 4.3 Run SCR, CR, DAR, UXR, ILA, CMP and STR. ILA runs because the row
   composes two localized units, even though no catalog key changes.
 - [x] 4.4 Fix findings; record deferred decisions.
@@ -62,12 +62,12 @@
   and WebKit), including the new >1 MiB case. After the fixer, full:
   `npm run test:e2e` 385 passed, 8 skipped (same engines, viewports and zoom),
   including the new case on all three engines.
-- Hosts: small change, relies on the fixture/e2e gate; the release gate re-runs
-  every row before any 0.5.0 tag. Last recorded final reports: Seed-Test
-  116,113/117,137 B, Playwright movies-app 89,904 B, largest 117,137 B; PetClinic
-  and Cucumber-JVM were not re-measured for this slice, and their reports embed
-  the same ~40 KB stylesheet and client bundle, far below 1 MiB. No maintainer
-  exception is claimed; the release approval is the approval point.
+- Hosts: small change, relies on the fixture/e2e gate; no row was re-run for
+  this slice. The maintainer approved this documented exception for 0.5.0 on
+  2026-11-23; the next release re-runs every row. Last recorded final reports:
+  Seed-Test 116,113/117,137 B, Playwright movies-app 89,904 B, largest 117,137
+  B; PetClinic and Cucumber-JVM were not re-measured for this slice, and their
+  reports embed the same ~40 KB stylesheet and client bundle, far below 1 MiB.
 - Review: SCR, CR, DAR, UXR, ILA, CMP and STR ran; the first SCR/DAR pass found
   must-fix findings, the re-review passed after this fixer pass. Fixed: the
   missing `Size label is exact` scenario; the changelog contradiction (extend

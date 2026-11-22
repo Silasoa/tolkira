@@ -128,8 +128,8 @@ recorded host report; the sub-1 MiB branch is byte-identical and the ≥1 MiB
 branch is exercised by the 1.1 MB unit and e2e fixtures. Record the reason in
 `docs/DROP-IN-VALIDATION.md` where integrators and the release gate look, with
 the same numbers, and repeat it in the Gate record under the small-change path:
-"small change, relies on the fixture/e2e gate; the release gate re-runs every
-row before any 0.5.0 tag". The release gate still re-runs the host rows for the
-final 0.5.0 tree.
+"small change, relies on the fixture/e2e gate; no host row was re-run for this
+slice". The maintainer approved this documented exception for 0.5.0 on
+2026-11-23; the next release re-runs the host rows.
 
 B-040 (early input warning) and B-042 (no-JS static mode) stay out of scope.

@@ -162,13 +162,15 @@ overflow (1425/1440 and 375/390 px), no earlier-block overflow and no console or
 page errors.
 
 **`report-size-units` small-change record (2026-11-23).** Small change, relies
-on the fixture/e2e gate; the release gate re-runs every row before any 0.5.0
-tag. No host row is re-run for this slice. The last recorded final host reports
-are Seed-Test 116,113/117,137 B and Playwright movies-app 89,904 B, largest
-117,137 B. The two Java hosts (PetClinic, Cucumber-JVM) were not re-measured for
-this slice; their reports embed the same ~40 KB stylesheet and client bundle, so
-they stay far below 1 MiB. The changed ≥1 MiB branch is covered by the 1.1 MB
-unit and e2e fixtures; the sub-1 MiB branch is byte-identical.
+on the fixture/e2e gate. No host row was re-run for this slice. The maintainer
+approved this documented exception for 0.5.0 on 2026-11-23 as part of the
+release approval; the next release re-runs every required row. The last recorded
+final host reports are Seed-Test 116,113/117,137 B and Playwright movies-app
+89,904 B, largest 117,137 B. The two Java hosts (PetClinic, Cucumber-JVM) were
+not re-measured for this slice; their reports embed the same ~40 KB stylesheet
+and client bundle, so they stay far below 1 MiB. The changed ≥1 MiB branch is
+covered by the 1.1 MB unit and e2e fixtures; the sub-1 MiB branch is
+byte-identical.
 
 The 2026-11-20 wild-install probe is separate from this matrix but recorded
 here: the packed tarball is 522,870 B with three runtime dependencies; a clean
