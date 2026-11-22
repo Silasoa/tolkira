@@ -4,6 +4,8 @@ import type { Attachment } from '@cucumber/messages';
 export const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 /** Total attachment cap; the sanitizer applies it per report, the Playwright adapter per input. */
 export const MAX_TOTAL_ATTACHMENT_BYTES = 100 * 1024 * 1024;
+/** Report-wide cap for one earlier-attempt image; never part of the final counts. */
+export const MAX_RETRY_EVIDENCE_BYTES = 10 * 1024 * 1024;
 /** Text attachments above this size skip JSON pretty-printing and ANSI colouring. */
 export const MAX_TEXT_ATTACHMENT_BYTES = 262_144;
 

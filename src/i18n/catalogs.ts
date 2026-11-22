@@ -112,6 +112,9 @@ export type MessageKey =
   | "report.diagnostic.ambiguous"
   | "report.diagnostic.undefined"
   | "report.diagnostic.undefinedSuggestions"
+  | "report.earlierAttempt"
+  | "report.earlierAttemptImage"
+  | "report.earlierAttempts"
   | "report.exampleLabel"
   | "report.examplesLabel"
   | "report.expandAll"
@@ -302,6 +305,9 @@ export const en: Record<MessageKey, string> = {
   "report.diagnostic.ambiguous": "Multiple matching step definitions found:",
   "report.diagnostic.undefined": "No step definition found.",
   "report.diagnostic.undefinedSuggestions": "No step definition found. Implement with the snippet(s) below:",
+  "report.earlierAttempt": "Attempt {count}",
+  "report.earlierAttemptImage": "Earlier attempt {count}",
+  "report.earlierAttempts": "{count, plural, one {Earlier attempts ({shown})} other {Earlier attempts ({shown} of {total})}}",
   "report.exampleLabel": "example {example}",
   "report.examplesLabel": "Examples {examples}",
   "report.expandAll": "Expand all",
@@ -493,6 +499,9 @@ export const de: Record<MessageKey, string> = {
   "report.diagnostic.ambiguous": "Mehrere passende Schrittdefinitionen gefunden:",
   "report.diagnostic.undefined": "Keine Schrittdefinition gefunden.",
   "report.diagnostic.undefinedSuggestions": "Keine Schrittdefinition gefunden. Mit den folgenden Ausschnitten implementieren:",
+  "report.earlierAttempt": "Versuch {count}",
+  "report.earlierAttemptImage": "Früherer Versuch {count}",
+  "report.earlierAttempts": "{count, plural, one {Frühere Versuche ({shown})} other {Frühere Versuche ({shown} von {total})}}",
   "report.exampleLabel": "Beispiel {example}",
   "report.examplesLabel": "Beispiele {examples}",
   "report.expandAll": "Alle ausklappen",

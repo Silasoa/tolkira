@@ -178,18 +178,48 @@ losing an entry. No absolute path is stored or rendered. The list is part of the
 static HTML, prints, and fits at 320 px; no client JavaScript is involved.
 
 Earlier attempts and synthetic Playwright error scenarios carry zero; only the
-final attempt's path attachments are inspected. The scenario notice appears only
-for a positive count and leaves the run-level notice in place.
+final attempt's path attachments are inspected for this notice. The
+retry-evidence probe runs without skip diagnostics, so an earlier outside-root
+path never raises the run-level count. The scenario notice appears only for a
+positive count and leaves the run-level notice in place.
 
 These never count:
 
 - an attachment with a non-empty inline body;
-- a trace zip or an earlier-attempt attachment;
+- a trace zip or an earlier-attempt attachment, except the one retry-evidence
+  image described below;
 - a relative path that misses the input folder but resolves inside the working
   directory.
 
 Multiple inputs are summed; a duplicate input removed by the content hash is
 counted once. The JSON summary, CI text and exit codes are unchanged.
+
+### Earlier attempts
+
+Every `testCaseStarted` stays in the index, but the final attempt remains the
+scenario, summary and history result. A retried scenario renders a collapsed
+`Earlier attempts` block with up to three executed earlier starts in input
+order, each with status, duration and its first failure message. The summary
+reads `3 of 5` when more exist. The block is native `<details>`, escaped,
+printed with the other details and needs no client JavaScript.
+
+Earlier images are deliberately bounded:
+
+- only a single-input Playwright report qualifies; merged reports show the
+  text without an earlier image;
+- final attachments are planned first across all scenarios;
+- at most one image per report is read, from the first failed displayed earlier
+  attempt, and only when the final attachments leave at least 10 MB of the
+  100 MB attachment cap;
+- the image must fit a separate 10 MB retry-evidence budget; an oversized or
+  unreadable candidate is omitted without failing the run;
+- the declared media type is re-applied after a path read and the normal root,
+  symlink, media-type and size checks still run.
+
+Earlier images are excluded from the summary attachment counts and bytes, the
+JSON summary, CI text, email and history. Messages inputs expose no earlier
+image, and earlier failure text is not part of the search index. Expected
+failure retries can show their raw earlier failures.
 
 ## Run-level errors and empty runs
 
@@ -203,12 +233,14 @@ and renders zero scenarios.
 - No trace viewer, Playwright HTML-report replay or trace zip reading. Trace zip
   attachments are skipped and do not count towards the attachment budget.
 - An embedded video attachment uses the existing inline video element only.
-- Only the final attempt is rendered; earlier results supply the attempt count
-  and are otherwise not exposed as scenario rows.
+- The final attempt is the visible scenario result; earlier attempts supply the
+  attempt count and a report-only evidence block, not separate scenario rows.
+- The usual Tolkira limits apply: 100 MB total input, 50 MB per attachment and
+  100 MB total attachments, plus the 10 MB retry-evidence budget described
+  above.
 - Playwright producer metadata (`Playwright <config.version>`) and annotation
   descriptions are HTML-only; the JSON summary stays schema version 2.
 - Playwright's JSON schema is not a formal versioned contract. Missing optional
   fields are tolerated, but malformed `suites`, `specs`, `results` and
   attachment types fail with a file-specific error.
-- The usual Tolkira limits apply: 100 MB total input, 50 MB per attachment and
-  100 MB total attachments.
+

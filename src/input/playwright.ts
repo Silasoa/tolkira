@@ -26,10 +26,14 @@ import type {
 } from '@cucumber/messages';
 import {
   MAX_ATTACHMENT_BYTES,
+  MAX_RETRY_EVIDENCE_BYTES,
   MAX_TOTAL_ATTACHMENT_BYTES,
+  attachmentBytes,
+  safeMediaType,
 } from '../attachment.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
 import {
+  markRetryEvidence,
   recordSkippedAttachments,
   type AttachmentSkipReason,
   type SkippedAttachment,
@@ -115,6 +119,8 @@ interface PlaywrightSuite {
 
 export interface PlaywrightJsonOptions {
   idPrefix?: string;
+  /** One earlier image per report; the loader only allows a single input file. */
+  allowRetryImages?: boolean;
 }
 
 export interface PlaywrightParseResult {
@@ -144,6 +150,10 @@ interface PlannedAttempt {
   skippedAttachments: number;
   skippedEntries: SkippedAttachment[];
   willBeRetried: boolean;
+  /** Images of an earlier attempt; the one retry-evidence probe reads at most one. */
+  retryImages?: PlaywrightAttachment[];
+  /** The planned attachment is the marked earlier-attempt image. */
+  retryEvidence?: boolean;
 }
 
 interface ScenarioPlan {
@@ -173,6 +183,9 @@ interface PlanContext {
   roots: string[];
   nextId: (kind: string) => string;
   totalAttachmentBytes: number;
+  allowRetryImages: boolean;
+  retryEvidenceBytes: number;
+  retryEvidenceImageUsed: boolean;
   features: Map<string, FeaturePlan>;
   featureOrder: FeaturePlan[];
   runId: string;
@@ -819,9 +832,20 @@ function attemptSteps(result: PlaywrightResult, inputDir: string): CanonicalStep
   );
 }
 
+function imageAttachmentsOf(result: PlaywrightResult): PlaywrightAttachment[] {
+  return result.attachments.filter(
+    (attachment) =>
+      safeMediaType(attachment.contentType).startsWith('image/') &&
+      (attachment.body
+        ? attachment.body !== ''
+        : attachment.path !== undefined),
+  );
+}
+
 const NON_LOCAL_PATH = /^[a-z][a-z0-9+.-]+:/i;
 const MAX_SKIP_ENTRIES = 3;
 const MAX_SKIP_NAME_LENGTH = 120;
+const MAX_EARLIER_ATTEMPTS = 3;
 
 // Only the sanitized name is persisted, so a report or CLI warning cannot leak
 // a directory. Escape stripping runs before the split: an OSC-8 payload may
@@ -854,6 +878,7 @@ function isNonLocalPath(file: string): boolean {
 async function readAttachment(
   candidate: string,
   context: PlanContext,
+  maxBytes?: number,
 ): Promise<PlannedAttachment | undefined> {
   const info = await lstat(candidate).catch(() => undefined);
   if (!info || info.isSymbolicLink() || !info.isFile()) return undefined;
@@ -870,6 +895,9 @@ async function readAttachment(
   try {
     const stats = await handle.stat().catch(() => undefined);
     if (!stats || !stats.isFile()) return undefined;
+    // An earlier-attempt probe has its own cap and must not spend the final
+    // attachment budget on a read it will discard.
+    if (maxBytes !== undefined && stats.size > maxBytes) return undefined;
     if (stats.size > MAX_ATTACHMENT_BYTES) {
       throw new Error('Attachment is larger than 50 MB. Use a smaller asset.');
     }
@@ -896,10 +924,13 @@ async function resolveAttachmentPath(
   file: string,
   context: PlanContext,
   onSkip?: (reason: AttachmentSkipReason) => void,
+  maxBytes?: number,
 ): Promise<PlannedAttachment | undefined> {
   if (isNonLocalPath(file)) {
-    context.skippedAttachments += 1;
-    onSkip?.('non-local');
+    if (onSkip) {
+      context.skippedAttachments += 1;
+      onSkip('non-local');
+    }
     return undefined;
   }
   // Relative paths use the input directory first, then cwd for CI layouts where
@@ -934,20 +965,21 @@ async function resolveAttachmentPath(
       outside += 1;
       continue;
     }
-    const attachment = await readAttachment(candidate, context);
+    const attachment = await readAttachment(candidate, context, maxBytes);
     if (attachment) return attachment;
     unreadable += 1;
   }
   // One attachment is skipped at most once; the first reason that explains a
-  // lost read wins over a candidate that is merely absent.
+  // lost read wins over a candidate that is merely absent. A probe without a
+  // callback stays out of the run-level skip diagnostics.
   let reason: AttachmentSkipReason | undefined;
   if (unreadable > 0) reason = 'unreadable';
   else if (outside > 0) reason = 'outside';
   else if (notRegular > 0) reason = 'not-regular';
   else if (missing > 0) reason = 'missing';
-  if (reason) {
+  if (reason && onSkip) {
     context.skippedAttachments += 1;
-    onSkip?.(reason);
+    onSkip(reason);
   }
   return undefined;
 }
@@ -958,6 +990,15 @@ function playwrightMediaType(mediaType: string): string {
   return mediaType.split(';', 1)[0]?.trim().toLowerCase() === 'text/markdown'
     ? 'text/plain'
     : mediaType;
+}
+
+// Inline final bodies spend the total attachment budget exactly like path reads,
+// so the retry-evidence reserve sees the real remaining room.
+function addInlineAttachmentBytes(context: PlanContext, body: string): void {
+  context.totalAttachmentBytes += attachmentBytes({
+    body,
+    contentEncoding: AttachmentContentEncoding.BASE64,
+  });
 }
 
 async function attachmentsForResult(
@@ -981,6 +1022,7 @@ async function attachmentsForResult(
       continue;
     }
     if (attachment.body !== undefined && attachment.body !== '') {
+      addInlineAttachmentBytes(context, attachment.body);
       planned.push({
         fileName: attachment.name,
         mediaType: playwrightMediaType(attachment.contentType),
@@ -1014,13 +1056,16 @@ async function attachmentsForResult(
   for (const field of ['stdout', 'stderr'] as const) {
     for (const [index, output] of result[field].entries()) {
       if (output.text !== undefined) {
+        const body = Buffer.from(output.text, 'utf8').toString('base64');
+        addInlineAttachmentBytes(context, body);
         planned.push({
           fileName: `${field} ${index + 1}`,
           mediaType: 'text/plain',
-          body: Buffer.from(output.text, 'utf8').toString('base64'),
+          body,
           contentEncoding: AttachmentContentEncoding.BASE64,
         });
       } else if (output.buffer !== undefined) {
+        addInlineAttachmentBytes(context, output.buffer);
         planned.push({
           fileName: `${field} ${index + 1} buffer`,
           mediaType: 'application/octet-stream',
@@ -1032,6 +1077,98 @@ async function attachmentsForResult(
   }
 
   return { attachments: planned, skipped, skippedEntries };
+}
+
+// A read that races past a cap omits only the optional evidence; the final
+// attachments and the run stay valid.
+async function readRetryEvidence(
+  attachment: PlaywrightAttachment,
+  context: PlanContext,
+): Promise<PlannedAttachment | undefined> {
+  const remaining = MAX_RETRY_EVIDENCE_BYTES - context.retryEvidenceBytes;
+  try {
+    if (attachment.body !== undefined && attachment.body !== '') {
+      const bytes = attachmentBytes({
+        body: attachment.body,
+        contentEncoding: AttachmentContentEncoding.BASE64,
+      });
+      if (
+        bytes > remaining ||
+        context.totalAttachmentBytes + bytes > MAX_TOTAL_ATTACHMENT_BYTES
+      ) {
+        return undefined;
+      }
+      context.totalAttachmentBytes += bytes;
+      context.retryEvidenceBytes += bytes;
+      context.retryEvidenceImageUsed = true;
+      return {
+        fileName: attachment.name || 'retry-evidence',
+        mediaType: playwrightMediaType(attachment.contentType),
+        body: attachment.body,
+        contentEncoding: AttachmentContentEncoding.BASE64,
+      };
+    }
+    if (attachment.path === undefined) return undefined;
+    const file = await resolveAttachmentPath(
+      attachment.path,
+      context,
+      undefined,
+      remaining,
+    );
+    if (!file) return undefined;
+    const bytes = attachmentBytes(file);
+    if (context.retryEvidenceBytes + bytes > MAX_RETRY_EVIDENCE_BYTES) {
+      return undefined;
+    }
+    context.retryEvidenceBytes += bytes;
+    context.retryEvidenceImageUsed = true;
+    // The path reader intentionally returns the generic type; the declared one
+    // is trusted only after the shared allow-list runs in the model.
+    return {
+      ...file,
+      fileName: attachment.name || file.fileName,
+      mediaType: playwrightMediaType(attachment.contentType),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+// Runs after every final attachment is planned, so final attachments always win
+// the 100 MB budget. Only a single-input report reaches here; one image is read
+// for the whole run, from the first failed displayed earlier attempt.
+async function planRetryEvidence(context: PlanContext): Promise<void> {
+  if (!context.allowRetryImages || context.retryEvidenceImageUsed) return;
+  if (
+    MAX_TOTAL_ATTACHMENT_BYTES - context.totalAttachmentBytes <
+    MAX_RETRY_EVIDENCE_BYTES
+  ) {
+    return;
+  }
+
+  for (const feature of context.featureOrder) {
+    for (const rule of feature.order) {
+      for (const plan of rule.scenarios) {
+        const earlier = plan.attempts.slice(
+          0,
+          Math.max(0, plan.attempts.length - 1),
+        );
+        for (const attempt of earlier.slice(0, MAX_EARLIER_ATTEMPTS)) {
+          if (!attempt.steps.some((step) => step.status === FAILED)) continue;
+          for (const image of attempt.retryImages ?? []) {
+            const planned = await readRetryEvidence(image, context);
+            if (!planned) continue;
+            attempt.attachments.push(planned);
+            attempt.retryEvidence = true;
+            return;
+          }
+          // The first failed displayed attempt has no usable image; later
+          // attempts do not supply one.
+          return;
+        }
+      }
+    }
+  }
 }
 
 function featureFor(
@@ -1217,8 +1354,9 @@ async function scenarioPlan(
   } else {
     for (const [index, result] of results.entries()) {
       const isFinal = index === finalIndex;
-      // Earlier attempts are never rendered; reading their attachments would
-      // spend the total byte budget twice per retry.
+      // Final attachments are planned first across every scenario. An earlier
+      // attempt keeps only its image references; the retry probe reads at most
+      // one after all final reads have spent the budget.
       const finalAttachments = isFinal
         ? await attachmentsForResult(result, context)
         : undefined;
@@ -1230,6 +1368,7 @@ async function scenarioPlan(
         skippedAttachments: finalAttachments?.skipped ?? 0,
         skippedEntries: finalAttachments?.skippedEntries ?? [],
         willBeRetried: index < results.length - 1,
+        ...(isFinal ? {} : { retryImages: imageAttachmentsOf(result) }),
       });
     }
   }
@@ -1435,6 +1574,9 @@ export async function parsePlaywrightJson(
     roots,
     nextId,
     totalAttachmentBytes: 0,
+    allowRetryImages: options.allowRetryImages ?? true,
+    retryEvidenceBytes: 0,
+    retryEvidenceImageUsed: false,
     features: new Map(),
     featureOrder: [],
     runId,
@@ -1452,6 +1594,8 @@ export async function parsePlaywrightJson(
     // Await in collection order so I/O timing cannot reorder scenarios.
     for (const job of collectScenarios(context, suite, [], file)) await job();
   }
+
+  await planRetryEvidence(context);
 
   addErrorFeature(context, Array.isArray(parsed.errors) ? parsed.errors : []);
 
@@ -1526,6 +1670,7 @@ export async function parsePlaywrightJson(
               testCaseStartedId: startedId,
               timestamp: clock,
             };
+            if (attempt.retryEvidence) markRetryEvidence(envelope);
             envelopes.push({ attachment: envelope });
           }
           envelopes.push({

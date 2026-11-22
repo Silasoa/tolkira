@@ -1,0 +1,17 @@
+{"gherkinDocument":{"feature":{"tags":[],"location":{"line":1,"column":1},"language":"en","keyword":"Feature","name":"Retry evidence","description":"Earlier attempts are display-only.","children":[{"scenario":{"id":"retry-evidence-scenario","tags":[],"location":{"line":3,"column":3},"keyword":"Scenario","name":"Retries an upload","description":"","steps":[{"id":"retry-evidence-step","location":{"line":4,"column":5},"keyword":"Given ","keywordType":"Context","text":"an upload that fails once"}],"examples":[]}}]},"comments":[],"uri":"samples/retry-evidence/retry-evidence.feature"}}
+{"pickle":{"id":"retry-evidence-pickle","uri":"samples/retry-evidence/retry-evidence.feature","location":{"line":3,"column":3},"astNodeIds":["retry-evidence-scenario"],"tags":[],"name":"Retries an upload","language":"en","steps":[{"id":"retry-evidence-pickle-step","text":"an upload that fails once","type":"Context","astNodeIds":["retry-evidence-step"]}]}}
+{"testRunStarted":{"id":"retry-evidence-run","timestamp":{"seconds":0,"nanos":0}}}
+{"testCase":{"id":"retry-evidence-test-case","pickleId":"retry-evidence-pickle","testSteps":[{"id":"retry-evidence-test-step","pickleStepId":"retry-evidence-pickle-step"}]}}
+{"testCaseStarted":{"id":"retry-evidence-start-a","testCaseId":"retry-evidence-test-case","timestamp":{"seconds":0,"nanos":1000000},"attempt":0}}
+{"testCaseFinished":{"testCaseStartedId":"retry-evidence-start-a","timestamp":{"seconds":0,"nanos":1000000},"willBeRetried":true}}
+{"testCaseStarted":{"id":"retry-evidence-start-b","testCaseId":"retry-evidence-test-case","timestamp":{"seconds":0,"nanos":2000000},"attempt":0}}
+{"testStepFinished":{"testCaseStartedId":"retry-evidence-start-b","testStepId":"retry-evidence-test-step","testStepResult":{"status":"FAILED","message":"Error: <b>first</b> attempt \u001b[31mfailed\u001b[0m \u202Eevil\u202C","duration":{"seconds":1,"nanos":0}},"timestamp":{"seconds":1,"nanos":2000000}}}
+{"attachment":{"body":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lK3Q6wAAAABJRU5ErkJggg==","contentEncoding":"BASE64","fileName":"earlier.png","mediaType":"image/png","testCaseStartedId":"retry-evidence-start-b","testStepId":"retry-evidence-test-step","timestamp":{"seconds":1,"nanos":2000000}}}
+{"testCaseFinished":{"testCaseStartedId":"retry-evidence-start-b","timestamp":{"seconds":1,"nanos":2000000},"willBeRetried":true}}
+{"testCaseStarted":{"id":"retry-evidence-start-c","testCaseId":"retry-evidence-test-case","timestamp":{"seconds":2,"nanos":0}}}
+{"testStepFinished":{"testCaseStartedId":"retry-evidence-start-c","testStepId":"retry-evidence-test-step","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":500000000}},"timestamp":{"seconds":2,"nanos":500000000}}}
+{"testCaseFinished":{"testCaseStartedId":"retry-evidence-start-c","timestamp":{"seconds":2,"nanos":500000000},"willBeRetried":true}}
+{"testCaseStarted":{"id":"retry-evidence-start-d","testCaseId":"retry-evidence-test-case","timestamp":{"seconds":3,"nanos":0},"attempt":0}}
+{"testStepFinished":{"testCaseStartedId":"retry-evidence-start-d","testStepId":"retry-evidence-test-step","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":700000000}},"timestamp":{"seconds":3,"nanos":700000000}}}
+{"testCaseFinished":{"testCaseStartedId":"retry-evidence-start-d","timestamp":{"seconds":3,"nanos":700000000},"willBeRetried":false}}
+{"testRunFinished":{"testRunStartedId":"retry-evidence-run","timestamp":{"seconds":4,"nanos":0},"success":true}}

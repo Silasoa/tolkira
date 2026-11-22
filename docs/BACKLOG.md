@@ -56,8 +56,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-041 | Report | P3 | Ungrouped exact report-byte row beside the MB contributor rows in Details | A user finds it hard to scan or asks for MB and exact bytes together; then group the row or show both forms. | — |
-| B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
-| B-043 | Report | P3 | First-attempt error and screenshot evidence for flaky scenarios | A user needs first-attempt evidence or a flake investigation; earlier attempts are currently parsed away, so this needs an attachment/summary decision before code. | — |
+| B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | - |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -322,13 +321,18 @@ asks or a locale needs them:
   and the HTML-writing CLI warn about skipped path attachments; summary v2 has
   no warning field. Trigger: an agent or CI consumer needs the signal in the
   summary or annotations, including when HTML is also written.
-- **Flaky status and retry history.** The report shows a display-only `flaky`
-  badge and a tag-only run-metadata count; the history sidecar records an
+- **Flaky status and broader retry history.** The report shows a display-only
+  `flaky` badge and a tag-only run-metadata count; the history sidecar records an
   optional per-run `flaky` count that Trends renders as `Flaky` and `Flaky share`
   (a flagged share, not a probability). A per-scenario flaky status, filter,
-  summary field or first-attempt history would still need a schema decision;
-  first-attempt evidence is B-043. Trigger: a user asks for flake forensics or a
-  reported flaky rate becomes a problem.
+  summary field or retry trend would still need a schema decision. Earlier
+  evidence now ships as a report-only HTML block (up to three starts, one image,
+  single-input Playwright, 10 MB). Deferred: every earlier attachment or
+  screenshot, an earlier Messages image, an earlier multi-input image, a
+  searchable earlier message, and special handling for expected-failure retries,
+  which currently show their raw earlier failures. Trigger: a user asks for flake
+  forensics, a group needs more than one earlier image, or an expected-failure
+  retry misleads a reader.
 - **CR-only message text.** The fast-path probe excludes CR while the scan strips
   it, so a CR-only message is returned unchanged and a message with CR plus
   another control loses CR. This predates #17; the benchmark excludes CR to keep

@@ -3,6 +3,23 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- Earlier-attempt evidence for retried scenarios. The input index keeps every
+  `testCaseStarted`, and a retried scenario gets a collapsed, JavaScript-free
+  `Earlier attempts` block with up to three executed earlier starts in input
+  order: status, duration and the first failure message, plus `3 of 5` when
+  capped. A single-input Playwright report adds at most one marked earlier
+  image from the first failed displayed attempt, after all final attachments
+  are planned, under a separate 10 MB budget and only when the final
+  attachments leave at least 10 MB of the 100 MB cap; multi-input reports and
+  Messages inputs show the block without an earlier image. An earlier probe
+  never changes `skippedAttachments`, the summary counts/bytes, the summary
+  schema 2, JSON, CI, email or history schema 1, and earlier text is not
+  searchable. Legacy JSON exposes no earlier attempts.
+
 ## [0.5.0] - 2026-11-22
 
 ### Added

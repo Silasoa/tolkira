@@ -172,7 +172,9 @@ test('shows the flaky badge and tagged run count at 1440 and 320', async ({
         'aria-hidden',
         'true',
       );
-      await expect(flakyRow.locator('.statusText')).toHaveText('Passed');
+      await expect(
+        flakyRow.locator('summary.scenarioButton .statusText'),
+      ).toHaveText('Passed');
       await expect(
         flakyRow.locator('.tag').filter({ hasText: '@flaky' }),
       ).toBeVisible();

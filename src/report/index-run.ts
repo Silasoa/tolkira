@@ -71,6 +71,8 @@ export interface RunIndex {
   testCasesByPickle: Map<string, TestCase[]>;
   /** Latest started attempt per pickle id. */
   attempts: Map<string, TestCaseStarted>;
+  /** Every started attempt per pickle id, in envelope order. */
+  allAttempts: Map<string, TestCaseStarted[]>;
   results: Map<string, TestStepFinished[]>;
   hooks: Map<string, Hook>;
   runHookStarts: Map<string, TestRunHookStarted>;
@@ -164,6 +166,7 @@ export function indexRun(envelopes: Envelope[]): RunIndex {
     testCases: new Map(),
     testCasesByPickle: new Map(),
     attempts: new Map(),
+    allAttempts: new Map(),
     results: new Map(),
     hooks: new Map(),
     runHookStarts: new Map(),
@@ -290,6 +293,17 @@ export function indexRun(envelopes: Envelope[]): RunIndex {
     );
     const latest = latestAttempt(candidates);
     if (latest) index.attempts.set(pickle.id, latest);
+  }
+  // A second pass keeps every start in envelope order, independent of how many
+  // test cases or pickles a producer interleaves.
+  for (const envelope of envelopes) {
+    const started = envelope.testCaseStarted;
+    if (!started) continue;
+    const pickleId = index.testCases.get(started.testCaseId)?.pickleId;
+    if (!pickleId) continue;
+    const list = index.allAttempts.get(pickleId) ?? [];
+    list.push(started);
+    index.allAttempts.set(pickleId, list);
   }
   index.runAttachments = index.caseAttachments.get('') ?? [];
 

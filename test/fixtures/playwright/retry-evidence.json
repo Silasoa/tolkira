@@ -1,0 +1,89 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [{ "id": "chromium", "name": "chromium", "retries": 1 }]
+  },
+  "suites": [
+    {
+      "title": "retry-evidence.spec.ts",
+      "file": "retry-evidence.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "pays an invoice after a gateway timeout",
+          "ok": true,
+          "tags": [],
+          "id": "retry-evidence-spec",
+          "file": "retry-evidence.spec.ts",
+          "line": 5,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "flaky",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1200,
+                  "retry": 0,
+                  "startTime": "2026-11-19T08:00:00.000Z",
+                  "errors": [
+                    { "message": "Error: payment gateway timed out" }
+                  ],
+                  "steps": [
+                    {
+                      "title": "Given the gateway is slow",
+                      "duration": 1200,
+                      "error": { "message": "Error: payment gateway timed out" }
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "failure.png",
+                      "contentType": "image/png",
+                      "body": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lK3Q6wAAAABJRU5ErkJggg=="
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": []
+                },
+                {
+                  "status": "passed",
+                  "duration": 900,
+                  "retry": 1,
+                  "startTime": "2026-11-19T08:00:02.000Z",
+                  "errors": [],
+                  "steps": [
+                    {
+                      "title": "Given the gateway responds",
+                      "duration": 900
+                    }
+                  ],
+                  "attachments": [],
+                  "stdout": [],
+                  "stderr": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-19T08:00:00.000Z",
+    "duration": 2200,
+    "expected": 1,
+    "unexpected": 0,
+    "flaky": 1,
+    "skipped": 0
+  }
+}

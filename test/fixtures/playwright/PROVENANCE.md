@@ -29,5 +29,6 @@ JSON shape. They contain no recorded CI run, real path, token or personal data.
 | `error-locations.json` | Playwright JSON shape | error locations at the end, mid-sentence and with backslashes; two errors with different locations; no-column and line-prefix locations; column in the text for a no-column location |
 | `skipped-no-steps.json` | Playwright JSON shape | pass, fail and a statically skipped test without results, for executed-skip counts |
 | `two-files.json` | Playwright JSON shape | one project feature spanning `sample-a.spec.ts` and `sample-b.spec.ts`, for the `2 spec files` label |
+| `retry-evidence.json` | Playwright JSON shape | failed-then-passed retry with an inline PNG and an error message, for earlier-attempt evidence |
 | `empty.json` | Playwright JSON shape | no suites and no errors |
 | `malformed-*.json` | Playwright JSON shape | invalid `suites`, suite `specs`, test `results` and attachment `contentType` |

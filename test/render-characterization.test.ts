@@ -20,42 +20,42 @@ const fixtures = [
   {
     name: 'messages screenshot',
     fixture: 'messages/screenshot.ndjson',
-    sha256: '9a9bf2583063e6be37e4b605cf45ecd8824946c8418b8499df00e47a178e4008',
+    sha256: '9df6b0d715502632b0a369c62757e5467ee0072f9f99b9c40fca934d67fdea28',
   },
   {
     name: 'messages all statuses',
     fixture: 'messages/all-statuses.ndjson',
-    sha256: '4de6be09e1cb3ab8474e5f09f672755979e4219e214e8b2c61ee50a0b6d3e82e',
+    sha256: '1da0f12b1611ccd919e092960c2f517bb8574db80cf3b2d47b86ffc77d5406e0',
   },
   {
     name: 'messages empty statuses',
     fixture: 'messages/empty-statuses.ndjson',
-    sha256: '19cd3159b568ac30cde61a010edd0ab45970baabc647d16599c9dd3e3022b7d6',
+    sha256: 'cff5659ab2effdbe7fe4b3af668e2779e18f9d37ae8444797ea7487a8179f0c6',
   },
   {
     name: 'legacy happy',
     fixture: 'legacy/happy.json',
-    sha256: '8e2d8ebfab048daf4323fc62ae139bad82e59f6453f010e1841a016fea15e8b6',
+    sha256: '3816362672c5dbbec6415d5bef997efd6d4c1b6cdb6fc61156edd844445bf6aa',
   },
   {
     name: 'legacy failed',
     fixture: 'legacy/failed.json',
-    sha256: 'b9531da3f2f74fe610f984d14058de65950f11dd132f220a780d9842be5b66e8',
+    sha256: '6210059f27248d197dda4929d949ad31fbbae6d0383da8c4998e5c9f0619a1be',
   },
   {
     name: 'playwright real run',
     fixture: 'playwright/real-run.json',
-    sha256: '5a7ea9603de708a533ed9086fda40b9deeb48d2c354769169080b159f391b30c',
+    sha256: 'a976a8de0676db08f532736316c83aabb8d3c6ea0927a1c916e5b57131eaa453',
   },
   {
     name: 'playwright two files',
     fixture: 'playwright/two-files.json',
-    sha256: '28d32a5335ed0425d2c0bcbade93f4ba6ead919d4eb686a78e26527b9ba8c178',
+    sha256: 'debc5b312a9fc2a644af52d10533be92250eac49be3498915878fb301a8674f4',
   },
   {
     name: 'playwright skipped no steps',
     fixture: 'playwright/skipped-no-steps.json',
-    sha256: '84ec14a72024e07ae6b560d088b7e866600429b50cad0a6e0eed6897fd3e5ea6',
+    sha256: '2787e29cec470561d85a0ff8ea145f43f8cc30e1932c3d19a70dacbed529c4ec',
   },
 ];
 

@@ -8,14 +8,17 @@ import type {
   Rule,
   RuleChild,
   Step,
+  TestCaseStarted,
 } from '@cucumber/messages';
 
 import {
+  MAX_RETRY_EVIDENCE_BYTES,
   attachmentMetadata,
   type AttachmentKind,
   type AttachmentTextFormat,
 } from '../attachment.js';
 import {
+  isRetryEvidence,
   skippedAttachmentEntriesOf,
   skippedAttachmentsOf,
   type SkippedAttachment,
@@ -111,6 +114,15 @@ export interface ReportRule {
   backgrounds: ReportBackground[];
 }
 
+export interface ReportEarlierAttempt {
+  /** Display number from the executed earlier starts, oldest first. */
+  attempt: number;
+  status: ReportStatus;
+  durationMs: number;
+  message?: string;
+  attachments: ReportAttachment[];
+}
+
 export interface ReportScenario {
   id: string;
   name: string;
@@ -141,6 +153,10 @@ export interface ReportScenario {
   skippedAttachments?: number;
   /** Up to three sanitized names and reasons for those skips. */
   skippedAttachmentEntries?: SkippedAttachment[];
+  /** Up to three executed earlier attempts, oldest first; report-only. */
+  earlierAttempts?: ReportEarlierAttempt[];
+  /** Executed earlier attempts before the three-item display cap. */
+  earlierAttemptTotal?: number;
 }
 
 export interface ReportFeature {
@@ -479,6 +495,64 @@ export function buildReportModel(
       return mapped;
     });
 
+  const MAX_EARLIER_ATTEMPTS = 3;
+  let earlierImageUsed = false;
+  let earlierImageBytes = 0;
+
+  // Earlier starts stay report-only: the final attempt remains the scenario,
+  // summary and history result. Display numbers come from executed envelope
+  // order, not the raw attempt value.
+  const earlierAttemptsFor = (
+    pickleId: string,
+    latest: TestCaseStarted,
+  ): { rows: ReportEarlierAttempt[]; total: number } => {
+    let total = 0;
+    const rows: ReportEarlierAttempt[] = [];
+    for (const start of index.allAttempts.get(pickleId) ?? []) {
+      if (start.id === latest.id) continue;
+      const results = index.results.get(start.id) ?? [];
+      if (results.length === 0) continue;
+      total += 1;
+      if (rows.length >= MAX_EARLIER_ATTEMPTS) continue;
+      const stepResults = results.map((entry) => entry.testStepResult);
+      const status = statusOf(getWorstTestStepResult(stepResults).status);
+      const rawMessage = results
+        .map((entry) => entry.testStepResult)
+        .filter((result) => statusOf(result.status) === 'failed')
+        .map((result) => stepResultMessage(result))
+        .find((text): text is string => Boolean(text?.trim()));
+      const attachments: ReportAttachment[] = [];
+      if (!earlierImageUsed && status === 'failed') {
+        const image = mapAttachments(
+          (index.caseAttachments.get(start.id) ?? []).filter(isRetryEvidence),
+        ).find((candidate) => candidate.kind === 'image');
+        if (
+          image &&
+          earlierImageBytes + image.bytes <= MAX_RETRY_EVIDENCE_BYTES
+        ) {
+          earlierImageUsed = true;
+          earlierImageBytes += image.bytes;
+          attachments.push(image);
+        }
+      }
+      rows.push({
+        attempt: rows.length + 1,
+        status,
+        durationMs: finiteDuration(
+          results.reduce(
+            (sum, entry) => sum + durationMs(entry.testStepResult.duration),
+            0,
+          ),
+        ),
+        ...(rawMessage
+          ? { message: stripBidiControls(stripAnsi(rawMessage)).trim() }
+          : {}),
+        attachments,
+      });
+    }
+    return { rows, total };
+  };
+
   const ruleOf = (rule: Rule | undefined): ReportRule | undefined => {
     if (!rule) return undefined;
     const cached = ruleCache.get(rule);
@@ -673,6 +747,7 @@ export function buildReportModel(
       skippedAttachmentsOf(latest),
     );
     const skippedAttachmentEntries = skippedAttachmentEntriesOf(latest);
+    const earlier = earlierAttemptsFor(pickle.id, latest);
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
@@ -702,6 +777,12 @@ export function buildReportModel(
       ...(skippedAttachments > 0 ? { skippedAttachments } : {}),
       ...(skippedAttachmentEntries.length > 0
         ? { skippedAttachmentEntries }
+        : {}),
+      ...(earlier.rows.length > 0
+        ? {
+            earlierAttempts: earlier.rows,
+            earlierAttemptTotal: earlier.total,
+          }
         : {}),
     };
     scenarioRows.push(row);

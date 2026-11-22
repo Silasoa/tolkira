@@ -263,7 +263,16 @@ missing, unreadable, not a regular file or non-local (a URL, UNC or device
 path). It is a plain number, additive to the returned object; the run-level
 HTML count notice, up to three sanitized attachment name/reason entries per
 affected scenario and the CLI stderr warning use it, while the summary document
-keeps schema version 2 and no warning field.
+keeps schema version 2 and no warning field. An earlier-attempt probe never
+changes this number.
+
+Earlier attempts are report-only. The HTML adds a collapsed `Earlier attempts`
+block for a retried scenario with up to three executed earlier starts (status,
+duration, first failure message and, for a single-input Playwright report, at
+most one marked image under a 10 MB budget). `ReportSummary` (schema 2),
+`--json`, CI text, the email summary, the history sidecar (schema 1) and
+`ReportScenario` attachment counts/bytes stay final-attempt-only; legacy JSON
+has no earlier data.
 
 `inputFiles` and `inputBytes` are additive numbers on `GeneratedReport`: the
 unique report files that formed loader groups (including validation-only files

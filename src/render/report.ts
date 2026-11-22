@@ -309,11 +309,45 @@ function skippedAttachmentNotice(
   return `<div class="attachmentWarning" role="note">${escapeHtml(t.t('report.attachmentSkipNotice', { count }))}${list}${more}</div>`;
 }
 
+function renderEarlierAttempts(
+  scenario: ReportScenario,
+  t: Translator,
+): string {
+  const attempts = scenario.earlierAttempts ?? [];
+  if (attempts.length === 0) return '';
+  const total = scenario.earlierAttemptTotal ?? attempts.length;
+  const summary = t.t('report.earlierAttempts', {
+    // One branch renders the fully shown list; the other states the cap.
+    count: attempts.length === total ? 1 : attempts.length,
+    shown: attempts.length,
+    total,
+  });
+  const items = attempts
+    .map((attempt) => {
+      const message = attempt.message
+        ? `<pre class="earlierAttemptMessage">${escapeHtml(attempt.message)}</pre>`
+        : '';
+      const images = attempt.attachments
+        .map((attachment) =>
+          renderAttachment(
+            attachment,
+            t.t('report.earlierAttemptImage', { count: attempt.attempt }),
+            t,
+          ),
+        )
+        .join('');
+      return `<li><div class="earlierAttemptHead"><span>${escapeHtml(t.t('report.earlierAttempt', { count: attempt.attempt }))}</span><span class="statusText ${statusClass(attempt.status)}">${statusLabel(attempt.status, t)}</span><span>${durationLabel(attempt.durationMs, t)}</span></div>${message}${images}</li>`;
+    })
+    .join('');
+  return `<details class="earlierAttempts"><summary>${escapeHtml(summary)}</summary><ol class="earlierAttemptList">${items}</ol></details>`;
+}
+
 function scenarioBody({
   scenario,
   description,
   inlineItems,
   passedHooksGroup,
+  earlierAttempts,
   extraAttachments,
   scenarioMeta,
   t,
@@ -322,6 +356,7 @@ function scenarioBody({
   description: string;
   inlineItems: string;
   passedHooksGroup: string;
+  earlierAttempts: string;
   extraAttachments: string;
   scenarioMeta: string;
   t: Translator;
@@ -337,7 +372,7 @@ function scenarioBody({
     ? `<span>${t.t('report.ruleMeta', { name: escapeHtml(scenario.ruleName) })}</span>`
     : '';
   const attachmentNotice = skippedAttachmentNotice(scenario, t);
-  return `<div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">${t.t('report.steps')}</p>${copyFailure}</div><ol class="steps" aria-label="${t.t('report.stepsAndHooks')}">${inlineItems}</ol>${passedHooksGroup}${attachmentNotice}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>${t.t('report.featureMeta', { name: escapeHtml(scenario.featureName) })}</span><span>${t.t('report.attemptMeta', { count: scenario.attempt + 1 })}</span>${started}${rule}</div></div>`;
+  return `<div class="detailInline">${description}<div class="stepsHead"><p class="detailLabel">${t.t('report.steps')}</p>${copyFailure}</div><ol class="steps" aria-label="${t.t('report.stepsAndHooks')}">${inlineItems}</ol>${passedHooksGroup}${earlierAttempts}${attachmentNotice}${extraAttachments}<div class="detailMeta">${scenarioMeta}<span>${t.t('report.featureMeta', { name: escapeHtml(scenario.featureName) })}</span><span>${t.t('report.attemptMeta', { count: scenario.attempt + 1 })}</span>${started}${rule}</div></div>`;
 }
 
 function renderScenario(
@@ -423,7 +458,7 @@ function renderScenario(
   })
     .map(([name, value]) => `${name}="${escapeHtml(value)}"`)
     .join(' ');
-  return `<details class="scenario" id="${scenarioId(featureIndex, scenarioIndex)}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}>${scenarioSummary(scenario, heading, visibleName, image, rowTags, t)}${scenarioBody({ scenario, description, inlineItems, passedHooksGroup, extraAttachments, scenarioMeta, t })}</details>`;
+  return `<details class="scenario" id="${scenarioId(featureIndex, scenarioIndex)}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}>${scenarioSummary(scenario, heading, visibleName, image, rowTags, t)}${scenarioBody({ scenario, description, inlineItems, passedHooksGroup, earlierAttempts: renderEarlierAttempts(scenario, t), extraAttachments, scenarioMeta, t })}</details>`;
 }
 
 function renderExamples(

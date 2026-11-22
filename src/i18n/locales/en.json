@@ -447,6 +447,18 @@
     "message": "No step definition found. Implement with the snippet(s) below:",
     "description": "Lead text for an undefined step with code suggestions"
   },
+  "report.earlierAttempt": {
+    "message": "Attempt {count}",
+    "description": "Label for one earlier retry attempt in the scenario detail"
+  },
+  "report.earlierAttemptImage": {
+    "message": "Earlier attempt {count}",
+    "description": "Alt-text context for a screenshot from an earlier retry attempt"
+  },
+  "report.earlierAttempts": {
+    "message": "{count, plural, one {Earlier attempts ({shown})} other {Earlier attempts ({shown} of {total})}}",
+    "description": "Collapsed summary of earlier retry attempts; count is 1 when every attempt is shown"
+  },
   "report.exampleLabel": {
     "message": "example {example}",
     "description": "Screen-reader text before an example row number"

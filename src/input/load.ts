@@ -161,6 +161,8 @@ export async function loadInputs(
           skippedAttachments,
         } = await parsePlaywrightJson(decision.parsed, input.file, {
           idPrefix: `playwright-${index}`,
+          // One earlier image only fits a single-input report's byte budget.
+          allowRetryImages: ordered.length === 1,
         }));
         break;
       case 'json-validation':

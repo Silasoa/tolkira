@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: "Make retry/flaky investigations possible in the report: first-attempt
+  error and screenshot evidence for Playwright and Messages runs."
