@@ -3,7 +3,7 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
-## [Unreleased]
+## [0.5.0] - 2026-11-22
 
 ### Added
 
@@ -19,10 +19,6 @@ Keep a Changelog and the project uses semantic versioning.
   never changes `skippedAttachments`, the summary counts/bytes, the summary
   schema 2, JSON, CI, email or history schema 1, and earlier text is not
   searchable. Legacy JSON exposes no earlier attempts.
-
-## [0.5.0] - 2026-11-22
-
-### Added
 
 - Skipped Playwright path attachments now carry a sanitized base name and one
   reason: outside the allowed roots, missing, unreadable, not a regular file or
