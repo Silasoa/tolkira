@@ -8,7 +8,7 @@ are embedded where available; the report names any it had to skip. There is no
 server, no CDN and no telemetry. An opt-in PDF export reuses the same print view
 when the optional Playwright Chromium engine is installed.
 
-Current release: **v0.3.0** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
+Current release: **v0.4.0** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.
 > The maintainer sets the product direction and approves releases. Most code,
@@ -65,7 +65,7 @@ tolkira test-results/ --out report.html --locale de
 # Write a small HTML email body beside the report (no sending)
 tolkira test-results/ --out report.html --email email.html
 
-# Print an A4 PDF (next release; needs the optional Playwright engine; see below)
+# Print an A4 PDF (needs the optional Playwright engine; see below)
 tolkira test-results/ --out report.html --pdf report.pdf
 ```
 
