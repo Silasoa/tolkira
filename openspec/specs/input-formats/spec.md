@@ -278,12 +278,11 @@ the same digits SHALL NOT count as the same location.
 ### Requirement: Count Playwright path attachments skipped outside the roots
 
 The Playwright adapter SHALL count each path attachment it skips on the final
-attempt for one of the recorded reasons: outside every allowed root, missing,
-unreadable, not a regular file, or non-local. It SHALL count once per
-attachment and SHALL NOT count inline bodies, trace zips, earlier attempts, or a
+attempt (outside roots, missing, unreadable, not a regular file, or non-local)
+once. It SHALL NOT count inline bodies, trace zips, earlier attempts, or a
 relative path that resolves inside a root through the working-directory
-fallback. The adapter SHALL expose the count and the bounded entries for its
-input; `generateReport` SHALL sum the counts across inputs.
+fallback. It SHALL expose the count; `generateReport` SHALL sum the counts
+across inputs.
 
 #### Scenario: Outside every root
 
