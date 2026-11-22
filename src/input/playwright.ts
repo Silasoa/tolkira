@@ -525,6 +525,16 @@ function location(line?: number, column?: number): Location {
     : { line: safeLine };
 }
 
+// The report shows a positive Pickle line; a missing or zero spec.line must stay
+// unknown (0), while AST nodes keep the line-1 placeholder.
+function pickleLocation(line?: number, column?: number): Location {
+  const safeLine =
+    typeof line === 'number' && Number.isInteger(line) && line > 0 ? line : 0;
+  return safeLine > 0 && column !== undefined && Number.isInteger(column) && column > 0
+    ? { line: safeLine, column }
+    : { line: safeLine };
+}
+
 // Right-to-left token scan; a regex here backtracked quadratically on long
 // titles with many trailing @tags.
 function stripTrailingTags(value: string): string {
@@ -1095,7 +1105,7 @@ async function scenarioPlan(
   const pickle: Pickle = {
     id: context.nextId('pickle'),
     uri: file,
-    location: location(spec.line, spec.column),
+    location: pickleLocation(spec.line, spec.column),
     name,
     language: 'en',
     steps: pickleSteps,
@@ -1223,7 +1233,8 @@ function addErrorFeature(
     const pickle: Pickle = {
       id: context.nextId('pickle'),
       uri: `playwright://${context.idPrefix}/errors`,
-      location: location(1),
+      // The pseudo-file has no source line; the AST placeholder stays at 1.
+      location: pickleLocation(),
       name,
       language: 'en',
       steps: [pickleStep],

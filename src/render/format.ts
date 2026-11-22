@@ -5,6 +5,7 @@ import type {
   ReportRunHook,
   ReportScenario,
 } from '../report/model.js';
+import { positiveLine } from '../report/model.js';
 import { statusSeverity, type ReportStatus } from '../report/status.js';
 import { displayUri, type StatusCounts } from '../summary.js';
 import { stripBidiControls } from '../text.js';
@@ -145,17 +146,32 @@ export function featureBar(scenarios: ReportScenario[]): string {
   return `<span class="bar" aria-hidden="true">${segments}</span>`;
 }
 
+export function scenarioSourceLabel(scenario: ReportScenario): string {
+  const uri = displayUri(scenario.uri);
+  if (!uri) return '';
+  const line = positiveLine(scenario.line);
+  return line === undefined ? uri : `${uri}:${line}`;
+}
+
 export function featureSourceLabel(
   feature: ReportFeature,
   t: Translator,
 ): string {
-  const uris = new Set(
-    feature.scenarios.map((scenario) => displayUri(scenario.uri)).filter(Boolean),
-  );
+  const sources = feature.scenarios
+    .map((scenario) => ({
+      uri: displayUri(scenario.uri),
+      line: positiveLine(scenario.line),
+    }))
+    .filter((source) => source.uri);
+  const uris = new Set(sources.map((source) => source.uri));
   if (uris.size === 0) return '';
-  return uris.size === 1
-    ? [...uris][0] ?? ''
-    : t.t('format.specFiles', { count: uris.size });
+  if (uris.size > 1) return t.t('format.specFiles', { count: uris.size });
+  const uri = sources[0]?.uri ?? '';
+  const lines = new Set(sources.map((source) => source.line));
+  const line = [...lines][0];
+  // A line needs every scenario in the one file to agree on it; mixed or
+  // absent lines keep the file alone rather than invent a location.
+  return lines.size === 1 && line !== undefined ? `${uri}:${line}` : uri;
 }
 
 function count(value: unknown): number {

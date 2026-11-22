@@ -169,6 +169,14 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- Located pickles now show their source line in the scenario summary
+  (`movie-list.spec.ts:3`), so every test keeps its own line even when a
+  Playwright project feature spans several spec files. The feature source label
+  adds the line only when a feature has one file and every scenario agrees on
+  one positive line; mixed or absent lines keep the file only, multiple files
+  keep `N spec files`, and no trailing colon is rendered. JUnit, line-less
+  legacy input and Playwright run errors or missing lines stay line-less instead
+  of inventing `:1`. The JSON summary, CI text and email are unchanged.
 - PDF install guidance now uses `playwright-core` alone with
   `npx playwright-core install chromium-headless-shell`; the `playwright`
   package and the full Chromium build are not required. The documented cost is

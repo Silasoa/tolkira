@@ -54,7 +54,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
 | B-034 | Input | P3 | Legacy JSON hook output is dropped | Cucumber-JVM carries `before/after[].output`; the report shows hook names/counts but not that output. A user needs hook diagnostics or a producer fixture with non-empty output; map it to hook output or document the limit. | — |
-| B-035 | Input | P3 | Playwright JSON scenario source has no line | The native Playwright report shows `movie-list.spec.ts:3`; Tolkira shows only the rule/spec path. A user needs line-level source links or the JSON location is otherwise missing from the report. | — |
 | B-036 | Input | P3 | JUnit nested test classes are folded into the outer feature | Surefire puts `Outer$Nested` cases in one `<testsuite>` and lists 15 class rows; Tolkira shows 12 features while keeping all 59 cases. A user needs the nested class distinction or a real report shows it. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
@@ -114,6 +113,20 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-035 Playwright JSON scenario source line** — implemented on 2026-11-22 in
+  the `playwright-source-line` change: `ReportScenario` carries the Pickle
+  location line (positive integer only), and the scenario summary shows
+  `displayUri(uri):line`. `featureSourceLabel` appends a line only when a feature
+  has one file and every scenario agrees on one line; mixed or absent lines keep
+  the file, multiple files keep `N spec files`, and no trailing colon is rendered.
+  The line is not in the summary, `--json`, CI or email, and no locale or
+  dependency changed.
+- **B-038 Synthetic adapter source lines** — fixed on 2026-11-22 in the
+  `playwright-source-line` change: Playwright run-error pseudo-pickles use an
+  unknown line 0, and a missing or zero `spec.line`, a JUnit scenario and a
+  legacy scenario without a line also stay unknown, so no `:1` is invented. AST
+  placeholders are unchanged. Covered by the unit render tests for `errors.json`,
+  `junit/basic.xml`, a line-less Playwright spec and legacy input.
 - **B-032 Compatibility merged JSON sidecar** — implemented on 2026-11-21 in the
   `compat-merged-json` change: a `jsonDir` run without `jsonFile` writes the
   legacy merged array to `<output>.json` after the HTML. Features merge by

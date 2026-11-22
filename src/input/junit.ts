@@ -241,7 +241,8 @@ function elementFromTestcase(testcase: XmlNode, index: number): XmlNode {
     keyword: 'Scenario',
     name,
     description,
-    line: 1,
+    // JUnit has no source line. The AST keeps the placeholder; the legacy
+    // pickle mapping reads the missing line as unknown (0).
     tags: [],
     steps: [step],
   };

@@ -38,6 +38,7 @@ import {
   healthMarkup,
   hookLabel,
   orderFeatures,
+  scenarioSourceLabel,
   statusBar,
   statusClass,
   statusLabel,
@@ -267,7 +268,8 @@ function scenarioSummary(
   const attachments = scenario.attachments.length
     ? `<br>${t.t('report.attachmentCount', { count: scenario.attachments.length })}`
     : '';
-  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
+  const source = scenarioSourceLabel(scenario);
+  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
 }
 
 function scenarioBody({

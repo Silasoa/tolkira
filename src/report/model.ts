@@ -112,6 +112,8 @@ export interface ReportScenario {
   keyword: string;
   description: string;
   uri: string;
+  /** Pickle location line; render metadata only, never in the summary. */
+  line?: number;
   featureName: string;
   ruleName?: string;
   rule?: ReportRule;
@@ -218,6 +220,12 @@ function finiteDuration(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 0;
   const rounded = Math.round(value * 1000) / 1000;
   return Number.isFinite(rounded) ? rounded : 0;
+}
+
+export function positiveLine(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : undefined;
 }
 
 function timestampIso(
@@ -643,12 +651,14 @@ export function buildReportModel(
           exampleIndex: outlineExample.exampleIndex,
         }
       : undefined;
+    const pickleLine = positiveLine(pickle.location?.line);
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
       keyword: tree?.scenario.keyword ?? 'Scenario',
       description: normalizeText(tree?.scenario.description),
       uri: pickle.uri,
+      ...(pickleLine ? { line: pickleLine } : {}),
       featureName: feature?.name ?? pickle.uri,
       ...(rule ? { rule } : {}),
       ...(rule?.name ? { ruleName: rule.name } : {}),

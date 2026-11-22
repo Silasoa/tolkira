@@ -57,7 +57,15 @@ unsupported input and never with a partial report.
 Features use `playwright://<idPrefix>/<project>`; a report with neither a
 project name nor a project id uses
 `playwright://<idPrefix>/file/<normalised-file>`. Each scenario keeps the spec
-file as its URI, so directory merging and provenance stay per file.
+file as its URI, so directory merging and provenance stay per file. The spec
+(test) line, not the describe line, becomes render metadata: the scenario
+summary shows `file:line` (`movie-list.spec.ts:3`), so a project feature that
+spans several spec files still gives each test its own source. The feature
+source label appends the line only when the feature has one file and every
+scenario agrees on one positive line; otherwise it keeps the file, the file
+count or nothing, and never a trailing colon. A missing or zero `spec.line` and
+a run-level error pseudo-pickle have no line, and the line is not part of the
+JSON summary, CI text or email.
 
 ### Status
 

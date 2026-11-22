@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-22
+goal: Close B-035 without a schema, JSON, CI or email change; keep the existing
+  file-only label for mixed lines.

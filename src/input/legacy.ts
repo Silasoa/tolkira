@@ -340,6 +340,15 @@ function location(line?: number, column?: number): Location {
   return column === undefined ? { line: line ?? 1 } : { line: line ?? 1, column };
 }
 
+// AST locations use line 1 as a placeholder, but the report now shows a pickle
+// line, so an absent legacy line must read as unknown (0), never as line 1.
+function pickleLocation(line?: number): Location {
+  return {
+    line:
+      typeof line === 'number' && Number.isInteger(line) && line > 0 ? line : 0,
+  };
+}
+
 function timestamp(seconds: number, nanos = 0): Timestamp {
   return { seconds, nanos };
 }
@@ -713,7 +722,7 @@ export function parseLegacyValue(
       const pickle: Pickle = {
         id: nextId('pickle'),
         uri,
-        location: location(element.line),
+        location: pickleLocation(element.line),
         name: scenario.name,
         language: 'en',
         steps: pickleSteps,

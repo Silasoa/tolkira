@@ -208,6 +208,7 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
 .scenarioMain { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
 .scenarioName { margin: 0; font-size: 0.875rem; line-height: 1.4; font-weight: 500; overflow-wrap: break-word; }
 .scenarioSub { display: block; color: var(--muted); font-size: 0.75rem; }
+.scenarioSource { display: block; color: var(--muted); font-family: var(--font-mono); font-size: 0.6875rem; overflow-wrap: anywhere; }
 .tags { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.125rem; }
 .tag { color: var(--accent-text); font-family: var(--font-mono); font-size: 0.6875rem; overflow-wrap: anywhere; }
 .thumbCell { display: block; }
