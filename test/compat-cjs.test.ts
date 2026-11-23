@@ -280,49 +280,54 @@ describe('compat package build', () => {
     expect(shimSource).not.toContain('from "./options.js"');
   });
 
-  it('packs the CJS wrapper, declarations and bundles', async () => {
-    const packDir = await mkdtemp(path.join(tmpdir(), 'tolkira-pack-'));
-    try {
-      const { stdout } = await execCommand(
-        `npm pack --json --pack-destination "${packDir}"`,
-      );
-      const parsed = JSON.parse(stdout) as
-        | Array<{ filename?: string }>
-        | { filename?: string };
-      const packed = Array.isArray(parsed) ? parsed[0] : parsed;
-      if (!packed?.filename) {
-        // npm stage publish runs the lifecycle with pack disabled; fall back to
-        // the built files that the publish step ships.
-        for (const file of [
-          'dist/index.js',
-          'dist/compat/cucumber-html-reporter.js',
-          'dist/compat/cucumber-html-reporter.cjs',
-          'dist/compat/cucumber-html-reporter.d.cts',
-        ]) {
-          expect(existsSync(path.join(repoRoot, file))).toBe(true);
+  it(
+    'packs the CJS wrapper, declarations and bundles',
+    async () => {
+      const packDir = await mkdtemp(path.join(tmpdir(), 'tolkira-pack-'));
+      try {
+        const { stdout } = await execCommand(
+          `npm pack --json --pack-destination "${packDir}"`,
+        );
+        const parsed = JSON.parse(stdout) as
+          | Array<{ filename?: string }>
+          | { filename?: string };
+        const packed = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (!packed?.filename) {
+          // npm stage publish runs the lifecycle with pack disabled; fall back to
+          // the built files that the publish step ships.
+          for (const file of [
+            'dist/index.js',
+            'dist/compat/cucumber-html-reporter.js',
+            'dist/compat/cucumber-html-reporter.cjs',
+            'dist/compat/cucumber-html-reporter.d.cts',
+          ]) {
+            expect(existsSync(path.join(repoRoot, file))).toBe(true);
+          }
+          return;
         }
-        return;
+
+        const { stdout: listing } = await execCommand(
+          `tar -tf "${path.join(packDir, packed.filename)}"`,
+        );
+        const files = listing
+          .split(/\r?\n/)
+          .map((line) => line.trim().replace(/^package\//, ''))
+          .filter(Boolean);
+
+        expect(files).toEqual(
+          expect.arrayContaining([
+            'dist/index.js',
+            'dist/compat/cucumber-html-reporter.js',
+            'dist/compat/cucumber-html-reporter.cjs',
+            'dist/compat/cucumber-html-reporter.d.cts',
+          ]),
+        );
+        expect(files.some((file) => file.startsWith('src/'))).toBe(false);
+      } finally {
+        await rm(packDir, { recursive: true, force: true });
       }
-
-      const { stdout: listing } = await execCommand(
-        `tar -tf "${path.join(packDir, packed.filename)}"`,
-      );
-      const files = listing
-        .split(/\r?\n/)
-        .map((line) => line.trim().replace(/^package\//, ''))
-        .filter(Boolean);
-
-      expect(files).toEqual(
-        expect.arrayContaining([
-          'dist/index.js',
-          'dist/compat/cucumber-html-reporter.js',
-          'dist/compat/cucumber-html-reporter.cjs',
-          'dist/compat/cucumber-html-reporter.d.cts',
-        ]),
-      );
-      expect(files.some((file) => file.startsWith('src/'))).toBe(false);
-    } finally {
-      await rm(packDir, { recursive: true, force: true });
-    }
-  });
+    },
+    // Shells out to `npm pack`, which exceeds the 5 s default under load.
+    20_000,
+  );
 });
