@@ -54,7 +54,9 @@
   dated `docs/CHANGELOG.md`; commit and push.
 - [x] 4.6 Pre-release audit (identities, secret scan, GitHub alerts, secrets
   list, npm maintainers, committed screenshots).
-- [ ] 4.7 Tag and stage only after the user's per-version approval.
+- [x] 4.7 Tag and stage only after the user's per-version approval. Tag `v0.5.1`
+  pushed and the release workflow staged `tolkira@0.5.1` with provenance (stage
+  id `68011086-571d-48d0-b4b7-7c154310fc69`); the maintainer approves with 2FA.
 
 ## Gate record
 

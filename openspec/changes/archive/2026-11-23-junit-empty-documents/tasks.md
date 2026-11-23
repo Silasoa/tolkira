@@ -44,8 +44,12 @@ Fixer pass (2026-11-23): `src/input/junit.ts` guard helpers,
   B-047 resolved, `GLOSSARY.md` zero-test entry, `docs/BACKLOG.md` wording,
   proposal/design/spec aligned with the narrower guard.
 - [x] 4.4 Host record updated with the task 4.2 PetClinic full-suite numbers.
-- [ ] 4.5 Present 0.5.1 for the user's per-version approval. Tag, stage and
+- [x] 4.5 Present 0.5.1 for the user's per-version approval. Tag, stage and
   publish only after that approval.
+- [x] 4.6 Release: tag `v0.5.1` pushed, GitHub release created, release workflow
+  staged `tolkira@0.5.1` with provenance (stage id
+  `68011086-571d-48d0-b4b7-7c154310fc69`). The maintainer approves the staged
+  package with 2FA; `latest` stays 0.5.0 until then.
 
 ## Gate record
 
