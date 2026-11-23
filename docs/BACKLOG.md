@@ -57,6 +57,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-040 | Report | P3 | Early input warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-048 | Report | P3 | Default report renders three `<main>` elements (Report, Details, Trends), which is invalid HTML; pre-existing and unchanged by the static mode | An HTML-validity or accessibility audit flags the default document, or another change needs one `<main>` in the default report; then make Details/Trends plain containers and keep the `#analysis-view`/`#trends-view` page-break rule. | — |
+| B-049 | History | P3 | A UTF-8 BOM before the sidecar JSON is not stripped, so `readHistory` rejects a BOM-prefixed file; pre-existing and unchanged by the window | A user or producer writes a BOM-prefixed sidecar, or the sidecar encoding is next touched; then strip a leading U+FEFF before `JSON.parse` and cover it in `test/history.test.ts`. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -79,13 +80,8 @@ JavaScript the active Report prints with closed details unchanged; see
 [`LIMITATIONS.md`](LIMITATIONS.md). The email summary (#13b) now covers the
 concise mail body; the PDF engine (#13c) now covers headless print.
 
-**History window slice (2026-11-23).** B-044 is done: `--history-limit <n>`
-(needs `--history`) keeps the newest 1 to 365 aggregate runs, default 30, and
-bounds read, append, write and Trends. A window above 30 writes sidecar schema 2
-(never downgraded), the writer prunes to 1,048,576 bytes and keeps the newest
-entry, and a 0.5.x reader rejects schema 2 without rewriting it. Lowering the
-window is destructive on the next write. See
-[`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
+**History window slice (2026-11-23).** Done and recorded under Resolved as
+B-044; see [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
@@ -123,6 +119,15 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-044 Configurable history window** — resolved on 2026-11-23 in the
+  `0.6-history-window` change: `--history-limit <n>` (needs `--history`) keeps
+  the newest 1 to 365 aggregate runs, default 30, and bounds read, append, write
+  and Trends. A window above 30 writes sidecar schema 2 (never downgraded); the
+  writer validates every run, rejects an id longer than 128 characters and a
+  serialized file above 1,048,576 bytes, and prunes to the cap while keeping the
+  newest entry; a 0.5 reader rejects schema 2 without rewriting it. Lowering the
+  window is destructive on the next successful write. See
+  [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
 - **B-047 Zero-test JUnit document in a directory** — resolved on 2026-11-23 in
   the `junit-empty-documents` change: a zero-test JUnit document (well-formed
   XML with no `<testcase>`) is skipped when it comes from a directory scan, so

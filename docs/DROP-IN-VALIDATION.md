@@ -112,6 +112,18 @@ renders 20 features / 79 scenarios / 77 passed / 2 skipped. Report bytes and
 attachment totals move with run-specific ids, timestamps and absolute paths;
 counts and statuses match the earlier baseline on every row.
 
+**`history-window` re-check (2026-11-23).** The change touches the CLI, the
+history sidecar and the Trends list only: no input adapter, report shell, print,
+PDF, email or compat-shim code changed, so no host row is required. The
+compatibility evidence is the 0.5.0 older-reader check in the change's
+`tasks.md`: a schema-2 sidecar exits 1 with `unsupported schema version "2"` and
+keeps its SHA-256; the default report, CI and JSON stay byte-identical against
+the 0.5.1 tarball, and the email differs only in its generated timestamp. The
+`test/e2e/trends.spec.ts` run covers the two-run Trends tab. Exception
+(user-approved, 2026-11-23): the 320 px / 200 % tab-visibility row stays red
+until `0.6-static-no-js` task 3.5 fixes the pre-existing tab-strip clipping; this
+change does not claim that row passed.
+
 **`size-details-followups` host check (2026-11-23).** The Seed-Test story
 artifact rendered with the 0.5.1 tarball and `--locale de` (90,842 B): at
 560x900 the Details Run panel is one 475 px track and the exact byte row

@@ -185,7 +185,7 @@ in schema version 1 or 2 and is read, appended and written atomically by the
 CLI. Without the flag no history is read or written.
 
 **History window** — the newest n aggregate runs read, appended, written and
-rendered in Trends. It is bounded by the history limit: 1 to 365, default 30.
+rendered in Trends. The history limit sets it: 1 to 365, default 30.
 Lowering it is destructive on the next successful write; raising it later does
 not restore dropped runs.
 
@@ -198,7 +198,7 @@ value is a usage error and writes nothing.
 same run fields; version 2 only marks a file that may hold more than 30 runs.
 The writer keeps a schema-1 file at 1 for a default run, writes 2 when the
 window is above 30 or the file already used 2, and never downgrades. Readers
-accept both; a 0.5.x reader rejects schema 2 with
+accept both; a 0.5 reader rejects schema 2 with
 `unsupported schema version "2"` and leaves the file untouched.
 
 **History run** — one aggregate entry in the history file: id, recorded time,

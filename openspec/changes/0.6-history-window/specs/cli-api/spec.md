@@ -35,9 +35,10 @@ options. Without the flag the 30-run behaviour SHALL be unchanged.
 
 - **WHEN** `--history` is used without `--history-limit`
 - **THEN** the window is 30
-- **AND** the report, CI and email bytes match the previous release
-- **AND** the JSON matches except the additive outline `example` field owned by
-  the baseline change
+- **AND** the report and CI bytes match the previous release
+- **AND** the email matches except its generated timestamp
+- **AND** the JSON is byte-identical today; the additive outline `example` field
+  is the only final 0.6.0 delta and is owned by the baseline change
 
 #### Scenario: Invalid value
 
@@ -254,6 +255,10 @@ history data enters the report.
 - **THEN** the CLI exits with a usage error
 - **AND** nothing is written
 
+`--baseline` is owned by the `0.6-baseline-comparison` change. Until that flag
+lands the CLI cannot receive it; the row names the final 0.6.0 state, and the
+same note is kept in both changes' tasks.
+
 #### Scenario: History write failure
 
 - **WHEN** the sidecar cannot be written after a successful report
@@ -268,3 +273,42 @@ history data enters the report.
 - **AND** no history data or Trends tab enters the report
 - **AND** the Report and Details views are unchanged (only the shared client
   bundle and stylesheet may differ)
+
+### Requirement: Document the history schema
+
+The sidecar SHALL use `schemaVersion: 1` for a default write on a schema-1 or
+missing file and `schemaVersion: 2` when the limit is above 30 or the target file
+already uses version 2. Readers SHALL accept version 1 and 2 and reject any other
+version. Entries SHALL use `id`, `recordedAt` (ISO), `title` (the resolved report
+title, capped at 200 characters), `status`, `counts` (features, scenarios,
+steps), `durationMs`, `attachments` (total, bytes) and an optional `flaky`
+count. It SHALL NOT contain scenario names, step text, paths, tags or attachment
+content. Unknown fields SHALL be ignored within a supported version. The writer
+SHALL validate every stored run with the reader's field rules, SHALL reject an
+`id` longer than 128 characters (the reader keeps accepting longer ids from
+older files) and SHALL never write a file above 1,048,576 bytes. A 0.5 reader
+SHALL reject version 2 with its visible unsupported-version error and leave the
+file untouched.
+
+#### Scenario: Aggregate-only entry
+
+- **WHEN** a run is recorded
+- **THEN** the entry contains only the documented aggregate fields
+- **AND** old entries may omit `flaky`
+- **AND** the documentation shows the schema, the retention and dedupe rules,
+  and that a shared report embeds the prior-run aggregates it was generated with
+
+#### Scenario: Writer matches the reader
+
+- **WHEN** `writeHistory` receives a run with a field the reader rejects, an id
+  longer than 128 characters, or a serialized result above 1,048,576 bytes
+- **THEN** it throws `Cannot write history file <file>: ...` and writes nothing
+- **AND** the target file, if any, keeps its bytes
+
+#### Scenario: Schema 2 is readable by 0.6 and rejected by 0.5
+
+- **WHEN** a schema-2 sidecar is read by 0.6
+- **THEN** it is accepted and the run fields are unchanged
+- **WHEN** a 0.5 reader opens the same file
+- **THEN** it exits 1 with `unsupported schema version "2"` and the file is not
+  rewritten

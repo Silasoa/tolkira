@@ -41,17 +41,16 @@ D1: early-size → history → static → baseline. This change lands second.
 ## Impact
 
 - Capability: `cli-api`.
-- Code: `src/cli.ts`, `src/history.ts`, `src/index.ts`, `src/options.ts`.
+- Code: `src/cli.ts`, `src/history.ts`, `src/index.ts`.
 - Tests: history unit boundaries, CLI validation and retention, Trends row
-  count, API limits and the default byte parity.
+  count, API limits and the implicit-vs-explicit-30 parity.
 - Docs: `docs/AGENT-INTERFACE.md` (schema 1/2, window, default, destructive
   lower limit, older-reader rejection, 1 MiB prune), `docs/ARCHITECTURE.md`
-  (the 30-run cap lines), `docs/LIMITATIONS.md` (history row),
-  `docs/PRODUCT.md:109`, `GLOSSARY.md:175-178` and `docs/BACKLOG.md` at archive
-  time.
-- Report size: the Trends table and sparkline grow linearly with the window;
-  the 365 maximum is measured in the tasks and stays inside the report-size
-  warning behaviour.
+  (the 30-run cap lines), `docs/LIMITATIONS.md` (history rows),
+  `docs/PRODUCT.md:109`, `GLOSSARY.md:175-178`, `README.md`, `docs/CI.md`,
+  `docs/CHANGELOG.md` and `docs/BACKLOG.md` at archive time.
+- Script: `scripts/history-window.mjs` reproduces the 365-run report and sidecar
+  bytes; the 365 maximum stays inside the report-size warning behaviour.
 
 ## Out of scope
 
@@ -62,14 +61,8 @@ D1: early-size → history → static → baseline. This change lands second.
 - Changing the 1 MiB cap or the aggregate-only privacy promise.
 - A new dependency, network request or telemetry.
 
-## Open questions
+## Decisions
 
-- **Maximum.** Proposed 365 (about a year of nightly runs). The alternative is
-  to keep 30 as the hard maximum, which makes the flag a "smaller window" option
-  only. Confirm 365, and whether the 1 MiB cap or a report-size budget should
-  lower it.
-- **Name.** Proposed `--history-limit` (API `historyLimit`), matching the
-  `HISTORY_LIMIT` constant. Alternative: `--history-window`.
-- **Destructive lower limit.** Proposed: lowering prunes on the next successful
-  write, and raising later cannot restore dropped runs. Confirm that is the
-  expected retention behaviour.
+- The user confirmed 365 as the maximum, `--history-limit`/`historyLimit` as the
+  name and the destructive lower limit on 2026-11-23 (tasks 1.3). The earlier
+  open questions are settled and are not revisited by this change.

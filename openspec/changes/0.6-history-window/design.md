@@ -9,17 +9,26 @@
 - The limit is one number used by read, append, write and the Trends list. It
   is not a second retention policy.
 - Readers accept schema version 1 and 2. The exported `HISTORY_SCHEMA_VERSION`
-  stays `1`; a private `SCHEMA_VERSION_EXTENDED = 2` marks a file that may hold
-  more than 30 runs.
+  stays `1` (the default write version); `HISTORY_SCHEMA_VERSION_MAX = 2` is the
+  highest accepted version and marks a file that may hold more than 30 runs.
 - The writer writes schema 2 only when the limit is greater than 30 or the read
   file already used schema 2; otherwise it writes schema 1. A schema-2 file is
-  never downgraded, so a later default run still writes schema 2.
+  never downgraded, so a later default run still writes schema 2. Reading the
+  target for that decision uses the same bounded, regular-file-checked read as
+  `readHistory`; a malformed or oversized target is an error, never a silent
+  downgrade to 1.
+- The writer validates every stored run with the reader's field rules, caps
+  titles at 200 characters and rejects an id longer than `HISTORY_MAX_ID = 128`.
+  The reader keeps accepting longer ids from older files.
 - The writer prunes the oldest entries until the serialized file is at or below
   the 1 MiB read cap (1,048,576 bytes), and always keeps at least the newest
-  entry. It never writes a file the reader would reject.
+  entry. A serialized result still above the cap throws
+  `Cannot write history file <file>: ...`; it is a guard, not a normal path,
+  because the id and title caps bound one entry far below the cap. It never
+  writes a file the reader would reject.
 - A 365-run file is expected to stay under the cap: the documented entry is
-  fixed-size apart from the 200-character title. The cap is a safety bound, not
-  the normal retention policy.
+  fixed-size apart from the 200-character title and the 128-character id. The cap
+  is a safety bound, not the normal retention policy.
 
 ## Data flow
 
@@ -72,10 +81,14 @@ and `writeHistory`; `generateReport` treats an omitted `historyLimit` the same.
 - A 0.5 reader rejects a schema-2 file with its visible
   `unsupported schema version` error (exit 1) and leaves the file untouched; it
   does not silently truncate the window. A default 0.6 run on a schema-1 file
-  keeps the rollback path open.
+  keeps the rollback path open. The 0.5.0 and 0.5.1 packages share the reader.
+- The writer validates every run with the reader's rules before serialising, so
+  a non-finite duration or a wrong field type is rejected instead of written as
+  `null`. The id cap (128 characters) is write-only.
 - The writer prunes the oldest entries until `Buffer.byteLength(serialized) <=
   1,048,576`; the newest entry always fits because one entry is bounded by the
-  fixed fields and the 200-character title.
+  fixed fields, the 200-character title and the 128-character id. The post-prune
+  cap check remains as a guard and throws instead of writing an oversized file.
 
 ## API shape
 
@@ -143,13 +156,15 @@ D1: early-size → history → static → baseline. This change lands second.
 - [ADR 0005](../../../docs/adr/0005-server-rendered-shell.md): Trends stays a
   server-rendered view over the given list.
 
-## Open questions
+## Decisions
 
-- Maximum: 365 (proposed) vs keeping 30 as the hard maximum. The 1 MiB cap is
-  handled by the writer prune, so it no longer limits the window.
-- Name: `--history-limit` (proposed) vs `--history-window`.
-- Lowering is destructive on the next successful write; confirm that retention
-  behaviour.
+- Maximum 365, flag `--history-limit` (API `historyLimit`, matching the
+  `HISTORY_LIMIT` constant), and a lower limit that prunes on the next
+  successful write. The user approved all three on 2026-11-23 (tasks 1.3); they
+  are no longer open questions.
+- The 1 MiB cap does not lower the window: the writer prunes to it and the id and
+  title caps keep a full 365-run file far below it.
+- Schema 2 is a window marker, not a field change, and is never downgraded.
 
 ## Out of scope
 

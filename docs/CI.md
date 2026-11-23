@@ -342,7 +342,7 @@ overrides the PDF render deadline without changing any CI output.
 accepts 1 to 365 (default 30) and changes only how many aggregate runs are read,
 appended, written and rendered in Trends. An invalid value or a missing
 `--history` exits 2 before anything is written. CI text and JSON never include
-history data; with the default window the report bytes are unchanged.
+history data.
 
 Report warnings, such as skipped path attachments, go to stderr when HTML or a
 PDF is written. They never enter stdout, the JSON summary or the CI text. The

@@ -258,13 +258,20 @@ and is covered by real producer fixtures.
 - Schema 1 is the default for a default run on a schema-1 file. Schema 2 is
   written when the limit is above 30 or the file already used it, and is never
   downgraded; it only marks a file that may hold more than 30 runs and changes
-  no run field. Readers accept both; a 0.5.x reader rejects schema 2 with its
-  unsupported-version error and leaves the file untouched.
-- The writer prunes the oldest entries until the serialized file is at or below
-  1,048,576 bytes and always keeps the newest entry, so it never writes a file
-  the reader would reject. A hand-made file above the cap is still rejected on
-  read. The cap is a safety bound: a 365-run file measured 295,045 bytes
-  (365,490 with 200-character titles) and was not pruned.
+  no run field. Readers accept both and `HISTORY_SCHEMA_VERSION_MAX` is the
+  highest accepted version; a 0.5 reader rejects schema 2 with its
+  unsupported-version error and leaves the file untouched. The write decision
+  reads the target through the same bounded read, so a malformed or oversized
+  target is an error, not a silent downgrade.
+- The writer validates every stored run with the reader's field rules, caps
+  titles at 200 characters and rejects an id longer than `HISTORY_MAX_ID` (128
+  characters; the reader keeps accepting longer ids from older files). It then
+  prunes the oldest entries until the serialized file is at or below 1,048,576
+  bytes and always keeps the newest entry. A result still above the cap is
+  rejected, so it never writes a file the reader would reject. A hand-made file
+  above the cap is still rejected on read. The cap is a safety bound: a 365-run
+  file measured 297,151 bytes (367,596 with 200-character titles) on Windows 11
+  Pro 10.0.26300, Node v26.13.1, and was not pruned.
 - `buildHistoryRun` hashes the aggregates and the resolved title (capped at 200
   characters), excluding the recorded time; `appendHistory` keeps one copy of an
   identical last run and the old timestamp; `readHistory` rejects non-regular
@@ -306,8 +313,9 @@ and is covered by real producer fixtures.
 - `--ci` may run without `--out`; `--ci-out` is a standalone atomic Markdown
   file and is rejected for GitHub and Azure annotations.
 - `--history` requires `--out`. It is validated like an output path (inputs,
-  logo, `--out`, `--ci-out`, `--email` and input directories, even when missing),
-  read once before generation and written after the HTML. `--history-limit <n>`
+  logo, `--out`, `--pdf`, `--ci-out`, `--email` and input directories, even when
+  missing; `--baseline` joins the list with the baseline change), read once
+  before generation and written after the HTML. `--history-limit <n>`
   requires `--history` and accepts a decimal integer from 1 to 365 (default 30);
   the same limit goes to read, generate and write. A history read or write
   failure exits 1 and names the file; a written HTML stays in place.
@@ -357,15 +365,16 @@ summarizeReport(inputs): Promise<ReportSummary>
 ```
 
 `generateReport` accepts `history`, appends the current aggregate run and returns
-the appended list; `renderReport` renders `options.history` without recording a
-run. `inputFiles` and `inputBytes` are the unique report files that formed
-loader groups (including validation-only files with no envelopes) and their
-total size on disk; inline media inside a report file is part of that file,
-while external path attachments are not counted. `RenderReportOptions.locale` is
-optional and reaches the renderer through
-`renderOptions`; `de-AT` keeps its tag and uses the `de` catalog. `renderEmail`
-is the synchronous email renderer; it takes a `ReportSummary` and validated
-options, writes nothing and shares the translator. `renderPdf` takes rendered
+the appended list; `historyLimit` bounds that list (default 30, range 1 to 365)
+and is passed to `appendHistory`. `renderReport` renders `options.history`
+without recording a run and has no `historyLimit` option. `inputFiles` and
+`inputBytes` are the unique report files that formed loader groups (including
+validation-only files with no envelopes) and their total size on disk; inline
+media inside a report file is part of that file, while external path attachments
+are not counted. `RenderReportOptions.locale` is optional and reaches the
+renderer through `renderOptions`; `de-AT` keeps its tag and uses the `de`
+catalog. `renderEmail` is the synchronous email renderer; it takes a
+`ReportSummary` and validated options, writes nothing and shares the translator. `renderPdf` takes rendered
 report HTML, returns PDF bytes and launches the optional engine only when
 called; it accepts `PdfOptions` (`timeoutMs`) and writes no file. The CLI
 resolves inputs once and drives the internal resolved entry points
@@ -421,8 +430,10 @@ Test names, metadata, file names and attachments are untrusted input.
   365 runs (default 30), so trend rendering is linear in at most 365 aggregate
   entries there; `renderReport` accepts the given list as-is. On the 2026-11-23
   reference host (Windows 11 Pro 10.0.26300, Node v26.13.1) the
-  `test/fixtures/messages/second.ndjson` report was 206,601 bytes at 365 runs
-  against 83,289 bytes at the default 30, a 123,312-byte difference.
+  `test/fixtures/messages/second.ndjson` report was 206,525 bytes at 365 runs
+  against 83,286 bytes at the default 30, a 123,239-byte difference, measured
+  with `scripts/history-window.mjs`. Both are far below the 10 MB
+  (10,485,760-byte) default `--max-size` threshold, so no size warning fires.
 - `npm run bench:ansi` bundles `src/text.ts` with esbuild, strips fixed
   2,000-message clean and escape-laden corpora of about 2 KiB per message, and
   reports medians plus scan-only and character-append reference ratios. The

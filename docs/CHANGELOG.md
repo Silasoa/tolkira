@@ -12,16 +12,9 @@ Keep a Changelog and the project uses semantic versioning.
   30; the same limit bounds the runs read, appended, written and rendered in
   Trends. `generateReport` gains `historyLimit`, `readHistory`,
   `appendHistory` and `writeHistory` accept the optional limit and default to
-  30, and `HISTORY_LIMIT_MAX` is exported. Lowering the window drops older runs
-  on the next successful write and raising it later cannot restore them. A
-  window above 30 writes sidecar schema 2, as does any write to an already
-  schema-2 file; readers accept schema 1 and 2, and a 0.5.x reader rejects
-  schema 2 with `unsupported schema version "2"` without rewriting it. The
-  writer prunes to 1,048,576 bytes and always keeps the newest entry; a default
-  run on a schema-1 file stays schema 1. On the 2026-11-23 reference host a
-  365-run report measured 206,601 bytes against 83,289 bytes at the default 30.
-  The JSON summary, CI text and email gain no history field; the default report
-  bytes are unchanged.
+  30, and `HISTORY_LIMIT_MAX`, `HISTORY_MAX_ID` and
+  `HISTORY_SCHEMA_VERSION_MAX` are exported. The JSON summary, CI text and email
+  gain no history field.
 - An early input warning before parsing. The CLI resolves the input list once,
   stats the files without reading content, and writes one advisory stderr line
   when the total is at least 50 MiB (52,428,800 bytes); it names no path, adds
@@ -30,6 +23,27 @@ Keep a Changelog and the project uses semantic versioning.
   resolved path once; identical content under two paths counts twice, so it can
   differ from the report-size warning's content-deduped `input` value. The
   100 MB input cap and the post-render `--max-size` warning are unchanged.
+
+### Changed
+
+- The history sidecar writes schema 2 when the window is above 30 or the file
+  already uses schema 2; a default run on a schema-1 file stays schema 1 and a
+  schema-2 file is never downgraded. Readers accept schema 1 and 2, and a 0.5
+  reader rejects schema 2 with `unsupported schema version "2"` without
+  rewriting it. Lowering the window is destructive on the next successful write
+  and raising it later cannot restore dropped runs.
+- `writeHistory` now validates every run with the reader's field rules, rejects
+  an id longer than 128 characters and a serialized file above 1,048,576 bytes,
+  and reads the target once through the bounded read so a malformed or oversized
+  file is not overwritten with schema 1. A non-finite duration is rejected
+  instead of serialized as `null`.
+- The writer prunes to 1,048,576 bytes and always keeps the newest entry. On
+  Windows 11 Pro 10.0.26300, Node v26.13.1, 2026-11-23, a 365-run report measured
+  206,525 bytes against 83,286 bytes at the default 30, and a 365-run schema-2
+  sidecar measured 297,151 bytes (367,596 with 200-character titles); neither
+  pruned, and the report stays below the 10 MB default size-warning threshold.
+  Reproduce with `node scripts/history-window.mjs` after `npm run build`. The
+  default report bytes are unchanged.
 
 ## [0.5.1] - 2026-11-23
 

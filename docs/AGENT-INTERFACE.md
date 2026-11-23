@@ -409,12 +409,18 @@ Contract:
   store the same run fields, and version 2 only marks a file that may hold more
   than 30 runs. A wrong version is rejected; unknown fields inside a supported
   version are ignored and the reader copies only the documented fields.
+  `HISTORY_SCHEMA_VERSION` is the default write version (`1`);
+  `HISTORY_SCHEMA_VERSION_MAX` is the highest accepted version (`2`).
 - The writer writes version 1 for a default run on a version-1 file and version
   2 when the limit is above 30 or the read file already used version 2. A
-  version-2 file is never downgraded, so a later default run keeps it at 2. A
-  0.5.x reader rejects version 2 with `unsupported schema version "2"`, exits 1
-  and leaves the file untouched; a default run on a version-1 file keeps that
-  rollback path open, while a run above 30 or on a version-2 file does not.
+  version-2 file is never downgraded, so a later default run keeps it at 2.
+  `writeHistory` reads the target once through the same bounded, regular-file
+  and 1 MiB checks as `readHistory` to preserve that schema; a malformed,
+  oversized or unreadable target is an error and is never overwritten with
+  version 1. A 0.5 reader rejects version 2 with `unsupported schema version
+  "2"`, exits 1 and leaves the file untouched; a default run on a version-1 file
+  keeps that rollback path open, while a run above 30 or on a version-2 file does
+  not. The 0.5.0 and 0.5.1 packages share the reader.
 - `id` is the SHA-256 of the aggregates and the resolved title, excluding
   `recordedAt`. When the last entry has the same id, the new run is not
   appended and the old `recordedAt` stays.
@@ -439,16 +445,20 @@ Contract:
   append; a 40-entry file with 40 stores the newest 40 of 41. Reading with a
   smaller limit does not rewrite the file by itself.
 - The sidecar is capped at 1 MiB (1,048,576 bytes). A file above the cap is
-  rejected before it is read. The writer prunes the oldest entries until the
-  serialized file is at or below the cap and always keeps the newest entry, so
-  it never writes a file the reader would reject. The cap is a safety bound,
-  not the retention policy: 365 runs with a 200-character title measured
-  365,490 bytes and were not pruned on 2026-11-23.
+  rejected before it is read. The writer validates every stored run with the
+  reader's field rules, caps a title at 200 characters and rejects an id longer
+  than `HISTORY_MAX_ID` (128 characters; the reader still accepts longer ids from
+  older files), then prunes the oldest entries until the serialized file is at or
+  below the cap and always keeps the newest entry. A serialized result still
+  above the cap is rejected instead of written, so the writer never writes a file
+  the reader would reject. The cap is a safety bound, not the retention policy:
+  365 runs with a 200-character title measured 367,596 bytes and were not pruned
+  on 2026-11-23.
 - Invalid values: `0`, `366`, `1.5`, `abc`, `05` and an empty value exit 2
   with `Invalid --history-limit "<value>". Use an integer from 1 to 365.`;
   `--history-limit` without `--history` exits 2 with `--history-limit requires
-  --history`. Nothing is written on a rejected run. `--history` without `--out`
-  keeps its existing exit-2 error.
+  --history` before the generic usage text. Nothing is written on a rejected
+  run. `--history` without `--out` keeps its existing exit-2 error.
 - `title` is the resolved report title (`Tolkira report` when `--title` is
   absent), capped at 200 characters including a trailing `…`; a longer title is
   truncated before it is hashed or written. `durationMs` is the summary
@@ -463,8 +473,9 @@ Contract:
   file. A bad file is never overwritten. The HTML is written first; a failed
   history write leaves it in place and leaves no partial sidecar.
 - `--history` follows the output-path rules: it must not name an input, the
-  logo, `--out`, `--ci-out`, `--email` or a path inside an input directory, even
-  when the history file does not exist yet.
+  logo, `--out`, `--pdf`, `--ci-out`, `--email` or a path inside an input
+  directory, even when the history file does not exist yet. `--baseline` joins
+  that list when the `0.6-baseline-comparison` change lands.
 - The CLI is the only automatic writer: it resolves inputs once and drives the
   internal `generateReportFromResolved` (report) and `summarizeResolvedReport`
   (summary) entry points. The public API stays path-based: `generateReport`
@@ -478,12 +489,13 @@ Contract:
   `generateReport` passes it to `appendHistory`. `renderReport` and
   `CucumberHtmlStream` accept the list they are given and never prune it.
 - The writer prunes only to the 1 MiB cap. A normal 365-run sidecar stays well
-  below it (295,045 bytes with a short title, 365,490 bytes with a
-  200-character title, measured 2026-11-23), so the window, not the cap, decides
-  retention.
+  below it (297,151 bytes with a short title, 367,596 bytes with a
+  200-character title, measured 2026-11-23 with `scripts/history-window.mjs`), so
+  the window, not the cap, decides retention.
 
-The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`, `HISTORY_LIMIT`,
-`HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES`, `HISTORY_MAX_TITLE`, `buildHistoryRun`,
+The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`,
+`HISTORY_SCHEMA_VERSION_MAX`, `HISTORY_LIMIT`, `HISTORY_LIMIT_MAX`,
+`HISTORY_MAX_BYTES`, `HISTORY_MAX_ID`, `HISTORY_MAX_TITLE`, `buildHistoryRun`,
 `appendHistory`, `readHistory` and `writeHistory` for programmatic use.
 
 ## Summary schema, version 2

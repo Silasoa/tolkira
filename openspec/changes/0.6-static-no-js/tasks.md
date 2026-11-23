@@ -48,6 +48,27 @@
   kept IDs, the architecture seam, the bookmarked-URL limit and the Jenkins
   note; fix the stale AGENT-INTERFACE static no-JS sentence; record the default
   multiple `<main>` as B-048.
+- [ ] 3.5 Close the two 365-run Trends shell findings deferred from
+  `0.6-history-window` (UXR, 2026-11-23): the sparkline emits one marker per run
+  and becomes a dense chain at 365 points, and the 365-row table buries the
+  sparkline and the flaky note ~14k px down the page. Sample or hide the point
+  markers above a density threshold and cap the Trends table height on screen
+  with a sticky header, reset in print. Verify at 320 px and 200 % text with a
+  365-run sidecar. The same pass carries the three UXR minors from the same
+  review: the print header breaks mid-word (`src/render/report.css:545`,
+  `Duratio/n`), the `Current` tag wraps under the date (`:341`, `:347`), and the
+  sparkline box is letterboxed at 200 % text (`:279`). It also fixes the
+  user-decided tab-strip blocker: at 320 px / 200 % the third tab is clipped out
+  of the one-row scroll strip (`src/render/report.css:72-74`, `.views` nowrap
+  plus `overflow-x: auto`). Make every tab visible (wrap to a second row, or a
+  visible scroll affordance that scrolls the active tab into view), update
+  `test/e2e/trends.spec.ts:130-159`, which currently pins `nowrap`, and verify at
+  320 px, 390 px and 320 px / 200 % on Chromium, Firefox and WebKit.
+
+Decisions (2026-11-23, no action): roving tabindex for inactive tabs
+(`src/render/report-client.ts:45-63`) — the APG pattern is optional and the arrow
+keys already move focus between tabs; sparkline `aria-hidden` — the report spec
+declares the sparkline decorative and the Trends table carries the same data.
 
 ## 4. Verification and review
 
