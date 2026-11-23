@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-23
+goal: Ship the two report-size review follow-ups as a small 0.5.1 patch without
+  changing visible output outside the German mobile layout.
