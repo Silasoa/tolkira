@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-11-23
+goal: Ship the PetClinic host finding as a small 0.5.1 input fix: a zero-test
+  JUnit document no longer fails a directory scan, while an explicit empty file
+  and malformed XML keep their clear errors.
