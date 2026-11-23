@@ -55,6 +55,9 @@
 - [ ] 3.2 Add `options.baseline` to `generateReport`, `renderReport` and
   `summarizeReport`, `--baseline` to the CLI, path validation, the read order
   and the exit codes; export `BaselineSummary`.
+  Note (2026-11-23): this change owns the `--baseline` path-collision row in the
+  0.6-history-window spec and adds `--baseline` to the history path list
+  (`historyConflicts`) when the flag lands.
 - [ ] 3.3 Add the summary `baseline` block, per-scenario `change`, the outline
   `example` field and the documented key order.
 - [ ] 3.4 Add the report panel, row badges, the separate conditional

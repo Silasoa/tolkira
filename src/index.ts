@@ -4,6 +4,7 @@ import {
   generateReportFromResolved,
   renderReportFromResolved,
   type GeneratedReport,
+  type GenerateReportOptions,
 } from './run.js';
 
 export const version = '0.5.1';
@@ -20,6 +21,7 @@ export { summarizeReport, SUMMARY_SCHEMA_VERSION } from './summary.js';
 export type { HistoryRun } from './history.js';
 export {
   HISTORY_LIMIT,
+  HISTORY_LIMIT_MAX,
   HISTORY_MAX_BYTES,
   HISTORY_MAX_TITLE,
   HISTORY_SCHEMA_VERSION,
@@ -34,11 +36,11 @@ export { renderEmail } from './email.js';
 export type { PdfOptions } from './pdf.js';
 export { renderPdf } from './pdf.js';
 export { CucumberHtmlStream } from './stream.js';
-export type { GeneratedReport } from './run.js';
+export type { GeneratedReport, GenerateReportOptions } from './run.js';
 
 export async function generateReport(
   inputs: string | string[],
-  options: RenderReportOptions = {},
+  options: GenerateReportOptions = {},
 ): Promise<GeneratedReport> {
   return generateReportFromResolved(await resolveInputFiles(inputs), options);
 }

@@ -1,5 +1,10 @@
 import type { Envelope } from '@cucumber/messages';
-import { appendHistory, buildHistoryRun, type HistoryRun } from './history.js';
+import {
+  appendHistory,
+  buildHistoryRun,
+  historyWindow,
+  type HistoryRun,
+} from './history.js';
 import {
   loadResolvedInputs,
   provenanceFor,
@@ -21,6 +26,12 @@ export interface GeneratedReport {
   inputBytes: number;
   /** The history the report was rendered with, current run appended. */
   history?: HistoryRun[];
+}
+
+/** Generate-only options: the history window never reaches the renderer. */
+export interface GenerateReportOptions extends RenderReportOptions {
+  /** Runs kept in the history; defaults to 30, range 1 to 365. */
+  historyLimit?: number;
 }
 
 interface LoadedRun {
@@ -73,8 +84,9 @@ function render(
 /** Internal: generates a report from a list the caller already resolved. */
 export async function generateReportFromResolved(
   resolved: ResolvedInputs,
-  options: RenderReportOptions = {},
+  options: GenerateReportOptions = {},
 ): Promise<GeneratedReport> {
+  const historyLimit = historyWindow(options.historyLimit);
   const run = await loadRun(resolved);
   const history =
     options.history === undefined
@@ -82,6 +94,7 @@ export async function generateReportFromResolved(
       : appendHistory(
           options.history,
           buildHistoryRun(run.summary, renderOptions(options).title),
+          historyLimit,
         );
   return {
     html: await render(run, options, history),

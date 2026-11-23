@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { formatCiOutput, type CiFormat } from './ci.js';
 import { renderEmail, type EmailOptions } from './email.js';
-import { readHistory, writeHistory, type HistoryRun } from './history.js';
+import {
+  readHistory,
+  writeHistory,
+  HISTORY_LIMIT_MAX,
+  type HistoryRun,
+} from './history.js';
 import { version } from './index.js';
 import { resolveInputFiles, scanInputBytes } from './input/load.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
@@ -46,6 +51,7 @@ Options:
       --ci <format>    Print a CI summary: github, azure or markdown
       --ci-out <file>  Write the markdown CI summary to a file
       --history <file> Read and append an aggregate run history; needs --out
+      --history-limit <n> Runs kept in that history (default 30, range 1 to 365); needs --history
       --title <text>   Report title, email subject/heading and Markdown CI heading
       --locale <tag>   Report, PDF and email language: en or de (default en); needs --out, --pdf or --email
       --meta key=value Add metadata (repeatable)
@@ -85,6 +91,7 @@ function parseCliArgs(argv: string[]) {
       ci: { type: 'string' },
       'ci-out': { type: 'string' },
       history: { type: 'string' },
+      'history-limit': { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -118,6 +125,17 @@ function parsePdfTimeout(value: string | undefined): number | undefined {
   if (!/^[1-9]\d*$/.test(value) || Number(value) > 2_147_483_647) {
     throw new Error(
       `Invalid --pdf-timeout "${value}". Use a positive integer of milliseconds.`,
+    );
+  }
+  return Number(value);
+}
+
+function parseHistoryLimit(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  // Leading zeros, signs, fractions and whitespace are usage errors, not aliases.
+  if (!/^[1-9]\d*$/.test(value) || Number(value) > HISTORY_LIMIT_MAX) {
+    throw new Error(
+      `Invalid --history-limit "${value}". Use an integer from 1 to ${HISTORY_LIMIT_MAX}.`,
     );
   }
   return Number(value);
@@ -429,6 +447,20 @@ export async function runCli(
     return 2;
   }
 
+  let historyLimit: number | undefined;
+  try {
+    historyLimit = parseHistoryLimit(parsed.values['history-limit']);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (historyLimit !== undefined && historyFile === undefined) {
+    io.stderr(`tolkira: --history-limit requires --history\n\n${USAGE}`);
+    return 2;
+  }
+
   if (historyFile !== undefined && !output) {
     io.stderr(`tolkira: --history requires --out\n\n${USAGE}`);
     return 2;
@@ -558,7 +590,7 @@ export async function runCli(
 
     let history: HistoryRun[] | undefined;
     if (historyFile !== undefined) {
-      history = await readHistory(historyFile);
+      history = await readHistory(historyFile, historyLimit);
     }
 
     if (!output && pdfPath === undefined) {
@@ -593,6 +625,7 @@ export async function runCli(
       metadata,
       logo,
       accent,
+      historyLimit,
       ...(locale === undefined ? {} : { locale }),
       ...(history === undefined ? {} : { history }),
     });
@@ -614,7 +647,7 @@ export async function runCli(
       });
     }
     if (historyFile !== undefined && generated.history) {
-      await writeHistory(historyFile, generated.history);
+      await writeHistory(historyFile, generated.history, historyLimit);
     }
     if (output || pdfPath !== undefined) {
       const bytes = Buffer.byteLength(html, 'utf8');

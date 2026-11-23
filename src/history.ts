@@ -1,14 +1,17 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { open, type FileHandle } from 'node:fs/promises';
+import { open, readFile, type FileHandle } from 'node:fs/promises';
 import { writeAtomic } from './output.js';
 import type { ReportSummary, StatusCounts, SummaryStatus } from './summary.js';
 
 export const HISTORY_SCHEMA_VERSION = 1;
 export const HISTORY_LIMIT = 30;
+export const HISTORY_LIMIT_MAX = 365;
 export const HISTORY_MAX_BYTES = 1024 * 1024;
 /** Stored titles are capped at 200 characters, the last one being an ellipsis. */
 export const HISTORY_MAX_TITLE = 200;
+/** A file that may hold more than 30 runs; never downgraded by a later write. */
+const SCHEMA_VERSION_EXTENDED = 2;
 
 /** One aggregate run in the history sidecar; no scenario names or steps. */
 export interface HistoryRun {
@@ -42,6 +45,17 @@ const STATUSES = new Set<SummaryStatus>([
 
 function fail(file: string, reason: string): never {
   throw new Error(`Invalid history file ${file}: ${reason}`);
+}
+
+/** The window size; an omitted limit is exactly 30 and an invalid one throws. */
+export function historyWindow(limit: number | undefined): number {
+  const window = limit === undefined ? HISTORY_LIMIT : limit;
+  if (!Number.isInteger(window) || window < 1 || window > HISTORY_LIMIT_MAX) {
+    throw new Error(
+      `Invalid history limit ${String(limit)}. Use an integer from 1 to ${HISTORY_LIMIT_MAX}.`,
+    );
+  }
+  return window;
 }
 
 /** A short, control-free rendering of an unexpected value for an error message. */
@@ -223,13 +237,15 @@ export function buildHistoryRun(
   };
 }
 
-/** Appends a run unless the last entry is the same aggregate; keeps the last 30. */
+/** Appends a run unless the last entry is the same aggregate; keeps the newest `limit`. */
 export function appendHistory(
   runs: readonly HistoryRun[],
   run: HistoryRun,
+  limit: number = HISTORY_LIMIT,
 ): HistoryRun[] {
-  if (runs.at(-1)?.id === run.id) return [...runs].slice(-HISTORY_LIMIT);
-  return [...runs, run].slice(-HISTORY_LIMIT);
+  const window = historyWindow(limit);
+  if (runs.at(-1)?.id === run.id) return [...runs].slice(-window);
+  return [...runs, run].slice(-window);
 }
 
 function readError(file: string, error: unknown): Error {
@@ -256,9 +272,14 @@ async function readBounded(handle: FileHandle, size: number): Promise<string> {
 /**
  * Reads the sidecar. A missing file is an empty history; a corrupt, oversized,
  * non-regular or unsupported file throws without touching it. The descriptor
- * is opened non-blocking and capped before any content is read.
+ * is opened non-blocking and capped before any content is read. The newest
+ * `limit` runs are returned without rewriting the file.
  */
-export async function readHistory(file: string): Promise<HistoryRun[]> {
+export async function readHistory(
+  file: string,
+  limit: number = HISTORY_LIMIT,
+): Promise<HistoryRun[]> {
+  const window = historyWindow(limit);
   let handle: FileHandle;
   try {
     handle = await open(file, constants.O_RDONLY | constants.O_NONBLOCK);
@@ -298,31 +319,65 @@ export async function readHistory(file: string): Promise<HistoryRun[]> {
     fail(file, 'expected a JSON object');
   }
   const data = document as Record<string, unknown>;
-  if (data.schemaVersion !== HISTORY_SCHEMA_VERSION) {
+  if (
+    data.schemaVersion !== HISTORY_SCHEMA_VERSION &&
+    data.schemaVersion !== SCHEMA_VERSION_EXTENDED
+  ) {
     fail(file, `unsupported schema version ${excerpt(data.schemaVersion)}`);
   }
   if (!Array.isArray(data.runs)) fail(file, 'runs must be an array');
 
   const runs = data.runs.map((run, index) => parseRun(run, file, index));
-  return runs.slice(-HISTORY_LIMIT);
+  return runs.slice(-window);
+}
+
+/** The schema of the file already on disk, or 1 when it is missing or unreadable. */
+async function storedSchema(file: string): Promise<number> {
+  try {
+    const document = JSON.parse(await readFile(file, 'utf8')) as {
+      schemaVersion?: unknown;
+    };
+    return document.schemaVersion === SCHEMA_VERSION_EXTENDED
+      ? SCHEMA_VERSION_EXTENDED
+      : HISTORY_SCHEMA_VERSION;
+  } catch {
+    return HISTORY_SCHEMA_VERSION;
+  }
+}
+
+function serialize(schemaVersion: number, runs: readonly HistoryRun[]): string {
+  return `${JSON.stringify({ schemaVersion, runs }, null, 2)}\n`;
 }
 
 /**
- * Writes schema version 1 JSON atomically, with a trailing newline. The list is
- * bounded to the newest 30 runs and every stored title to the documented cap.
+ * Writes the sidecar atomically, with a trailing newline. Schema 2 marks a file
+ * that may hold more than 30 runs; it is chosen above the default window or
+ * when the file already used it. The newest `limit` runs are kept and every
+ * stored title is capped, then the oldest entries are pruned until the file
+ * fits the read cap, always keeping the newest one.
  */
 export async function writeHistory(
   file: string,
   runs: readonly HistoryRun[],
+  limit: number = HISTORY_LIMIT,
 ): Promise<void> {
-  const bounded = runs
-    .slice(-HISTORY_LIMIT)
+  const window = historyWindow(limit);
+  const schemaVersion =
+    window > HISTORY_LIMIT ||
+    (await storedSchema(file)) === SCHEMA_VERSION_EXTENDED
+      ? SCHEMA_VERSION_EXTENDED
+      : HISTORY_SCHEMA_VERSION;
+  let bounded = runs
+    .slice(-window)
     .map((run) => ({ ...run, title: capTitle(run.title) }));
-  const text = `${JSON.stringify(
-    { schemaVersion: HISTORY_SCHEMA_VERSION, runs: bounded },
-    null,
-    2,
-  )}\n`;
+  let text = serialize(schemaVersion, bounded);
+  while (
+    Buffer.byteLength(text, 'utf8') > HISTORY_MAX_BYTES &&
+    bounded.length > 1
+  ) {
+    bounded = bounded.slice(1);
+    text = serialize(schemaVersion, bounded);
+  }
   try {
     await writeAtomic(file, text);
   } catch (error) {
