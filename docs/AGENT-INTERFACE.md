@@ -308,6 +308,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | history | `--history <file>` reads and appends a sidecar; needs `--out`. `--history-limit <n>` sets the window (default 30, range 1 to 365) and needs `--history` | `history` array and `historyLimit`; `generateReport` appends the current run and bounds the list, `renderReport` and the stream render it as given |
+| static | `--static` renders the script-free all-expanded form; needs `--out` or `--pdf` | `static: true` |
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
 | pdf | `--pdf <file>` prints the report with optional Playwright Chromium; `--pdf-timeout <ms>` (needs `--pdf`) overrides the deadline | `renderPdf(html, { timeoutMs })` |
@@ -339,10 +340,10 @@ const html = await new Promise<string>((resolve, reject) => {
 
 The stream accepts `Envelope` objects in object mode, buffers the run and
 renders one HTML document on flush. It takes `RenderReportOptions` (title,
-metadata, logo, accent, locale and the optional history list) and produces the
-same HTML for the same envelopes and options. A supplied `history` is rendered
-exactly as given; only `generateReport` appends the current run. The stream is
-not an incremental renderer, writes no files and emits no summary; use
+metadata, logo, accent, locale, the optional history list and `static`) and
+produces the same HTML for the same envelopes and options. A supplied `history`
+is rendered exactly as given; only `generateReport` appends the current run. The
+stream is not an incremental renderer, writes no files and emits no summary; use
 `summarizeReport` or `generateReport` when you also need the stable JSON. The
 whole run is held in memory, exactly like the file API.
 
@@ -502,6 +503,38 @@ The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`,
 `HISTORY_SCHEMA_VERSION_MAX`, `HISTORY_LIMIT`, `HISTORY_LIMIT_MAX`,
 `HISTORY_MAX_BYTES`, `HISTORY_MAX_ID`, `HISTORY_MAX_TITLE`, `buildHistoryRun`,
 `appendHistory`, `readHistory` and `writeHistory` for programmatic use.
+
+## Static report
+
+`--static` (API `static: true`) renders one script-free, all-expanded form of
+the report. It needs `--out` or `--pdf`; a `--static` run with only `--json`,
+`--ci` or `--email` exits 2 and writes nothing. The default report is unchanged
+and remains the opt-in-free form.
+
+The static document contains no `<script>`, no client-message JSON block and no
+print script. Its CSP is `script-src 'none'` with `connect-src 'none'` and no
+allowed source; `default-src 'none'`, `img-src data: blob:`, `media-src data:
+blob:`, inline styles and `font-src data:` stay as in the default report. Every
+`<details>` carries `open` (features, scenarios, hook groups, earlier attempts,
+text attachments, the triage rest list). Report, Details and Trends are stacked
+visible sections; Trends appears only with two or more history runs.
+
+The tab bar, tab roles, lightbox dialog and image lightbox buttons, the
+copy-failure button and the search/status/tag toolbar are removed, not left
+inert. Images render inline in the open detail body. The `report-view`,
+`analysis-view` and `trends-view` IDs stay, so the print page-break rule still
+puts each present view on a new page. The document has exactly one `<main>`:
+the Report view keeps it and Details/Trends use plain containers. The default
+report's three `<main>` elements are a recorded pre-existing defect (B-048) and
+are not changed by this mode.
+
+Print/PDF follow the existing print CSS: every present section and open detail
+prints, with no tab bar. A bookmarked `?query=`, `?hide=` or `?tag=` URL shows
+the full static report because no script restores the filter. The mode does not
+repair CSS or `data:` images blocked by a host CSP and does not restore scripts;
+for Jenkins, see [`CI.md`](CI.md#jenkins-html-publisher). `--static --baseline`
+composes once the baseline change lands; the baseline comparison panel is
+server-rendered and visible without JavaScript.
 
 ## Summary schema, version 2
 
@@ -735,7 +768,10 @@ outside `features/`).
   `unexecuted`, a pseudo-status for the failed-only preset that hides rows
   without an outcome; it is restored only with the preset chip state and a
   pruned value is removed from the URL. The summary schema and counts are
-  unchanged; the static no-JS report keeps the inert control and all rows.
+  unchanged. The static `--static` report removes the search, status and tag
+  controls and the copy/lightbox actions entirely, opens every row and detail,
+  and ignores those bookmarked parameters: a `?query=`/`?hide=`/`?tag=` URL
+  still shows the full report because no script restores them.
 - Inputs are capped at 100 MB in total; attachments at 50 MB each and 100 MB
   total.
 - Before parsing, the CLI resolves the input files once, stats them without

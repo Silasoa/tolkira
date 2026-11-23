@@ -119,10 +119,26 @@ compatibility evidence is the 0.5.0 older-reader check in the change's
 `tasks.md`: a schema-2 sidecar exits 1 with `unsupported schema version "2"` and
 keeps its SHA-256; the default report, CI and JSON stay byte-identical against
 the 0.5.1 tarball, and the email differs only in its generated timestamp. The
-`test/e2e/trends.spec.ts` run covers the two-run Trends tab. Exception
-(user-approved, 2026-11-23): the 320 px / 200 % tab-visibility row stays red
-until `0.6-static-no-js` task 3.5 fixes the pre-existing tab-strip clipping; this
-change does not claim that row passed.
+`test/e2e/trends.spec.ts` run covers the two-run Trends tab. The 320 px /
+200 % tab-visibility exception (user-approved, 2026-11-23) is closed:
+`0.6-static-no-js` task 3.5 wraps the strip and the updated trends spec passes on
+Chromium, Firefox and WebKit at 320, 390 and 320/200 %.
+
+**`static-no-js` host check (2026-11-24, Windows).** Official
+`@cucumber/cucumber@13.3.0` temp host on Node 26.13.1 / npm 10.8.2: one feature
+with a passing and a failing scenario, each attaching a 70 B inline PNG.
+`out.json` is 2,456 B and `out.ndjson` 6,991 B; the summary is 1 feature /
+2 scenarios (1 passed, 1 failed) / 2 steps / 2 attachments (140 B). The current
+tree's CLI wrote default 71,761 B, default with three history runs 75,552 B,
+static without history 52,761 B and static with three runs 56,691 B.
+Playwright 1.65.1 on Chromium, Firefox and WebKit: the static report at 320,
+390, 768, 1024 and 1440 px and 320 px at 200 % text shows one `<main>`, no tab
+roles, every `<details>` open, the inline image and Report/Details/Trends, with
+no document overflow and no network request; print shows all three sections and
+no topbar. The default report keeps three tabs, the toolbar and search, with no
+overflow at 1440/390 and no page errors. The other four required host rows and
+the Linux/macOS runs were not re-run for this slice; they stay pending for CI or
+the next release.
 
 **`size-details-followups` host check (2026-11-23).** The Seed-Test story
 artifact rendered with the 0.5.1 tarball and `--locale de` (90,842 B): at

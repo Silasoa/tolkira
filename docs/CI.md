@@ -219,10 +219,11 @@ artifact.
 
 Without JavaScript the active Report still displays and native `<details>` rows
 open, including the triage box, which is rendered open. Tabs, filters, search,
-the lightbox and some client-side views need JavaScript. The deferred static
-all-expanded mode ([B-042](BACKLOG.md)) is only for expanding every detail
-panel; it would not fix CSS or `data:` images blocked by Jenkins, and it does
-not restore scripts.
+the lightbox and some client-side views need JavaScript. For an archive that
+shows the whole run without scripts, generate with `--static --out report.html`
+(or `--static --pdf`): it opens every view and detail and removes the inert
+controls. It does not fix CSS or `data:` images blocked by Jenkins, does not
+restore scripts and does not bypass the host CSP.
 
 ## Sharded runs
 

@@ -245,7 +245,10 @@ fixed or explicitly recorded; nothing is silently dropped.
   decision 2026-11-23: deferred to `0.6-static-no-js` task 3.5, because the
   clipping is pre-existing since 0.5.0 when the third tab landed, is not caused
   by the history window, and the static change rewrites the tab bar. Trigger:
-  task 3.5. This change does not claim the row passed (see 4.3).
+  task 3.5. This change does not claim the row passed (see 4.3). Closed by
+  `0.6-static-no-js` task 3.5 on 2026-11-24: the strip wraps, the tab is
+  visible at 320 px, 390 px and 320 px / 200 % text, and the updated trends spec
+  passes on Chromium, Firefox and WebKit.
 - D The three UXR minors (print header mid-word, `Current` tag wrapping, 200 %
   sparkline letterboxing) are recorded in `0.6-static-no-js` task 3.5. The
   roving-tabindex and sparkline `aria-hidden` notes are recorded there as

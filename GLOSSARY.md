@@ -6,6 +6,15 @@
 **Report** — one self-contained HTML file generated from one or more test
 result inputs.
 
+**Static report** — the opt-in `--static` / `static: true` form of the report.
+It contains no `<script>`, client-message block, tab bar or lightbox, opens
+every `<details>`, stacks Report, Details and Trends as visible sections and
+omits the search/status/tag filters and copy controls. It keeps the
+`report-view`, `analysis-view` and `trends-view` IDs and exactly one `<main>`;
+the default report is unchanged. Bookmarked `?query=`/`?hide=`/`?tag=` URLs show
+the full report because no script restores them, and it does not repair CSS or
+`data:` images blocked by a host CSP.
+
 **Early input warning** — the advisory CLI stderr line written before parsing
 when the resolved input files total at least 50 MiB (52,428,800 bytes). It
 counts each resolved path once; identical content under two paths counts twice.

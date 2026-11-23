@@ -125,6 +125,19 @@ and is covered by real producer fixtures.
   run without the field shows `—` for both flaky cells. A note below the table
   explains the tag-or-retry proxy, the run-meta tagged-count difference and the
   legacy `attempt: 0` limit.
+- Static report (`static: true`, CLI `--static`): `html.ts` resolves the flag
+  once and passes it to the three views. It omits both inline scripts, the
+  client-message block, the tab bar, the lightbox and the toolbar/copy/image
+  buttons; sets `script-src 'none'` while keeping `connect-src 'none'`; opens
+  every `<details>`; and renders Details/Trends as plain containers inside the
+  same `tabPanel` class and view IDs, so the document has one `<main>` and the
+  print page-break rule still applies. The default path is untouched and the
+  mode is opt-in.
+- The history-only Trends shell fixes (wrapped tab strip, capped table with a
+  sticky header, whole-word print headers, the `Current` tag on the date line
+  and a ratio-correct sparkline) ship in `TRENDS_SHELL_CSS`, appended only when
+  Trends renders. The no-history default HTML therefore stays byte-identical;
+  the fixes apply to every report that has a Trends section, default or static.
 - Renderer module map (top to bottom; a module imports only lower layers, and
   same-layer modules never import each other — `report.ts`, `details.ts` and
   `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and
@@ -137,7 +150,7 @@ and is covered by real producer fixtures.
   `attachments.ts` owns image/text/video/log/file rendering; `ci.ts` owns the CI
   header and detail rows; `format.ts` owns status, duration, date, bar, count,
   health, pass-rate and tag helpers; `types.ts` owns `RenderOptions`
-  (including the optional `history` list), `DisplayStatus` and
+  (including the optional `history` list and `static` flag), `DisplayStatus` and
   `OrderedFeature`. Two shared foundation modules carry localisation:
   `i18n.ts` owns locale resolution, the catalog translator and locale-aware
   number/percent/duration/date helpers, caching `Intl` formatters per translator;
@@ -375,8 +388,11 @@ validation-only files with no envelopes) and their total size on disk; inline
 media inside a report file is part of that file, while external path attachments
 are not counted. `RenderReportOptions.locale` is optional and reaches the
 renderer through `renderOptions`; `de-AT` keeps its tag and uses the `de`
-catalog. `renderEmail` is the synchronous email renderer; it takes a
-`ReportSummary` and validated options, writes nothing and shares the translator. `renderPdf` takes rendered
+catalog. `RenderReportOptions.static` (default false) reaches the renderer the
+same way and selects the script-free stacked form; `--static` needs `--out` or
+`--pdf`. `CucumberHtmlStream` accepts the same options. `renderEmail` is the
+synchronous email renderer; it takes a `ReportSummary` and validated options,
+writes nothing and shares the translator. `renderPdf` takes rendered
 report HTML, returns PDF bytes and launches the optional engine only when
 called; it accepts `PdfOptions` (`timeoutMs`) and writes no file. The CLI
 resolves inputs once and drives the internal resolved entry points
