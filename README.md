@@ -564,8 +564,12 @@ for the mapping.
   non-local). Only sanitized attachment names are shown; the JSON summary, CI
   text, email and history carry no names or paths.
 - Default limits: 100 MB total input, 50 MB per attachment and 100 MB total
-  attachments. A warning appears when a report grows beyond 10 MB and names the
-  report HTML, report-file and decoded attachment sizes.
+  attachments. A warning appears before parsing when the resolved input files
+  total at least 50 MiB (52,428,800 bytes); it is advisory, names no path and
+  changes no output or exit code. A warning also appears when a report grows
+  beyond 10 MB and names the report HTML, report-file and decoded attachment
+  sizes. The early total counts resolved file sizes, so it can differ from the
+  report-size warning's content-deduped input value.
 - JUnit XML is intentionally basic; use the native Playwright JSON adapter for
   Playwright projects that can write the JSON reporter.
 - History is opt-in and aggregate-only. `--history <file>` stores counts, status,

@@ -69,6 +69,18 @@ and is covered by real producer fixtures.
 - Uses `fast-xml-parser`, loaded on demand only for XML input.
 - No Gherkin steps or screenshots; this is breadth, not Cucumber depth.
 
+### `src/input/load`
+
+- Resolves explicit files and directory scans once into one ordered,
+  deduplicated file list (`resolveInputFiles`). The CLI hands that same list to
+  the advisory stat-only size scan (`scanInputBytes`) and the loader, so a
+  directory scan or `realpath` cannot see two different trees.
+- The scan reads no content and returns the summed `stat` sizes; the loader
+  keeps its own per-file stat before reading, its content dedupe and the 100 MB
+  total-input cap.
+- The early 50 MiB warning is advisory: it can overcount identical content that
+  the loader later dedupes and never replaces the loader's real error.
+
 ### `src/attachment`
 
 - Shared leaf module used by the input layer, the report model, the summary and
@@ -293,6 +305,11 @@ and is covered by real producer fixtures.
   validates exact then primary-subtag matches (`de-AT` -> `de`) before
   generation. Unknown or empty tags exit 2 with `en, de`. The requested canonical
   tag reaches `<html lang>`; the JSON summary and CI text stay English.
+- Warns before parsing, after option and path validation, when the resolved
+  inputs total at least 50 MiB. The list is resolved once and the stat-only scan
+  reads no content; the same list goes to the loader. The warning is advisory,
+  names no path and changes no output or exit code; a later parse or cap error
+  still reports its own message.
 - Warns when the report HTML (also on a PDF-only run) exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
@@ -364,6 +381,8 @@ Test names, metadata, file names and attachments are untrusted input.
   size before they are read.
 - Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
+- The early input-size hint is one `stat` per resolved file and reads no
+  content; the loader's read and content dedupe are unchanged.
 - Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
   1.4 MB; 5,000 / 15,000 in about 0.4–0.5 s to 7.0 MB. Timings vary with host
   load.

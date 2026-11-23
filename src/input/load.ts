@@ -30,10 +30,17 @@ function invalidJson(content: string, file: string): never {
   throw new Error(`Unsupported input: ${file}`);
 }
 
-interface InputFile {
+export interface ResolvedInputFile {
   file: string;
   explicit: boolean;
 }
+
+/** The ordered list produced once by `resolveInputFiles` and shared by callers. */
+export interface ResolvedInputs {
+  files: ResolvedInputFile[];
+}
+
+export type InputSource = string | string[] | ResolvedInputs;
 
 async function canonicalPath(file: string): Promise<string> {
   try {
@@ -43,40 +50,16 @@ async function canonicalPath(file: string): Promise<string> {
   }
 }
 
-function collectGherkinIds(value: unknown): string[] {
-  const ids: string[] = [];
-  const visit = (node: unknown): void => {
-    if (Array.isArray(node)) {
-      for (const child of node) visit(child);
-      return;
-    }
-    if (!node || typeof node !== 'object') return;
-    for (const [key, child] of Object.entries(node)) {
-      if (key === 'id' && typeof child === 'string') ids.push(child);
-      else visit(child);
-    }
-  };
-  visit(value);
-  return ids;
-}
-
-export interface LoadedInput {
-  file: string;
-  /** Size of this input file in bytes. */
-  bytes: number;
-  envelopes: Envelope[];
-  skippedAttachments: number;
-}
-
-export async function loadInputs(
+/** Resolves explicit files and directory scans once, with duplicate paths removed. */
+export async function resolveInputFiles(
   inputs: string | string[],
-): Promise<LoadedInput[]> {
+): Promise<ResolvedInputs> {
   const requested = Array.isArray(inputs) ? inputs : [inputs];
   if (requested.length === 0) {
     throw new Error('No input files provided.');
   }
 
-  const files = new Map<string, InputFile>();
+  const files = new Map<string, ResolvedInputFile>();
 
   const add = async (file: string, explicit: boolean): Promise<void> => {
     const resolved = await canonicalPath(file);
@@ -105,9 +88,55 @@ export async function loadInputs(
     await add(input, true);
   }
 
-  const ordered = [...files.values()].sort((a, b) =>
-    a.file.localeCompare(b.file),
-  );
+  return {
+    files: [...files.values()].sort((a, b) => a.file.localeCompare(b.file)),
+  };
+}
+
+/** Sums resolved file sizes without reading any content. */
+export async function scanInputBytes(
+  files: ResolvedInputFile[],
+): Promise<{ files: number; bytes: number }> {
+  let bytes = 0;
+  for (const input of files) {
+    bytes += (await stat(input.file)).size;
+  }
+  return { files: files.length, bytes };
+}
+
+function isResolvedInputs(inputs: InputSource): inputs is ResolvedInputs {
+  return !Array.isArray(inputs) && typeof inputs === 'object';
+}
+
+function collectGherkinIds(value: unknown): string[] {
+  const ids: string[] = [];
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child);
+      return;
+    }
+    if (!node || typeof node !== 'object') return;
+    for (const [key, child] of Object.entries(node)) {
+      if (key === 'id' && typeof child === 'string') ids.push(child);
+      else visit(child);
+    }
+  };
+  visit(value);
+  return ids;
+}
+
+export interface LoadedInput {
+  file: string;
+  /** Size of this input file in bytes. */
+  bytes: number;
+  envelopes: Envelope[];
+  skippedAttachments: number;
+}
+
+export async function loadInputs(inputs: InputSource): Promise<LoadedInput[]> {
+  const ordered = isResolvedInputs(inputs)
+    ? inputs.files
+    : (await resolveInputFiles(inputs)).files;
 
   const groups: LoadedInput[] = [];
   const seenContent = new Set<string>();
@@ -229,7 +258,7 @@ export async function loadInputs(
 }
 
 export async function loadEnvelopes(
-  inputs: string | string[],
+  inputs: InputSource,
 ): Promise<Envelope[]> {
   return (await loadInputs(inputs)).flatMap((group) => group.envelopes);
 }

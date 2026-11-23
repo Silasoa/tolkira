@@ -29,22 +29,22 @@
 
 ## 3. Implement
 
-- [ ] 3.1 Extract the input file resolution used by `loadInputs` and the
+- [x] 3.1 Extract the input file resolution used by `loadInputs` and the
   one-decimal MB helper used by the report-size warning; add the stat-only scan
   and the 50 MiB constant.
-- [ ] 3.2 Resolve the input list once, pass it to the scan and the loader, call
+- [x] 3.2 Resolve the input list once, pass it to the scan and the loader, call
   the scan after validation and before generation, write the one stderr line and
   ignore scan failures so the loader reports the real error.
-- [ ] 3.3 Document the threshold, the exact line and unit, the advisory nature,
+- [x] 3.3 Document the threshold, the exact line and unit, the advisory nature,
   the no-path rule, the two-number difference from the report-size warning, the
   architecture seam and the unchanged cap; record the duplicate overcount limit.
 
 ## 4. Verification and review
 
-- [ ] 4.1 `npm run hygiene`, `npm run check`, `npm run test:e2e` if any browser
+- [x] 4.1 `npm run hygiene`, `npm run check`, `npm run test:e2e` if any browser
   fixture changes (expected: none).
 - [ ] 4.2 SCR, CR, DAR and STR; PCA if the scan touches the loader hot path.
-- [ ] 4.3 Record the test runtime for the 50 MiB fixtures and the scan cost.
+- [x] 4.3 Record the test runtime for the 50 MiB fixtures and the scan cost.
 - [ ] 4.4 Fix findings; record deferred decisions with a trigger.
 
 Review findings (2026-11-23): PIR/DXR found the scan resolved the file list a
@@ -59,10 +59,18 @@ marked done.
 
 ## Gate record
 
-- PIR/DXR:
-- Focused tests:
-- `npm run hygiene`:
-- `npm run check`:
-- `npm run test:e2e`:
-- Scan/fixture runtime:
-- Review round:
+- PIR/DXR: folded into the contract on 2026-11-23 (see the review findings
+  above); no implementation task was marked done at that point.
+- Focused tests: `npx vitest run test/early-size-warning.test.ts` 12/12 passed;
+  `npx vitest run test/input-size.test.ts` 9/9 passed.
+- `npm run hygiene`: passed (see commit).
+- `npm run check`: `npm run typecheck`, `npm run lint`, `npx vitest run` (80
+  files, 1251 passed, 5 skipped) and `npm run build` passed on 2026-11-23. One
+  earlier check run hit the 5 s timeout in `test/compat-cjs.test.ts`; that file
+  passed alone and the full check passed on re-run (load flake, unrelated to
+  this change).
+- `npm run test:e2e`: not run; no report-rendering or browser fixture changed.
+- Scan/fixture runtime: the 12 CLI boundary tests over generated 50 MiB fixtures
+  ran in 9.1 s; the 9 scan unit tests ran in 0.3 s (Windows, local run). The scan
+  is one `stat` per resolved file and reads no content.
+- Review round: pending (4.2/4.4).

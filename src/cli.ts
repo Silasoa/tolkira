@@ -7,12 +7,19 @@ import { formatCiOutput, type CiFormat } from './ci.js';
 import { renderEmail, type EmailOptions } from './email.js';
 import { readHistory, writeHistory, type HistoryRun } from './history.js';
 import { generateReport, summarizeReport, version } from './index.js';
+import { resolveInputFiles, scanInputBytes } from './input/load.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { renderPdf } from './pdf.js';
 import { resolveLocale } from './render/i18n.js';
 import type { ReportSummary } from './summary.js';
 import { ACCENT_PATTERN } from './validation.js';
-import { ATTACHMENT_HINT, attachmentWarning } from './warnings.js';
+import {
+  ATTACHMENT_HINT,
+  INPUT_WARN_BYTES,
+  attachmentWarning,
+  earlyInputWarning,
+  formatMegabytes,
+} from './warnings.js';
 
 const DEFAULT_MAX_SIZE_MB = 10;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -537,13 +544,23 @@ export async function runCli(
   }
 
   try {
+    const resolvedInputs = await resolveInputFiles(inputs);
+    try {
+      const { bytes } = await scanInputBytes(resolvedInputs.files);
+      if (bytes >= INPUT_WARN_BYTES) {
+        io.stderr(earlyInputWarning(bytes));
+      }
+    } catch {
+      // The loader reports the real stat or read error; the hint is advisory.
+    }
+
     let history: HistoryRun[] | undefined;
     if (historyFile !== undefined) {
       history = await readHistory(historyFile);
     }
 
     if (!output && pdfPath === undefined) {
-      const summary = await summarizeReport(inputs);
+      const summary = await summarizeReport(resolvedInputs);
       if (emailPath !== undefined) {
         await writeEmailSummary(emailPath, summary, {
           title: parsed.values.title,
@@ -569,7 +586,7 @@ export async function runCli(
       return 0;
     }
 
-    const generated = await generateReport(inputs, {
+    const generated = await generateReport(resolvedInputs, {
       title: parsed.values.title,
       metadata,
       logo,
@@ -601,12 +618,10 @@ export async function runCli(
       const bytes = Buffer.byteLength(html, 'utf8');
       const maxBytes = maxSizeMb * 1024 * 1024;
       if (bytes > maxBytes) {
-        const mb = (value: number): string =>
-          (value / 1024 / 1024).toFixed(1);
         io.stderr(
-          `tolkira: warning: report HTML is ${mb(bytes)} MB ` +
-            `(input ${mb(generated.inputBytes)} MB, ` +
-            `attachments ${mb(summary.attachments.bytes)} MB decoded), ` +
+          `tolkira: warning: report HTML is ${formatMegabytes(bytes)} MB ` +
+            `(input ${formatMegabytes(generated.inputBytes)} MB, ` +
+            `attachments ${formatMegabytes(summary.attachments.bytes)} MB decoded), ` +
             `above the ${maxSizeMb} MB threshold; large screenshots or videos ` +
             `inflate the HTML and the PDF.\n`,
         );

@@ -104,6 +104,14 @@ it. The gap is the combination.
   `--ci-out`. [`CI.md`](CI.md) also documents Jenkins HTML Publisher and
   sharded-report recipes (not live-tested).
 
+### Size warnings (in main)
+
+- A pre-parse stderr hint when the resolved input files total at least 50 MiB,
+  plus the existing post-render `--max-size` warning. Both are advisory, name no
+  input path and change no output or exit code. The early total counts resolved
+  file sizes, so it can differ from the report-size warning's content-deduped
+  `input` value.
+
 ### History and trends (in main)
 
 - Opt-in `--history <file>` sidecar with up to 30 aggregate runs and a Trends

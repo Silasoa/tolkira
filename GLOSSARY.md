@@ -6,6 +6,13 @@
 **Report** — one self-contained HTML file generated from one or more test
 result inputs.
 
+**Early input warning** — the advisory CLI stderr line written before parsing
+when the resolved input files total at least 50 MiB (52,428,800 bytes). It
+counts resolved file sizes once, reads no content, names no path and changes no
+output or exit code. The post-render `--max-size` warning measures the finished
+report and the loader's content-deduped input instead, so the two totals can
+differ.
+
 **Locale catalog** — the flat, sorted ICU message file for one report language
 under `src/i18n/locales/`; English carries descriptions and is the fallback.
 The generated `src/i18n/catalogs.ts` is what the renderer imports. See

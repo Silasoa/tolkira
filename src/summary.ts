@@ -7,7 +7,7 @@ import type {
   TestStepResult,
 } from '@cucumber/messages';
 import { attachmentBytes } from './attachment.js';
-import { loadEnvelopes } from './input/load.js';
+import { loadEnvelopes, type InputSource } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
@@ -350,7 +350,7 @@ export function summarizeIndex(index: RunIndex): ReportSummary {
 }
 
 export async function summarizeReport(
-  inputs: string | string[],
+  inputs: InputSource,
 ): Promise<ReportSummary> {
   return summarizeEnvelopes(await loadEnvelopes(inputs));
 }

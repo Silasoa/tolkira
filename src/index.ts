@@ -1,6 +1,6 @@
 import type { Envelope } from '@cucumber/messages';
 import { appendHistory, buildHistoryRun, type HistoryRun } from './history.js';
-import { loadInputs, provenanceFor } from './input/load.js';
+import { loadInputs, provenanceFor, type InputSource } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { renderOptions, type RenderReportOptions } from './options.js';
 import { indexRun, type RunIndex } from './report/index-run.js';
@@ -59,7 +59,7 @@ interface LoadedRun {
   provenance?: Map<string, string>;
 }
 
-async function loadRun(inputs: string | string[]): Promise<LoadedRun> {
+async function loadRun(inputs: InputSource): Promise<LoadedRun> {
   const groups = await loadInputs(inputs);
   const envelopes = sanitizeEnvelopes(
     groups.flatMap((group) => group.envelopes),
@@ -97,7 +97,7 @@ function render(
 }
 
 export async function generateReport(
-  inputs: string | string[],
+  inputs: InputSource,
   options: RenderReportOptions = {},
 ): Promise<GeneratedReport> {
   const run = await loadRun(inputs);
@@ -120,7 +120,7 @@ export async function generateReport(
 
 /** Renders the HTML with the given history; records nothing. */
 export async function renderReport(
-  inputs: string | string[],
+  inputs: InputSource,
   options: RenderReportOptions = {},
 ): Promise<string> {
   return render(await loadRun(inputs), options, options.history);
