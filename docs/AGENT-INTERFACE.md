@@ -415,12 +415,13 @@ Contract:
   2 when the limit is above 30 or the read file already used version 2. A
   version-2 file is never downgraded, so a later default run keeps it at 2.
   `writeHistory` reads the target once through the same bounded, regular-file
-  and 1 MiB checks as `readHistory` to preserve that schema; a malformed,
-  oversized or unreadable target is an error and is never overwritten with
-  version 1. A 0.5 reader rejects version 2 with `unsupported schema version
-  "2"`, exits 1 and leaves the file untouched; a default run on a version-1 file
-  keeps that rollback path open, while a run above 30 or on a version-2 file does
-  not. The 0.5.0 and 0.5.1 packages share the reader.
+  and 1 MiB checks as `readHistory` at every limit, both to preserve that schema
+  and to reject a malformed, oversized or unreadable target instead of
+  overwriting it with version 1. A 0.5 reader rejects version 2 with
+  `unsupported schema version "2"`, exits 1 and leaves the file untouched; a
+  default run on a version-1 file keeps that rollback path open, while a run
+  above 30 or on a version-2 file does not. The 0.5.0 and 0.5.1 packages share
+  the reader.
 - `id` is the SHA-256 of the aggregates and the resolved title, excluding
   `recordedAt`. When the last entry has the same id, the new run is not
   appended and the old `recordedAt` stays.
@@ -446,21 +447,24 @@ Contract:
   smaller limit does not rewrite the file by itself.
 - The sidecar is capped at 1 MiB (1,048,576 bytes). A file above the cap is
   rejected before it is read. The writer validates every stored run with the
-  reader's field rules, caps a title at 200 characters and rejects an id longer
-  than `HISTORY_MAX_ID` (128 characters; the reader still accepts longer ids from
-  older files), then prunes the oldest entries until the serialized file is at or
-  below the cap and always keeps the newest entry. A serialized result still
-  above the cap is rejected instead of written, so the writer never writes a file
-  the reader would reject. The cap is a safety bound, not the retention policy:
-  365 runs with a 200-character title measured 367,596 bytes and were not pruned
-  on 2026-11-23.
+  reader's field rules, caps a title at 200 code points and rejects an id longer
+  than `HISTORY_MAX_ID` (128 UTF-16 code units; the reader still accepts longer
+  ids from older files), then prunes the oldest entries until the serialized
+  file is at or below the cap and always keeps the newest entry. A serialized
+  result still above the cap is rejected instead of written, so the writer never
+  writes a file the reader would reject. The cap is a safety bound, not the
+  retention policy: a realistic 365-run file with a 200-code-point title
+  measured 367,596 bytes and was not pruned on 2026-11-23. A maximal valid window
+  (128-code-unit ids, 200-code-point titles, large whole counters) can exceed
+  the cap and is pruned through the public API; the single-entry guard is not
+  reachable through it.
 - Invalid values: `0`, `366`, `1.5`, `abc`, `05` and an empty value exit 2
   with `Invalid --history-limit "<value>". Use an integer from 1 to 365.`;
   `--history-limit` without `--history` exits 2 with `--history-limit requires
   --history` before the generic usage text. Nothing is written on a rejected
   run. `--history` without `--out` keeps its existing exit-2 error.
 - `title` is the resolved report title (`Tolkira report` when `--title` is
-  absent), capped at 200 characters including a trailing `…`; a longer title is
+  absent), capped at 200 code points including a trailing `…`; a longer title is
   truncated before it is hashed or written. `durationMs` is the summary
   duration, not wall-clock time.
 - Only aggregates are stored: no scenario names, step text, paths, tags or
@@ -488,10 +492,11 @@ Contract:
   limit to `readHistory`, `generateReport` and `writeHistory`, and
   `generateReport` passes it to `appendHistory`. `renderReport` and
   `CucumberHtmlStream` accept the list they are given and never prune it.
-- The writer prunes only to the 1 MiB cap. A normal 365-run sidecar stays well
+- The writer prunes only to the 1 MiB cap. A realistic 365-run sidecar stays
   below it (297,151 bytes with a short title, 367,596 bytes with a
-  200-character title, measured 2026-11-23 with `scripts/history-window.mjs`), so
-  the window, not the cap, decides retention.
+  200-code-point title, measured 2026-11-23 with `scripts/history-window.mjs`), so
+  the window usually decides retention. A maximal valid window can hit the cap;
+  the writer then drops the oldest runs and keeps the newest.
 
 The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`,
 `HISTORY_SCHEMA_VERSION_MAX`, `HISTORY_LIMIT`, `HISTORY_LIMIT_MAX`,

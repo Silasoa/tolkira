@@ -18,17 +18,19 @@
   `readHistory`; a malformed or oversized target is an error, never a silent
   downgrade to 1.
 - The writer validates every stored run with the reader's field rules, caps
-  titles at 200 characters and rejects an id longer than `HISTORY_MAX_ID = 128`.
-  The reader keeps accepting longer ids from older files.
+  titles at 200 code points and rejects an id longer than `HISTORY_MAX_ID = 128`
+  UTF-16 code units. The reader keeps accepting longer ids from older files.
 - The writer prunes the oldest entries until the serialized file is at or below
   the 1 MiB read cap (1,048,576 bytes), and always keeps at least the newest
   entry. A serialized result still above the cap throws
-  `Cannot write history file <file>: ...`; it is a guard, not a normal path,
-  because the id and title caps bound one entry far below the cap. It never
-  writes a file the reader would reject.
-- A 365-run file is expected to stay under the cap: the documented entry is
-  fixed-size apart from the 200-character title and the 128-character id. The cap
-  is a safety bound, not the normal retention policy.
+  `Cannot write history file <file>: ...`; that single-entry guard is not
+  reachable through the public API because the id and title caps bound one entry
+  below the cap. The multi-entry prune is reachable for a maximal valid window.
+  It never writes a file the reader would reject.
+- A realistic 365-run file stays under the cap: the documented entry is
+  fixed-size apart from the 200-code-point title and the 128-code-unit id. A
+  maximal valid window can exceed it and is pruned. The cap is a safety bound,
+  not the normal retention policy.
 
 ## Data flow
 
@@ -84,11 +86,12 @@ and `writeHistory`; `generateReport` treats an omitted `historyLimit` the same.
   keeps the rollback path open. The 0.5.0 and 0.5.1 packages share the reader.
 - The writer validates every run with the reader's rules before serialising, so
   a non-finite duration or a wrong field type is rejected instead of written as
-  `null`. The id cap (128 characters) is write-only.
+  `null`. The id cap (128 UTF-16 code units) is write-only.
 - The writer prunes the oldest entries until `Buffer.byteLength(serialized) <=
   1,048,576`; the newest entry always fits because one entry is bounded by the
-  fixed fields, the 200-character title and the 128-character id. The post-prune
-  cap check remains as a guard and throws instead of writing an oversized file.
+  fixed fields, the 200-code-point title and the 128-code-unit id. The post-prune
+  cap check remains as a guard for that single entry and throws instead of
+  writing an oversized file.
 
 ## API shape
 
@@ -112,11 +115,13 @@ every other unknown key.
   entry still rejects.
 - Schema: a default write on a schema-1 file stays schema 1; a write with limit
   40 writes schema 2; a schema-2 file read with the default limit stays schema 2
-  on write; a schema-2 file is rejected by the 0.5 reader path (wrong version)
-  without a rewrite.
-- Pruning: a schema-2 file whose serialized form exceeds 1,048,576 bytes is
-  pruned to the newest entries that fit; the newest entry always remains; the
-  written bytes are at or below the cap and re-read successfully.
+  on write; the 0.5 reader check stays manual because the guard is private and
+  the published 0.5 package is the only 0.5 reader, and it leaves the file
+  untouched.
+- Pruning: a valid 365-run window that exceeds 1,048,576 bytes is pruned to the
+  newest entries that fit; the newest entry always remains; the written bytes
+  are at or below the cap and re-read successfully. The single-entry guard is
+  not reachable through the public API.
 - CLI: `--history-limit 5` with seven runs writes five and the report shows
   five; `--history-limit 40` keeps 40; `--history-limit 1` keeps one and omits
   the Trends tab; the default report/CI/email bytes are identical to before;
@@ -162,8 +167,8 @@ D1: early-size → history → static → baseline. This change lands second.
   `HISTORY_LIMIT` constant), and a lower limit that prunes on the next
   successful write. The user approved all three on 2026-11-23 (tasks 1.3); they
   are no longer open questions.
-- The 1 MiB cap does not lower the window: the writer prunes to it and the id and
-  title caps keep a full 365-run file far below it.
+- The 1 MiB cap does not lower the window: the writer prunes to it, a realistic
+  full 365-run file stays below it, and a maximal valid window is pruned.
 - Schema 2 is a window marker, not a field change, and is never downgraded.
 
 ## Out of scope

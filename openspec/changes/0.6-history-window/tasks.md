@@ -5,7 +5,8 @@
 - [x] 1.1 PIR + DXR over the proposal, spec delta and design; fold blockers
   into the contract before Red. (2026-11-23)
 - [x] 1.2 Confirm the history read/append/write signatures, the 1 MiB cap and
-  the default byte parity; no new schema or dependency. (2026-11-23)
+  the default byte parity; no new run field (schema 2 is the window marker) and
+  no new dependency. (2026-11-23)
 - [x] 1.3 Confirm the maximum (365), the flag name and the destructive lower
   limit with the user. (2026-11-23; the user approved the four specs.)
 
@@ -38,8 +39,9 @@
   10.0.26300, Node v26.13.1, 2026-11-23: report 206,525 bytes at
   `--history-limit 365` vs 83,286 bytes at the default 30 (delta 123,239 bytes
   for 365 vs 30 Trends rows); 365-run schema-2 sidecar 297,151 bytes and
-  367,596 bytes with 200-character titles, both below the 1,048,576-byte cap,
-  no writer prune. The 365-run report is far below the 10 MB (10,485,760-byte)
+  367,596 bytes with 200-code-point titles, both below the 1,048,576-byte cap,
+  no writer prune for this fixture. The 365-run report is well below the 10 MB
+  (10,485,760-byte)
   default `--max-size` threshold, so no report-size warning fires. These replace
   the earlier ad-hoc numbers (206,601 / 83,289 / 295,045 / 365,490); the script
   pins the synthetic summary shape and the difference is measurement input, not
@@ -88,10 +90,12 @@
   `node scripts/history-window.mjs` after `npm run build`; Windows 11 Pro
   10.0.26300, Node v26.13.1, 2026-11-23: 365-run report 206,525 bytes vs 83,286
   bytes at the default 30 (delta 123,239 bytes for 365 vs 30 Trends rows); the
-  365-run schema-2 sidecar is 297,151 bytes (367,596 with 200-character titles),
-  below the 1,048,576-byte cap, and the writer pruned nothing. The 365-run
-  report is far below the 10 MB default `--max-size` threshold, so no size
-  warning fires. Default parity: implicit default and explicit
+  365-run schema-2 sidecar is 297,151 bytes (367,596 with 200-code-point titles),
+  below the 1,048,576-byte cap, and the writer pruned nothing for this fixture.
+  A maximal valid window can exceed the cap; the prune is covered by the
+  restored test. The 365-run report is well below the 10 MB default `--max-size`
+  threshold, so no size warning fires. Default parity: implicit default and
+  explicit
   `--history-limit 30` produce byte-identical report, email, CI and sidecar
   bytes, pinned by `test/cli-history-window.test.ts`; the default window is
   still 30. Against the published `tolkira@0.5.1` package, the default report,
@@ -128,22 +132,23 @@ fixed or explicitly recorded; nothing is silently dropped.
 - A1 Writer/reader mismatch: fixed in `src/history.ts`. The field rules moved
   behind a shared `parseRun` validator that read and write both call; `writeHistory`
   caps titles, validates every stored run, rejects an id longer than
-  `HISTORY_MAX_ID = 128` and, after the prune loop, throws
+  `HISTORY_MAX_ID = 128` UTF-16 code units and, after the prune loop, throws
   `Cannot write history file <file>: ...` when the serialized result is still
   above 1,048,576 bytes. The reader still accepts longer ids from older files.
-  Tests: over-long id (new file and existing file), NaN duration, oversized,
-  malformed and unsupported-schema targets, largest valid window, exact cap.
-  The "newest single entry above the cap" case is not constructible through the
-  public API: the id and title caps bound one entry to about 2 KB and a 365-run
-  file to about 640 KB. The guard stays as defence in depth and the
-  largest-window test pins that precondition instead; recorded, not skipped
-  silently.
-- A1 follow-up (2026-11-23): `parseRun` no longer rejects a stored title longer
-  than 200 characters on read, so the reader is as permissive about titles as
-  0.5.1 and the spec's invalid-entry list stays the whole rule set. `capTitle`
-  in `writeHistory` is the single enforcement point and still stores at most 200
-  characters. Pinned by "reads a hand-edited long title and caps it on the next
-  write" in `test/history-window.test.ts`.
+  Tests: over-long id (new file and existing file), exact 128-code-unit id, NaN
+  duration, invalid JSON, oversized, unsupported-schema and non-regular targets,
+  the exact cap and the restored prune.
+  The multi-entry prune is reachable through the public API: a maximal valid
+  365-run window (128-code-unit ids, 200-code-point titles, large whole counters)
+  serialized to 1,110,736 bytes and the writer kept 344 runs at 1,046,833 bytes,
+  newest kept, oldest dropped, re-read intact. The single-entry guard is not
+  reachable through the public API because the caps bound one entry below the
+  cap (about 3 KB in that fixture); it stays as defence in depth.
+- A1 follow-up (2026-11-23): the reader rejects a stored title longer than 200
+  code points again, matching 0.5.0/0.5.1, and `capTitle` in `writeHistory` caps
+  at the same bound before validation. No leniency. Pinned by "rejects a stored
+  title longer than 200 code points" and "caps a 201-code-point title to 199
+  characters plus an ellipsis" in `test/history-window.test.ts`.
 - A2 Unbounded schema peek: fixed. One internal `readSidecar` (non-blocking
   open, `fstat`, regular-file check, 1 MiB cap, bounded read) serves
   `readHistory` and `storedSchema`; `readHistory(file, limit?)` is unchanged.
@@ -175,9 +180,10 @@ fixed or explicitly recorded; nothing is silently dropped.
   `Invalid --history-limit ...` / `--history-limit requires --history` text),
   not a substring that the usage dump also contains.
 - B11 Cap boundary: `readHistory` accepts a file of exactly 1,048,576 bytes and
-  rejects 1,048,577; the largest accepted window is written whole without
-  pruning. A writer output at exactly the cap is not constructible for the same
-  cap reason as A1; the two constructible halves are pinned.
+  rejects 1,048,577; a realistic largest window is written whole without
+  pruning, and a maximal valid window is pruned. A writer output at exactly the
+  cap is not constructible from accepted runs; the two constructible halves are
+  pinned.
 - B12 The default test is renamed to implicit-vs-explicit-30 parity in the same
   build; the previous-release evidence stays under 4.4.
 - B13 The five-run CLI test now asserts five `sparkPoint` markers as well as
@@ -244,6 +250,11 @@ fixed or explicitly recorded; nothing is silently dropped.
   sparkline letterboxing) are recorded in `0.6-static-no-js` task 3.5. The
   roving-tabindex and sparkline `aria-hidden` notes are recorded there as
   decisions with no action.
+- The two 365-run Trends shell findings deferred to `0.6-static-no-js` task 3.5
+  (UXR, 2026-11-23): the sparkline emits one marker per run and becomes a dense
+  chain at 365 points, and the 365-row table buries the sparkline and the flaky
+  note about 14k px down the page. Both are recorded there; this change adds no
+  shell code.
 
 ### Accepted, no action
 
@@ -274,17 +285,19 @@ their assertion mapping:
   `--history-limit 5` so the limit × write-failure pairwise row survives. The
   oversized/malformed-with-limit-40 `it.each` in the window file is kept because
   it is not duplicated.
-- `test/history-window.test.ts` "prunes the oldest entries to 1 MiB": its
-  fixture (400 runs with 6,006-character ids) is now rejected by the id cap, so
-  the prune path is unreachable for accepted input. The replacement asserts the
-  same guarantees on the largest accepted window (bytes ≤ cap, schema 2, all 365
-  entries kept, ids match, re-reads), plus the exact cap boundary and the caps
-  themselves. No assertion was loosened; the changed expectation (`365 kept`
-  instead of `< 365`) follows from the new caps and is stronger for the
-  reachable contract.
+- `test/history-window.test.ts` "prunes the oldest entries to 1 MiB": restored
+  as "prunes the oldest runs when a maximal valid 365-run window exceeds the
+  cap". The fixture (400 runs with 6,006-character ids) was rejected by the id
+  cap; the new fixture stays inside every write rule (128 UTF-16 code units,
+  200 code points, valid counters) and serializes to 1,110,736 bytes, so the
+  prune is reachable. It asserts 344 stored runs at 1,046,833 bytes, the newest
+  kept, the oldest dropped, schema 2 and an identical re-read. The
+  largest-realistic-window test keeps its bytes/schema/all-365 assertions. No
+  assertion was loosened; the earlier `< 365` expectation is restored for the
+  maximal fixture.
 - `test/history.test.ts` "writes schema version 1 JSON atomically": the "stale
-  content" fixture became a valid older sidecar because a malformed target is
-  now rejected by contract; every assertion is unchanged.
+  content" fixture became a valid older sidecar because an invalid JSON target
+  is now rejected by contract; every assertion is unchanged.
 
 ## Implementation record (2026-11-23)
 
@@ -356,7 +369,7 @@ their assertion mapping:
 - The report is 206,525 bytes at 365 runs and 83,286 at 30 (delta 123,239),
   below the 10 MB (10,485,760-byte) default `--max-size` threshold, so no
   report-size warning fires. The sidecar is schema 2, 297,151 bytes with short
-  titles and 367,596 with 200-character titles, below the 1,048,576-byte cap;
+  titles and 367,596 with 200-code-point titles, below the 1,048,576-byte cap;
   the writer pruned nothing.
 - These numbers replace the earlier ad-hoc measurement (206,601 / 83,289 /
   295,045 / 365,490). The synthetic summary shape is now fixed in the script, so
@@ -368,27 +381,114 @@ their assertion mapping:
 
 - PIR/DXR: see the round-1 review findings above (2026-11-23).
 - Post-implementation reviews (round 2): see "Review findings (round 2)".
+- Second review round: see "Review findings (second review round)" below.
 - Focused tests: `npx vitest run test/history-window.test.ts
   test/cli-history-window.test.ts test/history.test.ts
-  test/cli-history.test.ts` — 127 passed, 1 skipped.
-- `npm run hygiene`: ok (790 tracked files, 332 commits).
-- `npm run check`: ok (typecheck, lint and build green; vitest 1320 passed,
+  test/cli-history.test.ts` — 137 passed, 1 skipped.
+- `npm run hygiene`: ok (792 tracked files, 337 commits).
+- `npm run check`: ok (typecheck, lint and build green; vitest 1330 passed,
   5 skipped in 82 files).
 - `npm run test:e2e test/e2e/trends.spec.ts`: 15 passed on Chromium, Firefox
-  and WebKit. The 320 px / 200 % tab-visibility row stays red under the
-  user-approved exception in 4.3; the spec that runs there pins `nowrap` and one
-  row, not third-tab visibility.
+  and WebKit on the earlier tree; not re-run for this round because no file
+  under `src/render/` changed. The 320 px / 200 % tab-visibility row stays red
+  under the user-approved exception in 4.3; the spec that runs there pins
+  `nowrap` and one row, not third-tab visibility.
 - `openspec validate 0.6-history-window --strict` and
   `openspec validate 0.6-static-no-js --strict`: both valid.
 - Host rows: no new host row required (see 4.3); the manual 0.5.0 older-reader
   check above is the compatibility evidence.
-- Size measurements: see 2.8, 4.4 and the size measurement above.
+- Size measurements: see 2.8, 4.4 and the size measurement above; the
+  `scripts/history-window.mjs` output is unchanged (206,525 / 83,286 / 123,239
+  report bytes and 297,151 / 367,596 sidecar bytes).
 - Review round: closed 2026-11-23 (4.2).
 
 ### Documentation slice (2026-11-23)
 
-- `npm run hygiene`: ok (790 tracked files, 331 commits).
-- `npm run check`: ok (typecheck, lint and build green; vitest 1313 passed,
+- `npm run hygiene`: ok (792 tracked files, 337 commits).
+- `npm run check`: ok (typecheck, lint and build green; vitest 1330 passed,
   5 skipped in 82 files).
 - `npm run test:e2e` was not run: this slice changes docs and records a
   measurement, not the report shell or an input adapter.
+
+## Review findings (second review round, 2026-11-23)
+
+Five blind reviewers (SCR, CR, SEC, STR, DAR) reviewed `deb6b76..02602e6`.
+SEC passed with minors; SCR, CR, STR and DAR failed. Every item below is fixed
+or recorded; nothing is discarded.
+
+### Blockers
+
+- A1 The "prune is unreachable" claim was false and the prune was untested.
+  Fixed. Restored "prunes the oldest runs when a maximal valid 365-run window
+  exceeds the cap" in `test/history-window.test.ts`: the fixture is valid
+  (128 UTF-16 code units, 200 code points, valid counters), serializes to
+  1,110,736 bytes, stores 344 runs at 1,046,833 bytes, keeps the newest, drops
+  the oldest, writes schema 2 and re-reads identically. The largest-realistic
+  test keeps its assertions and now says why the prune is reachable.
+  `tasks.md`, `design.md`, `docs/AGENT-INTERFACE.md`,
+  `docs/ARCHITECTURE.md`, `docs/LIMITATIONS.md` and `docs/CHANGELOG.md` now say
+  the cap prune is reachable for a maximal valid window and the single-entry
+  guard is not. `docs/LIMITATIONS.md` points to the Run history contract and
+  says "the CLI is the only automatic writer".
+- A2 The main report-rendering spec said the history schema stays 1. Fixed with
+  `openspec/changes/0.6-history-window/specs/report-rendering/spec.md`: a
+  MODIFIED "Count flaky scenarios per history run" keeps the flaky rules
+  verbatim, replaces the schema sentence with the window rule (schema 1 by
+  default, 2 above 30 runs or when the file already used 2) and keeps the
+  summary schema at 2 with no flaky field. `openspec validate --strict` passes.
+
+### Importants
+
+- B1 `writeHistory` skipped the target read when `limit > 30`. Fixed:
+  `storedSchema` is awaited at every limit before the schema choice. Tests
+  cover an invalid JSON and an oversized target at limit 40, both with the
+  `Cannot write history file` error and byte-identical content. The docs say
+  the read happens at every limit.
+- B2 The reader no longer rejected stored titles over 200. Fixed: the one-line
+  rejection is restored in `parseRun`, matching 0.5.0/0.5.1. The test now
+  asserts `Invalid history file … title is longer than 200 characters`; the
+  0.5.1 prefix is `Invalid`, not `Cannot read`, so the test follows the shipped
+  message. The writer caps and the 201-code-point test asserts the exact
+  `'t'.repeat(199) + '…'` content. Tasks and docs no longer claim leniency.
+- B3 Bare `--history --history-limit 10` printed the generic usage. Fixed: the
+  `--history requires --out` check moved before the generic usage block and the
+  later duplicate is deleted. A bare CLI assertion is added; `--history ''`
+  keeps its own message.
+
+### Minors
+
+- The dead `--pdf must not overwrite --history` branch is deleted;
+  `historyConflicts` still rejects the pair and its message names `--pdf`.
+- `writeHistory(file, [null])` now throws
+  `Cannot write history file … runs[0] must be an object`; test added.
+- Both `oneLine` helpers use the same control, C1 and bidi class
+  (`[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]`). CLI tests cover
+  `'3\n66'` and `'3\u202e66'`, both shown as `"3 66"`.
+- Write failures print the target and the errno code, never the atomic
+  `.history.json.<uuid>.tmp` name; the CLI write-failure test asserts no `.tmp`
+  in stderr.
+- `O_NONBLOCK` is documented as undefined on Windows with the `fstat` guard
+  doing the work there.
+- The id cap is documented as 128 UTF-16 code units (comment, AGENT-INTERFACE,
+  ARCHITECTURE and the spec delta); the title cap is documented as 200 code
+  points. The code is unchanged.
+- `scripts/history-window.mjs` imports `node:os` once and `buildHistory` is
+  synchronous; the printed numbers are identical.
+- `tasks.md` 1.2 says "no new run field; schema 2 is the window marker"; the
+  Shell findings name the two 365-run Trends findings deferred to
+  `0.6-static-no-js` task 3.5. `design.md` says the 0.5 check stays manual and
+  the prune is tested. The proposal Impact adds `src/run.ts`
+  (`GenerateReportOptions.historyLimit`) and uses the current
+  `docs/PRODUCT.md:115-120` / `GLOSSARY.md:182-202` refs. The baseline delta
+  says a history sidecar of any schema version.
+- Tests, boundary and hygiene: exact 128-code-unit id acceptance;
+  201-code-point title content; `/unsupported schema version "3"/` on read; a
+  directory target gives `not a regular file`; the symlink test uses
+  `ctx.skip()` on `EPERM`/`EACCES`; both CLI tests use `HISTORY_MAX_BYTES`;
+  "write failures" is now "read failures" and "malformed target" is "invalid
+  JSON target" where it means invalid JSON; the limit-5 write-failure test has
+  its one-line reason.
+- The only item not implemented literally: B2's requested message was
+  `Cannot read history file …`; the shipped read-validation prefix is
+  `Invalid history file …` in 0.5.1 and 0.6, so the test asserts the actual
+  message and the shape stays 0.5.1-compatible. Recorded here, not skipped.

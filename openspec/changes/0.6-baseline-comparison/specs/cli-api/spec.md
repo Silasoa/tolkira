@@ -24,7 +24,7 @@ wrong-schema baseline SHALL exit 1, writing nothing.
 
 #### Scenario: Wrong schema
 
-- **WHEN** the baseline is a history sidecar (`schemaVersion: 1`) or any version
+- **WHEN** the baseline is a history sidecar (any schema version) or any version
   other than 2
 - **THEN** the CLI exits 1 and names the supported version
 - **AND** no output is written

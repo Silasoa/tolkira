@@ -33,17 +33,19 @@ Keep a Changelog and the project uses semantic versioning.
   rewriting it. Lowering the window is destructive on the next successful write
   and raising it later cannot restore dropped runs.
 - `writeHistory` now validates every run with the reader's field rules, rejects
-  an id longer than 128 characters and a serialized file above 1,048,576 bytes,
-  and reads the target once through the bounded read so a malformed or oversized
-  file is not overwritten with schema 1. A non-finite duration is rejected
-  instead of serialized as `null`.
+  an id longer than 128 UTF-16 code units and a serialized file above 1,048,576
+  bytes, and reads the target once through the bounded read at every limit so a
+  malformed or oversized file is not overwritten with schema 1. A non-finite
+  duration is rejected instead of serialized as `null`.
 - The writer prunes to 1,048,576 bytes and always keeps the newest entry. On
   Windows 11 Pro 10.0.26300, Node v26.13.1, 2026-11-23, a 365-run report measured
-  206,525 bytes against 83,286 bytes at the default 30, and a 365-run schema-2
-  sidecar measured 297,151 bytes (367,596 with 200-character titles); neither
-  pruned, and the report stays below the 10 MB default size-warning threshold.
-  Reproduce with `node scripts/history-window.mjs` after `npm run build`. The
-  default report bytes are unchanged.
+  206,525 bytes against 83,286 bytes at the default 30, and a realistic 365-run
+  schema-2 sidecar measured 297,151 bytes (367,596 with 200-code-point titles);
+  neither pruned, and the report stays below the 10 MB default size-warning
+  threshold. A maximal valid window can exceed the sidecar cap, and the writer
+  then drops the oldest runs and keeps the newest. Reproduce with
+  `node scripts/history-window.mjs` after `npm run build`. The default report
+  bytes are unchanged.
 
 ## [0.5.1] - 2026-11-23
 

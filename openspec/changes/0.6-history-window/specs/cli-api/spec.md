@@ -280,15 +280,15 @@ The sidecar SHALL use `schemaVersion: 1` for a default write on a schema-1 or
 missing file and `schemaVersion: 2` when the limit is above 30 or the target file
 already uses version 2. Readers SHALL accept version 1 and 2 and reject any other
 version. Entries SHALL use `id`, `recordedAt` (ISO), `title` (the resolved report
-title, capped at 200 characters), `status`, `counts` (features, scenarios,
+title, capped at 200 code points), `status`, `counts` (features, scenarios,
 steps), `durationMs`, `attachments` (total, bytes) and an optional `flaky`
 count. It SHALL NOT contain scenario names, step text, paths, tags or attachment
 content. Unknown fields SHALL be ignored within a supported version. The writer
 SHALL validate every stored run with the reader's field rules, SHALL reject an
-`id` longer than 128 characters (the reader keeps accepting longer ids from
-older files) and SHALL never write a file above 1,048,576 bytes. A 0.5 reader
-SHALL reject version 2 with its visible unsupported-version error and leave the
-file untouched.
+`id` longer than 128 UTF-16 code units (the reader keeps accepting longer ids
+from older files) and SHALL never write a file above 1,048,576 bytes. A 0.5
+reader SHALL reject version 2 with its visible unsupported-version error and
+leave the file untouched.
 
 #### Scenario: Aggregate-only entry
 
@@ -301,7 +301,8 @@ file untouched.
 #### Scenario: Writer matches the reader
 
 - **WHEN** `writeHistory` receives a run with a field the reader rejects, an id
-  longer than 128 characters, or a serialized result above 1,048,576 bytes
+  longer than 128 UTF-16 code units, or a serialized result above 1,048,576
+  bytes
 - **THEN** it throws `Cannot write history file <file>: ...` and writes nothing
 - **AND** the target file, if any, keeps its bytes
 

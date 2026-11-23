@@ -261,17 +261,19 @@ and is covered by real producer fixtures.
   no run field. Readers accept both and `HISTORY_SCHEMA_VERSION_MAX` is the
   highest accepted version; a 0.5 reader rejects schema 2 with its
   unsupported-version error and leaves the file untouched. The write decision
-  reads the target through the same bounded read, so a malformed or oversized
-  target is an error, not a silent downgrade.
+  reads the target through the same bounded read at every limit, so a malformed
+  or oversized target is an error, not a silent downgrade.
 - The writer validates every stored run with the reader's field rules, caps
-  titles at 200 characters and rejects an id longer than `HISTORY_MAX_ID` (128
-  characters; the reader keeps accepting longer ids from older files). It then
-  prunes the oldest entries until the serialized file is at or below 1,048,576
-  bytes and always keeps the newest entry. A result still above the cap is
-  rejected, so it never writes a file the reader would reject. A hand-made file
-  above the cap is still rejected on read. The cap is a safety bound: a 365-run
-  file measured 297,151 bytes (367,596 with 200-character titles) on Windows 11
-  Pro 10.0.26300, Node v26.13.1, and was not pruned.
+  titles at 200 code points and rejects an id longer than `HISTORY_MAX_ID` (128
+  UTF-16 code units; the reader keeps accepting longer ids from older files). It
+  then prunes the oldest entries until the serialized file is at or below
+  1,048,576 bytes and always keeps the newest entry. A result still above the cap
+  is rejected, so it never writes a file the reader would reject. A hand-made file
+  above the cap is still rejected on read. The cap is a safety bound: a realistic
+  365-run file measured 297,151 bytes (367,596 with 200-code-point titles) on
+  Windows 11 Pro 10.0.26300, Node v26.13.1, and was not pruned; a maximal valid
+  window can exceed the cap and is pruned through the public API, while the
+  single-entry guard is not reachable through it.
 - `buildHistoryRun` hashes the aggregates and the resolved title (capped at 200
   characters), excluding the recorded time; `appendHistory` keeps one copy of an
   identical last run and the old timestamp; `readHistory` rejects non-regular
@@ -432,7 +434,7 @@ Test names, metadata, file names and attachments are untrusted input.
   reference host (Windows 11 Pro 10.0.26300, Node v26.13.1) the
   `test/fixtures/messages/second.ndjson` report was 206,525 bytes at 365 runs
   against 83,286 bytes at the default 30, a 123,239-byte difference, measured
-  with `scripts/history-window.mjs`. Both are far below the 10 MB
+  with `scripts/history-window.mjs`. Both are well below the 10 MB
   (10,485,760-byte) default `--max-size` threshold, so no size warning fires.
 - `npm run bench:ansi` bundles `src/text.ts` with esbuild, strips fixed
   2,000-message clean and escape-laden corpora of about 2 KiB per message, and

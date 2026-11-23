@@ -123,10 +123,10 @@ asks or a locale needs them:
   `0.6-history-window` change: `--history-limit <n>` (needs `--history`) keeps
   the newest 1 to 365 aggregate runs, default 30, and bounds read, append, write
   and Trends. A window above 30 writes sidecar schema 2 (never downgraded); the
-  writer validates every run, rejects an id longer than 128 characters and a
-  serialized file above 1,048,576 bytes, and prunes to the cap while keeping the
-  newest entry; a 0.5 reader rejects schema 2 without rewriting it. Lowering the
-  window is destructive on the next successful write. See
+  writer validates every run, rejects an id longer than 128 UTF-16 code units
+  and a serialized file above 1,048,576 bytes, and prunes to the cap while
+  keeping the newest entry; a 0.5 reader rejects schema 2 without rewriting it.
+  Lowering the window is destructive on the next successful write. See
   [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
 - **B-047 Zero-test JUnit document in a directory** — resolved on 2026-11-23 in
   the `junit-empty-documents` change: a zero-test JUnit document (well-formed

@@ -41,13 +41,14 @@ D1: early-size → history → static → baseline. This change lands second.
 ## Impact
 
 - Capability: `cli-api`.
-- Code: `src/cli.ts`, `src/history.ts`, `src/index.ts`.
+- Code: `src/cli.ts`, `src/history.ts`, `src/index.ts`, `src/run.ts`
+  (`GenerateReportOptions.historyLimit`).
 - Tests: history unit boundaries, CLI validation and retention, Trends row
   count, API limits and the implicit-vs-explicit-30 parity.
 - Docs: `docs/AGENT-INTERFACE.md` (schema 1/2, window, default, destructive
   lower limit, older-reader rejection, 1 MiB prune), `docs/ARCHITECTURE.md`
   (the 30-run cap lines), `docs/LIMITATIONS.md` (history rows),
-  `docs/PRODUCT.md:109`, `GLOSSARY.md:175-178`, `README.md`, `docs/CI.md`,
+  `docs/PRODUCT.md:115-120`, `GLOSSARY.md:182-202`, `README.md`, `docs/CI.md`,
   `docs/CHANGELOG.md` and `docs/BACKLOG.md` at archive time.
 - Script: `scripts/history-window.mjs` reproduces the 365-run report and sidecar
   bytes; the 365 maximum stays inside the report-size warning behaviour.
