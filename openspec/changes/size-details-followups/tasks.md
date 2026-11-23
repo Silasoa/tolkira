@@ -52,7 +52,7 @@
 - [x] 4.5 Version surface 0.5.1: `package.json`, both `package-lock.json`
   version fields, `src/index.ts`, `test/smoke.test.ts`, README release line and
   dated `docs/CHANGELOG.md`; commit and push.
-- [ ] 4.6 Pre-release audit (identities, secret scan, GitHub alerts, secrets
+- [x] 4.6 Pre-release audit (identities, secret scan, GitHub alerts, secrets
   list, npm maintainers, committed screenshots).
 - [ ] 4.7 Tag and stage only after the user's per-version approval.
 
@@ -84,6 +84,15 @@
   section. `npm run check` on the bumped tree: 78 files, 1,214 passed, 5
   skipped; `npm run test:e2e`: 388 passed, 8 skipped, Chromium, Firefox and
   WebKit. Packed tarball `tolkira-0.5.1.tgz` 578,651 bytes for the host rows.
+- Pre-release audit 2026-11-23: commit identities are the maintainer's GitHub
+  noreply address, the project identity and dependabot; no private address.
+  Tree scan found no token, private-key or `.env` pattern; the history scan
+  found no secret-shaped token (the four `sk-` commits are hyphenated words).
+  `gh api .../secret-scanning/alerts` returned `[]`; `gh secret list` holds only
+  `NPM_TOKEN`; `npm view tolkira maintainers` is the project address. Email
+  domains in tracked files are example, GitHub noreply and the project address.
+  No committed image changed since v0.5.0, and no tracked file carries a real
+  local user path.
 - Reviewed range artifact: the `docs: research Tolkira placement venues and
   rules` and `docs: research the 0.6.0 baseline anchor` commits are inside the
   reviewed range but are not part of this change.
