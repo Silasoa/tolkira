@@ -166,9 +166,6 @@ function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
     reject(`${at}.recordedAt must be an ISO timestamp`);
   }
   if (typeof run.title !== 'string') reject(`${at}.title must be a string`);
-  if (Array.from(run.title).length > HISTORY_MAX_TITLE) {
-    reject(`${at}.title is longer than ${HISTORY_MAX_TITLE} characters`);
-  }
   if (typeof run.status !== 'string' || !STATUSES.has(run.status as SummaryStatus)) {
     reject(`${at}.status is not a known status`);
   }

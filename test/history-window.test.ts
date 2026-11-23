@@ -526,6 +526,18 @@ describe('history write cap', () => {
     await expect(readHistory(file)).resolves.toStrictEqual([long]);
   });
 
+  it('reads a hand-edited long title and caps it on the next write', async () => {
+    const long = makeRun(0, { title: 't'.repeat(300) });
+    const file = await writeRaw('history.json', sidecar([long]));
+
+    await expect(readHistory(file)).resolves.toStrictEqual([long]);
+
+    await writeHistory(file, [long]);
+    const stored = await storedRuns(file);
+    expect(Array.from(stored[0]?.title ?? '')).toHaveLength(HISTORY_MAX_TITLE);
+    expect(stored[0]?.title.endsWith('…')).toBe(true);
+  });
+
   it.each([
     [
       'oversized',

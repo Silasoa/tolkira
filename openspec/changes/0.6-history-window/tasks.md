@@ -138,6 +138,12 @@ fixed or explicitly recorded; nothing is silently dropped.
   file to about 640 KB. The guard stays as defence in depth and the
   largest-window test pins that precondition instead; recorded, not skipped
   silently.
+- A1 follow-up (2026-11-23): `parseRun` no longer rejects a stored title longer
+  than 200 characters on read, so the reader is as permissive about titles as
+  0.5.1 and the spec's invalid-entry list stays the whole rule set. `capTitle`
+  in `writeHistory` is the single enforcement point and still stores at most 200
+  characters. Pinned by "reads a hand-edited long title and caps it on the next
+  write" in `test/history-window.test.ts`.
 - A2 Unbounded schema peek: fixed. One internal `readSidecar` (non-blocking
   open, `fstat`, regular-file check, 1 MiB cap, bounded read) serves
   `readHistory` and `storedSchema`; `readHistory(file, limit?)` is unchanged.
