@@ -145,7 +145,9 @@ Implementation notes and deviations (2026-11-24):
 - `npm run check`: pass; 84 test files, 1352 passed, 5 skipped; typecheck, lint
   and build green; client bundle 15,268 B under the 16,000 B budget.
 - `npm run test:e2e`: pass on Chromium, Firefox and WebKit; 409 passed, 8
-  skipped.
+  skipped. The default 6-worker run twice exposed unrelated Firefox load flakes
+  (`search.spec.ts` tag filter once; four `parity-metadata.spec.ts` cases once);
+  every flake passed isolated, and the recorded clean run used `--workers=3`.
 - Host rows: Windows official Cucumber-js host (`@cucumber/cucumber@13.3.0`,
   Node 26.13.1, Playwright 1.65.1) passed; see
   `docs/DROP-IN-VALIDATION.md`. Seed-Test, Playwright movies-app, Spring
