@@ -325,7 +325,7 @@
   },
   "format.bytes": {
     "message": "{count} bytes",
-    "description": "Byte count; count is already locale-formatted"
+    "description": "Byte count; count is a raw number"
   },
   "format.emptyRatio": {
     "message": "0 / 0 passed",

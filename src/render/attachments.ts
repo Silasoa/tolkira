@@ -154,7 +154,7 @@ export function renderAttachment(
   if (attachment.kind === 'text' && attachment.text !== undefined) {
     return `<details class="attachmentText"><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t)}</details>`;
   }
-  const bytes = t.t('format.bytes', { count: t.number(attachment.bytes) });
+  const bytes = t.t('format.bytes', { count: attachment.bytes });
   if (attachment.dataUri) {
     return `<a class="fileLink" href="${escapeHtml(attachment.dataUri)}" download="${name}">${name} (${media}, ${bytes})</a>`;
   }

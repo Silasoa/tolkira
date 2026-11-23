@@ -57,8 +57,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
-| B-045 | Report | P3 | `format.bytes` receives a pre-formatted `t.number()` string from the render paths while the email path passes a raw number; a future target catalog with a plural branch on `format.bytes` would see `Number("1.048.576")` as `NaN` and throw | A target catalog adds a plural branch to `format.bytes`, or another caller passes a raw number where the renderer expects a pre-formatted string. | — |
-| B-046 | Report | P3 | German Details `.metaList` does not stack at 560 px and below because `:lang(de) .metaList` in `src/render/html.ts` beats `.sizeMeta` in `src/render/report.css`; proven at 320 px and 200% text (mid-number split), pre-existing | The next Details stacking or locale CSS change, or a German mobile report. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -117,6 +115,25 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-045 Numeric `format.bytes` counts** — resolved on 2026-11-23 in the
+  `size-details-followups` change: `sizeLabel`, `exactSizeLabel` and the
+  attachment size row pass the raw numeric byte count to `format.bytes` instead
+  of a pre-formatted `t.number()` string, so a target catalog with a plural
+  branch selects the category from the number and never parses a grouped string
+  such as `1.048.576`. The default English and German byte text is unchanged,
+  and no catalog key or message changed; only the `en.json` description now says
+  the count is a raw number. `format.megabytes` keeps the same latent
+  pre-formatted-string pattern and stays deferred, because fixing it needs a
+  precision-aware design.
+- **B-046 German Details stacking** — resolved on 2026-11-23 in the
+  `size-details-followups` change: one narrow-only German override
+  (`@media (max-width:560px){:lang(de) .sizeMeta{grid-template-columns:minmax(0,1fr)}}`)
+  stacks the Details Run panel at 560 px and below, so the exact byte count no
+  longer splits mid-number at 320 px and 200 % text. The German two-column
+  layout above 560 px and in print is unchanged, and the other metaLists
+  (metadata, custom metadata, environment) are untouched. The E2E test pins one
+  used track at 560 px, two at 1440 px and an unbroken grouped count with no
+  horizontal overflow at 320 px.
 - **B-041 Report-size unit consistency** — implemented on 2026-11-23 in the
   `report-size-units` change: the Details Report HTML row leads with the exact
   locale-formatted byte count and, at 1 MiB and above, adds one-decimal MB in

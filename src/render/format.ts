@@ -60,12 +60,12 @@ export function sizeLabel(bytes: number, t: Translator): string {
     // Number and unit stay on one line at 200 % text zoom.
     return t.t('format.megabytes', { count }).replaceAll(' ', '\u00a0');
   }
-  return t.t('format.bytes', { count: t.number(bytes) });
+  return t.t('format.bytes', { count: bytes });
 }
 
 /** Report size: the exact byte count, plus MB at 1 MiB and above. */
 export function exactSizeLabel(bytes: number, t: Translator): string {
-  const exact = t.t('format.bytes', { count: t.number(bytes) });
+  const exact = t.t('format.bytes', { count: bytes });
   return bytes >= MIB ? `${exact} (${sizeLabel(bytes, t)})` : exact;
 }
 
