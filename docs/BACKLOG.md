@@ -57,6 +57,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
+| B-047 | Input | P2 | One zero-test JUnit document fails the whole directory render; a real `mvn test` emits such a file for a skipped suite (PetClinic with Docker off) | A host or user reports the rejection, or the JUnit adapter is next touched; then skip empty documents inside a directory and keep the clear single-document error. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -408,6 +409,12 @@ asks or a locale needs them:
   text is frozen by 0.5.1, and a rename changes every size string. Trigger: a
   user reports the mismatch, or a units/vocabulary pass touches the size labels;
   then decide between `MiB` and decimal `MB`, including the exact-byte row.
+- **Zero-byte attachments.** An attachment whose inline body is empty is
+  dropped instead of rendered as an empty image or file; the byte total is
+  unchanged and no skip notice is emitted. The Playwright earlier-image path
+  filters an empty body by design, and an empty attachment carries no content.
+  Trigger: a user reports a missing empty attachment, or an attachment-count
+  parity claim needs the raw producer count.
 
 ## Review follow-ups (2026-11-18)
 

@@ -46,7 +46,7 @@
 - [x] 4.2 SCR, CR, DAR, UXR, ILA, STR and CMP; CMP is required for a
   user-facing report change. SEC is not triggered (no new input path).
 - [x] 4.3 Fix findings; record deferred decisions.
-- [ ] 4.4 Host rows: run the five required `docs/DROP-IN-VALIDATION.md` rows on
+- [x] 4.4 Host rows: run the five required `docs/DROP-IN-VALIDATION.md` rows on
   the final tree and record host, pin and result, or record a written exception
   the user approves for this version.
 - [x] 4.5 Version surface 0.5.1: `package.json`, both `package-lock.json`
@@ -108,3 +108,15 @@
   right-column panel is only 311 px wide there); forcing two tracks at 560 px
   gave 190 / 285 px (fails the one-track assertion). The 561 px boundary
   assertion is the one that catches the deleted German rule.
+- Host rows 2026-11-23 on the packed 0.5.1 tarball (578,651 B, SHA-256
+  `01B63EA1…BD049`), temporary checkouts, Node 26.13.1, JDK 21.0.13.1 + Maven
+  3.9.9, Docker off. Seed-Test Pass (story 1/3, group 2/4, sidecar 2 stories);
+  cucumber-js Pass (2 scenarios, legacy and Messages summaries byte-identical);
+  Playwright movies-app Pass (full suite 123 tests, 123/123 source lines);
+  PetClinic Pass on the documented unit scope (72/72, 17 features); Cucumber-JVM
+  Pass (3 features / 8 scenarios / 54 results). The German shell check on the
+  Seed-Test story artifact matches the spec at 560 px, 1440 px, A4 print
+  emulation and 320 px at 200 %. Three 0.5.0 baselines were re-measured because
+  they came from subsets or other invocations; the PetClinic full-suite
+  diagnostic is red by documented design (zero-test Surefire document) and is
+  recorded as B-047. Details and limits in `docs/DROP-IN-VALIDATION.md`.
