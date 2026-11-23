@@ -68,6 +68,7 @@ function renderTriageRow({
 export function renderTriage(
   features: OrderedFeature[],
   t: Translator,
+  staticMode = false,
 ): string {
   const attention = features
     .map((entry, index) => ({ ...entry, index }))
@@ -94,7 +95,7 @@ export function renderTriage(
   );
   const rows = shown.map((entry) => renderTriageRow(entry, t)).join('');
   const restBlock = rest.length
-    ? `<details class="triageRest"><summary>${t.t('triage.showMore', { count: rest.length })}</summary><ol class="triageList">${rest.map((entry) => renderTriageRow(entry, t)).join('')}</ol></details>`
+    ? `<details class="triageRest"${staticMode ? ' open' : ''}><summary>${t.t('triage.showMore', { count: rest.length })}</summary><ol class="triageList">${rest.map((entry) => renderTriageRow(entry, t)).join('')}</ol></details>`
     : '';
   const remainder =
     attention.length > TRIAGE_FEATURE_LIMIT

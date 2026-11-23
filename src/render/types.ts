@@ -13,6 +13,8 @@ export interface RenderOptions {
   locale?: string;
   /** Prior aggregate runs; two or more render the Trends view. */
   history?: HistoryRun[];
+  /** Script-free report: stacked views, open details, no dead controls. */
+  static?: boolean;
   summary?: ReportSummary;
   provenance?: Map<string, string>;
   /** Index already built from the sanitized envelopes; internal fast path. */

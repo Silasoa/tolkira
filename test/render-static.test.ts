@@ -124,6 +124,7 @@ describe('static report shell', () => {
   it('renders without scripts, tabs, dead controls or dangling ARIA', async () => {
     const options: StaticRenderOptions = {
       title: 'Static shell',
+      static: true,
       history: await history(2),
     };
     const html = await renderHtml(await richEnvelopes(), options);
@@ -186,6 +187,7 @@ describe('static report shell', () => {
   it('opens every disclosure kind without a click', async () => {
     const options: StaticRenderOptions = {
       title: 'Static details',
+      static: true,
       history: await history(2),
     };
     const html = await renderHtml(await richEnvelopes(), options);
@@ -228,7 +230,7 @@ describe('static report shell', () => {
   });
 
   it('escapes hostile text without a script or markup executing', async () => {
-    const options: StaticRenderOptions = { title: 'Hostile static' };
+    const options: StaticRenderOptions = { title: 'Hostile static', static: true };
     const html = await renderHtml(
       syntheticRun([
         {
@@ -256,6 +258,7 @@ describe('static views', () => {
   it('stacks Report, Details and Trends with two history runs', async () => {
     const options: StaticRenderOptions = {
       title: 'Static stack',
+      static: true,
       history: await history(2),
     };
     const html = await renderHtml(await richEnvelopes(), options);
@@ -277,6 +280,7 @@ describe('static views', () => {
     async (count) => {
       const options: StaticRenderOptions = {
         title: `Static ${count}`,
+        static: true,
         history: await history(count),
       };
       const html = await renderHtml(await richEnvelopes(), options);
@@ -292,6 +296,7 @@ describe('static views', () => {
   it('keeps the Trends table and sparkline with many runs', async () => {
     const options: StaticRenderOptions = {
       title: 'Static many',
+      static: true,
       history: await history(30),
     };
     const html = await renderHtml(await richEnvelopes(), options);

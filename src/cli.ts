@@ -45,6 +45,7 @@ Generate one self-contained HTML report from Cucumber JSON, Messages, JUnit XML 
 
 Options:
   -o, --out <file>     Output HTML file
+      --static         Script-free static report with every view and detail open; needs --out or --pdf
       --pdf <file>     Write an A4 PDF through the optional Playwright engine
       --pdf-timeout <ms> PDF render deadline in milliseconds (default 300000); needs --pdf
       --email <file>   Write an HTML email summary
@@ -79,6 +80,7 @@ function parseCliArgs(argv: string[]) {
     allowPositionals: true,
     options: {
       out: { type: 'string', short: 'o' },
+      static: { type: 'boolean' },
       pdf: { type: 'string' },
       'pdf-timeout': { type: 'string' },
       email: { type: 'string' },
@@ -335,6 +337,11 @@ export async function runCli(
 
   if (pdfPath === '') {
     io.stderr(`tolkira: --pdf requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (parsed.values.static && !output && pdfPath === undefined) {
+    io.stderr(`tolkira: --static requires --out or --pdf\n\n${USAGE}`);
     return 2;
   }
 
@@ -625,6 +632,7 @@ export async function runCli(
       logo,
       accent,
       historyLimit,
+      ...(parsed.values.static ? { static: true } : {}),
       ...(locale === undefined ? {} : { locale }),
       ...(history === undefined ? {} : { history }),
     });

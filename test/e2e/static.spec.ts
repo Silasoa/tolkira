@@ -14,7 +14,6 @@ import {
 
 const screenshotFixture = messagesFixture('screenshot.ndjson');
 const allStatusesFixture = messagesFixture('all-statuses.ndjson');
-const hooksFixture = messagesFixture('hooks.ndjson');
 const germanInput = fileURLToPath(
   new URL('../fixtures/i18n/german-testdata.json', import.meta.url),
 );
@@ -61,7 +60,7 @@ async function expectStackedViews(page: Page, trends: boolean): Promise<void> {
 
 test.beforeAll(async () => {
   english = await writeReportWithHistory(
-    [screenshotFixture, allStatusesFixture, hooksFixture],
+    [screenshotFixture, allStatusesFixture],
     await freshHistory('tolkira-static-history-'),
     'Static archive',
     'tolkira-static-e2e-',

@@ -9,6 +9,8 @@ export interface RenderReportOptions {
   locale?: string;
   /** Prior aggregate runs; renderReport only renders them, generateReport appends. */
   history?: HistoryRun[];
+  /** Opt-in script-free report with every view stacked and every detail open. */
+  static?: boolean;
 }
 
 export function renderOptions(options: RenderReportOptions) {
@@ -18,5 +20,6 @@ export function renderOptions(options: RenderReportOptions) {
     logo: options.logo,
     accent: options.accent,
     locale: options.locale,
+    static: options.static,
   };
 }

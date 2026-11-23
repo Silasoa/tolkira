@@ -133,6 +133,7 @@ export function renderAttachment(
   attachment: ReportAttachment,
   context: string | undefined,
   t: Translator,
+  staticMode = false,
 ): string {
   const name = escapeHtml(attachment.fileName);
   const media = escapeHtml(attachment.mediaType);
@@ -143,7 +144,8 @@ export function renderAttachment(
       })
     : t.t('attachment.attachmentName', { name });
   if (attachment.kind === 'image' && attachment.dataUri) {
-    return `<figure class="attachment"><button class="shotButton" type="button" aria-label="${t.t('attachment.viewFullSize', { label })}"><img class="shot" src="${escapeHtml(attachment.dataUri)}" alt="${label} (${media})"></button><figcaption>${name} (${media})</figcaption></figure>`;
+    const image = `<img class="shot" src="${escapeHtml(attachment.dataUri)}" alt="${label} (${media})">`;
+    return `<figure class="attachment">${staticMode ? image : `<button class="shotButton" type="button" aria-label="${t.t('attachment.viewFullSize', { label })}">${image}</button>`}<figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'video' && attachment.dataUri) {
     return `<figure class="attachment"><video class="shot" controls src="${escapeHtml(attachment.dataUri)}"></video><figcaption>${name} (${media})</figcaption></figure>`;
@@ -152,7 +154,7 @@ export function renderAttachment(
     return `<figure class="attachment"><audio controls src="${escapeHtml(attachment.dataUri)}"></audio><figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'text' && attachment.text !== undefined) {
-    return `<details class="attachmentText"><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t)}</details>`;
+    return `<details class="attachmentText"${staticMode ? ' open' : ''}><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t)}</details>`;
   }
   const bytes = t.t('format.bytes', { count: attachment.bytes });
   if (attachment.dataUri) {

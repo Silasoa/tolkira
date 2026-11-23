@@ -126,6 +126,18 @@ describe('CucumberHtmlStream', () => {
     expect(html).toContain('data-view="trends"');
   });
 
+  it('renders the static form through the same option', async () => {
+    const html = await streamHtml('Stream static', { static: true });
+
+    expect(html).not.toMatch(/<script\b/i);
+    expect(html).toContain('id="report-view"');
+    expect(withoutFileOrigin(html)).toBe(
+      withoutFileOrigin(
+        await renderReport(fixture, { title: 'Stream static', static: true }),
+      ),
+    );
+  });
+
   it('forwards renderer errors without emitting partial HTML', async () => {
     const hostile = {
       get pickle(): never {

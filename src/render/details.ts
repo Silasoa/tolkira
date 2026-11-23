@@ -117,6 +117,7 @@ export function renderAnalysisView(
   options: RenderOptions,
   summary: ReportSummary,
   t: Translator,
+  staticMode = false,
 ): string {
   const counts = model.counts.scenarios;
   const preview = {
@@ -132,10 +133,13 @@ export function renderAnalysisView(
         `<dt>${escapeHtml(key)}</dt><dd>${metadataValueHtml(value)}</dd>`,
     )
     .join('');
-  return `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis">${detailsHeader(model, t)}<div class="analysisGrid"><section class="panel"><h2>${t.t('details.features')}</h2><p>${t.t('details.featureSpend')}</p><p class="matrixHint">${t.t('details.matrixHint')}</p><div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('details.matrixLabel')}">${renderFeatureMatrix(model, t)}</div></section><section class="panel"><h2>${t.t('details.statusDistribution')}</h2><p>${t.t('details.passRateNote')}</p><div class="legend">${displayStatuses(model)
+  const view = `${detailsHeader(model, t)}<div class="analysisGrid"><section class="panel"><h2>${t.t('details.features')}</h2><p>${t.t('details.featureSpend')}</p><p class="matrixHint">${t.t('details.matrixHint')}</p><div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('details.matrixLabel')}">${renderFeatureMatrix(model, t)}</div></section><section class="panel"><h2>${t.t('details.statusDistribution')}</h2><p>${t.t('details.passRateNote')}</p><div class="legend">${displayStatuses(model)
     .map(
       (status) =>
         `<div class="legendRow ${statusClass(status)}"><span class="marker ${statusClass(status)}"></span><span>${statusLabel(status, t)}</span><b>${t.number(counts[status])}</b></div>`,
     )
-    .join('')}</div>${runPanel(model, counts.total, options, t)}${environmentPanel(model, customRows, t)}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>${t.t('details.runAttachments')}</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, t.t('details.runAttachments'), t)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>${t.t('details.agentSummary')}</h2><p>${t.t('details.agentSummaryNote')}</p><pre class="json" tabindex="0" aria-label="${t.t('details.agentSummaryJson')}">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">${t.t('details.fullSummary')} <code>tolkira ... --json</code></p></main></div>`;
+    .join('')}</div>${runPanel(model, counts.total, options, t)}${environmentPanel(model, customRows, t)}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>${t.t('details.runAttachments')}</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, t.t('details.runAttachments'), t, staticMode)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>${t.t('details.agentSummary')}</h2><p>${t.t('details.agentSummaryNote')}</p><pre class="json" tabindex="0" aria-label="${t.t('details.agentSummaryJson')}">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">${t.t('details.fullSummary')} <code>tolkira ... --json</code></p>`;
+  return staticMode
+    ? `<div class="tabPanel" id="${DOM_IDS.analysisView}"><div class="shell analysis">${view}</div></div>`
+    : `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><main class="shell analysis">${view}</main></div>`;
 }

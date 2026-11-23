@@ -135,6 +135,7 @@ function renderStep(
   step: ReportStep,
   scenarioName: string,
   t: Translator,
+  staticMode = false,
 ): string {
   const diagnostic = renderDiagnostic(step, t);
   const docString = step.docString
@@ -158,7 +159,7 @@ function renderStep(
     : '';
   const context = `${scenarioName}: ${step.keyword.trim()} ${step.text}`;
   const attachments = step.attachments
-    .map((attachment) => renderAttachment(attachment, context, t))
+    .map((attachment) => renderAttachment(attachment, context, t, staticMode))
     .join('');
   return `<li class="step"${step.status === 'failed' ? ' data-status="failed"' : ''}><span class="stepMarker ${statusClass(step.status)}"><span aria-hidden="true">${STEP_GLYPHS[step.status]}</span><span class="sr">${statusLabel(step.status, t)}</span></span><div><span class="kw">${escapeHtml(step.keyword)}</span> <span class="stepText">${renderStepText(step)}</span>${diagnostic}${error}${docString}${table}${attachments}</div><span class="dur">${durationLabel(step.durationMs, t)}</span></li>`;
 }
@@ -168,6 +169,7 @@ function renderHook(
   scenarioName: string,
   t: Translator,
   bareName = false,
+  staticMode = false,
 ): string {
   const error = hook.message
     ? `<pre class="error">${escapeHtml(hook.message)}</pre>`
@@ -175,15 +177,19 @@ function renderHook(
   const label = hookLabel(hook, bareName);
   const attachments = hook.attachments
     .map((attachment) =>
-      renderAttachment(attachment, `${scenarioName}: ${label}`, t),
+      renderAttachment(attachment, `${scenarioName}: ${label}`, t, staticMode),
     )
     .join('');
   return `<li class="hook" data-status="${hook.status}"><span class="stepMarker ${statusClass(hook.status)}"><span aria-hidden="true">${STEP_GLYPHS[hook.status]}</span><span class="sr">${statusLabel(hook.status, t)}</span></span><div><span class="hookLabel">${escapeHtml(label)}</span>${error}${attachments}</div><span class="dur">${durationLabel(hook.durationMs, t)}</span></li>`;
 }
 
-function renderRunHooks(model: ReportModel, t: Translator): string {
+function renderRunHooks(
+  model: ReportModel,
+  t: Translator,
+  staticMode = false,
+): string {
   if (model.runHooks.length === 0) return '';
-  return `<section class="runHooks" data-run-hooks aria-labelledby="run-hooks-heading"><h2 id="run-hooks-heading">${t.t('report.runHooks')}</h2><ul class="hooks">${model.runHooks.map((hook) => renderHook(hook, t.t('report.run'), t, true)).join('')}</ul></section>`;
+  return `<section class="runHooks" data-run-hooks aria-labelledby="run-hooks-heading"><h2 id="run-hooks-heading">${t.t('report.runHooks')}</h2><ul class="hooks">${model.runHooks.map((hook) => renderHook(hook, t.t('report.run'), t, true, staticMode)).join('')}</ul></section>`;
 }
 
 function backgroundText(background: ReportBackground): string {
@@ -312,6 +318,7 @@ function skippedAttachmentNotice(
 function renderEarlierAttempts(
   scenario: ReportScenario,
   t: Translator,
+  staticMode = false,
 ): string {
   const attempts = scenario.earlierAttempts ?? [];
   if (attempts.length === 0) return '';
@@ -333,13 +340,14 @@ function renderEarlierAttempts(
             attachment,
             t.t('report.earlierAttemptImage', { count: attempt.attempt }),
             t,
+            staticMode,
           ),
         )
         .join('');
       return `<li><div class="earlierAttemptHead"><span>${escapeHtml(t.t('report.earlierAttempt', { count: attempt.attempt }))}</span><span class="statusText ${statusClass(attempt.status)}">${statusLabel(attempt.status, t)}</span><span>${durationLabel(attempt.durationMs, t)}</span></div>${message}${images}</li>`;
     })
     .join('');
-  return `<details class="earlierAttempts"><summary>${escapeHtml(summary)}</summary><ol class="earlierAttemptList">${items}</ol></details>`;
+  return `<details class="earlierAttempts"${staticMode ? ' open' : ''}><summary>${escapeHtml(summary)}</summary><ol class="earlierAttemptList">${items}</ol></details>`;
 }
 
 function scenarioBody({
@@ -351,6 +359,7 @@ function scenarioBody({
   extraAttachments,
   scenarioMeta,
   t,
+  staticMode = false,
 }: {
   scenario: ReportScenario;
   description: string;
@@ -360,9 +369,10 @@ function scenarioBody({
   extraAttachments: string;
   scenarioMeta: string;
   t: Translator;
+  staticMode?: boolean;
 }): string {
   const copyFailure =
-    scenario.status === 'failed'
+    !staticMode && scenario.status === 'failed'
       ? `<button class="copyFailure" type="button" data-copy-failure>${t.t('report.copyFailure')}</button>`
       : '';
   const started = scenario.startedAt
@@ -382,6 +392,7 @@ function renderScenario(
   t: Translator,
   grouped = false,
   inRule = false,
+  staticMode = false,
 ): string {
   const outline = scenario.outline;
   const example =
@@ -393,28 +404,29 @@ function renderScenario(
     (attachment) => attachment.kind === 'image' && attachment.dataUri,
   );
   const open =
-    scenario.executed &&
-    (scenario.status !== 'passed' || (!grouped && Boolean(image)));
+    staticMode ||
+    (scenario.executed &&
+      (scenario.status !== 'passed' || (!grouped && Boolean(image))));
   const passedHooks = scenario.hooks.filter(
     (hook) => hook.status === 'passed',
   );
   const inlineItems = [
     ...scenario.steps.map((step) => ({
       order: step.order,
-      html: renderStep(step, scenario.name, t),
+      html: renderStep(step, scenario.name, t, staticMode),
     })),
     ...scenario.hooks
       .filter((hook) => hook.status !== 'passed')
       .map((hook) => ({
         order: hook.order,
-        html: renderHook(hook, scenario.name, t),
+        html: renderHook(hook, scenario.name, t, false, staticMode),
       })),
   ]
     .sort((a, b) => a.order - b.order)
     .map((item) => item.html)
     .join('');
   const passedHooksGroup = passedHooks.length
-    ? `<details class="hookGroup"><summary>${t.t('report.hookCount', { count: passedHooks.length })}</summary><ul class="hooks" aria-label="${t.t('report.passedHooks')}">${passedHooks.map((hook) => renderHook(hook, scenario.name, t)).join('')}</ul></details>`
+    ? `<details class="hookGroup"${staticMode ? ' open' : ''}><summary>${t.t('report.hookCount', { count: passedHooks.length })}</summary><ul class="hooks" aria-label="${t.t('report.passedHooks')}">${passedHooks.map((hook) => renderHook(hook, scenario.name, t, false, staticMode)).join('')}</ul></details>`
     : '';
   const description = grouped ? '' : renderDescription(scenario.description, t);
   const screenReaderLabel =
@@ -440,7 +452,7 @@ function renderScenario(
   // rows show only their own tags and never repeat inherited feature/rule tags.
   const rowTags = grouped ? '' : tagsMarkup(scenario.ownTags);
   const extraAttachments = scenario.extraAttachments.length
-    ? `<div role="group" aria-label="${t.t('report.attachments')}"><p class="detailLabel">${t.t('report.attachments')}</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name, t)).join('')}</div>`
+    ? `<div role="group" aria-label="${t.t('report.attachments')}"><p class="detailLabel">${t.t('report.attachments')}</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name, t, staticMode)).join('')}</div>`
     : '';
   const scenarioMeta =
     grouped && outline
@@ -458,7 +470,7 @@ function renderScenario(
   })
     .map(([name, value]) => `${name}="${escapeHtml(value)}"`)
     .join(' ');
-  return `<details class="scenario" id="${scenarioId(featureIndex, scenarioIndex)}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}>${scenarioSummary(scenario, heading, visibleName, image, rowTags, t)}${scenarioBody({ scenario, description, inlineItems, passedHooksGroup, earlierAttempts: renderEarlierAttempts(scenario, t), extraAttachments, scenarioMeta, t })}</details>`;
+  return `<details class="scenario" id="${scenarioId(featureIndex, scenarioIndex)}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}>${scenarioSummary(scenario, heading, visibleName, image, rowTags, t)}${scenarioBody({ scenario, description, inlineItems, passedHooksGroup, earlierAttempts: renderEarlierAttempts(scenario, t, staticMode), extraAttachments, scenarioMeta, t, staticMode })}</details>`;
 }
 
 function renderExamples(
@@ -467,6 +479,7 @@ function renderExamples(
   featureIndex: number,
   idIndex: Map<string, number>,
   t: Translator,
+  staticMode = false,
 ): string {
   const description = renderDescription(outline.examplesDescription, t);
   const title = outline.examplesName
@@ -480,6 +493,8 @@ function renderExamples(
         idIndex.get(scenario.id) ?? 0,
         t,
         true,
+        false,
+        staticMode,
       ),
     )
     .join('')}</div></section>`;
@@ -491,6 +506,7 @@ function renderOutline(
   featureIndex: number,
   idIndex: Map<string, number>,
   t: Translator,
+  staticMode = false,
 ): string {
   const blocks = new Map<string, { outline: ReportOutline; rows: ReportScenario[] }>();
   for (const row of rows) {
@@ -505,7 +521,7 @@ function renderOutline(
   const exampleBlocks = [...blocks.values()]
     .sort((a, b) => a.outline.examplesIndex - b.outline.examplesIndex)
     .map((block) =>
-      renderExamples(block.outline, block.rows, featureIndex, idIndex, t),
+      renderExamples(block.outline, block.rows, featureIndex, idIndex, t, staticMode),
     )
     .join('');
   const description = renderDescription(outline.description, t);
@@ -536,9 +552,17 @@ function renderFeatureItem(
   idIndex: Map<string, number>,
   inRule: boolean,
   t: Translator,
+  staticMode = false,
 ): string {
   if (item.kind === 'outline' && item.outline && item.rows) {
-    return renderOutline(item.outline, item.rows, featureIndex, idIndex, t);
+    return renderOutline(
+      item.outline,
+      item.rows,
+      featureIndex,
+      idIndex,
+      t,
+      staticMode,
+    );
   }
   if (item.scenario) {
     return renderScenario(
@@ -548,6 +572,7 @@ function renderFeatureItem(
       t,
       false,
       inRule,
+      staticMode,
     );
   }
   return '';
@@ -558,12 +583,13 @@ function renderRuleBlock(
   featureIndex: number,
   idIndex: Map<string, number>,
   t: Translator,
+  staticMode = false,
 ): string {
   const rule = block.rule;
   const name = rule.name ? ` ${escapeHtml(rule.name)}` : '';
   const description = renderDescription(rule.description, t);
   return `<section class="rule" data-rule data-search="${escapeHtml(ruleSearchText(rule))}"><h3 class="ruleTitle"><span class="kw">${escapeHtml(rule.keyword)}:</span>${name}</h3>${tagsMarkup(rule.tags, 'ruleTags')}${description}${backgroundMarkup(rule.backgrounds, t)}<div class="ruleRows">${block.items
-    .map((item) => renderFeatureItem(item, featureIndex, idIndex, true, t))
+    .map((item) => renderFeatureItem(item, featureIndex, idIndex, true, t, staticMode))
     .join('')}</div></section>`;
 }
 
@@ -606,9 +632,11 @@ function renderFeature(
   { feature, scenarios }: OrderedFeature,
   featureIndex: number,
   t: Translator,
+  staticMode = false,
 ): string {
   const executed = executedOnly(scenarios);
   const open =
+    staticMode ||
     executed.length === 0 ||
     executed.some(
       (scenario) =>
@@ -722,8 +750,8 @@ function renderFeature(
   return `<details class="feature ${feature.status === 'failed' ? 'has-fail' : 'has-pass'}" id="${featureId(featureIndex)}" data-feature data-background-search="${backgroundSearch}" ${open ? 'open' : ''}>${featureSummary(feature, scenarios, t)}${description}${backgroundMarkup(feature.backgrounds, t)}<div class="rows">${topItems
     .map((item) =>
       item.kind === 'rule'
-        ? renderRuleBlock(item, featureIndex, idIndex, t)
-        : renderFeatureItem(item, featureIndex, idIndex, false, t),
+        ? renderRuleBlock(item, featureIndex, idIndex, t, staticMode)
+        : renderFeatureItem(item, featureIndex, idIndex, false, t, staticMode),
     )
     .join('')}</div></details>`;
 }
@@ -782,14 +810,18 @@ export function renderReportView(
   model: ReportModel,
   options: RenderOptions,
   t: Translator,
+  staticMode = false,
 ): string {
   const total = model.counts.scenarios.total;
   const ordered = orderFeatures(model.features);
   const features = ordered
-    .map((feature, index) => renderFeature(feature, index, t))
+    .map((feature, index) => renderFeature(feature, index, t, staticMode))
     .join('');
-  const triage = renderTriage(ordered, t);
+  const triage = renderTriage(ordered, t, staticMode);
   const sources = renderSourceStrip(model, t);
-  const runHooks = renderRunHooks(model, t);
-  return `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell">${reportHeader(model, options, t)}${toolbar(model, t)}<p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">${t.t('report.noScenarios')}</div>`}</div>${runHooks}<div class="empty" id="${DOM_IDS.emptyResults}" hidden>${t.t('report.noMatches')}</div><p class="foot">${t.t('report.footer')}</p></main></div>`;
+  const runHooks = renderRunHooks(model, t, staticMode);
+  const shell = `${reportHeader(model, options, t)}${staticMode ? '' : toolbar(model, t)}<p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">${t.t('report.noScenarios')}</div>`}</div>${runHooks}${staticMode ? '' : `<div class="empty" id="${DOM_IDS.emptyResults}" hidden>${t.t('report.noMatches')}</div>`}<p class="foot">${t.t('report.footer')}</p>`;
+  return staticMode
+    ? `<div class="tabPanel" id="${DOM_IDS.reportView}"><main class="shell">${shell}</main></div>`
+    : `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell">${shell}</main></div>`;
 }
