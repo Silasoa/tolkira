@@ -413,16 +413,37 @@ are in [`docs/COMPARISON.md`](https://github.com/Silasoa/tolkira/blob/main/docs/
 
 ## Migrating from cucumber-html-reporter
 
-Install Tolkira next to the old reporter and keep the existing JSON output:
+Keep the JSON your test run already writes and point the CLI at it:
+
+```shell
+npx tolkira reports/cucumber.json --out reports/report.html --title "Checkout acceptance"
+```
+
+For a shell or CI step, that is the whole migration: the input stays the legacy
+Cucumber JSON the old reporter consumed, and the output is one self-contained
+HTML file with no CDN and no server. `npx tolkira --help` lists the other flags.
+
+Node.js 22 or newer is required. Node 20 is end-of-life and unsupported;
+upgrading to Node 22+ is the migration cost for the CLI and both code paths. The
+core and CLI are ESM-only; the compatibility subpath also loads from CommonJS
+through an async wrapper.
+
+**What changes for your CI:** the report still comes from the same legacy JSON
+input and is written to the `--out` path, now as one self-contained HTML file.
+Exit codes describe report generation, not test status: 0 means the report or
+summary was generated, even when tests failed; 1 means the input could not be
+parsed or rendered, or the output could not be written; 2 means invalid usage.
+Add `--json` to write one JSON summary document to stdout, with warnings on
+stderr; read `status` and `counts` from it. The old themes, charts and CDN
+assets do not carry over.
+
+If a Node script calls the reporter instead of a shell step, use the
+compatibility shim. Install Tolkira next to the old reporter and keep the
+existing JSON output:
 
 ```shell
 npm i -D tolkira
 ```
-
-Node.js 22 or newer is required. Node 20 is end-of-life and unsupported;
-upgrading to Node 22+ is the migration cost for both the ESM and CommonJS
-paths. The core and CLI are ESM-only; the compatibility subpath also loads
-from CommonJS through an async wrapper.
 
 **Before — CommonJS with cucumber-html-reporter:**
 
