@@ -36,16 +36,14 @@ Fixer pass (2026-11-23): `src/input/junit.ts` guard helpers,
 
 ## 4. Gate and release
 
-- [ ] 4.1 `npm run hygiene`, `npm run check`, `npm run test:e2e`.
-- [ ] 4.2 Re-pack the 0.5.1 tarball and re-run the required host rows on the
+- [x] 4.1 `npm run hygiene`, `npm run check`, `npm run test:e2e`.
+- [x] 4.2 Re-pack the 0.5.1 tarball and re-run the required host rows on the
   final tree; record host, pin and result. Row 4 must render the full
   `mvn test` artifact that was red before.
 - [x] 4.3 Docs: `docs/JUNIT-XML.md` directory rule, 0.5.1 changelog bullet,
   B-047 resolved, `GLOSSARY.md` zero-test entry, `docs/BACKLOG.md` wording,
   proposal/design/spec aligned with the narrower guard.
-- [ ] 4.4 Host record updated with the task 4.2 PetClinic full-suite numbers;
-  the current `docs/DROP-IN-VALIDATION.md` row stays marked as the pre-change
-  0.5.1 tarball result (578,651 B).
+- [x] 4.4 Host record updated with the task 4.2 PetClinic full-suite numbers.
 - [ ] 4.5 Present 0.5.1 for the user's per-version approval. Tag, stage and
   publish only after that approval.
 
@@ -82,3 +80,24 @@ push or publish; the coordinator commits this slice.
   'junit-empty-documents' is valid".
 - Not run here (coordinator): `npm run test:e2e`, host matrix, the task 4.2
   PetClinic full-suite re-run.
+
+Coordinator gate and host record, 2026-11-23 (Windows, Node 26.13.1, npm
+10.8.2). Slice committed as `7258110`; no tag, stage, push or publish.
+
+- `npm run hygiene` — ok (764 files, 317 commits).
+- `npm run check` — green: i18n catalog 24/24, assets, typecheck, lint,
+  build, full suite 78 files, 1230 passed, 5 skipped (1235).
+- `npm run test:e2e` — green: 388 passed, 8 skipped (396) across Chromium,
+  Firefox and WebKit at the documented viewports.
+- Final tarball `tolkira-0.5.1.tgz`: 581,397 B, SHA-256
+  `C584C33B704BAC7539910916ABF280A8030CBB0E08432916BFB691A191234364`.
+- All five required host rows passed on that tarball; records in
+  `docs/DROP-IN-VALIDATION.md`. PetClinic ran the full `mvn -B test`
+  (18 XMLs, 79 tests / 77 passed / 2 skipped, zero-test document present) and
+  rendered 20 features / 79 scenarios / 77 passed / 2 skipped, so the B-047
+  acceptance passed. Other rows kept their counts; only run-specific bytes
+  moved.
+- Pre-release audit: identities are the project identities only; no secret
+  pattern in the tree or the 2,573 history blobs; 0 open secret-scanning
+  alerts; `gh secret list` holds only `NPM_TOKEN`; npm maintainer is the
+  project address.
