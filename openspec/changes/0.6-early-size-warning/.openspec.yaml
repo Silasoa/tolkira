@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-23
+goal: Warn about a large input before parsing and rendering, without changing
+  the exit code or any output bytes.

@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-23
+goal: Add an opt-in static, all-expanded report form that needs no JavaScript
+  and keeps the default report unchanged.

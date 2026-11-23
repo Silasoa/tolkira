@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-11-23
+goal: Compare a run with an explicit earlier --json summary and show new
+  failures, fixed, still-failing and not-in-this-run scenarios in the report,
+  the JSON summary and one Markdown CI line.

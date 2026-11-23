@@ -57,6 +57,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
+| B-048 | Report | P3 | Default report renders three `<main>` elements (Report, Details, Trends), which is invalid HTML; pre-existing and unchanged by the static mode | An HTML-validity or accessibility audit flags the default document, or another change needs one `<main>` in the default report; then make Details/Trends plain containers and keep the `#analysis-view`/`#trends-view` page-break rule. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.

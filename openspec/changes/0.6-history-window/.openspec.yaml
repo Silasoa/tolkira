@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-23
+goal: Let a team choose how many aggregate history runs the sidecar keeps and
+  Trends renders, without changing the default 30-run behaviour.
