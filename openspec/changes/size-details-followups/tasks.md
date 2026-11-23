@@ -43,8 +43,8 @@
 ## 4. Verification and review
 
 - [x] 4.1 `npm run hygiene`, `npm run check`, `npm run test:e2e`.
-- [x] 4.2 SCR, CR, DAR, UXR, ILA and STR; CMP is optional because no
-  competitor-facing output changes. SEC is not triggered (no new input path).
+- [x] 4.2 SCR, CR, DAR, UXR, ILA, STR and CMP; CMP is required for a
+  user-facing report change. SEC is not triggered (no new input path).
 - [x] 4.3 Fix findings; record deferred decisions.
 - [ ] 4.4 Host rows: run the five required `docs/DROP-IN-VALIDATION.md` rows on
   the final tree and record host, pin and result, or record a written exception
@@ -77,7 +77,11 @@
   failure).
 - Review round 2026-11-23: SCR, CR, DAR, UXR, ILA and STR found no behavioural
   defect in the shipped fix; the findings were test gaps and documentation
-  precision, fixed in the fixer pass. CMP is running.
+  precision, fixed in the fixer pass. CMP ran on the same fixture against the
+  official formatter 24.4.0, MCHR 4.6.0, Allure 3.22.1 and Playwright 1.65.1:
+  no parity regression, Tolkira's German stacked panel is at or above the peers,
+  and no peer shows exact bytes. The `MB`-for-1024² naming is pre-existing and
+  recorded as a backlog decision, not a 0.5.1 fix.
 - 0.5.1 version surface committed after the review fixes: `package.json` and
   both `package-lock.json` fields at 0.5.1, `src/index.ts` and
   `test/smoke.test.ts` at 0.5.1, README release line and a dated changelog

@@ -403,6 +403,11 @@ asks or a locale needs them:
   scenario-level hook failure without a step result can render as passed. It is
   documented in `docs/LIMITATIONS.md`. Trigger: a user reports a Behave hook
   failure rendered as passed, or before claiming full Behave hook support.
+- **MB label for 1024² units.** `format.megabytes` divides by 1 MiB but labels
+  the value `MB`; Allure labels the same binary unit `MiB`. The default en/de
+  text is frozen by 0.5.1, and a rename changes every size string. Trigger: a
+  user reports the mismatch, or a units/vocabulary pass touches the size labels;
+  then decide between `MiB` and decimal `MB`, including the exact-byte row.
 
 ## Review follow-ups (2026-11-18)
 
