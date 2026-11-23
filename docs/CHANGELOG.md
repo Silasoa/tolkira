@@ -3,6 +3,24 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
+## [0.5.1] - 2026-11-23
+
+### Fixed
+
+- The German Details Run panel now stacks its label and value rows in one
+  column at 560 px and below, so the exact byte count no longer splits
+  mid-number at 320 px and 200 % text. Above 560 px and in A4 print (the CLI
+  `--pdf` path) the German two-column layout is unchanged; narrower print page
+  boxes follow the stacked layout, as English already does. The other German
+  metadata lists are untouched.
+
+- Byte counts now reach `format.bytes` as raw numbers in the report paths
+  (report size, exact size and attachment rows), so a target catalog with a
+  plural branch selects its category from the count instead of parsing a
+  grouped string such as `1.048.576`. The default English and German byte text
+  is unchanged, no catalog key or message changed, and the English
+  `format.bytes` description now states that `count` is a raw number.
+
 ## [0.5.0] - 2026-11-23
 
 ### Added

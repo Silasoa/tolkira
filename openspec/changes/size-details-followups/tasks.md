@@ -49,7 +49,7 @@
 - [ ] 4.4 Host rows: run the five required `docs/DROP-IN-VALIDATION.md` rows on
   the final tree and record host, pin and result, or record a written exception
   the user approves for this version.
-- [ ] 4.5 Version surface 0.5.1: `package.json`, both `package-lock.json`
+- [x] 4.5 Version surface 0.5.1: `package.json`, both `package-lock.json`
   version fields, `src/index.ts`, `test/smoke.test.ts`, README release line and
   dated `docs/CHANGELOG.md`; commit and push.
 - [ ] 4.6 Pre-release audit (identities, secret scan, GitHub alerts, secrets
@@ -78,6 +78,12 @@
 - Review round 2026-11-23: SCR, CR, DAR, UXR, ILA and STR found no behavioural
   defect in the shipped fix; the findings were test gaps and documentation
   precision, fixed in the fixer pass. CMP is running.
+- 0.5.1 version surface committed after the review fixes: `package.json` and
+  both `package-lock.json` fields at 0.5.1, `src/index.ts` and
+  `test/smoke.test.ts` at 0.5.1, README release line and a dated changelog
+  section. `npm run check` on the bumped tree: 78 files, 1,214 passed, 5
+  skipped; `npm run test:e2e`: 388 passed, 8 skipped, Chromium, Firefox and
+  WebKit. Packed tarball `tolkira-0.5.1.tgz` 578,651 bytes for the host rows.
 - Reviewed range artifact: the `docs: research Tolkira placement venues and
   rules` and `docs: research the 0.6.0 baseline anchor` commits are inside the
   reviewed range but are not part of this change.

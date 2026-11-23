@@ -8,7 +8,7 @@ are embedded where available; the report names any it had to skip. There is no
 server, no CDN and no telemetry. An opt-in PDF export reuses the same print view
 when the optional Playwright Chromium engine is installed.
 
-Current release: **v0.5.0** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
+Current release: **v0.5.1** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.
 > The maintainer sets the product direction and approves releases. Most code,
