@@ -86,11 +86,17 @@ one.
 - `<!DOCTYPE>` and `<!ENTITY>` declarations are rejected as a parser-safety
   measure. The same text inside comments, CDATA sections or processing
   instructions is data and is accepted.
-- A document with no test cases is rejected with a clear error when it is named
-  explicitly, instead of being rendered as an empty run. Inside a directory
-  scan such a document is skipped and the remaining documents render; a
-  directory with no test case at all fails with `No supported report files
-  found.` Malformed XML still fails, including in a directory.
+- A zero-test document (well-formed JUnit XML with no `<testcase>`, not a
+  zero-byte file) is rejected with a clear error when it is named explicitly,
+  instead of being rendered as an empty run. Inside a directory scan it is
+  skipped only when the document is exactly one recognised `<testsuites>`,
+  `<testsuite>` or `<testcase>` root and contains no `<testcase>` anywhere; the
+  remaining documents render, and a mixed Cucumber + zero-test JUnit directory
+  succeeds. A wrapper root, a multi-root document, a `<testcase>` under an
+  unrecognised element and malformed XML still fail, and a directory whose
+  JUnit documents are all zero-test fails with `No supported report files
+  found.` The `empty JUnit documents in a directory` block in
+  `test/junit.test.ts` pins these cases.
 - Grouping follows `<testsuite>` except for a nested-class shape: at least two
   distinct non-empty testcase `classname` values and either a classname with `$`
   or one classname as a dotted outer prefix of another. Such a suite becomes one

@@ -116,14 +116,17 @@ asks or a locale needs them:
 ## Resolved
 
 - **B-047 Zero-test JUnit document in a directory** — resolved on 2026-11-23 in
-  the `junit-empty-documents` change: a well-formed JUnit document with no
-  `<testcase>` is skipped when it comes from a directory scan, so one skipped
-  Maven suite no longer hides the rest of the run. A document named explicitly
-  still fails with `Unsupported JUnit XML ... expected ...`; malformed XML, DTD
-  and entity declarations still fail; a directory with no test case at all
-  fails with `No supported report files found.` The skipped file stays in the
-  input-file count, and a directory without an empty document renders the same
-  bytes as before.
+  the `junit-empty-documents` change: a zero-test JUnit document (well-formed
+  XML with no `<testcase>`) is skipped when it comes from a directory scan, so
+  one skipped Maven suite no longer hides the rest of the run. The skip needs
+  exactly one recognised `<testsuites>`, `<testsuite>` or `<testcase>` root and
+  no `<testcase>` anywhere; a wrapper root, a multi-root document and malformed
+  XML still fail. A document named explicitly still fails with
+  `Unsupported JUnit XML ... expected ...`; DTD and entity declarations still
+  fail; a directory whose JUnit documents are all zero-test fails with
+  `No supported report files found.` The skipped file stays in the
+  `inputFiles` count, and a directory without a zero-test document renders the
+  same bytes as before.
 - **B-045 Numeric `format.bytes` counts** — resolved on 2026-11-23 in the
   `size-details-followups` change: `sizeLabel`, `exactSizeLabel` and the
   attachment size row pass the raw numeric byte count to `format.bytes` instead

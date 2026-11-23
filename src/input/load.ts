@@ -118,7 +118,17 @@ export async function loadInputs(
     const nextTotal = addInputBytes(totalBytes, info.size);
     const content = await readFile(input.file, 'utf8');
     const hash = createHash('sha256').update(content).digest('hex');
-    if (seenContent.has(hash)) continue;
+    if (seenContent.has(hash)) {
+      // shortcut: only an explicit JUnit duplicate is re-validated here; other
+      // formats keep the pre-existing dedup. Upgrade when another format gains
+      // an explicit-only guard that a directory copy could bypass.
+      if (input.explicit && detectInput(content, input).kind === 'junit') {
+        await parseJUnitXml(content, input.file, {
+          idPrefix: `junit-${index}`,
+        });
+      }
+      continue;
+    }
     seenContent.add(hash);
 
     totalBytes = nextTotal;

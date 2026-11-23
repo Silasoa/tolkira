@@ -21,13 +21,15 @@ Keep a Changelog and the project uses semantic versioning.
   is unchanged, no catalog key or message changed, and the English
   `format.bytes` description now states that `count` is a raw number.
 
-- A JUnit XML directory now skips a well-formed document with no test cases
-  instead of failing the whole run. A real Maven run writes such a file for a
-  suite skipped by a missing service (for example Docker), and one empty
-  document previously hid every other result. A document named explicitly
-  still fails with the clear `Unsupported JUnit XML ...` error, malformed XML
-  still fails, and a directory with no test case at all still fails. Reports
-  for a directory without an empty document are unchanged.
+- A JUnit XML directory now skips a zero-test document (well-formed XML with no
+  `<testcase>`) instead of failing the whole run. A real Maven run writes such a
+  file for a suite skipped by a missing service (for example Docker), and one
+  zero-test document previously hid every other result. The skip needs exactly
+  one recognised `<testsuites>`, `<testsuite>` or `<testcase>` root and no
+  `<testcase>` anywhere, so a wrapper root, a multi-root document and malformed
+  XML still fail, as does a zero-test document named explicitly. A directory
+  whose JUnit documents are all zero-test still fails, and reports for a
+  directory without a zero-test document are unchanged.
 
 ## [0.5.0] - 2026-11-23
 

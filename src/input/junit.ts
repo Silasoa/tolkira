@@ -185,6 +185,40 @@ function collectSuites(parsed: unknown): XmlNode[] {
   return suites;
 }
 
+// The parser emits `?xml`/`?pi` and `#...` keys next to the element keys.
+function elementKeys(node: XmlNode): string[] {
+  return Object.keys(node).filter(
+    (key) => !key.startsWith('?') && !key.startsWith('#'),
+  );
+}
+
+const JUNIT_ROOTS = new Set(['testsuites', 'testsuite', 'testcase']);
+
+// True only for exactly one recognised JUnit root. A repeated root becomes an
+// array; a single `<testsuite>`/`<testcase>` root is wrapped in a one-item
+// array by the parser's isArray option.
+function singleRecognizedRoot(parsed: unknown): boolean {
+  if (!isObject(parsed)) return false;
+  const keys = elementKeys(parsed);
+  if (keys.length !== 1) return false;
+  const key = keys[0]!;
+  if (!JUNIT_ROOTS.has(key)) return false;
+  const value = parsed[key];
+  return key === 'testsuites'
+    ? !Array.isArray(value)
+    : Array.isArray(value) && value.length === 1;
+}
+
+// An attribute named `testcase` can false-positive here; that throws instead of
+// skipping, which is the safe direction.
+function containsTestcase(node: unknown): boolean {
+  if (Array.isArray(node)) return node.some(containsTestcase);
+  if (!isObject(node)) return false;
+  return Object.entries(node).some(
+    ([key, value]) => key === 'testcase' || containsTestcase(value),
+  );
+}
+
 function failureMessage(failure: XmlNode): string {
   const attribute = stringOf(failure.message);
   const text = textOf(failure);
@@ -368,7 +402,13 @@ export async function parseJUnitXml(
     (suite) => asArray(suite.testcase).length > 0,
   );
   if (suites.length === 0) {
-    if (options.allowEmptyDocument) return [];
+    if (
+      options.allowEmptyDocument &&
+      singleRecognizedRoot(parsed) &&
+      !containsTestcase(parsed)
+    ) {
+      return [];
+    }
     throw new Error(
       `Unsupported JUnit XML in ${source}: expected <testsuites> or <testsuite> with <testcase>.`,
     );

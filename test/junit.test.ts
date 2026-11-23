@@ -565,5 +565,107 @@ describe('JUnit XML input', () => {
         'nested only',
       );
     });
+
+    it('rejects a wrapper root that hides a real test case in a directory', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(
+        path.join(dir, 'wrapped.xml'),
+        '<testResults><testsuite name="wrapper"><testcase name="REAL TEST"/></testsuite></testResults>',
+        'utf8',
+      );
+
+      const error = await renderReport(dir, { title: 'Wrapped' }).then(
+        () => undefined,
+        (cause: unknown) => cause,
+      );
+
+      expect(error).toBeInstanceOf(Error);
+      const message = error instanceof Error ? error.message : '';
+      expect(message).toMatch(/Unsupported JUnit XML in .*wrapped\.xml/);
+      expect(message).not.toContain('REAL TEST');
+    });
+
+    it('rejects an empty multi-root document in a directory', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(
+        path.join(dir, 'multi.xml'),
+        '<testsuite name="a"/><testsuite name="b"/>',
+        'utf8',
+      );
+
+      await expect(renderReport(dir, { title: 'Multi root' })).rejects.toThrow(
+        /Unsupported JUnit XML in .*multi\.xml/,
+      );
+    });
+
+    it('rejects a test case under an unrecognised root in a directory', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(
+        path.join(dir, 'nested.xml'),
+        '<testsuites><report><testcase name="nested lost"/></report></testsuites>',
+        'utf8',
+      );
+
+      await expect(renderReport(dir, { title: 'Nested' })).rejects.toThrow(
+        /Unsupported JUnit XML in .*nested\.xml/,
+      );
+    });
+
+    it('treats a file named explicitly as explicit inside a scanned directory', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      const empty = path.join(dir, 'empty.xml');
+      await writeFile(empty, surefireEmpty, 'utf8');
+
+      await expect(
+        renderReport([dir, empty], { title: 'Explicit' }),
+      ).rejects.toThrow(/Unsupported JUnit XML in .*empty\.xml/);
+    });
+
+    it('rejects a directory with only a zero-test document and unrelated XML', async () => {
+      const dir = await tempDir();
+      await writeFile(path.join(dir, 'empty.xml'), surefireEmpty, 'utf8');
+      await writeFile(path.join(dir, 'notes.xml'), '<notes />', 'utf8');
+
+      await expect(renderReport(dir, { title: 'Empty' })).rejects.toThrow(
+        /No supported report files found\./,
+      );
+    });
+
+    it('rejects an explicit zero-test file and writes no report', async () => {
+      const dir = await tempDir();
+      const empty = path.join(dir, 'empty.xml');
+      await writeFile(empty, surefireEmpty, 'utf8');
+
+      const outDir = await tempDir();
+      const output = path.join(outDir, 'report.html');
+      let stderr = '';
+      const code = await runCli([empty, '--out', output], {
+        stdout: () => {},
+        stderr: (text) => {
+          stderr += text;
+        },
+      });
+
+      expect(code).toBe(1);
+      expect(stderr).toContain('Unsupported JUnit XML in');
+      expect(await readdir(outDir)).toEqual([]);
+    });
+
+    it('rejects an explicit byte-identical copy of a scanned zero-test document', async () => {
+      const dir = await tempDir();
+      const scanned = path.join(dir, 'a-empty.xml');
+      const explicit = path.join(dir, 'z-empty.xml');
+      await writeFile(scanned, surefireEmpty, 'utf8');
+      await copyFile(scanned, explicit);
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+
+      await expect(
+        renderReport([dir, explicit], { title: 'Duplicate' }),
+      ).rejects.toThrow(/Unsupported JUnit XML in .*z-empty\.xml/);
+    });
   });
 });

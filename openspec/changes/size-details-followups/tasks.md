@@ -118,5 +118,8 @@
   Seed-Test story artifact matches the spec at 560 px, 1440 px, A4 print
   emulation and 320 px at 200 %. Three 0.5.0 baselines were re-measured because
   they came from subsets or other invocations; the PetClinic full-suite
-  diagnostic is red by documented design (zero-test Surefire document) and is
-  recorded as B-047. Details and limits in `docs/DROP-IN-VALIDATION.md`.
+  diagnostic was red by documented design (zero-test Surefire document) and is
+  recorded as B-047. B-047 was fixed after this run in the
+  `junit-empty-documents` change; the full-suite re-run is pending there
+  (task 4.2), so this record stays the pre-change result. Details and limits in
+  `docs/DROP-IN-VALIDATION.md`.

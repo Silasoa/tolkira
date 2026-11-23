@@ -92,12 +92,12 @@ Tolkira view carries, record that functional gap.
 | Seed-Test | 2026-11-23 | Pass | Pin `ce2cad8` (AI branch), packed 0.5.1 tarball (578,651 B). `tsc -b` and `report.service.spec.ts` 35/35. Story: 1 feature / 3 scenarios (2 passed, 1 failed), 12 step rows, 1 attachment / 5,234 B, report 89,492 B. Group: 2 features / 4 scenarios (3 passed, 1 failed), 16 step rows, 2 attachments / 10,468 B, report 108,120 B; sidecar `group-mode.html.json` 21,317 B with 2 stories. Metadata, inline PNG, failure text, source row, search/filter, 1440/390 no overflow, no console errors. Limits: per-story JSON synthetic (no live backend/MongoDB), the shim has no `--history`, no native `cucumber-html-reporter` HTML compared, Linux/Node 22 unrun. |
 | Cucumber-js host | 2026-11-23 | Pass | Official `@cucumber/cucumber@13.3.0`: 2 scenarios (1 passed, 1 failed), 5 steps (4 passed, 1 failed), 1 PNG / 5,234 B. `out.json` 11,627 B, `out.ndjson` 19,866 B; reports 88,306 B / 88,432 B. Legacy and Messages summaries are byte-identical (same SHA-256): 1 feature, 2 scenarios, 5 steps, 5,234 attachment bytes. No overflow, no console errors. Native Cucumber HTML not generated; shim ESM named/await and CJS stay covered by the CI tests. |
 | Playwright movies-app | 2026-11-23 | Pass | Pin `5d2cdf0`, host Playwright 1.62.1; full `npx playwright test --reporter=json`: 123 tests (121 passed, 2 skipped, 0 failed/flaky/retries), 113 explicit steps, 5 attachments / 161 B. Tolkira: 3 features / 123 scenarios (121 passed, 2 skipped), 236 step rows (113 + 123 documented synthetic overhead rows), 4 attachments / 161 B, report 281,254 B; 123/123 scenario source lines match `spec.file:spec.line`. 1440/390 no overflow, no console errors. The full suite re-baselines the earlier 8/36/3 record, which was a subset. One 0-byte inline attachment is dropped without a skip notice; the byte total is unchanged. Native HTML report not generated. |
-| Spring PetClinic | 2026-11-23 | Pass (unit scope) | Pin `500158f`; `mvn -B test -Dtest=!*IntegrationTests` (14 XMLs): 72/72 passed, render 17 features / 72 scenarios / 72 passed, 22 attachments / 40,029 B, report 236,695 B. Full `mvn -B test` (18 XMLs, 79 tests / 77 passed / 2 skipped) is red: with Docker off, `PostgresIntegrationTests` emits a valid zero-test Surefire document, which Tolkira rejects by documented design (`docs/JUNIT-XML.md`); excluding that file renders 20 features / 79 scenarios / 77 passed / 2 skipped, 28 attachments / 68,017 B. The row's documented scope is the unit suite, no application database required. No overflow, no console errors. Recorded as B-047. |
+| Spring PetClinic | 2026-11-23 | Pass (unit scope, pre-change) | Pin `500158f`; `mvn -B test -Dtest=!*IntegrationTests` (14 XMLs): 72/72 passed, render 17 features / 72 scenarios / 72 passed, 22 attachments / 40,029 B, report 236,695 B. This row is the pre-change 0.5.1 tarball (578,651 B) result. Full `mvn -B test` (18 XMLs, 79 tests / 77 passed / 2 skipped) was red: with Docker off, `PostgresIntegrationTests` emits a valid zero-test Surefire document, which the 0.5.1 build rejected by documented design (`docs/JUNIT-XML.md`); excluding that file rendered 20 features / 79 scenarios / 77 passed / 2 skipped, 28 attachments / 68,017 B. B-047 is fixed in `junit-empty-documents` (a zero-test document in a directory is now skipped), so the full suite should render; the full-suite re-run is pending task 4.2 and its numbers are not recorded yet. The row's documented scope is the unit suite, no application database required. No overflow, no console errors. |
 | Cucumber-JVM examples | 2026-11-23 | Pass | Pin `f71480f`, `calculator-java-junit-jupiter` with a temp-only `cucumber.properties` adding `json:target/cucumber.json`: 3 features / 8 scenarios / 8 passed; 30 scenario steps + 6 background steps + 18 hooks = 54 results; Tolkira renders 36 step rows + 18 hooks and 18 text attachments / 498 B, report 94,486 B. The earlier 9/52/12-hook record does not reproduce at this pin. No overflow, no console errors. |
 | `cucumber-html-reporter@7.2.0` reference | 2026-11-20 | Content PASS | Same fixture; screenshots at 1440/390; no visual parity; old install 144 packages / 7 vulnerabilities. The 0.5 shell was not compared to CHR. |
 
-**`0.5.1` release run (2026-11-23).** All five required rows ran on the packed
-0.5.1 tarball (`tolkira-0.5.1.tgz`, 578,651 B, SHA-256
+**`0.5.1` release run (2026-11-23, pre-change tarball).** All five required rows
+ran on the packed 0.5.1 tarball (`tolkira-0.5.1.tgz`, 578,651 B, SHA-256
 `01B63EA1CE817C4A398C8617CE98D89CA9F222A1A1221475116ABDC7363BD049`) in
 temporary directories outside the repo: Node 26.13.1, npm 10.8.2, JDK
 21.0.13.1 (Temurin) and Maven 3.9.9, Docker daemon not running. Screenshots at
@@ -105,8 +105,10 @@ temporary directories outside the repo: Node 26.13.1, npm 10.8.2, JDK
 committed. Three baselines were re-measured because the 0.5.0 numbers came from
 subsets or other invocations: Playwright now runs the full 123-test suite,
 PetClinic uses the unit scope its row documents, and Cucumber-JVM uses the
-`calculator-java-junit-jupiter` module. The PetClinic full-suite diagnostic is
-red by documented design and is recorded as B-047.
+`calculator-java-junit-jupiter` module. The PetClinic full-suite diagnostic was
+red on this tarball because of the zero-test Surefire document (B-047), which
+`junit-empty-documents` fixes; the full-suite re-run is pending task 4.2 and no
+new numbers are claimed here.
 
 **`size-details-followups` host check (2026-11-23).** The Seed-Test story
 artifact rendered with the 0.5.1 tarball and `--locale de` (90,842 B): at

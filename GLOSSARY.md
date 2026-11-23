@@ -112,6 +112,14 @@ offers a copy action.
 that accepts Messages envelopes and renders one HTML document on flush with
 `RenderReportOptions`. It buffers the run; it is not an incremental renderer.
 
+**Zero-test JUnit document** — a well-formed JUnit XML document with no
+`<testcase>` element anywhere, for example a Surefire suite skipped because a
+service such as Docker is missing. It is not a zero-byte file, which still fails
+as invalid XML. A zero-test document is skipped when it comes from a directory
+scan and rejected when it is named explicitly; the skip needs exactly one
+recognised root and no `<testcase>`, so a wrapper root or a multi-root document
+still fails.
+
 **Parameter highlighting** — wrapping the fragments matched by a single
 `stepMatchArgumentsLists` entry in `span.param`, labelled with the Cucumber
 parameter type. It is cosmetic and does not change step text or the summary.
