@@ -1,8 +1,7 @@
 // Run `npm run build` first: this measures the built package and CLI.
 import { execFile } from 'node:child_process';
 import { copyFile, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import os from 'node:os';
+import os, { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import {
@@ -47,7 +46,7 @@ function summaryFor(index) {
   };
 }
 
-async function buildHistory(title) {
+function buildHistory(title) {
   let history = [];
   for (let index = 0; index < HISTORY_LIMIT_MAX; index += 1) {
     const now = new Date(Date.UTC(2026, 0, 1, 0, index));
@@ -90,10 +89,10 @@ async function reportBytes(name, history, limit) {
 }
 
 try {
-  const short = await writeAndMeasure('history-365.json', await buildHistory('Nightly'));
+  const short = await writeAndMeasure('history-365.json', buildHistory('Nightly'));
   const titled = await writeAndMeasure(
     'history-365-title.json',
-    await buildHistory('T'.repeat(200)),
+    buildHistory('T'.repeat(200)),
   );
   if (short.pruned || titled.pruned) {
     throw new Error('The writer pruned a 365-run sidecar below the window.');

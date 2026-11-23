@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../src/cli.js';
-import type { HistoryRun, StatusCounts } from '../src/index.js';
+import { HISTORY_MAX_BYTES, type HistoryRun, type StatusCounts } from '../src/index.js';
 
 const messages = fileURLToPath(
   new URL('./fixtures/messages/second.ndjson', import.meta.url),
@@ -354,7 +354,36 @@ describe('CLI history window', () => {
     expect(run.stderr).not.toContain('Unknown option');
     expect(run.stdout).toBe('');
     await expectMissing(history);
+
+    const bare = await cli([messages, '--history', history]);
+    expect(bare.code).toBe(2);
+    expect(bare.stderr.split('\n')[0]).toBe('tolkira: --history requires --out');
+    expect(bare.stdout).toBe('');
+    await expectMissing(history);
   });
+
+  it.each([
+    ['3\n66', '3 66'],
+    ['3\u202e66', '3 66'],
+  ])(
+    'flattens the control in --history-limit %j to %j',
+    async (value, shown) => {
+      const run = await cli([
+        messages,
+        '--out',
+        path.join(await tempDir(), 'report.html'),
+        '--history',
+        path.join(await tempDir(), 'history.json'),
+        '--history-limit',
+        value,
+      ]);
+
+      expect(run.code).toBe(2);
+      expect(run.stderr.split('\n')[0]).toBe(
+        `tolkira: Invalid --history-limit "${shown}". Use an integer from 1 to 365.`,
+      );
+    },
+  );
 
   it('lists --history-limit in --help', async () => {
     const help = await cli(['--help']);
@@ -365,7 +394,7 @@ describe('CLI history window', () => {
   });
 });
 
-describe('CLI history write failures with a window', () => {
+describe('CLI history read failures with a window', () => {
   it.each([
     [
       'oversized',
@@ -375,7 +404,7 @@ describe('CLI history write failures with a window', () => {
           JSON.stringify({
             schemaVersion: 1,
             runs: [],
-            padding: 'x'.repeat(1024 * 1024 + 1),
+            padding: 'x'.repeat(HISTORY_MAX_BYTES + 1),
           }),
           'utf8',
         ),

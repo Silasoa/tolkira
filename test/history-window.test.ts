@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -343,7 +343,9 @@ describe('history schema versions', () => {
     const file = await writeRaw('history.json', sidecar(runs(1), 3));
     const before = await readFile(file, 'utf8');
 
-    await expect(readHistory(file, 5)).rejects.toThrow(/history\.json/);
+    await expect(readHistory(file, 5)).rejects.toThrow(
+      /Invalid history file .*unsupported schema version "3"/,
+    );
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
   });
 });
@@ -405,9 +407,10 @@ describe('history retention', () => {
 });
 
 describe('history write cap', () => {
-  it('writes the largest valid window whole, under the cap and without pruning', async () => {
-    // The write caps (128-character id, 200-character title) keep a 365-run
-    // file far below 1 MiB, so the cap prune cannot fire for accepted runs.
+  it('writes the largest realistic window whole, under the cap and without pruning', async () => {
+    // A realistic 365-run window (200-code-point titles, 128-code-unit ids)
+    // stays under 1 MiB. A maximal valid window can exceed the cap, so the
+    // prune is covered by the next test instead of being called unreachable.
     const base = Array.from({ length: 365 }, (_, index) =>
       makeRun(index, {
         id: `id-${index}-${'😀'.repeat(60)}`,
@@ -429,6 +432,46 @@ describe('history write cap', () => {
     const read = await readHistory(file, 365);
     expect(read).toHaveLength(365);
     expect(read.at(-1)?.id).toBe(base.at(-1)?.id);
+  });
+
+  it('prunes the oldest runs when a maximal valid 365-run window exceeds the cap', async () => {
+    // Valid but maximal: 128 UTF-16 code units in the id, 200 code points in the
+    // title, escaped by JSON as lone surrogates, plus large whole counters.
+    const large = 12_345_678_901_234_567_000;
+    const counts: StatusCounts = {
+      total: large * 7,
+      passed: large,
+      failed: large,
+      skipped: large,
+      pending: large,
+      undefined: large,
+      ambiguous: large,
+      unknown: large,
+    };
+    const base = Array.from({ length: 365 }, (_, index) =>
+      makeRun(index, {
+        id: `${String(index).padStart(3, '0')}${'\uD800'.repeat(HISTORY_MAX_ID - 3)}`,
+        title: '\uD800'.repeat(HISTORY_MAX_TITLE),
+        counts: { features: large, scenarios: counts, steps: counts },
+        durationMs: large,
+        attachments: { total: large, bytes: large },
+      }),
+    );
+    const file = path.join(await tempDir(), 'history.json');
+
+    await writeHistory(file, base, 365);
+
+    const bytes = Buffer.byteLength(await readFile(file, 'utf8'), 'utf8');
+    expect(bytes).toBeLessThanOrEqual(HISTORY_MAX_BYTES);
+    expect(await schemaVersion(file)).toBe(2);
+
+    const stored = await storedRuns(file);
+    expect(stored.length).toBeLessThan(365);
+    expect(stored.at(-1)?.id).toBe(base.at(-1)?.id);
+    expect(ids(stored)).not.toContain(base[0]?.id);
+
+    const read = await readHistory(file, 365);
+    expect(read).toStrictEqual(stored);
   });
 
   it('accepts exactly 1,048,576 bytes and rejects one byte more', async () => {
@@ -467,7 +510,7 @@ describe('history write cap', () => {
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
   });
 
-  it('rejects a malformed target instead of overwriting it with schema 1', async () => {
+  it('rejects an invalid JSON target instead of overwriting it with schema 1', async () => {
     const file = await writeRaw('history.json', '{"schemaVersion":');
     const before = await readFile(file, 'utf8');
 
@@ -475,6 +518,39 @@ describe('history write cap', () => {
       /Cannot write history file .*not valid JSON/,
     );
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it.each([
+    ['invalid JSON', '{"schemaVersion":'],
+    [
+      'oversized',
+      JSON.stringify({
+        schemaVersion: 1,
+        runs: [],
+        padding: 'x'.repeat(HISTORY_MAX_BYTES),
+      }),
+    ],
+  ])(
+    'rejects an %s target at limit 40 and leaves it untouched',
+    async (_, raw) => {
+      const file = await writeRaw('history.json', raw);
+      const before = await readFile(file, 'utf8');
+
+      await expect(writeHistory(file, runs(1), 40)).rejects.toThrow(
+        /Cannot write history file/,
+      );
+      await expect(readFile(file, 'utf8')).resolves.toBe(before);
+    },
+  );
+
+  it('rejects a non-regular target with the regular-file message', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'history.json');
+    await mkdir(file);
+
+    await expect(writeHistory(file, runs(1), 40)).rejects.toThrow(
+      /Cannot write history file .*not a regular file/,
+    );
   });
 
   it('rejects an unsupported target schema instead of overwriting it', async () => {
@@ -498,6 +574,15 @@ describe('history write cap', () => {
     });
   });
 
+  it('accepts an id of exactly 128 UTF-16 code units', async () => {
+    const exact = makeRun(0, { id: 'x'.repeat(HISTORY_MAX_ID) });
+    const file = path.join(await tempDir(), 'history.json');
+
+    await writeHistory(file, [exact]);
+
+    await expect(readHistory(file)).resolves.toStrictEqual([exact]);
+  });
+
   it('rejects an over-long id without touching an existing file', async () => {
     const file = await writeRaw('history.json', sidecar([makeRun(0)]));
     const before = await readFile(file, 'utf8');
@@ -519,6 +604,19 @@ describe('history write cap', () => {
     });
   });
 
+  it('rejects a non-object run with the write prefix', async () => {
+    const file = path.join(await tempDir(), 'history.json');
+
+    await expect(
+      writeHistory(file, [null] as unknown as HistoryRun[]),
+    ).rejects.toThrow(
+      /Cannot write history file .*runs\[0\] must be an object/,
+    );
+    await expect(readFile(file, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
   it('still reads an older file whose id is longer than the write cap', async () => {
     const long = makeRun(0, { id: 'x'.repeat(HISTORY_MAX_ID + 1) });
     const file = await writeRaw('history.json', sidecar([long]));
@@ -526,16 +624,25 @@ describe('history write cap', () => {
     await expect(readHistory(file)).resolves.toStrictEqual([long]);
   });
 
-  it('reads a hand-edited long title and caps it on the next write', async () => {
+  it('rejects a stored title longer than 200 code points', async () => {
     const long = makeRun(0, { title: 't'.repeat(300) });
     const file = await writeRaw('history.json', sidecar([long]));
+    const before = await readFile(file, 'utf8');
 
-    await expect(readHistory(file)).resolves.toStrictEqual([long]);
+    await expect(readHistory(file)).rejects.toThrow(
+      /Invalid history file .*title is longer than 200 characters/,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('caps a 201-code-point title to 199 characters plus an ellipsis', async () => {
+    const long = makeRun(0, { title: 't'.repeat(201) });
+    const file = path.join(await tempDir(), 'history.json');
 
     await writeHistory(file, [long]);
+
     const stored = await storedRuns(file);
-    expect(Array.from(stored[0]?.title ?? '')).toHaveLength(HISTORY_MAX_TITLE);
-    expect(stored[0]?.title.endsWith('…')).toBe(true);
+    expect(stored[0]?.title).toBe(`${'t'.repeat(199)}…`);
   });
 
   it.each([

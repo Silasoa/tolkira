@@ -201,12 +201,8 @@ async function historyConflicts(
 
 /** Keeps a path on one line in confirmations and error output. */
 function oneLine(value: string): string {
-  let output = '';
-  for (const character of value) {
-    const code = character.codePointAt(0) ?? 0;
-    output += code < 0x20 || code === 0x7f ? ' ' : character;
-  }
-  return output;
+  // oxlint-disable-next-line no-control-regex
+  return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ');
 }
 
 async function writeEmailSummary(
@@ -431,6 +427,11 @@ export async function runCli(
     return 2;
   }
 
+  if (historyFile !== undefined && historyFile !== '' && !output) {
+    io.stderr(`tolkira: --history requires --out\n\n${USAGE}`);
+    return 2;
+  }
+
   if (
     inputs.length === 0 ||
     (!output &&
@@ -464,11 +465,6 @@ export async function runCli(
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (historyFile !== undefined && !output) {
-    io.stderr(`tolkira: --history requires --out\n\n${USAGE}`);
     return 2;
   }
 
@@ -542,10 +538,6 @@ export async function runCli(
     }
     if (ciOut !== undefined && samePath(pdfPath, ciOut)) {
       io.stderr(`tolkira: --pdf must not overwrite --ci-out\n\n${USAGE}`);
-      return 2;
-    }
-    if (historyFile !== undefined && samePath(pdfPath, historyFile)) {
-      io.stderr(`tolkira: --pdf must not overwrite --history\n\n${USAGE}`);
       return 2;
     }
     if (emailPath !== undefined && samePath(pdfPath, emailPath)) {

@@ -14,6 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli.js';
+import { HISTORY_MAX_BYTES } from '../src/index.js';
 
 const messages = fileURLToPath(
   new URL('./fixtures/messages/second.ndjson', import.meta.url),
@@ -234,7 +235,7 @@ describe('CLI history sidecar', () => {
       JSON.stringify({
         schemaVersion: 1,
         runs: [],
-        padding: 'x'.repeat(1024 * 1024 + 1),
+        padding: 'x'.repeat(HISTORY_MAX_BYTES + 1),
       }),
       'utf8',
     );
@@ -387,7 +388,7 @@ describe('CLI history sidecar', () => {
     },
   );
 
-  it('rejects a history path that reaches an input directory through a link', async () => {
+  it('rejects a history path that reaches an input directory through a link', async (ctx) => {
     const dir = await tempDir();
     const inputDir = path.join(dir, 'results');
     await mkdir(inputDir);
@@ -402,7 +403,10 @@ describe('CLI history sidecar', () => {
     } catch (error) {
       // Some Windows hosts cannot create junctions without extra privileges.
       const code = (error as NodeJS.ErrnoException).code;
-      if (code === 'EPERM' || code === 'EACCES') return;
+      if (code === 'EPERM' || code === 'EACCES') {
+        ctx.skip();
+        return;
+      }
       throw error;
     }
 
@@ -465,6 +469,7 @@ describe('CLI history sidecar', () => {
 
     // Readable but not replaceable: POSIX refuses the temp file in a read-only
     // directory, Windows refuses to rename over a read-only file.
+    // The limit keeps the limit × write-failure pairwise row covered.
     await chmod(history, 0o444);
     await chmod(sidecarDir, 0o555);
     try {
@@ -480,6 +485,7 @@ describe('CLI history sidecar', () => {
 
       expect(run.code).toBe(1);
       expect(run.stderr).toContain('history.json');
+      expect(run.stderr).not.toContain('.tmp');
       await expect(readFile(output, 'utf8')).resolves.toContain('<html');
       await expect(readFile(history, 'utf8')).resolves.toBe(before);
       expect(

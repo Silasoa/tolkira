@@ -11,9 +11,9 @@ export const HISTORY_SCHEMA_VERSION_MAX = 2;
 export const HISTORY_LIMIT = 30;
 export const HISTORY_LIMIT_MAX = 365;
 export const HISTORY_MAX_BYTES = 1024 * 1024;
-/** Stored titles are capped at 200 characters, the last one being an ellipsis. */
+/** Stored titles are capped at 200 code points, the last one being an ellipsis. */
 export const HISTORY_MAX_TITLE = 200;
-/** Ids are SHA-256 hex (64 characters); writes accept up to 128 characters. */
+/** Ids are SHA-256 hex (64 characters); writes accept up to 128 UTF-16 code units. */
 export const HISTORY_MAX_ID = 128;
 
 /** One aggregate run in the history sidecar; no scenario names or steps. */
@@ -50,11 +50,21 @@ const STATUSES = new Set<SummaryStatus>([
 class HistoryValidationError extends Error {}
 
 function fail(file: string, reason: string): never {
-  throw new HistoryValidationError(`Invalid history file ${file}: ${reason}`);
+  throw new HistoryValidationError(
+    `Invalid history file ${oneLine(file)}: ${reason}`,
+  );
 }
 
 function cannotWrite(file: string, reason: string): never {
-  throw new HistoryValidationError(`Cannot write history file ${file}: ${reason}`);
+  throw new HistoryValidationError(
+    `Cannot write history file ${oneLine(file)}: ${reason}`,
+  );
+}
+
+/** Keeps a path on one line in an error message. */
+function oneLine(value: string): string {
+  // oxlint-disable-next-line no-control-regex
+  return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ');
 }
 
 /** The window size; an omitted limit is exactly 30 and an invalid one throws. */
@@ -81,8 +91,7 @@ function excerpt(value: unknown): string {
   } catch {
     text = String(value);
   }
-  // oxlint-disable-next-line no-control-regex
-  const flat = text.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ');
+  const flat = oneLine(text);
   return JSON.stringify(flat.length > 40 ? `${flat.slice(0, 40)}…` : flat);
 }
 
@@ -166,6 +175,9 @@ function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
     reject(`${at}.recordedAt must be an ISO timestamp`);
   }
   if (typeof run.title !== 'string') reject(`${at}.title must be a string`);
+  if (Array.from(run.title).length > HISTORY_MAX_TITLE) {
+    reject(`${at}.title is longer than ${HISTORY_MAX_TITLE} characters`);
+  }
   if (typeof run.status !== 'string' || !STATUSES.has(run.status as SummaryStatus)) {
     reject(`${at}.status is not a known status`);
   }
@@ -209,9 +221,17 @@ function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
   return parsed;
 }
 
-/** Validates one run for writing: the reader's rules plus the id cap. */
+/** Validates one run for writing: caps the title and applies the id cap. */
 function writeRun(value: unknown, reject: Reject, index: number): HistoryRun {
-  const run = parseRun(value, reject, index);
+  const record =
+    typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : undefined;
+  const capped =
+    record && typeof record.title === 'string'
+      ? { ...record, title: capTitle(record.title) }
+      : value;
+  const run = parseRun(capped, reject, index);
   if (run.id.length > HISTORY_MAX_ID) {
     reject(`runs[${index}].id is longer than ${HISTORY_MAX_ID} characters`);
   }
@@ -272,7 +292,7 @@ export function appendHistory(
 
 function readError(file: string, error: unknown): Error {
   const detail = error instanceof Error ? error.message : String(error);
-  return new Error(`Cannot read history file ${file}: ${detail}`);
+  return new Error(`Cannot read history file ${oneLine(file)}: ${detail}`);
 }
 
 async function readBounded(handle: FileHandle, size: number): Promise<string> {
@@ -302,6 +322,7 @@ async function readSidecar(
 ): Promise<string | undefined> {
   let handle: FileHandle;
   try {
+    // O_NONBLOCK is undefined on Windows; the fstat regular-file guard does the work.
     handle = await open(file, constants.O_RDONLY | constants.O_NONBLOCK);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
@@ -410,7 +431,7 @@ function serialize(schemaVersion: number, runs: readonly HistoryRun[]): string {
  * that may hold more than 30 runs; it is chosen above the default window or
  * when the file already used it, which needs one bounded read of the target.
  * Every stored run is validated with the reader's rules, titles are capped and
- * ids above 128 characters are rejected. The oldest entries are then pruned
+ * ids above 128 UTF-16 code units are rejected. The oldest entries are then pruned
  * until the file fits the read cap, always keeping the newest one; a run that
  * alone exceeds the cap is rejected instead of written.
  */
@@ -420,17 +441,13 @@ export async function writeHistory(
   limit: number = HISTORY_LIMIT,
 ): Promise<void> {
   const window = historyWindow(limit);
+  const stored = await storedSchema(file);
   const schemaVersion =
-    window > HISTORY_LIMIT ||
-    (await storedSchema(file)) === HISTORY_SCHEMA_VERSION_MAX
+    window > HISTORY_LIMIT || stored === HISTORY_SCHEMA_VERSION_MAX
       ? HISTORY_SCHEMA_VERSION_MAX
       : HISTORY_SCHEMA_VERSION;
   const reject: Reject = (reason) => cannotWrite(file, reason);
-  let bounded = runs.slice(-window).map((run, index) => {
-    const title =
-      typeof run.title === 'string' ? capTitle(run.title) : run.title;
-    return writeRun({ ...run, title }, reject, index);
-  });
+  let bounded = runs.slice(-window).map((run, index) => writeRun(run, reject, index));
   let text = serialize(schemaVersion, bounded);
   while (
     Buffer.byteLength(text, 'utf8') > HISTORY_MAX_BYTES &&
@@ -445,7 +462,10 @@ export async function writeHistory(
   try {
     await writeAtomic(file, text);
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Cannot write history file ${file}: ${detail}`);
+    // Name the target, never the atomic temporary file.
+    const code = (error as NodeJS.ErrnoException).code;
+    throw new Error(
+      `Cannot write history file ${oneLine(file)}${code ? ` (${code})` : ''}`,
+    );
   }
 }
