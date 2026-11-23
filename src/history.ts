@@ -1,17 +1,20 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { open, readFile, type FileHandle } from 'node:fs/promises';
+import { open, type FileHandle } from 'node:fs/promises';
 import { writeAtomic } from './output.js';
 import type { ReportSummary, StatusCounts, SummaryStatus } from './summary.js';
 
+/** The default write version; schema 2 only marks a wider window. */
 export const HISTORY_SCHEMA_VERSION = 1;
+/** The highest schema version the reader accepts. */
+export const HISTORY_SCHEMA_VERSION_MAX = 2;
 export const HISTORY_LIMIT = 30;
 export const HISTORY_LIMIT_MAX = 365;
 export const HISTORY_MAX_BYTES = 1024 * 1024;
 /** Stored titles are capped at 200 characters, the last one being an ellipsis. */
 export const HISTORY_MAX_TITLE = 200;
-/** A file that may hold more than 30 runs; never downgraded by a later write. */
-const SCHEMA_VERSION_EXTENDED = 2;
+/** Ids are SHA-256 hex (64 characters); writes accept up to 128 characters. */
+export const HISTORY_MAX_ID = 128;
 
 /** One aggregate run in the history sidecar; no scenario names or steps. */
 export interface HistoryRun {
@@ -43,8 +46,15 @@ const STATUSES = new Set<SummaryStatus>([
   'unknown',
 ]);
 
+/** A rejected sidecar; the message already names the file and the action. */
+class HistoryValidationError extends Error {}
+
 function fail(file: string, reason: string): never {
-  throw new Error(`Invalid history file ${file}: ${reason}`);
+  throw new HistoryValidationError(`Invalid history file ${file}: ${reason}`);
+}
+
+function cannotWrite(file: string, reason: string): never {
+  throw new HistoryValidationError(`Cannot write history file ${file}: ${reason}`);
 }
 
 /** The window size; an omitted limit is exactly 30 and an invalid one throws. */
@@ -52,7 +62,7 @@ export function historyWindow(limit: number | undefined): number {
   const window = limit === undefined ? HISTORY_LIMIT : limit;
   if (!Number.isInteger(window) || window < 1 || window > HISTORY_LIMIT_MAX) {
     throw new Error(
-      `Invalid history limit ${String(limit)}. Use an integer from 1 to ${HISTORY_LIMIT_MAX}.`,
+      `Invalid history limit ${excerpt(limit)}. Use an integer from 1 to ${HISTORY_LIMIT_MAX}.`,
     );
   }
   return window;
@@ -65,7 +75,9 @@ function excerpt(value: unknown): string {
     text =
       typeof value === 'string'
         ? value
-        : (JSON.stringify(value) ?? String(value));
+        : typeof value === 'number'
+          ? String(value)
+          : (JSON.stringify(value) ?? String(value));
   } catch {
     text = String(value);
   }
@@ -81,43 +93,46 @@ function capTitle(title: string): string {
     : `${characters.slice(0, HISTORY_MAX_TITLE - 1).join('')}…`;
 }
 
-function whole(value: unknown, file: string, field: string): number {
+/** How a validator reports a rejected entry: `Invalid` on read, `Cannot write` on write. */
+type Reject = (reason: string) => never;
+
+function whole(value: unknown, reject: Reject, field: string): number {
   if (
     typeof value !== 'number' ||
     !Number.isFinite(value) ||
     !Number.isInteger(value) ||
     value < 0
   ) {
-    fail(file, `${field} must be a non-negative whole number`);
+    reject(`${field} must be a non-negative whole number`);
   }
   return value;
 }
 
-function amount(value: unknown, file: string, field: string): number {
+function amount(value: unknown, reject: Reject, field: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-    fail(file, `${field} must be a non-negative number`);
+    reject(`${field} must be a non-negative number`);
   }
   return value;
 }
 
 function statusCounts(
   value: unknown,
-  file: string,
+  reject: Reject,
   field: string,
 ): StatusCounts {
   if (typeof value !== 'object' || value === null) {
-    fail(file, `${field} must be an object`);
+    reject(`${field} must be an object`);
   }
   const counts = value as Record<string, unknown>;
   const parsed: StatusCounts = {
-    total: whole(counts.total, file, `${field}.total`),
-    passed: whole(counts.passed, file, `${field}.passed`),
-    failed: whole(counts.failed, file, `${field}.failed`),
-    skipped: whole(counts.skipped, file, `${field}.skipped`),
-    pending: whole(counts.pending, file, `${field}.pending`),
-    undefined: whole(counts.undefined, file, `${field}.undefined`),
-    ambiguous: whole(counts.ambiguous, file, `${field}.ambiguous`),
-    unknown: whole(counts.unknown, file, `${field}.unknown`),
+    total: whole(counts.total, reject, `${field}.total`),
+    passed: whole(counts.passed, reject, `${field}.passed`),
+    failed: whole(counts.failed, reject, `${field}.failed`),
+    skipped: whole(counts.skipped, reject, `${field}.skipped`),
+    pending: whole(counts.pending, reject, `${field}.pending`),
+    undefined: whole(counts.undefined, reject, `${field}.undefined`),
+    ambiguous: whole(counts.ambiguous, reject, `${field}.ambiguous`),
+    unknown: whole(counts.unknown, reject, `${field}.unknown`),
   };
   const buckets =
     parsed.passed +
@@ -128,7 +143,7 @@ function statusCounts(
     parsed.ambiguous +
     parsed.unknown;
   if (buckets !== parsed.total) {
-    fail(file, `${field} buckets must add up to total`);
+    reject(`${field} buckets must add up to total`);
   }
   return parsed;
 }
@@ -139,34 +154,35 @@ function isIsoTime(value: unknown): value is string {
   return Number.isFinite(time) && new Date(time).toISOString() === value;
 }
 
-function parseRun(value: unknown, file: string, index: number): HistoryRun {
+/** The reader's field rules, shared by read and write. */
+function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
   const at = `runs[${index}]`;
   if (typeof value !== 'object' || value === null) {
-    fail(file, `${at} must be an object`);
+    reject(`${at} must be an object`);
   }
   const run = value as Record<string, unknown>;
-  if (typeof run.id !== 'string' || !run.id) fail(file, `${at}.id must be a string`);
+  if (typeof run.id !== 'string' || !run.id) reject(`${at}.id must be a string`);
   if (!isIsoTime(run.recordedAt)) {
-    fail(file, `${at}.recordedAt must be an ISO timestamp`);
+    reject(`${at}.recordedAt must be an ISO timestamp`);
   }
-  if (typeof run.title !== 'string') fail(file, `${at}.title must be a string`);
+  if (typeof run.title !== 'string') reject(`${at}.title must be a string`);
   if (Array.from(run.title).length > HISTORY_MAX_TITLE) {
-    fail(file, `${at}.title is longer than ${HISTORY_MAX_TITLE} characters`);
+    reject(`${at}.title is longer than ${HISTORY_MAX_TITLE} characters`);
   }
   if (typeof run.status !== 'string' || !STATUSES.has(run.status as SummaryStatus)) {
-    fail(file, `${at}.status is not a known status`);
+    reject(`${at}.status is not a known status`);
   }
   if (typeof run.counts !== 'object' || run.counts === null) {
-    fail(file, `${at}.counts must be an object`);
+    reject(`${at}.counts must be an object`);
   }
   const counts = run.counts as Record<string, unknown>;
   if (typeof run.attachments !== 'object' || run.attachments === null) {
-    fail(file, `${at}.attachments must be an object`);
+    reject(`${at}.attachments must be an object`);
   }
   const attachments = run.attachments as Record<string, unknown>;
   const scenarios = statusCounts(
     counts.scenarios,
-    file,
+    reject,
     `${at}.counts.scenarios`,
   );
   const parsed: HistoryRun = {
@@ -175,25 +191,34 @@ function parseRun(value: unknown, file: string, index: number): HistoryRun {
     title: run.title,
     status: run.status as SummaryStatus,
     counts: {
-      features: whole(counts.features, file, `${at}.counts.features`),
+      features: whole(counts.features, reject, `${at}.counts.features`),
       scenarios,
-      steps: statusCounts(counts.steps, file, `${at}.counts.steps`),
+      steps: statusCounts(counts.steps, reject, `${at}.counts.steps`),
     },
-    durationMs: amount(run.durationMs, file, `${at}.durationMs`),
+    durationMs: amount(run.durationMs, reject, `${at}.durationMs`),
     attachments: {
-      total: whole(attachments.total, file, `${at}.attachments.total`),
-      bytes: whole(attachments.bytes, file, `${at}.attachments.bytes`),
+      total: whole(attachments.total, reject, `${at}.attachments.total`),
+      bytes: whole(attachments.bytes, reject, `${at}.attachments.bytes`),
     },
   };
   // Old entries stay field-less; only a present value is validated.
   if (Object.hasOwn(run, 'flaky')) {
-    const flaky = whole(run.flaky, file, `${at}.flaky`);
+    const flaky = whole(run.flaky, reject, `${at}.flaky`);
     if (flaky > scenarios.total - scenarios.skipped) {
-      fail(file, `${at}.flaky must not exceed attempted scenarios`);
+      reject(`${at}.flaky must not exceed attempted scenarios`);
     }
     parsed.flaky = flaky;
   }
   return parsed;
+}
+
+/** Validates one run for writing: the reader's rules plus the id cap. */
+function writeRun(value: unknown, reject: Reject, index: number): HistoryRun {
+  const run = parseRun(value, reject, index);
+  if (run.id.length > HISTORY_MAX_ID) {
+    reject(`runs[${index}].id is longer than ${HISTORY_MAX_ID} characters`);
+  }
+  return run;
 }
 
 /** Tagged, executed non-skipped scenarios plus passed-after-retry ones. */
@@ -270,6 +295,34 @@ async function readBounded(handle: FileHandle, size: number): Promise<string> {
 }
 
 /**
+ * Opens and reads a sidecar with the shared non-blocking, regular-file and size
+ * checks. A missing file returns undefined; a rejected or unreadable file
+ * throws. `reject` supplies the caller's `Invalid`/`Cannot write` prefix.
+ */
+async function readSidecar(
+  file: string,
+  reject: Reject,
+): Promise<string | undefined> {
+  let handle: FileHandle;
+  try {
+    handle = await open(file, constants.O_RDONLY | constants.O_NONBLOCK);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
+  try {
+    const info = await handle.stat();
+    if (!info.isFile()) reject('not a regular file');
+    if (info.size > HISTORY_MAX_BYTES) {
+      reject(`file is larger than ${HISTORY_MAX_BYTES} bytes`);
+    }
+    return await readBounded(handle, info.size);
+  } finally {
+    await handle.close().catch(() => undefined);
+  }
+}
+
+/**
  * Reads the sidecar. A missing file is an empty history; a corrupt, oversized,
  * non-regular or unsupported file throws without touching it. The descriptor
  * is opened non-blocking and capped before any content is read. The newest
@@ -280,69 +333,75 @@ export async function readHistory(
   limit: number = HISTORY_LIMIT,
 ): Promise<HistoryRun[]> {
   const window = historyWindow(limit);
-  let handle: FileHandle;
+  const reject: Reject = (reason) => fail(file, reason);
+  let text: string | undefined;
   try {
-    handle = await open(file, constants.O_RDONLY | constants.O_NONBLOCK);
+    text = await readSidecar(file, reject);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    if (error instanceof HistoryValidationError) throw error;
     throw readError(file, error);
   }
-
-  let text: string;
-  try {
-    const info = await handle.stat();
-    if (!info.isFile()) fail(file, 'not a regular file');
-    if (info.size > HISTORY_MAX_BYTES) {
-      fail(file, `file is larger than ${HISTORY_MAX_BYTES} bytes`);
-    }
-    text = await readBounded(handle, info.size);
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith('Invalid history file')) {
-      throw error;
-    }
-    throw readError(file, error);
-  } finally {
-    await handle.close().catch(() => undefined);
-  }
+  if (text === undefined) return [];
 
   let document: unknown;
   try {
     document = JSON.parse(text);
   } catch {
-    fail(file, 'not valid JSON');
+    return reject('not valid JSON');
   }
   if (
     typeof document !== 'object' ||
     document === null ||
     Array.isArray(document)
   ) {
-    fail(file, 'expected a JSON object');
+    reject('expected a JSON object');
   }
   const data = document as Record<string, unknown>;
   if (
     data.schemaVersion !== HISTORY_SCHEMA_VERSION &&
-    data.schemaVersion !== SCHEMA_VERSION_EXTENDED
+    data.schemaVersion !== HISTORY_SCHEMA_VERSION_MAX
   ) {
-    fail(file, `unsupported schema version ${excerpt(data.schemaVersion)}`);
+    reject(`unsupported schema version ${excerpt(data.schemaVersion)}`);
   }
-  if (!Array.isArray(data.runs)) fail(file, 'runs must be an array');
+  if (!Array.isArray(data.runs)) reject('runs must be an array');
 
-  const runs = data.runs.map((run, index) => parseRun(run, file, index));
+  const runs = data.runs.map((run, index) => parseRun(run, reject, index));
   return runs.slice(-window);
 }
 
-/** The schema of the file already on disk, or 1 when it is missing or unreadable. */
+/**
+ * The schema of the file already on disk, or 1 when it is missing. The peek
+ * uses the same cap and regular-file check as a read; any other failure throws
+ * instead of downgrading a schema-2 file to 1.
+ */
 async function storedSchema(file: string): Promise<number> {
+  let text: string | undefined;
   try {
-    const document = JSON.parse(await readFile(file, 'utf8')) as {
-      schemaVersion?: unknown;
-    };
-    return document.schemaVersion === SCHEMA_VERSION_EXTENDED
-      ? SCHEMA_VERSION_EXTENDED
-      : HISTORY_SCHEMA_VERSION;
-  } catch {
-    return HISTORY_SCHEMA_VERSION;
+    text = await readSidecar(file, (reason) => cannotWrite(file, reason));
+  } catch (error) {
+    if (error instanceof HistoryValidationError) throw error;
+    const detail = error instanceof Error ? error.message : String(error);
+    return cannotWrite(file, detail);
   }
+  if (text === undefined) return HISTORY_SCHEMA_VERSION;
+
+  let document: unknown;
+  try {
+    document = JSON.parse(text);
+  } catch {
+    return cannotWrite(file, 'not valid JSON');
+  }
+  if (
+    typeof document !== 'object' ||
+    document === null ||
+    Array.isArray(document)
+  ) {
+    return cannotWrite(file, 'expected a JSON object');
+  }
+  const schema = (document as Record<string, unknown>).schemaVersion;
+  if (schema === HISTORY_SCHEMA_VERSION) return HISTORY_SCHEMA_VERSION;
+  if (schema === HISTORY_SCHEMA_VERSION_MAX) return HISTORY_SCHEMA_VERSION_MAX;
+  return cannotWrite(file, `unsupported schema version ${excerpt(schema)}`);
 }
 
 function serialize(schemaVersion: number, runs: readonly HistoryRun[]): string {
@@ -352,9 +411,11 @@ function serialize(schemaVersion: number, runs: readonly HistoryRun[]): string {
 /**
  * Writes the sidecar atomically, with a trailing newline. Schema 2 marks a file
  * that may hold more than 30 runs; it is chosen above the default window or
- * when the file already used it. The newest `limit` runs are kept and every
- * stored title is capped, then the oldest entries are pruned until the file
- * fits the read cap, always keeping the newest one.
+ * when the file already used it, which needs one bounded read of the target.
+ * Every stored run is validated with the reader's rules, titles are capped and
+ * ids above 128 characters are rejected. The oldest entries are then pruned
+ * until the file fits the read cap, always keeping the newest one; a run that
+ * alone exceeds the cap is rejected instead of written.
  */
 export async function writeHistory(
   file: string,
@@ -364,12 +425,15 @@ export async function writeHistory(
   const window = historyWindow(limit);
   const schemaVersion =
     window > HISTORY_LIMIT ||
-    (await storedSchema(file)) === SCHEMA_VERSION_EXTENDED
-      ? SCHEMA_VERSION_EXTENDED
+    (await storedSchema(file)) === HISTORY_SCHEMA_VERSION_MAX
+      ? HISTORY_SCHEMA_VERSION_MAX
       : HISTORY_SCHEMA_VERSION;
-  let bounded = runs
-    .slice(-window)
-    .map((run) => ({ ...run, title: capTitle(run.title) }));
+  const reject: Reject = (reason) => cannotWrite(file, reason);
+  let bounded = runs.slice(-window).map((run, index) => {
+    const title =
+      typeof run.title === 'string' ? capTitle(run.title) : run.title;
+    return writeRun({ ...run, title }, reject, index);
+  });
   let text = serialize(schemaVersion, bounded);
   while (
     Buffer.byteLength(text, 'utf8') > HISTORY_MAX_BYTES &&
@@ -377,6 +441,9 @@ export async function writeHistory(
   ) {
     bounded = bounded.slice(1);
     text = serialize(schemaVersion, bounded);
+  }
+  if (Buffer.byteLength(text, 'utf8') > HISTORY_MAX_BYTES) {
+    cannotWrite(file, `the newest run alone exceeds ${HISTORY_MAX_BYTES} bytes`);
   }
   try {
     await writeAtomic(file, text);

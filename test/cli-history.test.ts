@@ -251,7 +251,7 @@ describe('CLI history sidecar', () => {
     });
   });
 
-  it('rejects a history path that names an input, the logo, --out or --ci-out', async () => {
+  it('rejects a history path that names an input, the logo, --out, --pdf, --email or --ci-out', async () => {
     const dir = await tempDir();
     const input = path.join(dir, 'input.ndjson');
     await copyFile(messages, input);
@@ -260,6 +260,8 @@ describe('CLI history sidecar', () => {
     await writeFile(logo, Buffer.from(LOGO, 'base64'));
     const logoBefore = await readFile(logo);
     const output = path.join(dir, 'report.html');
+    const pdf = path.join(dir, 'report.pdf');
+    const email = path.join(dir, 'email.html');
     const ciOut = path.join(dir, 'summary.md');
 
     // Control: the flag itself works before any collision is exercised.
@@ -291,6 +293,30 @@ describe('CLI history sidecar', () => {
     const asOutput = await cli([input, '--out', output, '--history', output]);
     expect(asOutput.code, asOutput.stderr).toBe(2);
 
+    const asPdf = await cli([
+      input,
+      '--out',
+      output,
+      '--pdf',
+      pdf,
+      '--history',
+      pdf,
+    ]);
+    expect(asPdf.code, asPdf.stderr).toBe(2);
+    expect(asPdf.stderr).toContain('--pdf');
+
+    const asEmail = await cli([
+      input,
+      '--out',
+      output,
+      '--email',
+      email,
+      '--history',
+      email,
+    ]);
+    expect(asEmail.code, asEmail.stderr).toBe(2);
+    expect(asEmail.stderr).toContain('--email');
+
     const asCiOut = await cli([
       input,
       '--out',
@@ -304,12 +330,11 @@ describe('CLI history sidecar', () => {
     ]);
     expect(asCiOut.code, asCiOut.stderr).toBe(2);
 
-    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
-      code: 'ENOENT',
-    });
-    await expect(readFile(ciOut, 'utf8')).rejects.toMatchObject({
-      code: 'ENOENT',
-    });
+    for (const file of [output, pdf, email, ciOut]) {
+      await expect(readFile(file, 'utf8'), file).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    }
   });
 
   it('reports the history path conflict before reading the logo', async () => {
@@ -443,7 +468,15 @@ describe('CLI history sidecar', () => {
     await chmod(history, 0o444);
     await chmod(sidecarDir, 0o555);
     try {
-      const run = await cli([messages, '--out', output, '--history', history]);
+      const run = await cli([
+        messages,
+        '--out',
+        output,
+        '--history',
+        history,
+        '--history-limit',
+        '5',
+      ]);
 
       expect(run.code).toBe(1);
       expect(run.stderr).toContain('history.json');

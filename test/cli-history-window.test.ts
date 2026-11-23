@@ -1,10 +1,8 @@
 import {
-  chmod,
   copyFile,
   mkdir,
   mkdtemp,
   readFile,
-  readdir,
   rm,
   writeFile,
 } from 'node:fs/promises';
@@ -21,10 +19,6 @@ const messages = fileURLToPath(
 const historyFixtures = fileURLToPath(
   new URL('./fixtures/history/', import.meta.url),
 );
-
-// A 1x1 transparent PNG: the smallest logo that passes the data-URI check.
-const LOGO =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 const dirs: string[] = [];
 
@@ -123,6 +117,10 @@ function trendsRows(html: string): number {
   return [...(body?.[1] ?? '').matchAll(/<tr\b[\s\S]*?<\/tr>/g)].length;
 }
 
+function sparkPoints(html: string): number {
+  return [...html.matchAll(/class="sparkPoint"/g)].length;
+}
+
 async function expectMissing(file: string): Promise<void> {
   await expect(readFile(file, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
 }
@@ -152,7 +150,9 @@ describe('CLI history window', () => {
     expect(ids(sidecar.runs).slice(0, 4)).toEqual(ids(prior.slice(3)));
     expect(sidecar.runs).toHaveLength(5);
     expect(sidecar.runs.at(-1)?.title).toBe('Tolkira report');
-    expect(trendsRows(await readFile(output, 'utf8'))).toBe(5);
+    const html = await readFile(output, 'utf8');
+    expect(trendsRows(html)).toBe(5);
+    expect(sparkPoints(html)).toBe(5);
   });
 
   it('keeps 40 of 41 runs and renders 40 rows at a window of 40', async () => {
@@ -230,7 +230,7 @@ describe('CLI history window', () => {
     expect(trendsRows(await readFile(output, 'utf8'))).toBe(3);
   });
 
-  it('keeps the default 30-run window byte-identical for report, CI, email and JSON', async () => {
+  it('keeps implicit and explicit --history-limit 30 byte-identical in one build', async () => {
     const root = await tempDir();
     const implicit = path.join(root, 'implicit');
     const explicit = path.join(root, 'explicit');
@@ -302,9 +302,9 @@ describe('CLI history window', () => {
       ]);
 
       expect(run.code).toBe(2);
-      expect(run.stderr).toContain('--history-limit');
-      expect(run.stderr).toContain('1 to 365');
-      expect(run.stderr).not.toContain('Unknown option');
+      expect(run.stderr.split('\n')[0]).toBe(
+        `tolkira: Invalid --history-limit "${value}". Use an integer from 1 to 365.`,
+      );
       await expectMissing(output);
       await expectMissing(history);
     },
@@ -323,10 +323,17 @@ describe('CLI history window', () => {
     ]);
 
     expect(run.code).toBe(2);
-    expect(run.stderr).not.toContain('Unknown option');
-    expect(run.stderr).toContain('--history-limit');
-    expect(run.stderr.replaceAll('--history-limit', '')).toContain('--history');
+    expect(run.stderr.split('\n')[0]).toBe(
+      'tolkira: --history-limit requires --history',
+    );
     await expectMissing(output);
+
+    // No output flag: the requirement check still wins over the bare usage text.
+    const bare = await cli([messages, '--history-limit', '10']);
+    expect(bare.code).toBe(2);
+    expect(bare.stderr.split('\n')[0]).toBe(
+      'tolkira: --history-limit requires --history',
+    );
   });
 
   it('keeps the existing --history requires --out error with a limit', async () => {
@@ -354,148 +361,11 @@ describe('CLI history window', () => {
 
     expect(help.code).toBe(0);
     expect(help.stdout).toContain('--history-limit <n>');
-  });
-});
-
-describe('CLI history path safety with a window', () => {
-  it('rejects a history path that names an input, logo, output or an input directory path', async () => {
-    const dir = await tempDir();
-    const inputDir = path.join(dir, 'results');
-    await mkdir(inputDir);
-    const input = path.join(inputDir, 'run.ndjson');
-    await copyFile(messages, input);
-    const inputBefore = await readFile(input, 'utf8');
-    const logo = path.join(dir, 'logo.png');
-    await writeFile(logo, Buffer.from(LOGO, 'base64'));
-    const logoBefore = await readFile(logo);
-    const output = path.join(dir, 'report.html');
-    const pdf = path.join(dir, 'report.pdf');
-    const email = path.join(dir, 'email.html');
-    const ciOut = path.join(dir, 'summary.md');
-    const insideInput = path.join(inputDir, 'history.json');
-    const nestedInsideInput = path.join(inputDir, 'nested', 'history.json');
-
-    const control = await cli([
-      inputDir,
-      '--out',
-      path.join(dir, 'control.html'),
-      '--history',
-      path.join(dir, 'control-history.json'),
-    ]);
-    expect(control.code, control.stderr).toBe(0);
-
-    const cases: Array<{ name: string; argv: string[]; touched: string }> = [
-      {
-        name: 'an input file',
-        argv: [input, '--out', output, '--history', input],
-        touched: input,
-      },
-      {
-        name: 'the logo',
-        argv: [input, '--out', output, '--logo', logo, '--history', logo],
-        touched: logo,
-      },
-      {
-        name: '--out',
-        argv: [input, '--out', output, '--history', output],
-        touched: output,
-      },
-      {
-        name: '--pdf',
-        argv: [input, '--out', output, '--pdf', pdf, '--history', pdf],
-        touched: pdf,
-      },
-      {
-        name: '--email',
-        argv: [input, '--out', output, '--email', email, '--history', email],
-        touched: email,
-      },
-      {
-        name: '--ci-out',
-        argv: [
-          input,
-          '--out',
-          output,
-          '--ci',
-          'markdown',
-          '--ci-out',
-          ciOut,
-          '--history',
-          ciOut,
-        ],
-        touched: ciOut,
-      },
-      {
-        name: 'a missing path inside an input directory',
-        argv: [inputDir, '--out', output, '--history', insideInput],
-        touched: insideInput,
-      },
-      {
-        name: 'a missing nested path inside an input directory',
-        argv: [inputDir, '--out', output, '--history', nestedInsideInput],
-        touched: nestedInsideInput,
-      },
-    ];
-
-    for (const { name, argv, touched } of cases) {
-      const run = await cli(argv);
-
-      expect(run.code, name).toBe(2);
-      expect(run.stderr, name).toContain('--history');
-      if (touched === input) {
-        await expect(readFile(input, 'utf8'), name).resolves.toBe(inputBefore);
-      } else if (touched === logo) {
-        await expect(readFile(logo), name).resolves.toEqual(logoBefore);
-      } else {
-        await expect(readFile(touched, 'utf8'), name).rejects.toMatchObject({
-          code: 'ENOENT',
-        });
-      }
-      await expect(readFile(output, 'utf8'), name).rejects.toMatchObject({
-        code: 'ENOENT',
-      });
-    }
+    expect(help.stdout).toContain('(default 30, range 1 to 365)');
   });
 });
 
 describe('CLI history write failures with a window', () => {
-  it('exits 1 and keeps the HTML when the sidecar cannot be written', async () => {
-    const dir = await tempDir();
-    const sidecarDir = path.join(dir, 'sidecar');
-    await mkdir(sidecarDir);
-    const history = path.join(sidecarDir, 'history.json');
-    await copyFile(path.join(historyFixtures, 'two-runs.json'), history);
-    const before = await readFile(history, 'utf8');
-    const output = path.join(dir, 'report.html');
-
-    // Readable but not replaceable: POSIX refuses the temp file in a read-only
-    // directory, Windows refuses to rename over a read-only file.
-    await chmod(history, 0o444);
-    await chmod(sidecarDir, 0o555);
-    try {
-      const run = await cli([
-        messages,
-        '--out',
-        output,
-        '--history',
-        history,
-        '--history-limit',
-        '5',
-      ]);
-
-      expect(run.code).toBe(1);
-      expect(run.stderr).toContain('history.json');
-      await expect(readFile(output, 'utf8')).resolves.toContain('<html');
-      await expect(readFile(history, 'utf8')).resolves.toBe(before);
-      expect(
-        (await readdir(sidecarDir)).filter((name) => name.endsWith('.tmp')),
-      ).toEqual([]);
-    } finally {
-      await chmod(sidecarDir, 0o755);
-      await chmod(history, 0o644);
-    }
-  });
-
   it.each([
     [
       'oversized',

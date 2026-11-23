@@ -607,7 +607,8 @@ describe('writing the history sidecar', () => {
     const dir = await tempDir();
     const file = path.join(dir, 'history.json');
     const runs = [makeRun(0), makeRun(1)];
-    await writeFile(file, 'stale content', 'utf8');
+    // A valid older sidecar is replaced; a malformed target is rejected now.
+    await writeFile(file, sidecar([makeRun(9)]), 'utf8');
 
     await writeHistory(file, runs);
 

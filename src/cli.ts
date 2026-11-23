@@ -8,6 +8,7 @@ import { renderEmail, type EmailOptions } from './email.js';
 import {
   readHistory,
   writeHistory,
+  HISTORY_LIMIT,
   HISTORY_LIMIT_MAX,
   type HistoryRun,
 } from './history.js';
@@ -51,7 +52,7 @@ Options:
       --ci <format>    Print a CI summary: github, azure or markdown
       --ci-out <file>  Write the markdown CI summary to a file
       --history <file> Read and append an aggregate run history; needs --out
-      --history-limit <n> Runs kept in that history (default 30, range 1 to 365); needs --history
+      --history-limit <n> Runs kept in that history (default ${HISTORY_LIMIT}, range 1 to ${HISTORY_LIMIT_MAX}); needs --history
       --title <text>   Report title, email subject/heading and Markdown CI heading
       --locale <tag>   Report, PDF and email language: en or de (default en); needs --out, --pdf or --email
       --meta key=value Add metadata (repeatable)
@@ -135,7 +136,7 @@ function parseHistoryLimit(value: string | undefined): number | undefined {
   // Leading zeros, signs, fractions and whitespace are usage errors, not aliases.
   if (!/^[1-9]\d*$/.test(value) || Number(value) > HISTORY_LIMIT_MAX) {
     throw new Error(
-      `Invalid --history-limit "${value}". Use an integer from 1 to ${HISTORY_LIMIT_MAX}.`,
+      `Invalid --history-limit "${oneLine(value)}". Use an integer from 1 to ${HISTORY_LIMIT_MAX}.`,
     );
   }
   return Number(value);
@@ -186,10 +187,12 @@ async function historyConflicts(
   inputs: string[],
   logo: string | undefined,
   output: string | undefined,
+  pdfPath: string | undefined,
   ciOut: string | undefined,
   email: string | undefined,
 ): Promise<boolean> {
   if (output && samePath(file, output)) return true;
+  if (pdfPath && samePath(file, pdfPath)) return true;
   if (ciOut && samePath(file, ciOut)) return true;
   if (email && samePath(file, email)) return true;
   if (logo && samePath(file, logo)) return true;
@@ -421,6 +424,14 @@ export async function runCli(
   }
 
   if (
+    parsed.values['history-limit'] !== undefined &&
+    historyFile === undefined
+  ) {
+    io.stderr(`tolkira: --history-limit requires --history\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (
     inputs.length === 0 ||
     (!output &&
       !wantsJson &&
@@ -456,11 +467,6 @@ export async function runCli(
     return 2;
   }
 
-  if (historyLimit !== undefined && historyFile === undefined) {
-    io.stderr(`tolkira: --history-limit requires --history\n\n${USAGE}`);
-    return 2;
-  }
-
   if (historyFile !== undefined && !output) {
     io.stderr(`tolkira: --history requires --out\n\n${USAGE}`);
     return 2;
@@ -473,13 +479,14 @@ export async function runCli(
       inputs,
       parsed.values.logo,
       output,
+      pdfPath,
       ciOut,
       emailPath,
     ))
   ) {
     io.stderr(
       `tolkira: --history must not overwrite an input file, the logo, ` +
-        `--out, --ci-out or --email\n\n${USAGE}`,
+        `--out, --pdf, --ci-out or --email\n\n${USAGE}`,
     );
     return 2;
   }

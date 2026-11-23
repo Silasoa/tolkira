@@ -8,6 +8,8 @@ import {
   CucumberHtmlStream,
   HISTORY_LIMIT,
   HISTORY_MAX_BYTES,
+  HISTORY_MAX_ID,
+  HISTORY_MAX_TITLE,
   appendHistory,
   generateReport,
   readHistory,
@@ -16,6 +18,7 @@ import {
   type HistoryRun,
   type StatusCounts,
 } from '../src/index.js';
+import { historyWindow } from '../src/history.js';
 import { parseMessages } from '../src/input/messages.js';
 
 const fixture = fileURLToPath(
@@ -275,6 +278,15 @@ describe('writing within a history window', () => {
       code: 'ENOENT',
     });
   });
+
+  it('quotes a non-number limit and names NaN in the message', () => {
+    expect(() => historyWindow('10' as unknown as number)).toThrow(
+      'Invalid history limit "10". Use an integer from 1 to 365.',
+    );
+    expect(() => historyWindow(Number.NaN)).toThrow(
+      'Invalid history limit "NaN". Use an integer from 1 to 365.',
+    );
+  });
 });
 
 describe('history schema versions', () => {
@@ -393,9 +405,14 @@ describe('history retention', () => {
 });
 
 describe('history write cap', () => {
-  it('prunes the oldest entries to 1 MiB, keeps the newest and re-reads', async () => {
-    const base = Array.from({ length: 400 }, (_, index) =>
-      makeRun(index, { id: `id-${index}-${'x'.repeat(6000)}` }),
+  it('writes the largest valid window whole, under the cap and without pruning', async () => {
+    // The write caps (128-character id, 200-character title) keep a 365-run
+    // file far below 1 MiB, so the cap prune cannot fire for accepted runs.
+    const base = Array.from({ length: 365 }, (_, index) =>
+      makeRun(index, {
+        id: `id-${index}-${'😀'.repeat(60)}`,
+        title: '😀'.repeat(HISTORY_MAX_TITLE),
+      }),
     );
     const file = path.join(await tempDir(), 'history.json');
 
@@ -406,13 +423,107 @@ describe('history write cap', () => {
     expect(await schemaVersion(file)).toBe(2);
 
     const stored = await storedRuns(file);
-    expect(stored.length).toBeGreaterThan(0);
-    expect(stored.length).toBeLessThan(365);
-    expect(ids(stored)).toEqual(ids(base.slice(-stored.length)));
+    expect(stored).toHaveLength(365);
+    expect(ids(stored)).toEqual(ids(base));
 
     const read = await readHistory(file, 365);
-    expect(read).toHaveLength(stored.length);
+    expect(read).toHaveLength(365);
     expect(read.at(-1)?.id).toBe(base.at(-1)?.id);
+  });
+
+  it('accepts exactly 1,048,576 bytes and rejects one byte more', async () => {
+    const dir = await tempDir();
+    const document = { schemaVersion: 1, runs: [makeRun(0)], padding: '' };
+    const base = JSON.stringify(document, null, 2);
+    const padding = 'x'.repeat(
+      HISTORY_MAX_BYTES - Buffer.byteLength(base, 'utf8'),
+    );
+    const text = JSON.stringify({ ...document, padding }, null, 2);
+    expect(Buffer.byteLength(text, 'utf8')).toBe(HISTORY_MAX_BYTES);
+
+    const exact = path.join(dir, 'exact.json');
+    await writeFile(exact, text, 'utf8');
+    await expect(readHistory(exact)).resolves.toStrictEqual([makeRun(0)]);
+
+    const over = path.join(dir, 'over.json');
+    await writeFile(over, `${text} `, 'utf8');
+    await expect(readHistory(over)).rejects.toThrow(/larger than/);
+  });
+
+  it('rejects an oversized target with the cap message and leaves it untouched', async () => {
+    const file = await writeRaw(
+      'history.json',
+      JSON.stringify({
+        schemaVersion: 1,
+        runs: [],
+        padding: 'x'.repeat(HISTORY_MAX_BYTES),
+      }),
+    );
+    const before = await readFile(file, 'utf8');
+
+    await expect(writeHistory(file, runs(1))).rejects.toThrow(
+      /Cannot write history file .*larger than/,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects a malformed target instead of overwriting it with schema 1', async () => {
+    const file = await writeRaw('history.json', '{"schemaVersion":');
+    const before = await readFile(file, 'utf8');
+
+    await expect(writeHistory(file, runs(1))).rejects.toThrow(
+      /Cannot write history file .*not valid JSON/,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects an unsupported target schema instead of overwriting it', async () => {
+    const file = await writeRaw('history.json', sidecar(runs(1), 3));
+    const before = await readFile(file, 'utf8');
+
+    await expect(writeHistory(file, runs(1))).rejects.toThrow(
+      /Cannot write history file .*unsupported schema version "3"/,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects an over-long id without writing a new file', async () => {
+    const file = path.join(await tempDir(), 'history.json');
+
+    await expect(
+      writeHistory(file, [makeRun(0, { id: 'x'.repeat(HISTORY_MAX_ID + 1) })]),
+    ).rejects.toThrow(/id is longer than 128 characters/);
+    await expect(readFile(file, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
+  it('rejects an over-long id without touching an existing file', async () => {
+    const file = await writeRaw('history.json', sidecar([makeRun(0)]));
+    const before = await readFile(file, 'utf8');
+
+    await expect(
+      writeHistory(file, [makeRun(0, { id: 'x'.repeat(HISTORY_MAX_ID + 1) })]),
+    ).rejects.toThrow(/Cannot write history file/);
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects a non-finite duration instead of writing null', async () => {
+    const file = path.join(await tempDir(), 'history.json');
+
+    await expect(
+      writeHistory(file, [makeRun(0, { durationMs: Number.NaN })]),
+    ).rejects.toThrow(/durationMs must be a non-negative number/);
+    await expect(readFile(file, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
+  it('still reads an older file whose id is longer than the write cap', async () => {
+    const long = makeRun(0, { id: 'x'.repeat(HISTORY_MAX_ID + 1) });
+    const file = await writeRaw('history.json', sidecar([long]));
+
+    await expect(readHistory(file)).resolves.toStrictEqual([long]);
   });
 
   it.each([
