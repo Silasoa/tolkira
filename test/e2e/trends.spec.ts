@@ -127,7 +127,7 @@ test('shows the Trends tab from the second run and switches by keyboard', async 
   }
 });
 
-test('keeps one tab row and an anchored scenario visible at 320 and 200% text zoom', async ({
+test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario visible', async ({
   page,
 }) => {
   let first: ReportFile | undefined;
@@ -137,31 +137,43 @@ test('keeps one tab row and an anchored scenario visible at 320 and 200% text zo
     ({ historyDir, first, second } = await twoRunHistory());
     const url = reportUrl(second.output, '#scenario-1-1');
 
-    async function expectTabRowAndAnchor(
-      label: string,
-      maxBarHeight: number,
-    ): Promise<void> {
-      const views = page.locator('.views');
-      expect(
-        await views.evaluate((element) => getComputedStyle(element).flexWrap),
-        `${label} tab wrap`,
-      ).toBe('nowrap');
-
+    // The old contract pinned one `nowrap` row and a fixed bar height; the
+    // decided contract is that no tab is clipped at 320 px or 200% text.
+    async function expectTabsVisibleAndAnchor(label: string): Promise<void> {
       const tabs = page.getByRole('tab');
       const boxes = await tabs.evaluateAll((elements) =>
-        elements.map((element) => element.getBoundingClientRect().top),
+        elements.map((element) => {
+          const box = element.getBoundingClientRect();
+          return {
+            left: box.left,
+            right: box.right,
+            width: box.width,
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+          };
+        }),
       );
       expect(boxes.length, label).toBeGreaterThanOrEqual(3);
-      for (const top of boxes) {
-        expect(Math.abs(top - (boxes[0] ?? 0)), `${label} tab row`).toBeLessThan(
-          1.5,
+      const viewportWidth = await page.evaluate(() => window.innerWidth);
+      for (const box of boxes) {
+        expect(box.width, `${label} tab width`).toBeGreaterThan(0);
+        expect(box.left, `${label} tab left edge`).toBeGreaterThanOrEqual(-0.5);
+        expect(box.right, `${label} tab right edge`).toBeLessThanOrEqual(
+          viewportWidth + 1,
         );
+        expect(
+          box.scrollWidth,
+          `${label} tab text clipped`,
+        ).toBeLessThanOrEqual(box.clientWidth + 1);
       }
 
       const bar = await page.locator('.topbar').boundingBox();
       expect(bar, `${label} topbar`).not.toBeNull();
-      expect(bar!.height, `${label} topbar height`).toBeLessThanOrEqual(
-        maxBarHeight,
+      const viewportHeight = await page.evaluate(() => window.innerHeight);
+      // A wrapped strip may take a second row; the sticky bar must still leave
+      // the document below it.
+      expect(bar!.height, `${label} topbar height`).toBeLessThan(
+        viewportHeight * 0.45,
       );
 
       await expect
@@ -175,14 +187,16 @@ test('keeps one tab row and an anchored scenario visible at 320 and 200% text zo
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(url);
     await expect(page.locator('#scenario-1-1')).toBeVisible();
-    await expectTabRowAndAnchor('320', 120);
+    await expectTabsVisibleAndAnchor('320');
 
-    await page.addInitScript(() => {
+    // Set the zoom after navigation: an init script runs before the document
+    // element exists and would leave the page at 100%.
+    await page.goto(url);
+    await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
     });
-    await page.goto(url);
     await expect(page.locator('#scenario-1-1')).toBeVisible();
-    await expectTabRowAndAnchor('320 at 200%', 240);
+    await expectTabsVisibleAndAnchor('320 at 200%');
   } finally {
     await removeAll(historyDir, [first, second]);
   }
