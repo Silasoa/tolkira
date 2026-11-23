@@ -16,10 +16,11 @@ import { renderEmail } from '../src/email.js';
 import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadInputs } from '../src/input/load.js';
 import { parseMessages } from '../src/input/messages.js';
-import { buildReportModel } from '../src/report/model.js';
+import { buildReportModel, type ReportAttachment } from '../src/report/model.js';
+import { renderAttachment } from '../src/render/attachments.js';
 import { applyReportSize, REPORT_BYTES_MARKER } from '../src/render/details.js';
 import { escapeHtml } from '../src/render/escape.js';
-import { exactSizeLabel } from '../src/render/format.js';
+import { exactSizeLabel, sizeLabel } from '../src/render/format.js';
 import { renderHtml } from '../src/render/html.js';
 import { createTranslator, type Translator } from '../src/render/i18n.js';
 
@@ -507,6 +508,70 @@ describe('exactSizeLabel', () => {
   it('formats 1 MiB as 1.048.576 Byte (1,0 MB) in German', () => {
     expect(exactSizeLabel(MIB, createTranslator('de'))).toBe(
       '1.048.576 Byte (1,0\u00a0MB)',
+    );
+  });
+});
+
+describe('format.bytes catalog seam', () => {
+  const message = '{count, plural, one {# Byte} other {# Bytes}}';
+  const deSeam = createTranslator('de', {
+    catalog: { 'format.bytes': message },
+  });
+  const enSeam = createTranslator('en', {
+    catalog: { 'format.bytes': message },
+  });
+
+  it('formats German exact and byte labels from the numeric count', () => {
+    expect(exactSizeLabel(MIB, deSeam)).toBe(
+      '1.048.576 Bytes (1,0\u00a0MB)',
+    );
+    expect(sizeLabel(MIB - 1, deSeam)).toBe('1.048.575 Bytes');
+  });
+
+  it('selects the German plural category from the count', () => {
+    expect(sizeLabel(1, deSeam)).toBe('1 Byte');
+    expect(sizeLabel(2, deSeam)).toBe('2 Bytes');
+  });
+
+  it('formats the English seam from the numeric count', () => {
+    expect(exactSizeLabel(MIB, enSeam)).toBe('1048576 Bytes (1.0\u00a0MB)');
+    expect(sizeLabel(1, enSeam)).toBe('1 Byte');
+    expect(sizeLabel(2, enSeam)).toBe('2 Bytes');
+  });
+
+  it('keeps the default German byte text unchanged', () => {
+    expect(sizeLabel(1_000_000, createTranslator('de'))).toBe(
+      '1.000.000 Byte',
+    );
+  });
+});
+
+describe('attachment size row', () => {
+  const deSeam = createTranslator('de', {
+    catalog: {
+      'format.bytes': '{count, plural, one {# Byte} other {# Bytes}}',
+    },
+  });
+  const attachment = (bytes: number): ReportAttachment => ({
+    fileName: 'evidence.bin',
+    mediaType: 'application/octet-stream',
+    kind: 'binary',
+    textFormat: 'plain',
+    bytes,
+  });
+
+  it('formats the attachment label from the numeric count', () => {
+    expect(renderAttachment(attachment(1), undefined, deSeam)).toContain(
+      '1 Byte',
+    );
+    expect(renderAttachment(attachment(2), undefined, deSeam)).toContain(
+      '2 Bytes',
+    );
+  });
+
+  it('groups a binary attachment at 1 MiB without parsing the string', () => {
+    expect(renderAttachment(attachment(MIB), undefined, deSeam)).toContain(
+      '1.048.576 Bytes',
     );
   });
 });

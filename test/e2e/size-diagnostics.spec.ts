@@ -198,6 +198,14 @@ async function expectNoOverflow(page: Page, label: string): Promise<void> {
   expect(overflow, `${label} overflow`).toBeLessThanOrEqual(1);
 }
 
+async function sizeMetaTracks(page: Page): Promise<string[]> {
+  return page
+    .locator('dl.sizeMeta')
+    .evaluate((element) =>
+      getComputedStyle(element).gridTemplateColumns.split(/\s+/).filter(Boolean),
+    );
+}
+
 test('keeps the size list inside 320, 390 and 1440 px and 200% text', async ({
   page,
 }) => {
@@ -271,6 +279,92 @@ test('shows exact bytes with MB above 1 MiB without overflow', async ({
     });
     await page.getByRole('tab', { name: 'Details' }).click();
     await check('320px at 200% text');
+  } finally {
+    await removeReport(report.dir);
+    await removeReport(input.dir);
+  }
+});
+
+test('stacks the German Details run panel and keeps the wide layout', async ({
+  page,
+}) => {
+  const input = await writeInput(
+    'size-large-de.ndjson',
+    sizeMessages(1_100_000),
+  );
+  const report = await writeReport(
+    [input.file],
+    'Size large de',
+    'tolkira-size-de-e2e-',
+    'de',
+  );
+  try {
+    const bytes = Buffer.byteLength(
+      await readFile(report.output, 'utf8'),
+      'utf8',
+    );
+    expect(bytes).toBeGreaterThan(MIB);
+    const grouped = new Intl.NumberFormat('de').format(bytes);
+
+    await page.setViewportSize({ width: 560, height: 900 });
+    await page.goto(reportUrl(report.output));
+    await page.getByRole('tab', { name: 'Details' }).click();
+    const sizeMeta = page.locator('dl.sizeMeta');
+    await expect(sizeMeta, 'German size panel').toBeVisible();
+
+    const narrowTracks = await sizeMetaTracks(page);
+    expect(narrowTracks, '560px used tracks').toHaveLength(1);
+    for (const track of narrowTracks) {
+      expect(track, '560px track is used px').toMatch(
+        /^-?\d+(?:\.\d+)?px$/,
+      );
+    }
+
+    const stacked = await sizeMeta.evaluate((list) => {
+      const dt = list.querySelector('dt');
+      const dd = list.querySelector('dd');
+      if (!dt || !dd) return undefined;
+      return {
+        dt: dt.getBoundingClientRect().top,
+        dd: dd.getBoundingClientRect().top,
+      };
+    });
+    expect(stacked, '560px label and value positions').toBeDefined();
+    expect(stacked!.dd, '560px value below label').toBeGreaterThan(
+      stacked!.dt,
+    );
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const wideTracks = await sizeMetaTracks(page);
+    expect(wideTracks, '1440px used tracks').toHaveLength(2);
+    for (const track of wideTracks) {
+      expect(track, '1440px track is used px').toMatch(/^-?\d+(?:\.\d+)?px$/);
+    }
+
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    const row = page
+      .locator('dl.sizeMeta dt', { hasText: 'Bericht-HTML' })
+      .locator('xpath=following-sibling::dd[1]');
+    await expect(row, '320px German report row').toBeVisible();
+    const lines = await row.evaluate((element, text) => {
+      const node = [...element.childNodes].find(
+        (child) =>
+          child.nodeType === Node.TEXT_NODE &&
+          (child.textContent ?? '').includes(text),
+      );
+      if (!node) return -1;
+      const content = node.textContent ?? '';
+      const start = content.indexOf(text);
+      const range = document.createRange();
+      range.setStart(node, start);
+      range.setEnd(node, start + text.length);
+      return range.getClientRects().length;
+    }, grouped);
+    expect(lines, '320px grouped byte count lines').toBe(1);
+    await expectNoOverflow(page, '320px at 200% text');
   } finally {
     await removeReport(report.dir);
     await removeReport(input.dir);
