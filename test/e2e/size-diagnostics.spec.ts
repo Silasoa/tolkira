@@ -9,6 +9,7 @@ import {
 
 const LONG_NAME = `screenshot-${'a'.repeat(160)}.png`;
 const MIB = 1024 * 1024;
+const A4_CONTENT_WIDTH = 703;
 
 function sizeMessages(largeBytes = 0): string {
   const attachments = [
@@ -35,6 +36,15 @@ function sizeMessages(largeBytes = 0): string {
     timestamp: { seconds: 1, nanos: 2_000_000 + index },
   }));
   return `${[
+    {
+      meta: {
+        protocolVersion: '27.0.2',
+        implementation: { name: 'cucumber-js', version: '12.0.0' },
+        runtime: {},
+        os: {},
+        cpu: {},
+      },
+    },
     {
       source: {
         data: 'Feature: Size layout\n\n  Scenario: Long attachment name\n    Given an attachment\n',
@@ -198,12 +208,22 @@ async function expectNoOverflow(page: Page, label: string): Promise<void> {
   expect(overflow, `${label} overflow`).toBeLessThanOrEqual(1);
 }
 
-async function sizeMetaTracks(page: Page): Promise<string[]> {
+async function metaTracks(
+  page: Page,
+  selector = 'dl.sizeMeta',
+): Promise<string[]> {
   return page
-    .locator('dl.sizeMeta')
+    .locator(selector)
+    .first()
     .evaluate((element) =>
       getComputedStyle(element).gridTemplateColumns.split(/\s+/).filter(Boolean),
     );
+}
+
+function firstTrackShare(tracks: string[]): number {
+  const first = Number.parseFloat(tracks[0] ?? '0');
+  const second = Number.parseFloat(tracks[1] ?? '0');
+  return first / (first + second);
 }
 
 test('keeps the size list inside 320, 390 and 1440 px and 200% text', async ({
@@ -312,7 +332,7 @@ test('stacks the German Details run panel and keeps the wide layout', async ({
     const sizeMeta = page.locator('dl.sizeMeta');
     await expect(sizeMeta, 'German size panel').toBeVisible();
 
-    const narrowTracks = await sizeMetaTracks(page);
+    const narrowTracks = await metaTracks(page);
     expect(narrowTracks, '560px used tracks').toHaveLength(1);
     for (const track of narrowTracks) {
       expect(track, '560px track is used px').toMatch(
@@ -333,13 +353,62 @@ test('stacks the German Details run panel and keeps the wide layout', async ({
     expect(stacked!.dd, '560px value below label').toBeGreaterThan(
       stacked!.dt,
     );
+    await expectNoOverflow(page, '560px');
+
+    const otherTracks = await metaTracks(
+      page,
+      '#analysis-view dl.metaList:not(.sizeMeta)',
+    );
+    expect(otherTracks, '560px other metaList used tracks').toHaveLength(2);
+    for (const track of otherTracks) {
+      expect(track, '560px other track is used px').toMatch(
+        /^-?\d+(?:\.\d+)?px$/,
+      );
+    }
+
+    await page.setViewportSize({ width: 561, height: 900 });
+    const boundaryTracks = await metaTracks(page);
+    expect(boundaryTracks, '561px used tracks').toHaveLength(2);
+    for (const track of boundaryTracks) {
+      expect(track, '561px track is used px').toMatch(
+        /^-?\d+(?:\.\d+)?px$/,
+      );
+    }
+    expect(
+      Math.abs(firstTrackShare(boundaryTracks) - 0.4),
+      '561px German 2fr/3fr share',
+    ).toBeLessThan(0.02);
 
     await page.setViewportSize({ width: 1440, height: 900 });
-    const wideTracks = await sizeMetaTracks(page);
+    const wideTracks = await metaTracks(page);
     expect(wideTracks, '1440px used tracks').toHaveLength(2);
     for (const track of wideTracks) {
       expect(track, '1440px track is used px').toMatch(/^-?\d+(?:\.\d+)?px$/);
     }
+    expect(
+      Math.abs(firstTrackShare(wideTracks) - 0.4),
+      '1440px German 2fr/3fr share',
+    ).toBeLessThan(0.02);
+
+    await page.setViewportSize({ width: A4_CONTENT_WIDTH, height: 1200 });
+    await page.emulateMedia({ media: 'print' });
+    await expect(sizeMeta, 'German size panel in A4 print').toBeVisible();
+    const printTracks = await metaTracks(page);
+    expect(printTracks, 'A4 print used tracks').toHaveLength(2);
+    for (const track of printTracks) {
+      expect(track, 'A4 print track is used px').toMatch(
+        /^-?\d+(?:\.\d+)?px$/,
+      );
+    }
+    expect(
+      Math.abs(firstTrackShare(printTracks) - 0.4),
+      'A4 print German 2fr/3fr share',
+    ).toBeLessThan(0.02);
+
+    await page.setViewportSize({ width: 560, height: 900 });
+    const narrowPrintTracks = await metaTracks(page);
+    expect(narrowPrintTracks, '560px print used tracks').toHaveLength(1);
+    await page.emulateMedia({ media: 'screen' });
 
     await page.setViewportSize({ width: 320, height: 900 });
     await page.evaluate(() => {

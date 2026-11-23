@@ -141,4 +141,4 @@ changed for the check.
   560 px German stacking.
 - No existing test deleted, skipped or weakened.
 - `npm run hygiene` green; `npx oxlint` on both changed test files green.
-- Not committed, not archived.
+- Not committed and not archived at RED time.

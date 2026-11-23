@@ -22,7 +22,7 @@ import { applyReportSize, REPORT_BYTES_MARKER } from '../src/render/details.js';
 import { escapeHtml } from '../src/render/escape.js';
 import { exactSizeLabel, sizeLabel } from '../src/render/format.js';
 import { renderHtml } from '../src/render/html.js';
-import { createTranslator, type Translator } from '../src/render/i18n.js';
+import { createTranslator } from '../src/render/i18n.js';
 
 const messages = (name: string): string =>
   fileURLToPath(new URL(`./fixtures/messages/${name}`, import.meta.url));
@@ -30,6 +30,8 @@ const legacy = (name: string): string =>
   fileURLToPath(new URL(`./fixtures/legacy/${name}`, import.meta.url));
 
 const MIB = 1024 * 1024;
+const PLURAL_BYTES = '{count, plural, one {# Byte} other {# Bytes}}';
+const MEGABYTES_MESSAGE = '{count} MB';
 const t = createTranslator('en');
 
 const tempDirs: string[] = [];
@@ -67,6 +69,7 @@ function rowValue(view: string, labels: string[]): string | undefined {
   return undefined;
 }
 
+// Old-path oracle: keep the pre-formatted string; do not align with production.
 function bytesLabel(bytes: number): string {
   return t.t('format.bytes', { count: t.number(bytes) });
 }
@@ -472,25 +475,24 @@ describe('exact report HTML size', () => {
 });
 
 describe('sizeLabel', () => {
-  it('switches from bytes to megabytes at 1 MiB', async () => {
-    const format = (await import('../src/render/format.js')) as unknown as {
-      sizeLabel: (bytes: number, translator: Translator) => string;
-    };
-    const { sizeLabel } = format;
-
+  it('switches from bytes to megabytes at 1 MiB', () => {
     const mb = t.t('format.megabytes', { count: oneDecimal(1) });
     expect(sizeLabel(MIB - 1, t)).toBe(bytesLabel(MIB - 1));
     expect(sizeLabel(MIB, t)).toBe(mb.replaceAll(' ', '\u00a0'));
     expect(sizeLabel(MIB, t)).not.toContain('bytes');
   });
 
-  it('formats 1 MiB as 1,0 MB in German', async () => {
-    const { sizeLabel } = (await import('../src/render/format.js')) as unknown as {
-      sizeLabel: (bytes: number, translator: Translator) => string;
-    };
+  it('formats 1 MiB as 1,0 MB in German', () => {
     const de = createTranslator('de');
 
     expect(sizeLabel(MIB, de)).toBe('1,0\u00a0MB');
+  });
+
+  it('keeps the default German byte text unchanged', () => {
+    const de = createTranslator('de');
+
+    expect(sizeLabel(1_000_000, de)).toBe('1.000.000 Byte');
+    expect(sizeLabel(0, de)).toBe('0 Byte');
   });
 });
 
@@ -513,12 +515,17 @@ describe('exactSizeLabel', () => {
 });
 
 describe('format.bytes catalog seam', () => {
-  const message = '{count, plural, one {# Byte} other {# Bytes}}';
   const deSeam = createTranslator('de', {
-    catalog: { 'format.bytes': message },
+    catalog: {
+      'format.bytes': PLURAL_BYTES,
+      'format.megabytes': MEGABYTES_MESSAGE,
+    },
   });
   const enSeam = createTranslator('en', {
-    catalog: { 'format.bytes': message },
+    catalog: {
+      'format.bytes': PLURAL_BYTES,
+      'format.megabytes': MEGABYTES_MESSAGE,
+    },
   });
 
   it('formats German exact and byte labels from the numeric count', () => {
@@ -531,26 +538,20 @@ describe('format.bytes catalog seam', () => {
   it('selects the German plural category from the count', () => {
     expect(sizeLabel(1, deSeam)).toBe('1 Byte');
     expect(sizeLabel(2, deSeam)).toBe('2 Bytes');
+    expect(sizeLabel(0, deSeam)).toBe('0 Bytes');
   });
 
   it('formats the English seam from the numeric count', () => {
     expect(exactSizeLabel(MIB, enSeam)).toBe('1048576 Bytes (1.0\u00a0MB)');
     expect(sizeLabel(1, enSeam)).toBe('1 Byte');
     expect(sizeLabel(2, enSeam)).toBe('2 Bytes');
-  });
-
-  it('keeps the default German byte text unchanged', () => {
-    expect(sizeLabel(1_000_000, createTranslator('de'))).toBe(
-      '1.000.000 Byte',
-    );
+    expect(sizeLabel(0, enSeam)).toBe('0 Bytes');
   });
 });
 
 describe('attachment size row', () => {
   const deSeam = createTranslator('de', {
-    catalog: {
-      'format.bytes': '{count, plural, one {# Byte} other {# Bytes}}',
-    },
+    catalog: { 'format.bytes': PLURAL_BYTES },
   });
   const attachment = (bytes: number): ReportAttachment => ({
     fileName: 'evidence.bin',
@@ -562,16 +563,16 @@ describe('attachment size row', () => {
 
   it('formats the attachment label from the numeric count', () => {
     expect(renderAttachment(attachment(1), undefined, deSeam)).toContain(
-      '1 Byte',
+      ', 1 Byte)',
     );
     expect(renderAttachment(attachment(2), undefined, deSeam)).toContain(
-      '2 Bytes',
+      ', 2 Bytes)',
     );
   });
 
   it('groups a binary attachment at 1 MiB without parsing the string', () => {
     expect(renderAttachment(attachment(MIB), undefined, deSeam)).toContain(
-      '1.048.576 Bytes',
+      ', 1.048.576 Bytes)',
     );
   });
 });

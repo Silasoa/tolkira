@@ -9,7 +9,9 @@ labels SHALL wrap; this change does not introduce a short form. The page SHALL
 not scroll horizontally at 320 px, including at 200 % text zoom. The Details Run
 panel SHALL stack its label and value rows in one column at 560 px and below,
 including in German, without splitting the exact byte count mid-number. Above
-560 px and in print the German two-column Run panel SHALL stay unchanged.
+560 px and in A4 print (the CLI `--pdf` path) the German two-column Run panel
+SHALL stay unchanged; narrower print page boxes SHALL follow the stacked layout,
+as English already does.
 
 #### Scenario: Narrow German report
 
@@ -28,5 +30,6 @@ including in German, without splitting the exact byte count mid-number. Above
 #### Scenario: Wide German Details rows
 
 - **WHEN** the German Details Run panel is opened above 560 px or rendered for
-  print
+  A4 print (the CLI `--pdf` path)
 - **THEN** the Run panel keeps its two-column label/value layout
+- **AND** the first track keeps the German 2fr/3fr share

@@ -20,17 +20,19 @@ fixes-only patch: no new feature, catalog key, schema or dependency.
 ## What Changes
 
 - One narrow-only German override makes the Details Run panel stack in one
-  column at 560 px and below, as English already does. The German wide layout
-  above 560 px and in print stays unchanged.
+  column at 560 px and below, as English already does. Above 560 px and in A4
+  print (the CLI `--pdf` path) the German two-column layout stays unchanged;
+  narrower print page boxes follow the stacked layout, as English already does.
 - `sizeLabel`, `exactSizeLabel` and the attachment size row pass the numeric byte
   count to `format.bytes` instead of a pre-formatted string, so a plural branch
   can select its category. The visible English/German byte-count text is
   unchanged.
 - The `en.json` `format.bytes` description is corrected to "raw number"; no key
   or message changes, so `catalogs.ts` stays as generated.
-- A German 560/1440/320 px e2e check pins the stacked narrow panel, the wide
-  two-column panel and the unbroken grouped count; catalog-seam tests pin the
-  numeric plural path and all three render call sites.
+- A German 560/561/1440 px and A4 print e2e check pins the stacked narrow panel,
+  the 2fr/3fr wide panel (including another metaList at 560 px) and the unbroken
+  grouped count; catalog-seam tests pin the numeric plural path and all three
+  render call sites.
 
 ## Impact
 
@@ -45,10 +47,11 @@ fixes-only patch: no new feature, catalog key, schema or dependency.
   `docs/CHANGELOG.md` 0.5.1.
 - Docs: `docs/BACKLOG.md` (B-045/B-046 resolved, `format.megabytes` limit
   recorded), `docs/I18N.md` (numeric `format.bytes` contract).
-- German report HTML grows by the selector text (~15 bytes); the self-referential
-  report-size row still resolves. English report HTML is byte-identical. No
-  summary schema, history schema, catalog message, CSS asset or dependency
-  change.
+- German report HTML grows by 82 bytes (the emitted rule); the layout changes
+  only at 560 px and below, but the embedded CSS bytes change at every width for
+  German. The self-referential report-size row still resolves. English report
+  HTML is byte-identical. No summary schema, history schema, catalog message,
+  CSS asset or dependency change.
 
 ## Out of scope
 

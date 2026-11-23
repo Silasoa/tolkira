@@ -2,10 +2,12 @@
 
 ## 1. Gate
 
-- [ ] 1.1 PIR + DXR over the proposal, spec deltas and design; fold the PIR
-  findings (seam target, wide/print German layout, 560/561 boundary,
-  attachment call site, catalog description) and the DXR findings (version
-  surface, host matrix and pre-release audit, `format.bytes` scope).
+- [x] 1.1 PIR + DXR over the proposal, spec deltas and design on 2026-11-23.
+  Both returned "not clean": PIR 5 blockers, DXR 4 blockers + 5 optional. All
+  findings were folded into the contract before Red: PIR (seam target,
+  wide/print German layout, 560/561 boundary, attachment call site, catalog
+  description) and DXR (version surface, host matrix and pre-release audit,
+  `format.bytes` scope).
 - [x] 1.2 Confirm the current German selector and the `format.bytes` call
   sites; no catalog key or message, schema or dependency change.
 
@@ -30,7 +32,7 @@
 ## 3. Implement
 
 - [x] 3.1 Add the narrow-only German `.sizeMeta` override; leave the wide and
-  print layout unchanged.
+  A4 print layout unchanged.
 - [x] 3.2 Pass raw byte counts to `format.bytes` in `sizeLabel`,
   `exactSizeLabel` and the attachment size row; update the `en.json`
   `format.bytes` description (description only; no key or message change).
@@ -41,9 +43,9 @@
 ## 4. Verification and review
 
 - [x] 4.1 `npm run hygiene`, `npm run check`, `npm run test:e2e`.
-- [ ] 4.2 SCR, CR, DAR, UXR, ILA and STR; CMP is optional because no
+- [x] 4.2 SCR, CR, DAR, UXR, ILA and STR; CMP is optional because no
   competitor-facing output changes. SEC is not triggered (no new input path).
-- [ ] 4.3 Fix findings; record deferred decisions.
+- [x] 4.3 Fix findings; record deferred decisions.
 - [ ] 4.4 Host rows: run the five required `docs/DROP-IN-VALIDATION.md` rows on
   the final tree and record host, pin and result, or record a written exception
   the user approves for this version.
@@ -73,3 +75,17 @@
   tests at 5,000 ms while 78 workers spawned; `npx vitest run` and the next
   `npm run check` were green with the numbers above (machine load, not a test
   failure).
+- Review round 2026-11-23: SCR, CR, DAR, UXR, ILA and STR found no behavioural
+  defect in the shipped fix; the findings were test gaps and documentation
+  precision, fixed in the fixer pass. CMP is running.
+- Reviewed range artifact: the `docs: research Tolkira placement venues and
+  rules` and `docs: research the 0.6.0 baseline anchor` commits are inside the
+  reviewed range but are not part of this change.
+- Mutation check 2026-11-23 (throwaway spec, not committed): baseline 1440 px
+  124.469 / 186.719 px (share 0.400), 561 px 180 / 270 px (0.400), 560 px one
+  475 px track. Replacing the German wide rule with the base auto/1fr fallback
+  gave 124.094 / 325.906 px at 561 px (share 0.276, fails the 0.4 ± 0.02
+  assertion) and 124.094 / 187.109 px at 1440 px (share 0.399, because the
+  right-column panel is only 311 px wide there); forcing two tracks at 560 px
+  gave 190 / 285 px (fails the one-track assertion). The 561 px boundary
+  assertion is the one that catches the deleted German rule.

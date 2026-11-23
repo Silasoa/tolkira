@@ -53,7 +53,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-029 | Report | P3 | Chromium OS sandbox for PDF renders | A CI runner or container supports the Chromium OS sandbox and the PDF path processes untrusted attachments; until then the accepted `--no-sandbox` risk is documented in PDF.md. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
-| B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
+| B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column, and the label column is squeezed too, at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
@@ -124,16 +124,20 @@ asks or a locale needs them:
   and no catalog key or message changed; only the `en.json` description now says
   the count is a raw number. `format.megabytes` keeps the same latent
   pre-formatted-string pattern and stays deferred, because fixing it needs a
-  precision-aware design.
+  precision-aware design. Revisit when a target catalog adds a plural branch to
+  `format.megabytes`, or with the next size-formatting change.
 - **B-046 German Details stacking** — resolved on 2026-11-23 in the
   `size-details-followups` change: one narrow-only German override
   (`@media (max-width:560px){:lang(de) .sizeMeta{grid-template-columns:minmax(0,1fr)}}`)
   stacks the Details Run panel at 560 px and below, so the exact byte count no
-  longer splits mid-number at 320 px and 200 % text. The German two-column
-  layout above 560 px and in print is unchanged, and the other metaLists
-  (metadata, custom metadata, environment) are untouched. The E2E test pins one
-  used track at 560 px, two at 1440 px and an unbroken grouped count with no
-  horizontal overflow at 320 px.
+  longer splits mid-number at 320 px and 200 % text. Above 560 px and in A4
+  print (the CLI `--pdf` path) the German two-column layout is unchanged;
+  narrower print page boxes follow the stacked layout, as English already does.
+  The other metaLists (metadata, custom metadata, environment) are untouched.
+  The E2E test pins one used track at 560 px with no horizontal overflow, the
+  2fr/3fr share at 561 px, 1440 px and A4 print, two tracks on another metaList
+  at 560 px, and an unbroken grouped count with no horizontal overflow at
+  320 px.
 - **B-041 Report-size unit consistency** — implemented on 2026-11-23 in the
   `report-size-units` change: the Details Report HTML row leads with the exact
   locale-formatted byte count and, at 1 MiB and above, adds one-decimal MB in

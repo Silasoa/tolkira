@@ -56,9 +56,7 @@ describe('CucumberHtmlStream', () => {
     expect(html).not.toContain('<dt>Input data</dt>');
     expect(fileHtml).toContain('<dt>Input data</dt>');
     expect(reportRow(html)).toBe(
-      en.t('format.bytes', {
-        count: en.number(Buffer.byteLength(html, 'utf8')),
-      }),
+      en.t('format.bytes', { count: Buffer.byteLength(html, 'utf8') }),
     );
     expect(html).toContain('<title>Stream parity</title>');
   });
