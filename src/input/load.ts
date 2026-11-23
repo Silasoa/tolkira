@@ -140,6 +140,7 @@ export async function loadInputs(
       case 'junit':
         parsed = await parseJUnitXml(content, input.file, {
           idPrefix: `junit-${index}`,
+          allowEmptyDocument: !input.explicit,
         });
         break;
       case 'junit-validation':

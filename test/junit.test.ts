@@ -1,9 +1,16 @@
-import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import {
+  copyFile,
+  mkdtemp,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { renderReport, summarizeReport } from '../src/index.js';
+import { runCli } from '../src/cli.js';
+import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 
 const fixture = fileURLToPath(
   new URL('./fixtures/junit/basic.xml', import.meta.url),
@@ -386,5 +393,177 @@ describe('JUnit XML input', () => {
     const html = await renderReport(dir, { title: 'Directory' });
 
     expect(html).toContain('expired coupon');
+  });
+
+  describe('empty JUnit documents in a directory', () => {
+    const surefireEmpty =
+      '<testsuites><testsuite name="skipped-surefire" tests="0"/></testsuites>';
+    const bareEmpty = '<testsuite name="skipped-bare" tests="0"/>';
+
+    it('skips a Surefire zero-test document and renders the rest', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(path.join(dir, 'empty.xml'), surefireEmpty, 'utf8');
+
+      const summary = await summarizeReport(dir);
+
+      expect(summary.counts.features).toBe(2);
+      expect(summary.counts.scenarios).toMatchObject({
+        total: 4,
+        passed: 2,
+        failed: 1,
+        skipped: 1,
+      });
+      expect(
+        summary.scenarios.some(
+          (scenario) => scenario.feature === 'skipped-surefire',
+        ),
+      ).toBe(false);
+
+      const html = await renderReport(dir, { title: 'Directory' });
+      expect(html).toContain('expired coupon');
+      expect(html).not.toContain('skipped-surefire');
+    });
+
+    it('skips a bare zero-test testsuite and renders the rest', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(path.join(dir, 'empty.xml'), bareEmpty, 'utf8');
+
+      const summary = await summarizeReport(dir);
+
+      expect(summary.counts.features).toBe(2);
+      expect(summary.counts.scenarios.total).toBe(4);
+      expect(
+        summary.scenarios.some(
+          (scenario) => scenario.feature === 'skipped-bare',
+        ),
+      ).toBe(false);
+
+      const html = await renderReport(dir, { title: 'Directory' });
+      expect(html).toContain('expired coupon');
+      expect(html).not.toContain('skipped-bare');
+    });
+
+    it('rejects a directory with only zero-test documents and writes no report', async () => {
+      const dir = await tempDir();
+      await writeFile(path.join(dir, 'surefire.xml'), surefireEmpty, 'utf8');
+      await writeFile(path.join(dir, 'bare.xml'), bareEmpty, 'utf8');
+
+      await expect(renderReport(dir, { title: 'Empty' })).rejects.toThrow(
+        /No supported report files found\./,
+      );
+
+      const outDir = await tempDir();
+      const output = path.join(outDir, 'report.html');
+      let stderr = '';
+      const code = await runCli([dir, '--out', output], {
+        stdout: () => {},
+        stderr: (text) => {
+          stderr += text;
+        },
+      });
+
+      expect(code).toBe(1);
+      expect(stderr).toContain('No supported report files found.');
+      expect(await readdir(outDir)).toEqual([]);
+    });
+
+    it('rejects an explicit list that includes a zero-test document', async () => {
+      const dir = await tempDir();
+      const empty = path.join(dir, 'empty.xml');
+      await writeFile(empty, surefireEmpty, 'utf8');
+
+      await expect(
+        renderReport([fixture, empty], { title: 'Mixed' }),
+      ).rejects.toThrow(/Unsupported JUnit XML in .*empty\.xml/);
+    });
+
+    it('rejects a malformed JUnit document in a directory instead of skipping it', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(
+        path.join(dir, 'broken.xml'),
+        '<testsuites><testsuite>',
+        'utf8',
+      );
+
+      await expect(renderReport(dir, { title: 'Broken' })).rejects.toThrow(
+        /Invalid JUnit XML in .*broken\.xml at line \d+/,
+      );
+    });
+
+    it('renders exactly one scenario for one test case plus an empty document', async () => {
+      const dir = await tempDir();
+      await writeFile(
+        path.join(dir, 'single.xml'),
+        '<testsuites><testsuite name="single suite"><testcase name="only test"/></testsuite></testsuites>',
+        'utf8',
+      );
+      await writeFile(path.join(dir, 'empty.xml'), bareEmpty, 'utf8');
+
+      const summary = await summarizeReport(dir);
+
+      expect(summary.counts.features).toBe(1);
+      expect(summary.counts.scenarios).toMatchObject({
+        total: 1,
+        passed: 1,
+        failed: 0,
+        skipped: 0,
+      });
+      expect(summary.scenarios.map((scenario) => scenario.name)).toEqual([
+        'only test',
+      ]);
+    });
+
+    it('skips two empty documents and renders the usable one', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(path.join(dir, 'surefire.xml'), surefireEmpty, 'utf8');
+      await writeFile(path.join(dir, 'bare.xml'), bareEmpty, 'utf8');
+
+      const summary = await summarizeReport(dir);
+
+      expect(summary.counts.features).toBe(2);
+      expect(summary.counts.scenarios.total).toBe(4);
+      expect(summary.scenarios.map((scenario) => scenario.feature)).toEqual(
+        expect.arrayContaining(['checkout', 'profile']),
+      );
+      expect(
+        summary.scenarios.every(
+          (scenario) =>
+            scenario.feature !== 'skipped-surefire' &&
+            scenario.feature !== 'skipped-bare',
+        ),
+      ).toBe(true);
+    });
+
+    it('keeps a skipped empty document in the input-file count', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(path.join(dir, 'empty.xml'), surefireEmpty, 'utf8');
+
+      const report = await generateReport(dir);
+
+      expect(report.inputFiles).toBe(2);
+      expect(report.summary.counts.scenarios.total).toBe(4);
+    });
+
+    it('keeps nested test cases when the wrapper suite has none of its own', async () => {
+      const dir = await tempDir();
+      await copyFile(fixture, path.join(dir, 'valid.xml'));
+      await writeFile(
+        path.join(dir, 'wrapped.xml'),
+        '<testsuites><testsuite name="wrapper"><testsuite name="nested child"><testcase name="nested only"/></testsuite></testsuite></testsuites>',
+        'utf8',
+      );
+
+      const summary = await summarizeReport(dir);
+
+      expect(summary.counts.scenarios.total).toBe(5);
+      expect(summary.scenarios.map((scenario) => scenario.name)).toContain(
+        'nested only',
+      );
+    });
   });
 });

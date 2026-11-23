@@ -326,7 +326,7 @@ export function looksLikeJUnit(content: string): boolean {
 export async function parseJUnitXml(
   content: string,
   source: string,
-  options: { idPrefix?: string } = {},
+  options: { idPrefix?: string; allowEmptyDocument?: boolean } = {},
 ): Promise<Envelope[]> {
   const { XMLParser, XMLValidator } = await import('fast-xml-parser');
 
@@ -368,6 +368,7 @@ export async function parseJUnitXml(
     (suite) => asArray(suite.testcase).length > 0,
   );
   if (suites.length === 0) {
+    if (options.allowEmptyDocument) return [];
     throw new Error(
       `Unsupported JUnit XML in ${source}: expected <testsuites> or <testsuite> with <testcase>.`,
     );

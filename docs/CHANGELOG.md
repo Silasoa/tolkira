@@ -21,6 +21,14 @@ Keep a Changelog and the project uses semantic versioning.
   is unchanged, no catalog key or message changed, and the English
   `format.bytes` description now states that `count` is a raw number.
 
+- A JUnit XML directory now skips a well-formed document with no test cases
+  instead of failing the whole run. A real Maven run writes such a file for a
+  suite skipped by a missing service (for example Docker), and one empty
+  document previously hid every other result. A document named explicitly
+  still fails with the clear `Unsupported JUnit XML ...` error, malformed XML
+  still fails, and a directory with no test case at all still fails. Reports
+  for a directory without an empty document are unchanged.
+
 ## [0.5.0] - 2026-11-23
 
 ### Added

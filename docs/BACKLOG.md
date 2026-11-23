@@ -57,7 +57,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-040 | Report | P3 | Early input-size warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
-| B-047 | Input | P2 | One zero-test JUnit document fails the whole directory render; a real `mvn test` emits such a file for a skipped suite (PetClinic with Docker off) | A host or user reports the rejection, or the JUnit adapter is next touched; then skip empty documents inside a directory and keep the clear single-document error. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -116,6 +115,15 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-047 Zero-test JUnit document in a directory** — resolved on 2026-11-23 in
+  the `junit-empty-documents` change: a well-formed JUnit document with no
+  `<testcase>` is skipped when it comes from a directory scan, so one skipped
+  Maven suite no longer hides the rest of the run. A document named explicitly
+  still fails with `Unsupported JUnit XML ... expected ...`; malformed XML, DTD
+  and entity declarations still fail; a directory with no test case at all
+  fails with `No supported report files found.` The skipped file stays in the
+  input-file count, and a directory without an empty document renders the same
+  bytes as before.
 - **B-045 Numeric `format.bytes` counts** — resolved on 2026-11-23 in the
   `size-details-followups` change: `sizeLabel`, `exactSizeLabel` and the
   attachment size row pass the raw numeric byte count to `format.bytes` instead

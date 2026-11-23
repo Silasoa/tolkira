@@ -86,8 +86,11 @@ one.
 - `<!DOCTYPE>` and `<!ENTITY>` declarations are rejected as a parser-safety
   measure. The same text inside comments, CDATA sections or processing
   instructions is data and is accepted.
-- A document with no test cases is rejected with a clear error instead of
-  rendered as an empty run.
+- A document with no test cases is rejected with a clear error when it is named
+  explicitly, instead of being rendered as an empty run. Inside a directory
+  scan such a document is skipped and the remaining documents render; a
+  directory with no test case at all fails with `No supported report files
+  found.` Malformed XML still fails, including in a directory.
 - Grouping follows `<testsuite>` except for a nested-class shape: at least two
   distinct non-empty testcase `classname` values and either a classname with `$`
   or one classname as a dotted outer prefix of another. Such a suite becomes one
