@@ -24,11 +24,11 @@ One package. One CLI. One report file, plus an optional email summary. No
 monorepo, no server, no database.
 
 An optional aggregate history sidecar (`--history <file>`) sits beside the
-report: the CLI validates and reads it, `generateReport` appends one aggregate
-entry and returns the list, and the renderer adds a Trends view when the list has
-two or more entries. The 30-run bound belongs to that CLI/`generateReport` path;
-`renderReport` renders the list it is given. It holds no scenario, step or path
-data and stays opt-in.
+report: the CLI validates and reads it, then drives
+`generateReportFromResolved`, which appends one aggregate entry and returns the
+list, and the renderer adds a Trends view when the list has two or more entries.
+The 30-run bound belongs to that CLI path; `renderReport` renders the list it is
+given. It holds no scenario, step or path data and stays opt-in.
 
 An optional HTML email summary (`--email <file>`) is a second output derived from
 the same `ReportSummary`: no logo, scripts, images, network or SMTP, one 600 px

@@ -130,15 +130,16 @@ Decisions recorded by this round:
 
 - PIR/DXR: folded into the contract on 2026-11-23 (see the review findings
   above); implementation followed in `0216742` and `a08a6c4`.
+- Final commits: `a2a6305`, `a316276`, `4f82510`.
 - Focused tests: `npx vitest run test/cli-size-warning.test.ts
-  test/input-resolve-scan.test.ts` 24/24 passed (12 + 12) in 3.3 s on
+  test/input-resolve-scan.test.ts` 25/25 passed (13 + 12) in 2.8 s on
   2026-11-23.
-- `npm run hygiene`: passed (see commit).
-- `npm run check`: `npm run i18n:check` (24/24), `npm run typecheck`,
-  `npm run lint`, `npm run build` and `npx vitest run` (80 files, 1254 passed,
-  5 skipped) passed on 2026-11-23.
+- `npm run hygiene`: passed, 788 tracked files and 328 commits.
+- `npm run check`: `npm run i18n:check` (24/24), `npm run assets`,
+  `npm run typecheck`, `npm run lint`, `npm run build` and `npx vitest run`
+  (80 files, 1255 passed, 5 skipped) passed on 2026-11-23.
 - `npm run test:e2e`: not run; no report-rendering or browser fixture changed.
-- Scan/fixture runtime: the 24 focused tests over generated 50 MiB fixtures ran
-  in 3.3 s (Windows, local run). The scan is one `stat` per resolved file and
+- Scan/fixture runtime: the 25 focused tests over generated 50 MiB fixtures ran
+  in 2.8 s (Windows, local run). The scan is one `stat` per resolved file and
   reads no content; the sparse stat test does not write 50 MiB.
 - Review round: complete (4.2/4.4); every finding above is fixed or recorded.

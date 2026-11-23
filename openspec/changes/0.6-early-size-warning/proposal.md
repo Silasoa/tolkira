@@ -16,9 +16,9 @@ warning stay exactly as they are.
   least 50 MiB (52,428,800 bytes), write one early input warning on stderr
   naming the total and the threshold.
 - The same resolved list goes to the advisory scan and the loader. The scan
-  reads no file content and counts each resolved path once. Identical-content
-  duplicates can be overcounted because dedupe needs a read; the warning never
-  undercounts.
+  reads no file content and counts each resolved path at scan time. Identical
+  content under two paths is overcounted, and a file that grows between the
+  scan and the load can make the loader total larger.
 - The line is
   `tolkira: warning: input files total 50.0 MB, at or above the 50 MB early-warning threshold; parsing and rendering may take a while.`
   It uses the extracted one-decimal MB helper and names no path.
@@ -45,8 +45,9 @@ D1: early-size → history → static → baseline. This change lands first.
 - Tests: a scan unit test, CLI boundary and ordering tests, a CLI identity test
   with a mocked load module, and the existing large-report warning test.
 - Docs: `README.md`, `docs/AGENT-INTERFACE.md`, `docs/ARCHITECTURE.md`,
-  `docs/CI.md`, `docs/LIMITATIONS.md`, `docs/PRODUCT.md`, `GLOSSARY.md`,
-  `docs/CHANGELOG.md` and `docs/BACKLOG.md` at archive time.
+  `docs/CI.md`, `docs/CUCUMBER-COMPATIBILITY.md`, `docs/LIMITATIONS.md`,
+  `docs/PRODUCT.md`, `GLOSSARY.md`, `docs/CHANGELOG.md` and `docs/BACKLOG.md`
+  at archive time.
 - No report, JSON, CI, email or history byte changes.
 
 ## Out of scope
