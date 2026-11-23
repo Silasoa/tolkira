@@ -211,7 +211,7 @@ import {
 
 const inputs = ['test-results/'];
 const summary = await summarizeReport(inputs);
-const previousRuns = await readHistory('.history/history.json');
+const previousRuns = await readHistory('.history/history.json', 365);
 const {
   html,
   summary: sameSummary,
@@ -230,6 +230,7 @@ const {
   logo: 'data:image/png;base64,...',
   accent: '#1b5e20',
   history: previousRuns,
+  historyLimit: 365,
 });
 const htmlOnly = await renderReport(inputs, { title: 'Nightly', locale: 'de' });
 const email = renderEmail(summary, {
@@ -270,7 +271,7 @@ Earlier attempts are report-only. The HTML adds a collapsed `Earlier attempts`
 block for a retried scenario with up to three executed earlier starts (status,
 duration, first failure message and, for a single-input Playwright report, at
 most one marked image under a 10 MB budget). `ReportSummary` (schema 2),
-`--json`, CI text, the email summary, the history sidecar (schema 1) and
+`--json`, CI text, the email summary, the history sidecar (schema 1 or 2) and
 `ReportScenario` attachment counts/bytes stay final-attempt-only; legacy JSON
 has no earlier data.
 
@@ -291,9 +292,12 @@ internally.
 
 `history` is the aggregate run list the HTML was rendered with; it already
 contains the current run. `generateReport` appends the current run to
-`options.history` and returns the appended list. `renderReport` and
-`CucumberHtmlStream` render `options.history` exactly as given and record
-nothing. Both fields are additive.
+`options.history` and returns the appended list; `historyLimit` bounds that list
+(default 30, range 1 to 365) and is validated before the input is loaded.
+`readHistory`, `appendHistory` and `writeHistory` accept the same optional limit
+and default an omitted one to 30. `renderReport` and `CucumberHtmlStream` render
+`options.history` exactly as given, never prune it and record nothing. Both
+fields are additive.
 
 The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 
@@ -303,7 +307,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | metadata | `--meta key=value` (repeatable); absolute http(s) values become links in the HTML report | `metadata` object |
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
-| history | `--history <file>` reads and appends a sidecar; needs `--out` | `history` array; `generateReport` appends the current run, `renderReport` and the stream render it as given |
+| history | `--history <file>` reads and appends a sidecar; needs `--out`. `--history-limit <n>` sets the window (default 30, range 1 to 365) and needs `--history` | `history` array and `historyLimit`; `generateReport` appends the current run and bounds the list, `renderReport` and the stream render it as given |
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
 | pdf | `--pdf <file>` prints the report with optional Playwright Chromium; `--pdf-timeout <ms>` (needs `--pdf`) overrides the deadline | `renderPdf(html, { timeoutMs })` |
@@ -347,13 +351,17 @@ whole run is held in memory, exactly like the file API.
 `--history <file>` keeps an aggregate sidecar of prior runs and renders a
 `Trends` tab once the report is generated with two or more entries. It requires
 `--out`; without the flag no history is read or written and the report contains
-no history data or Trends tab.
+no history data or Trends tab. `--history-limit <n>` sets the window: a decimal
+integer from 1 to 365, default 30, accepted only with `--history`. The same
+number bounds the runs read, appended, written and rendered in Trends.
 
 ```shell
 tolkira test-results/ --out report.html --history .history/history.json
+tolkira test-results/ --out report.html --history .history/history.json \
+  --history-limit 365
 ```
 
-The sidecar is UTF-8 JSON with schema version 1:
+The sidecar is UTF-8 JSON with schema version 1 or 2:
 
 ```json
 {
@@ -397,8 +405,16 @@ The sidecar is UTF-8 JSON with schema version 1:
 
 Contract:
 
-- `schemaVersion` is `1`. A wrong version is rejected; unknown fields inside
-  version 1 are ignored and the reader copies only the documented fields.
+- `schemaVersion` is `1` or `2`. Both are accepted on read; the two versions
+  store the same run fields, and version 2 only marks a file that may hold more
+  than 30 runs. A wrong version is rejected; unknown fields inside a supported
+  version are ignored and the reader copies only the documented fields.
+- The writer writes version 1 for a default run on a version-1 file and version
+  2 when the limit is above 30 or the read file already used version 2. A
+  version-2 file is never downgraded, so a later default run keeps it at 2. A
+  0.5.x reader rejects version 2 with `unsupported schema version "2"`, exits 1
+  and leaves the file untouched; a default run on a version-1 file keeps that
+  rollback path open, while a run above 30 or on a version-2 file does not.
 - `id` is the SHA-256 of the aggregates and the resolved title, excluding
   `recordedAt`. When the last entry has the same id, the new run is not
   appended and the old `recordedAt` stays.
@@ -411,10 +427,28 @@ Contract:
   scenarios.skipped`), and a negative, fractional or above-attempted value
   rejects the file. The key is part of the aggregate id, so the first
   same-count run after an upgrade is appended once; later identical runs
-  dedupe. The schema version stays 1, and older readers ignore the key but drop
-  it if they rewrite the sidecar, so write the file with 0.5.
-- The sidecar keeps the newest 30 runs; older entries are dropped on read, on
-  append and on write. A file above 1 MiB is rejected before it is read.
+  dedupe. The key itself does not change the schema version: a file stays
+  version 1 until a write above 30 or on an already version-2 file. Older
+  readers ignore the key but drop it if they rewrite the sidecar, so write a
+  shared file with 0.5 only while it is version 1.
+- The retention rule is: read n, append the current run unless it dedupes, then
+  keep the newest n. A lower limit is destructive on the next successful write:
+  a 31-entry file read with `--history-limit 10` returns 10, and the next write
+  stores 10, so the 21 older runs are gone. Raising the limit later cannot
+  restore them. A 31-entry file read with 40 keeps 31 and stores 32 after the
+  append; a 40-entry file with 40 stores the newest 40 of 41. Reading with a
+  smaller limit does not rewrite the file by itself.
+- The sidecar is capped at 1 MiB (1,048,576 bytes). A file above the cap is
+  rejected before it is read. The writer prunes the oldest entries until the
+  serialized file is at or below the cap and always keeps the newest entry, so
+  it never writes a file the reader would reject. The cap is a safety bound,
+  not the retention policy: 365 runs with a 200-character title measured
+  365,490 bytes and were not pruned on 2026-11-23.
+- Invalid values: `0`, `366`, `1.5`, `abc`, `05` and an empty value exit 2
+  with `Invalid --history-limit "<value>". Use an integer from 1 to 365.`;
+  `--history-limit` without `--history` exits 2 with `--history-limit requires
+  --history`. Nothing is written on a rejected run. `--history` without `--out`
+  keeps its existing exit-2 error.
 - `title` is the resolved report title (`Tolkira report` when `--title` is
   absent), capped at 200 characters including a trailing `…`; a longer title is
   truncated before it is hashed or written. `durationMs` is the summary
@@ -439,13 +473,18 @@ Contract:
   list and record nothing. The writer reads, appends and writes atomically with a
   rename; that prevents a corrupt file, not lost updates from two concurrent
   processes. Run one generation per sidecar at a time.
-- The 30-run bound applies to the CLI and `generateReport` path through
-  `readHistory` and `appendHistory`; `renderReport` and `CucumberHtmlStream`
-  accept the list they are given.
+- The window applies to the CLI and `generateReport` path: the CLI passes one
+  limit to `readHistory`, `generateReport` and `writeHistory`, and
+  `generateReport` passes it to `appendHistory`. `renderReport` and
+  `CucumberHtmlStream` accept the list they are given and never prune it.
+- The writer prunes only to the 1 MiB cap. A normal 365-run sidecar stays well
+  below it (295,045 bytes with a short title, 365,490 bytes with a
+  200-character title, measured 2026-11-23), so the window, not the cap, decides
+  retention.
 
 The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`, `HISTORY_LIMIT`,
-`HISTORY_MAX_BYTES`, `HISTORY_MAX_TITLE`, `buildHistoryRun`, `appendHistory`,
-`readHistory` and `writeHistory` for programmatic use.
+`HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES`, `HISTORY_MAX_TITLE`, `buildHistoryRun`,
+`appendHistory`, `readHistory` and `writeHistory` for programmatic use.
 
 ## Summary schema, version 2
 
@@ -696,8 +735,10 @@ outside `features/`).
   report-size warning's `input` value counts content-deduped loader bytes, so
   the two numbers can differ. Both warnings can appear in one run.
 - The HTML report includes a hash-based CSP and never executes attachments.
-- History is an opt-in aggregate sidecar (`--history`); there is no
-  scenario-level history, dashboard or server. Retries beyond the latest attempt
+- History is an opt-in aggregate sidecar (`--history`) with a window of 1 to 365
+  runs (`--history-limit`, default 30); there is no scenario-level history,
+  dashboard or server. Lowering the window drops older runs on the next write
+  and they cannot be restored. Retries beyond the latest attempt
   and a trace viewer are not supported. Playwright JSON has a native adapter;
   the final attempt is the rendered one; the `@flaky` badge and run-meta tagged
   count are report-only (HTML/PDF), while the history `flaky` count is a separate

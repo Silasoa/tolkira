@@ -56,7 +56,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column, and the label column is squeezed too, at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
 | B-040 | Report | P3 | Early input warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
 | B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
-| B-044 | Report | P3 | Configurable history window; the sidecar keeps the last 30 runs | A user asks for a different run window; the cap is fixed at 30 today. | — |
 | B-048 | Report | P3 | Default report renders three `<main>` elements (Report, Details, Trends), which is invalid HTML; pre-existing and unchanged by the static mode | An HTML-validity or accessibility audit flags the default document, or another change needs one `<main>` in the default report; then make Details/Trends plain containers and keep the `#analysis-view`/`#trends-view` page-break rule. | — |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
@@ -79,6 +78,14 @@ print is the failures-only archival print, not the concise summary. Without
 JavaScript the active Report prints with closed details unchanged; see
 [`LIMITATIONS.md`](LIMITATIONS.md). The email summary (#13b) now covers the
 concise mail body; the PDF engine (#13c) now covers headless print.
+
+**History window slice (2026-11-23).** B-044 is done: `--history-limit <n>`
+(needs `--history`) keeps the newest 1 to 365 aggregate runs, default 30, and
+bounds read, append, write and Trends. A window above 30 writes sidecar schema 2
+(never downgraded), the writer prunes to 1,048,576 bytes and keeps the newest
+entry, and a 0.5.x reader rejects schema 2 without rewriting it. Lowering the
+window is destructive on the next write. See
+[`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
 
 **Label taxonomy (2026-11-13).** Remote labels now match
 [`triage-labels.md`](agents/triage-labels.md): one surface `area:*`, one
@@ -251,7 +258,8 @@ asks or a locale needs them:
   [#12](https://github.com/Silasoa/tolkira/issues/12) is resolved.
 - **B-007 Optional history file and trends** - implemented in `main` on
   2026-11-19 in the `add-history-trends` change: opt-in `--history <file>`,
-  aggregate-only `schemaVersion: 1` sidecar with a 30-run cap, dedupe,
+  aggregate-only `schemaVersion: 1` sidecar with a 30-run default window
+  (configurable 1 to 365 since 0.6), dedupe,
   atomic write and strict validation, plus a Trends tab with a table and
   sparkline from two runs. The one-file default is unchanged.
   [#10](https://github.com/Silasoa/tolkira/issues/10) is resolved. The change

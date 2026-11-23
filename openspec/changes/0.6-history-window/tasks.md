@@ -2,38 +2,42 @@
 
 ## 1. Gate
 
-- [ ] 1.1 PIR + DXR over the proposal, spec delta and design; fold blockers
-  into the contract before Red.
-- [ ] 1.2 Confirm the history read/append/write signatures, the 1 MiB cap and
-  the default byte parity; no new schema or dependency.
-- [ ] 1.3 Confirm the maximum (365), the flag name and the destructive lower
-  limit with the user.
+- [x] 1.1 PIR + DXR over the proposal, spec delta and design; fold blockers
+  into the contract before Red. (2026-11-23)
+- [x] 1.2 Confirm the history read/append/write signatures, the 1 MiB cap and
+  the default byte parity; no new schema or dependency. (2026-11-23)
+- [x] 1.3 Confirm the maximum (365), the flag name and the destructive lower
+  limit with the user. (2026-11-23; the user approved the four specs.)
 
 ## 2. TDD-Red
 
-- [ ] 2.1 Unit: read, append and write with limits 1, 5, 30, 31, 40 and 365;
+- [x] 2.1 Unit: read, append and write with limits 1, 5, 30, 31, 40 and 365;
   the newest entries survive; dedupe keeps the old timestamp; an omitted limit
   is exactly 30.
-- [ ] 2.2 Retention: a 31-entry file read with 10 returns 10 and the next write
+- [x] 2.2 Retention: a 31-entry file read with 10 returns 10 and the next write
   stores 10; read with 40 returns 31 and the next write stores 32; a 40-entry
   file with 40 appends and stores 40 of 41; lower then raise cannot restore.
-- [ ] 2.3 Schema: a default write on a schema-1 file stays schema 1; a write
+- [x] 2.3 Schema: a default write on a schema-1 file stays schema 1; a write
   with limit 40 writes schema 2; a schema-2 file read with the default stays
   schema 2; the 0.5 reader rejects schema 2 without a rewrite; the writer prunes
   to 1,048,576 bytes and the newest entry remains.
-- [ ] 2.4 CLI: smaller, larger and one-run windows; the default report/CI/email
+- [x] 2.4 CLI: smaller, larger and one-run windows; the default report/CI/email
   bytes are identical; the default JSON differs only by the additive outline
   `example`; `0`, `366`, `1.5`, `abc`, `05`, empty and no `--history` exit 2; no
   `--out` keeps the existing error.
-- [ ] 2.5 API: each function with a limit; `generateReport` returns the bounded
+- [x] 2.5 API: each function with a limit; `generateReport` returns the bounded
   list; `renderReport` renders a 40-entry list unchanged; an invalid limit
   throws.
-- [ ] 2.6 Trends: five rows for a five-run window; no Trends tab for one run;
+- [x] 2.6 Trends: five rows for a five-run window; no Trends tab for one run;
   the sparkline still plots the bounded list.
-- [ ] 2.7 Limits: a file above 1 MiB and an invalid entry still reject without a
+- [x] 2.7 Limits: a file above 1 MiB and an invalid entry still reject without a
   rewrite.
-- [ ] 2.8 Size: record the Trends bytes for a 365-run report.
-- [ ] 2.9 Confirm RED; no existing test is deleted or weakened.
+- [x] 2.8 Size: record the Trends bytes for a 365-run report. Windows 11 Pro
+  10.0.26300, Node v26.13.1, 2026-11-23: report 206,601 bytes at
+  `--history-limit 365` vs 83,289 bytes at the default 30 (delta 123,312 bytes
+  for 365 vs 30 Trends rows); 365-run schema-2 sidecar 295,045 bytes, below the
+  1,048,576-byte cap, no writer prune.
+- [x] 2.9 Confirm RED; no existing test is deleted or weakened.
 
 ## 3. Implement
 
@@ -44,13 +48,14 @@
   CLI wiring; pass the same limit to read, generate and write.
 - [x] 3.3 Add `GenerateReportOptions.historyLimit`; keep `renderReport` and the
   stream rendering the list as given.
-- [ ] 3.4 Document the window, the 1 to 365 range, the destructive lower limit,
+- [x] 3.4 Document the window, the 1 to 365 range, the destructive lower limit,
   the schema-1/2 rule, the 0.5 reader rejection, the writer's 1 MiB prune, the
   architecture seam and the 1 MiB cap; fix the stale "30 runs" text in
   `docs/AGENT-INTERFACE.md`, `docs/ARCHITECTURE.md`, `docs/LIMITATIONS.md`,
   `docs/PRODUCT.md:109` and `GLOSSARY.md:175-178`; record the 365-run size
-  measurement. Still open after the implementation slice; the 365-run size
-  measurement is not recorded yet.
+  measurement. Done in the 2026-11-23 documentation slice, including the
+  `README.md`, `docs/CI.md`, `docs/CHANGELOG.md` and `docs/BACKLOG.md` updates;
+  the size record is under 2.8 and 4.4.
 
 ## 4. Verification and review
 
@@ -60,7 +65,17 @@
   365-point sparkline); PCA if the sparkline/table loop changes.
 - [ ] 4.3 Run the relevant `docs/DROP-IN-VALIDATION.md` rows on the final tree
   and record host, pin and result.
-- [ ] 4.4 Record the 365-run Trends bytes and the default byte parity.
+- [x] 4.4 Record the 365-run Trends bytes and the default byte parity. Windows
+  11 Pro 10.0.26300, Node v26.13.1, 2026-11-23: 365-run report 206,601 bytes
+  vs 83,289 bytes at the default 30 (delta 123,312 bytes for 365 vs 30 Trends
+  rows); the 365-run schema-2 sidecar is 295,045 bytes, below the
+  1,048,576-byte cap, and the writer pruned nothing. Default parity: implicit
+  default and explicit `--history-limit 30` produce byte-identical report,
+  email, CI and sidecar bytes, pinned by `test/cli-history-window.test.ts`; the
+  default window is still 30. Against the published `tolkira@0.5.1` package,
+  the default report, CI and JSON with
+  `test/fixtures/history/thirty-runs.json` were byte-identical; the email
+  differed only in its generated timestamp (same byte length).
 - [ ] 4.5 Fix findings; record deferred decisions with a trigger.
 
 Review findings (2026-11-23): PIR/DXR found the retention scenarios ignored the
@@ -72,8 +87,8 @@ the docs list omitted `GLOSSARY.md` and `docs/PRODUCT.md` (I13/I14/D20). The
 retention rule is now read n → append unless dedupe → keep newest n, readers
 accept schema 1 and 2 with schema 2 only above 30 or on an already schema-2 file,
 the writer prunes to 1,048,576 bytes, the path list includes `--baseline`, and
-the reviewer set adds CMP and a 320 px UXR check. No implementation task is
-marked done.
+the reviewer set adds CMP and a 320 px UXR check. 3.1–3.4 are implemented and
+recorded below; the documentation slice closes 3.4.
 
 ## Implementation record (2026-11-23)
 
@@ -105,6 +120,20 @@ marked done.
 - Result: exit 1; stderr `Invalid history file <sidecar>: unsupported schema
   version "2"`; sidecar SHA-256 unchanged; no report written. Pass.
 
+### Size measurement (2026-11-23)
+
+- Host: Windows 11 Pro 10.0.26300, Node v26.13.1, 2026-11-23.
+- Sidecar: 365 synthetic summaries through the real `buildHistoryRun`,
+  `appendHistory` and `writeHistory` API with a fixed clock and limit 365; the
+  file is schema 2 and 295,045 bytes, below the 1,048,576-byte cap, and the
+  writer pruned nothing. A second run with 200-character titles measured
+  365,490 bytes and also pruned nothing.
+- Report: `test/fixtures/messages/second.ndjson`, one CLI run with
+  `--history-limit 365` (206,601 bytes) and one with the default 30 (83,289
+  bytes), each from a copy of the same sidecar; 365 vs 30 Trends rows, a
+  123,312-byte delta.
+- The sidecar and reports were generated in a temp directory and not committed.
+
 ## Gate record
 
 - PIR/DXR: see the review findings above (2026-11-23).
@@ -118,5 +147,15 @@ marked done.
   and locale specs).
 - Host rows: the manual 0.5.0 older-reader check above; the full
   `docs/DROP-IN-VALIDATION.md` matrix runs at release.
-- Size measurements: open (4.4).
+- Size measurements: 365-run report 206,601 bytes vs 83,289 bytes at the
+  default 30 (delta 123,312); sidecar 295,045 bytes, no writer prune; see 2.8,
+  4.4 and the size measurement above.
 - Review round: not run yet (4.2).
+
+### Documentation slice (2026-11-23)
+
+- `npm run hygiene`: ok (790 tracked files, 331 commits).
+- `npm run check`: ok (typecheck, lint and build green; vitest 1313 passed,
+  5 skipped in 82 files).
+- `npm run test:e2e` was not run: this slice changes docs and records a
+  measurement, not the report shell or an input adapter.

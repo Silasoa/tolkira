@@ -338,6 +338,12 @@ and CI file, so a PDF failure keeps the report and skips the later outputs;
 `PDF written to` appears between the report and email lines. `--pdf-timeout`
 overrides the PDF render deadline without changing any CI output.
 
+`--history-limit <n>` is orthogonal to the stdout rows: it needs `--history`,
+accepts 1 to 365 (default 30) and changes only how many aggregate runs are read,
+appended, written and rendered in Trends. An invalid value or a missing
+`--history` exits 2 before anything is written. CI text and JSON never include
+history data; with the default window the report bytes are unchanged.
+
 Report warnings, such as skipped path attachments, go to stderr when HTML or a
 PDF is written. They never enter stdout, the JSON summary or the CI text. The
 early input warning is written on any run that resolves large inputs, including

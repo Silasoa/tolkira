@@ -114,9 +114,10 @@ it. The gap is the combination.
 
 ### History and trends (in main)
 
-- Opt-in `--history <file>` sidecar with up to 30 aggregate runs and a Trends
-  tab from the second run; aggregate-only data, one CLI writer, no server and no
-  scenario-level history.
+- Opt-in `--history <file>` sidecar with a configurable window of 1 to 365
+  aggregate runs (`--history-limit <n>`, default 30) and a Trends tab from the
+  second run; aggregate-only data, one CLI writer, no server and no
+  scenario-level history. Lowering the window drops older runs on the next write.
 
 ### Localisation (in main)
 

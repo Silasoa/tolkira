@@ -7,6 +7,21 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- A configurable history window. `--history-limit <n>` (requires `--history`)
+  keeps the newest n aggregate runs, a decimal integer from 1 to 365, default
+  30; the same limit bounds the runs read, appended, written and rendered in
+  Trends. `generateReport` gains `historyLimit`, `readHistory`,
+  `appendHistory` and `writeHistory` accept the optional limit and default to
+  30, and `HISTORY_LIMIT_MAX` is exported. Lowering the window drops older runs
+  on the next successful write and raising it later cannot restore them. A
+  window above 30 writes sidecar schema 2, as does any write to an already
+  schema-2 file; readers accept schema 1 and 2, and a 0.5.x reader rejects
+  schema 2 with `unsupported schema version "2"` without rewriting it. The
+  writer prunes to 1,048,576 bytes and always keeps the newest entry; a default
+  run on a schema-1 file stays schema 1. On the 2026-11-23 reference host a
+  365-run report measured 206,601 bytes against 83,289 bytes at the default 30.
+  The JSON summary, CI text and email gain no history field; the default report
+  bytes are unchanged.
 - An early input warning before parsing. The CLI resolves the input list once,
   stats the files without reading content, and writes one advisory stderr line
   when the total is at least 50 MiB (52,428,800 bytes); it names no path, adds

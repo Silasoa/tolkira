@@ -59,6 +59,10 @@ tolkira test-results/ --out report.html --logo path/to/logo.png
 # Keep aggregate run history and show a Trends tab from the second run
 tolkira test-results/ --out report.html --history .history/history.json
 
+# Keep a larger window (1 to 365; default 30)
+tolkira test-results/ --out report.html --history .history/history.json \
+  --history-limit 365
+
 # German report UI; test data stays verbatim
 tolkira test-results/ --out report.html --locale de
 
@@ -82,8 +86,10 @@ applies to the compatibility shim's `metadata` object.
 Tolkira accepts one or more files and directories. A directory is scanned
 recursively for supported result files. Everything is merged into one report.
 The optional history file is a separate sidecar: without `--history` no history
-is read or written and the report stays one file. Use one sidecar per suite and
-variant; mixing runs makes the trend meaningless. The Trends tab needs
+is read or written and the report stays one file. `--history-limit <n>` sets the
+window (1 to 365, default 30) and needs `--history`; lowering it drops older
+runs on the next successful write. Use one sidecar per suite and variant; mixing
+runs makes the trend meaningless. The Trends tab needs
 JavaScript: a copy opened without JavaScript shows the Report view and an inert
 tab. Printing works in both cases; see
 [Print or Save as PDF](#print-or-save-as-pdf).
@@ -320,17 +326,18 @@ unredacted-message warning.
   the exact report HTML bytes (at 1 MiB and above, paired with one-decimal MB in
   parentheses) and the three largest attachments by decoded bytes. The rows are
   contributors, not a sum.
-- **Opt-in run trends.** `--history <file>` keeps the last 30 aggregate runs and
-  adds a Trends tab from the second run: a newest-first table with pass rate,
-  flaky count and flaky share, plus a pass-rate sparkline. The flaky share is a
-  flagged share, not a flake probability; a positive share below 0.1% shows a
-  less-than boundary, and runs recorded without the count show `—` for both
-  flaky cells. A note explains that it counts executed non-skipped tagged or
-  passed-after-retry scenarios, which can differ in either direction from the
-  header's tag-only count. The sidecar holds counts, status, the resolved title,
-  duration, attachment totals and the optional flaky count only, never scenario
-  names or paths; a report embeds the runs it was generated with, so share it
-  with that in mind.
+- **Opt-in run trends.** `--history <file>` keeps the newest 30 aggregate runs
+  by default and adds a Trends tab from the second run: a newest-first table with
+  pass rate, flaky count and flaky share, plus a pass-rate sparkline.
+  `--history-limit <n>` changes the window to 1 to 365; lowering it drops older
+  runs on the next write. The flaky share is a flagged share, not a flake
+  probability; a positive share below 0.1% shows a less-than boundary, and runs
+  recorded without the count show `—` for both flaky cells. A note explains that
+  it counts executed non-skipped tagged or passed-after-retry scenarios, which
+  can differ in either direction from the header's tag-only count. The sidecar
+  holds counts, status, the resolved title, duration, attachment totals and the
+  optional flaky count only, never scenario names or paths; a report embeds the
+  runs it was generated with, so share it with that in mind.
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure
   messages.
@@ -575,11 +582,12 @@ for the mapping.
   Playwright projects that can write the JSON reporter.
 - History is opt-in and aggregate-only. `--history <file>` stores counts, status,
   the resolved title (capped at 200 characters), duration, attachment totals and
-  the optional flaky count for the last 30 runs; runs recorded without the count
-  show `—`. The report embeds those prior-run aggregates. The CLI is the only
-  automatic writer, so use one sidecar per suite and variant and one generation
-  at a time. No scenario names, steps, paths, tags or attachment content are
-  stored.
+  the optional flaky count for the newest 30 runs by default;
+  `--history-limit <n>` widens or narrows that window to 1 to 365. Runs recorded
+  without the count show `—`. The report embeds those prior-run aggregates. The
+  CLI is the only automatic writer, so use one sidecar per suite and variant and
+  one generation at a time. No scenario names, steps, paths, tags or attachment
+  content are stored.
 - The opt-in email summary contains feature and scenario names, statuses, counts,
   durations, the title (which may carry a branch or build name) and the report
   basename. It is written only with `--email`; there is no redaction mode, no

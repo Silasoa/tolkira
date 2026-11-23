@@ -180,9 +180,26 @@ A run with results but no attempt states `No scenarios attempted`; Trends shows
 `—` for that run.
 
 **History file / sidecar** — the optional UTF-8 JSON file passed with
-`--history <file>`. It keeps the last 30 aggregate history runs in schema
-version 1 and is read, appended and written atomically by the CLI. Without the
-flag no history is read or written.
+`--history <file>`. It keeps the newest configured history window (default 30)
+in schema version 1 or 2 and is read, appended and written atomically by the
+CLI. Without the flag no history is read or written.
+
+**History window** — the newest n aggregate runs read, appended, written and
+rendered in Trends. It is bounded by the history limit: 1 to 365, default 30.
+Lowering it is destructive on the next successful write; raising it later does
+not restore dropped runs.
+
+**History limit** — the `--history-limit <n>` value or `generateReport`
+`historyLimit` option that sets the history window. It needs `--history` on the
+CLI, accepts a decimal integer from 1 to 365 and defaults to 30; an invalid
+value is a usage error and writes nothing.
+
+**History schema 1 / 2** — the sidecar schema version. Both versions store the
+same run fields; version 2 only marks a file that may hold more than 30 runs.
+The writer keeps a schema-1 file at 1 for a default run, writes 2 when the
+window is above 30 or the file already used 2, and never downgrades. Readers
+accept both; a 0.5.x reader rejects schema 2 with
+`unsupported schema version "2"` and leaves the file untouched.
 
 **History run** — one aggregate entry in the history file: id, recorded time,
 resolved title, overall status, feature/scenario/step counts, duration,
@@ -194,10 +211,10 @@ including the optional flaky count, and the title but not the recorded time, so
 an identical rerun is not appended and keeps the old timestamp.
 
 **Trends view** — the optional third tab, rendered when a report is generated
-with two or more history runs. It lists the runs newest first with pass rate,
-flaky count and flaky share and adds a decorative pass-rate sparkline oldest to
-newest; the table is the accessible source, and a note states the tag-or-retry
-proxy limits.
+with two or more runs in the history window. It lists those runs newest first
+with pass rate, flaky count and flaky share and adds a decorative pass-rate
+sparkline oldest to newest; the table is the accessible source, and a note
+states the tag-or-retry proxy limits.
 
 **Unexecuted scenario** — a scenario whose selected test case started but
 reported no raw step result, including a started-but-unfinished case. It stays

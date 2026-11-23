@@ -27,8 +27,9 @@ An optional aggregate history sidecar (`--history <file>`) sits beside the
 report: the CLI validates and reads it, then drives
 `generateReportFromResolved`, which appends one aggregate entry and returns the
 list, and the renderer adds a Trends view when the list has two or more entries.
-The 30-run bound belongs to that CLI path; `renderReport` renders the list it is
-given. It holds no scenario, step or path data and stays opt-in.
+`--history-limit <n>` (1 to 365, default 30) bounds that path; `renderReport`
+renders the list it is given and never prunes. It holds no scenario, step or
+path data and stays opt-in.
 
 An optional HTML email summary (`--email <file>`) is a second output derived from
 the same `ReportSummary`: no logo, scripts, images, network or SMTP, one 600 px
@@ -246,16 +247,29 @@ and is covered by real producer fixtures.
 
 ### `src/history`
 
-- Owns the opt-in aggregate history sidecar: schema version 1, at most 30 runs
-  on the CLI/`generateReport` path and a 1 MiB size cap checked on the open
-  descriptor before reading.
+- Owns the opt-in aggregate history sidecar: schema version 1 or 2, a window of
+  1 to 365 runs on the CLI/`generateReport` path and a 1 MiB size cap checked on
+  the open descriptor before reading.
+- The seam is read → append unless dedupe → keep the newest n. `readHistory`
+  returns the newest `limit` runs without rewriting the file; `appendHistory`
+  appends one run and slices to the window; `writeHistory` slices, caps titles
+  and writes atomically with a trailing newline. An omitted limit is 30 in all
+  three; an invalid limit throws `Use an integer from 1 to 365`.
+- Schema 1 is the default for a default run on a schema-1 file. Schema 2 is
+  written when the limit is above 30 or the file already used it, and is never
+  downgraded; it only marks a file that may hold more than 30 runs and changes
+  no run field. Readers accept both; a 0.5.x reader rejects schema 2 with its
+  unsupported-version error and leaves the file untouched.
+- The writer prunes the oldest entries until the serialized file is at or below
+  1,048,576 bytes and always keeps the newest entry, so it never writes a file
+  the reader would reject. A hand-made file above the cap is still rejected on
+  read. The cap is a safety bound: a 365-run file measured 295,045 bytes
+  (365,490 with 200-character titles) and was not pruned.
 - `buildHistoryRun` hashes the aggregates and the resolved title (capped at 200
   characters), excluding the recorded time; `appendHistory` keeps one copy of an
   identical last run and the old timestamp; `readHistory` rejects non-regular
   files, validates every documented field including cross-field count totals and
-  the optional `flaky` bound, ignores unknown fields and never writes;
-  `writeHistory` bounds the list and titles, then writes atomically with a
-  trailing newline.
+  the optional `flaky` bound, ignores unknown fields and never writes.
 - Stores only id, recorded time, title, status, feature/scenario/step counts,
   duration, attachment totals and the optional flaky count. Old entries without
   `flaky` stay absent on read and append and render as `—`; new entries carry
@@ -281,7 +295,7 @@ and is covered by real producer fixtures.
 
 - `tolkira <input...> [--out <file>] [--pdf <file>] [--pdf-timeout <ms>]`
   `[--email <file>] [--json] [--ci github|azure|markdown] [--ci-out <file>]`
-  `[--history <file>] [--locale <tag>] [--title <title>]`
+  `[--history <file>] [--history-limit <n>] [--locale <tag>] [--title <title>]`
   `[--meta key=value] [--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
@@ -293,7 +307,9 @@ and is covered by real producer fixtures.
   file and is rejected for GitHub and Azure annotations.
 - `--history` requires `--out`. It is validated like an output path (inputs,
   logo, `--out`, `--ci-out`, `--email` and input directories, even when missing),
-  read once before generation and written after the HTML. A history read or write
+  read once before generation and written after the HTML. `--history-limit <n>`
+  requires `--history` and accepts a decimal integer from 1 to 365 (default 30);
+  the same limit goes to read, generate and write. A history read or write
   failure exits 1 and names the file; a written HTML stays in place.
 - `--email` is an output: alone, with `--out`, `--json`, `--ci` or `--ci-out`
   (`--ci-out` still requires `--ci markdown`). It is validated like an output
@@ -401,9 +417,12 @@ Test names, metadata, file names and attachments are untrusted input.
 - Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
   1.4 MB; 5,000 / 15,000 in about 0.4–0.5 s to 7.0 MB. Timings vary with host
   load.
-- The CLI/`generateReport` history path is capped at 1 MiB and 30 runs, so trend
-  rendering is linear in at most 30 aggregate entries there; `renderReport`
-  accepts the given list as-is.
+- The CLI/`generateReport` history path is capped at 1 MiB and a window of 1 to
+  365 runs (default 30), so trend rendering is linear in at most 365 aggregate
+  entries there; `renderReport` accepts the given list as-is. On the 2026-11-23
+  reference host (Windows 11 Pro 10.0.26300, Node v26.13.1) the
+  `test/fixtures/messages/second.ndjson` report was 206,601 bytes at 365 runs
+  against 83,289 bytes at the default 30, a 123,312-byte difference.
 - `npm run bench:ansi` bundles `src/text.ts` with esbuild, strips fixed
   2,000-message clean and escape-laden corpora of about 2 KiB per message, and
   reports medians plus scan-only and character-append reference ratios. The
@@ -432,6 +451,8 @@ Test names, metadata, file names and attachments are untrusted input.
   `test/attachment.test.ts` and `test/sanitize.test.ts`; the model/summary
   cross-check keeps both consumers equal. `test/history.test.ts` pins the
   sidecar schema, validation, dedupe, retention and atomic write;
+  `test/history-window.test.ts` and `test/cli-history-window.test.ts` pin the
+  configurable window, schema 1/2 choice, 1 MiB prune and the CLI errors;
   `test/cli-history.test.ts` and `test/render-trends.test.ts` cover the
   `--history` flow and the Trends view; `test/e2e/trends.spec.ts` covers the
   two-run browser flow at 320, 390, 1440 and 200 % text zoom.
