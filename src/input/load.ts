@@ -40,7 +40,7 @@ export interface ResolvedInputs {
   files: ResolvedInputFile[];
 }
 
-export type InputSource = string | string[] | ResolvedInputs;
+export type InputSource = string | string[];
 
 async function canonicalPath(file: string): Promise<string> {
   try {
@@ -96,16 +96,12 @@ export async function resolveInputFiles(
 /** Sums resolved file sizes without reading any content. */
 export async function scanInputBytes(
   files: ResolvedInputFile[],
-): Promise<{ files: number; bytes: number }> {
+): Promise<{ bytes: number }> {
   let bytes = 0;
   for (const input of files) {
     bytes += (await stat(input.file)).size;
   }
-  return { files: files.length, bytes };
-}
-
-function isResolvedInputs(inputs: InputSource): inputs is ResolvedInputs {
-  return !Array.isArray(inputs) && typeof inputs === 'object';
+  return { bytes };
 }
 
 function collectGherkinIds(value: unknown): string[] {
@@ -134,9 +130,14 @@ export interface LoadedInput {
 }
 
 export async function loadInputs(inputs: InputSource): Promise<LoadedInput[]> {
-  const ordered = isResolvedInputs(inputs)
-    ? inputs.files
-    : (await resolveInputFiles(inputs)).files;
+  return loadResolvedInputs(await resolveInputFiles(inputs));
+}
+
+/** Loads a list the caller already resolved, without resolving it again. */
+export async function loadResolvedInputs(
+  resolved: ResolvedInputs,
+): Promise<LoadedInput[]> {
+  const ordered = resolved.files;
 
   const groups: LoadedInput[] = [];
   const seenContent = new Set<string>();
@@ -144,6 +145,10 @@ export async function loadInputs(inputs: InputSource): Promise<LoadedInput[]> {
 
   for (const [index, input] of ordered.entries()) {
     const info = await stat(input.file);
+    // Re-check after stat so a path swapped since resolution cannot be read.
+    if (!info.isFile()) {
+      throw new Error(`Unsupported input: ${input.file}`);
+    }
     const nextTotal = addInputBytes(totalBytes, info.size);
     const content = await readFile(input.file, 'utf8');
     const hash = createHash('sha256').update(content).digest('hex');

@@ -6,12 +6,13 @@ import { parseArgs } from 'node:util';
 import { formatCiOutput, type CiFormat } from './ci.js';
 import { renderEmail, type EmailOptions } from './email.js';
 import { readHistory, writeHistory, type HistoryRun } from './history.js';
-import { generateReport, summarizeReport, version } from './index.js';
+import { version } from './index.js';
 import { resolveInputFiles, scanInputBytes } from './input/load.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { renderPdf } from './pdf.js';
 import { resolveLocale } from './render/i18n.js';
-import type { ReportSummary } from './summary.js';
+import { generateReportFromResolved } from './run.js';
+import { summarizeResolvedReport, type ReportSummary } from './summary.js';
 import { ACCENT_PATTERN } from './validation.js';
 import {
   ATTACHMENT_HINT,
@@ -545,13 +546,14 @@ export async function runCli(
 
   try {
     const resolvedInputs = await resolveInputFiles(inputs);
+    let scannedBytes: number | undefined;
     try {
-      const { bytes } = await scanInputBytes(resolvedInputs.files);
-      if (bytes >= INPUT_WARN_BYTES) {
-        io.stderr(earlyInputWarning(bytes));
-      }
+      scannedBytes = (await scanInputBytes(resolvedInputs.files)).bytes;
     } catch {
-      // The loader reports the real stat or read error; the hint is advisory.
+      // A stat error is reported by the loader, which re-stats each file.
+    }
+    if (scannedBytes !== undefined && scannedBytes >= INPUT_WARN_BYTES) {
+      io.stderr(`tolkira: warning: ${earlyInputWarning(scannedBytes)}\n`);
     }
 
     let history: HistoryRun[] | undefined;
@@ -560,7 +562,7 @@ export async function runCli(
     }
 
     if (!output && pdfPath === undefined) {
-      const summary = await summarizeReport(resolvedInputs);
+      const summary = await summarizeResolvedReport(resolvedInputs);
       if (emailPath !== undefined) {
         await writeEmailSummary(emailPath, summary, {
           title: parsed.values.title,
@@ -586,7 +588,7 @@ export async function runCli(
       return 0;
     }
 
-    const generated = await generateReport(resolvedInputs, {
+    const generated = await generateReportFromResolved(resolvedInputs, {
       title: parsed.values.title,
       metadata,
       logo,

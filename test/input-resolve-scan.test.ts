@@ -1,9 +1,19 @@
-import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  loadInputs,
+  loadResolvedInputs,
   resolveInputFiles,
   scanInputBytes,
 } from '../src/input/load.js';
@@ -16,6 +26,8 @@ vi.mock('node:fs/promises', async (importOriginal) => {
     realpath: vi.fn(actual.realpath),
   };
 });
+
+const MIB = 1024 * 1024;
 
 const LEGACY = JSON.stringify([
   {
@@ -54,7 +66,7 @@ async function tempDir(): Promise<string> {
   return dir;
 }
 
-describe('resolveInputFiles', () => {
+describe('Early input warning: input resolution', () => {
   it('resolves explicit files and a directory into one ordered list', async () => {
     const dir = await tempDir();
     const nested = path.join(dir, 'nested');
@@ -82,7 +94,26 @@ describe('resolveInputFiles', () => {
     const scan = await scanInputBytes(resolved.files);
 
     expect(resolved.files).toHaveLength(1);
-    expect(scan).toEqual({ files: 1, bytes: (await stat(file)).size });
+    expect(scan).toEqual({ bytes: (await stat(file)).size });
+  });
+
+  it('counts a symlinked directory and its target once', async (context) => {
+    const dir = await tempDir();
+    const real = path.join(dir, 'real');
+    await mkdir(real);
+    await writeFile(path.join(real, 'run.json'), LEGACY, 'utf8');
+    const link = path.join(dir, 'link');
+    try {
+      await symlink(real, link, process.platform === 'win32' ? 'junction' : 'dir');
+    } catch {
+      // Some Windows hosts cannot create junctions without extra privileges.
+      context.skip('directory symlinks are not supported here');
+      return;
+    }
+
+    const resolved = await resolveInputFiles([real, link]);
+
+    expect(resolved.files).toHaveLength(1);
   });
 
   it('rejects an empty input list', async () => {
@@ -98,7 +129,7 @@ describe('resolveInputFiles', () => {
   });
 });
 
-describe('scanInputBytes', () => {
+describe('Early input warning: stat-only scan', () => {
   it('sums a directory of smaller files', async () => {
     const dir = await tempDir();
     const sizes = [10, 20, 30];
@@ -108,7 +139,7 @@ describe('scanInputBytes', () => {
 
     const scan = await scanInputBytes((await resolveInputFiles(dir)).files);
 
-    expect(scan).toEqual({ files: 3, bytes: 60 });
+    expect(scan).toEqual({ bytes: 60 });
   });
 
   it('stats a file without reading its content', async () => {
@@ -120,7 +151,25 @@ describe('scanInputBytes', () => {
 
     const scan = await scanInputBytes(resolved.files);
 
-    expect(scan).toEqual({ files: 1, bytes: 1024 });
+    expect(scan).toEqual({ bytes: 1024 });
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
+  it('reports a sparse 50 MiB file size without reading it', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'sparse.bin');
+    const handle = await open(file, 'w');
+    try {
+      await handle.truncate(50 * MIB);
+    } finally {
+      await handle.close();
+    }
+    const resolved = await resolveInputFiles(file);
+    vi.mocked(readFile).mockClear();
+
+    const scan = await scanInputBytes(resolved.files);
+
+    expect(scan).toEqual({ bytes: 50 * MIB });
     expect(readFile).not.toHaveBeenCalled();
   });
 
@@ -128,7 +177,17 @@ describe('scanInputBytes', () => {
     const dir = await tempDir();
     const scan = await scanInputBytes([{ file: dir, explicit: true }]);
 
-    expect(scan).toEqual({ files: 1, bytes: (await stat(dir)).size });
+    expect(scan).toEqual({ bytes: (await stat(dir)).size });
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a resolved directory before reading it', async () => {
+    const dir = await tempDir();
+    vi.mocked(readFile).mockClear();
+
+    await expect(
+      loadResolvedInputs({ files: [{ file: dir, explicit: true }] }),
+    ).rejects.toThrow(`Unsupported input: ${dir}`);
     expect(readFile).not.toHaveBeenCalled();
   });
 
@@ -141,17 +200,16 @@ describe('scanInputBytes', () => {
     const resolved = await resolveInputFiles(dir);
 
     const scan = await scanInputBytes(resolved.files);
-    const groups = await loadInputs(resolved);
+    const groups = await loadResolvedInputs(resolved);
 
     expect(scan).toEqual({
-      files: 2,
       bytes: Buffer.byteLength(LEGACY) * 2,
     });
     expect(groups).toHaveLength(1);
   });
 });
 
-describe('resolved list identity', () => {
+describe('Early input warning: resolved list identity', () => {
   it('loads a resolved list without resolving it again', async () => {
     const dir = await tempDir();
     const file = path.join(dir, 'report.json');
@@ -159,7 +217,7 @@ describe('resolved list identity', () => {
     const resolved = await resolveInputFiles(file);
     vi.mocked(realpath).mockClear();
 
-    const groups = await loadInputs(resolved);
+    const groups = await loadResolvedInputs(resolved);
 
     expect(realpath).not.toHaveBeenCalled();
     expect(groups).toHaveLength(1);

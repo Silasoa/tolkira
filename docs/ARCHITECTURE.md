@@ -381,8 +381,8 @@ Test names, metadata, file names and attachments are untrusted input.
   size before they are read.
 - Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
-- The early input-size hint is one `stat` per resolved file and reads no
-  content; the loader's read and content dedupe are unchanged.
+- The early input warning is one `stat` per resolved file and reads no content;
+  the loader's read and content dedupe are unchanged.
 - Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
   1.4 MB; 5,000 / 15,000 in about 0.4–0.5 s to 7.0 MB. Timings vary with host
   load.

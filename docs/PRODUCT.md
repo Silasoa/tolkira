@@ -106,11 +106,11 @@ it. The gap is the combination.
 
 ### Size warnings (in main)
 
-- A pre-parse stderr hint when the resolved input files total at least 50 MiB,
-  plus the existing post-render `--max-size` warning. Both are advisory, name no
-  input path and change no output or exit code. The early total counts resolved
-  file sizes, so it can differ from the report-size warning's content-deduped
-  `input` value.
+- An early input warning on stderr when the resolved input files total at least
+  50 MiB, plus the existing post-render `--max-size` warning. Both are advisory,
+  name no input path and change no output or exit code. The early total counts
+  each resolved path once; identical content under two paths counts twice, so it
+  can differ from the report-size warning's content-deduped `input` value.
 
 ### History and trends (in main)
 

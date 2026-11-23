@@ -339,7 +339,9 @@ and CI file, so a PDF failure keeps the report and skips the later outputs;
 overrides the PDF render deadline without changing any CI output.
 
 Report warnings, such as skipped path attachments, go to stderr when HTML or a
-PDF is written. They never enter stdout, the JSON summary or the CI text.
+PDF is written. They never enter stdout, the JSON summary or the CI text. The
+early input warning is written on any run that resolves large inputs, including
+`--json` and `--ci`-only runs, and stays on stderr.
 
 `--ci-out` must not overwrite an input file, the logo, the `--out` file, the
 `--pdf` file or the

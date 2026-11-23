@@ -7,7 +7,11 @@ import type {
   TestStepResult,
 } from '@cucumber/messages';
 import { attachmentBytes } from './attachment.js';
-import { loadEnvelopes, type InputSource } from './input/load.js';
+import {
+  loadEnvelopes,
+  loadResolvedInputs,
+  type ResolvedInputs,
+} from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
@@ -350,7 +354,16 @@ export function summarizeIndex(index: RunIndex): ReportSummary {
 }
 
 export async function summarizeReport(
-  inputs: InputSource,
+  inputs: string | string[],
 ): Promise<ReportSummary> {
   return summarizeEnvelopes(await loadEnvelopes(inputs));
+}
+
+/** Internal: builds the summary from a list the caller already resolved. */
+export async function summarizeResolvedReport(
+  resolved: ResolvedInputs,
+): Promise<ReportSummary> {
+  return summarizeEnvelopes(
+    (await loadResolvedInputs(resolved)).flatMap((group) => group.envelopes),
+  );
 }

@@ -34,7 +34,7 @@ code or output byte.
 #### Scenario: Malformed large input
 
 - **WHEN** a 50 MiB input cannot be parsed
-- **THEN** the early warning is written before the parse error
+- **THEN** the early input warning is written before the parse error
 - **AND** the CLI exits 1 with the parse error
 - **AND** no partial output remains
 
@@ -46,9 +46,14 @@ code or output byte.
 
 #### Scenario: Usage error
 
-- **WHEN** the command has an invalid option or path
+- **WHEN** an invalid option or a path rejected by option/path validation
+  (for example an invalid `--max-size` or an output that would overwrite an
+  input)
 - **THEN** no early-warning line is written
 - **AND** the CLI exits 2 with its usage error
+
+A missing input is not a usage error: the loader reports it with its existing
+ENOENT message and exit 1.
 
 ### Requirement: Keep the scan cheap and the limits unchanged
 
@@ -75,7 +80,7 @@ early total and the report-size warning's `input` value measure different sets
 
 - **WHEN** the resolved inputs exceed 100 MB
 - **THEN** the existing input-cap error exits 1
-- **AND** the early warning does not replace that message
+- **AND** the early input warning does not replace that message
 
 #### Scenario: Both warnings
 
@@ -90,7 +95,7 @@ early total and the report-size warning's `input` value measure different sets
 - **THEN** no new CLI option or dependency exists
 - **AND** the report, JSON, CI, email and history bytes are unchanged
 
-### Requirement: Document the early warning
+### Requirement: Document the early input warning
 
 The documentation SHALL state the 50 MiB threshold, the exact warning line and
 its MB unit, that the warning is advisory, that it names no path, and that it

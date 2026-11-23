@@ -307,7 +307,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
 | pdf | `--pdf <file>` prints the report with optional Playwright Chromium; `--pdf-timeout <ms>` (needs `--pdf`) overrides the deadline | `renderPdf(html, { timeoutMs })` |
-| size warning | `--max-size <mb>` (default 10) warns after rendering with the report HTML, report-file and decoded attachment sizes in MB; an advisory early warning appears before parsing when the resolved inputs total at least 50 MiB | not applicable; the API returns HTML |
+| size warning | `--max-size <mb>` (default 10) warns after rendering with the report HTML, report-file and decoded attachment sizes in MB; an advisory early input warning appears before parsing when the resolved inputs total at least 50 MiB | not applicable; the API returns HTML |
 | CI output | `--ci github\|azure\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
 The CLI validates logo bytes and rejects unsupported types or a size over
@@ -680,17 +680,18 @@ outside `features/`).
 - Inputs are capped at 100 MB in total; attachments at 50 MB each and 100 MB
   total.
 - Before parsing, the CLI resolves the input files once, stats them without
-  reading content and writes one stderr warning when their total is at least
-  50 MiB (52,428,800 bytes):
+  reading content and writes one early input warning on stderr when their total
+  is at least 50 MiB (52,428,800 bytes), including on `--json` and `--ci`-only
+  runs:
 
   `tolkira: warning: input files total 50.0 MB, at or above the 50 MB early-warning threshold; parsing and rendering may take a while.`
 
   The total is MiB arithmetic shown at one decimal and labelled MB. The warning
   is advisory, names no path and changes no exit code or output byte. The same
-  resolved list goes to the scan and the loader. The early total counts resolved
-  file sizes; the report-size warning's `input` value counts content-deduped
-  loader bytes, so the two numbers can differ when identical content is passed
-  under two paths. Both warnings can appear in one run.
+  resolved list goes to the scan and the loader. The early total counts each
+  resolved path once; identical content under two paths counts twice. The
+  report-size warning's `input` value counts content-deduped loader bytes, so
+  the two numbers can differ. Both warnings can appear in one run.
 - The HTML report includes a hash-based CSP and never executes attachments.
 - History is an opt-in aggregate sidecar (`--history`); there is no
   scenario-level history, dashboard or server. Retries beyond the latest attempt

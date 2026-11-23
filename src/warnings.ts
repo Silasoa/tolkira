@@ -1,7 +1,8 @@
 /**
  * 50 MiB. Advisory only: half the 100 MB hard input cap, high enough that
- * ordinary medium runs stay quiet. Written as bytes so the attachment cap stays
- * the only multiplication-form declaration.
+ * ordinary medium runs stay quiet. Spelled in bytes because the 50 MB
+ * attachment cap is the only multiplication-form declaration the attachment
+ * ownership test allows.
  */
 export const INPUT_WARN_BYTES = 52_428_800;
 
@@ -10,10 +11,12 @@ export function formatMegabytes(bytes: number): string {
   return (bytes / 1024 / 1024).toFixed(1);
 }
 
+/** Warning body without the `tolkira: warning: ` prefix or trailing newline. */
 export function earlyInputWarning(bytes: number): string {
   return (
-    `tolkira: warning: input files total ${formatMegabytes(bytes)} MB, ` +
-    'at or above the 50 MB early-warning threshold; parsing and rendering may take a while.\n'
+    `input files total ${formatMegabytes(bytes)} MB, at or above the ` +
+    `${INPUT_WARN_BYTES / 1024 / 1024} MB early-warning threshold; ` +
+    'parsing and rendering may take a while.'
   );
 }
 

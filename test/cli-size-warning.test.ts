@@ -1,4 +1,5 @@
 import {
+  copyFile,
   mkdtemp,
   open,
   readFile,
@@ -13,7 +14,24 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../src/cli.js';
 import { formatCiOutput } from '../src/ci.js';
 import { renderEmail } from '../src/email.js';
+import { buildHistoryRun, writeHistory } from '../src/history.js';
 import { generateReport } from '../src/index.js';
+import {
+  loadResolvedInputs,
+  resolveInputFiles,
+  scanInputBytes,
+} from '../src/input/load.js';
+import { legacyFixture } from './fixtures.js';
+
+vi.mock('../src/input/load.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/input/load.js')>();
+  return {
+    ...actual,
+    resolveInputFiles: vi.fn(actual.resolveInputFiles),
+    scanInputBytes: vi.fn(actual.scanInputBytes),
+    loadResolvedInputs: vi.fn(actual.loadResolvedInputs),
+  };
+});
 
 const MIB = 1024 * 1024;
 const THRESHOLD = 50 * MIB;
@@ -160,7 +178,7 @@ async function writeSparse(
   }
 }
 
-describe('early input size warning', () => {
+describe('Early input warning', () => {
   it(
     'warns at exactly 50 MiB and not one byte below',
     async () => {
@@ -171,7 +189,9 @@ describe('early input size warning', () => {
       const at = await cli([file, '--json']);
       expect(at.code).toBe(0);
       expect(at.stderr).toBe(WARNING);
+      expect(at.stdout).not.toContain('early-warning');
       expect(parseSummary(at.stdout).status).toBe('passed');
+      expect(parseSummary(at.stdout).schemaVersion).toBe(2);
 
       await truncate(file, THRESHOLD - 1);
       expect((await stat(file)).size).toBe(THRESHOLD - 1);
@@ -253,22 +273,6 @@ describe('early input size warning', () => {
   );
 
   it(
-    'warns on stderr for a --json-only run and keeps stdout JSON-only',
-    async () => {
-      const dir = await tempDir();
-      const file = await writeLegacy(dir, 'json.json', THRESHOLD);
-
-      const run = await cli([file, '--json']);
-
-      expect(run.code).toBe(0);
-      expect(run.stderr).toBe(WARNING);
-      expect(run.stdout).not.toContain('early-warning');
-      expect(parseSummary(run.stdout).schemaVersion).toBe(2);
-    },
-    60_000,
-  );
-
-  it(
     'warns on stderr for a --ci-only run and keeps its stdout',
     async () => {
       const dir = await tempDir();
@@ -336,6 +340,8 @@ describe('early input size warning', () => {
       const output = path.join(dir, 'report.html');
       const email = path.join(dir, 'email.html');
       const ciOut = path.join(dir, 'ci.md');
+      const history = path.join(dir, 'history.json');
+      const expectedHistory = path.join(dir, 'expected-history.json');
       const frozen = new Date('2026-01-02T03:04:05.000Z');
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(frozen);
@@ -351,6 +357,8 @@ describe('early input size warning', () => {
         'markdown',
         '--ci-out',
         ciOut,
+        '--history',
+        history,
       ]);
 
       expect(run.code).toBe(0);
@@ -367,6 +375,12 @@ describe('early input size warning', () => {
           reportName: path.basename(output),
           now: frozen,
         }),
+      );
+      await writeHistory(expectedHistory, [
+        buildHistoryRun(generated.summary, 'Tolkira report'),
+      ]);
+      await expect(readFile(history, 'utf8')).resolves.toBe(
+        await readFile(expectedHistory, 'utf8'),
       );
     },
     60_000,
@@ -438,8 +452,24 @@ describe('early input size warning', () => {
     },
     60_000,
   );
-});
 
-// No public seam exposes the stat-only scan or the resolved-list identity, and
-// an EACCES-after-resolution fixture is not portable. The duplicate-path and
-// content-duplicate tests above cover the observable consequences.
+  it('resolves the input list once and hands the same files to the scan and the loader', async () => {
+    const dir = await tempDir();
+    await copyFile(legacyFixture('happy.json'), path.join(dir, 'run.json'));
+    const output = path.join(dir, 'report.html');
+    vi.mocked(resolveInputFiles).mockClear();
+    vi.mocked(scanInputBytes).mockClear();
+    vi.mocked(loadResolvedInputs).mockClear();
+
+    const run = await cli([dir, '--out', output]);
+
+    expect(run.code).toBe(0);
+    expect(resolveInputFiles).toHaveBeenCalledTimes(1);
+    expect(scanInputBytes).toHaveBeenCalledTimes(1);
+    expect(loadResolvedInputs).toHaveBeenCalledTimes(1);
+    const scanned = vi.mocked(scanInputBytes).mock.calls[0]?.[0];
+    const loaded = vi.mocked(loadResolvedInputs).mock.calls[0]?.[0];
+    expect(scanned).toBeDefined();
+    expect(loaded?.files).toBe(scanned);
+  });
+});

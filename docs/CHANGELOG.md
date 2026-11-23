@@ -3,6 +3,19 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- An early input warning before parsing. The CLI resolves the input list once,
+  stats the files without reading content, and writes one advisory stderr line
+  when the total is at least 50 MiB (52,428,800 bytes); it names no path, adds
+  no option or dependency, and changes no exit code or output byte. The same
+  resolved list goes to the scan and the loader. The early total counts each
+  resolved path once; identical content under two paths counts twice, so it can
+  differ from the report-size warning's content-deduped `input` value. The
+  100 MB input cap and the post-render `--max-size` warning are unchanged.
+
 ## [0.5.1] - 2026-11-23
 
 ### Fixed
