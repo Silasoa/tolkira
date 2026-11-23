@@ -19,8 +19,9 @@ returns the total `stat().size` of the resolved files and reads no content.
 `loadResolvedInputs` keeps the current read, content-dedupe and parse order, so
 the input cap and duplicate handling are unchanged. The loader keeps its
 per-file stat before reading to enforce the 100 MB cap and rejects a resolved
-entry that is no longer a regular file, so a path swapped after resolution is
-never read; the scan's stat pass is O(files) and advisory.
+entry that is no longer a regular file before reading it; a swap to a different
+regular file after the loader's own stat remains possible. The scan's stat pass
+is O(files) and advisory.
 
 The public API stays path-based: `generateReport` and `renderReport` accept
 `string | string[]` and resolve first. The resolved list is an internal CLI seam
@@ -57,8 +58,9 @@ reports its own message and exit code; the warning may already be visible.
 
 The scan counts each resolved path once; identical content under two paths
 counts twice. Identical-content duplicates are only known after reading, so a
-run that passes two copies of one file can be overcounted; the warning never
-undercounts. That is acceptable for a hint and is documented.
+run that passes two copies of one file can be overcounted. The scan counts the
+resolved paths at scan time, so a file that grows between scan and load can make
+the loader total larger. That is acceptable for a hint and is documented.
 
 The 100 MB input cap in `loadInputs` and the post-render `--max-size` warning in
 the CLI stay unchanged. Both the early input warning and the report-size warning

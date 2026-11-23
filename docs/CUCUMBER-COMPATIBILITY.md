@@ -10,7 +10,7 @@ a producer-specific error (the cucumber-js fixtures use `Error: boom`). The
 Behave producer fixture is a three-scenario real run described below.
 
 The dated cross-format limitations table is
-[`docs/LIMITATIONS.md`](LIMITATIONS.md) (last verified 2026-11-19).
+[`docs/LIMITATIONS.md`](LIMITATIONS.md) (last verified 2026-11-23).
 
 ## Legacy JSON
 

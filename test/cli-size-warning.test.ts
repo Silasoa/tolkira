@@ -21,6 +21,7 @@ import {
   resolveInputFiles,
   scanInputBytes,
 } from '../src/input/load.js';
+import { summarizeResolvedReport } from '../src/summary.js';
 import { legacyFixture } from './fixtures.js';
 
 vi.mock('../src/input/load.js', async (importOriginal) => {
@@ -30,6 +31,14 @@ vi.mock('../src/input/load.js', async (importOriginal) => {
     resolveInputFiles: vi.fn(actual.resolveInputFiles),
     scanInputBytes: vi.fn(actual.scanInputBytes),
     loadResolvedInputs: vi.fn(actual.loadResolvedInputs),
+  };
+});
+
+vi.mock('../src/summary.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/summary.js')>();
+  return {
+    ...actual,
+    summarizeResolvedReport: vi.fn(actual.summarizeResolvedReport),
   };
 });
 
@@ -471,5 +480,24 @@ describe('Early input warning', () => {
     const loaded = vi.mocked(loadResolvedInputs).mock.calls[0]?.[0];
     expect(scanned).toBeDefined();
     expect(loaded?.files).toBe(scanned);
+  });
+
+  it('resolves the input list once for a --json-only run', async () => {
+    const dir = await tempDir();
+    await copyFile(legacyFixture('happy.json'), path.join(dir, 'run.json'));
+    vi.mocked(resolveInputFiles).mockClear();
+    vi.mocked(scanInputBytes).mockClear();
+    vi.mocked(summarizeResolvedReport).mockClear();
+
+    const run = await cli([dir, '--json']);
+
+    expect(run.code).toBe(0);
+    expect(resolveInputFiles).toHaveBeenCalledTimes(1);
+    expect(scanInputBytes).toHaveBeenCalledTimes(1);
+    expect(summarizeResolvedReport).toHaveBeenCalledTimes(1);
+    const scanned = vi.mocked(scanInputBytes).mock.calls[0]?.[0];
+    const summarized = vi.mocked(summarizeResolvedReport).mock.calls[0]?.[0];
+    expect(scanned).toBeDefined();
+    expect(summarized?.files).toBe(scanned);
   });
 });

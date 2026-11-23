@@ -6,15 +6,17 @@
   into the contract before Red.
 - [x] 1.2 Confirm the loader resolution seam, the current `--max-size` warning
   order and the 100 MB cap; no new option or dependency.
-- [x] 1.3 Confirm the threshold (50 MiB) and the summary-only scope with the
-  user.
+- [x] 1.3 Confirm the threshold (50 MiB) and the all-runs scope, including
+  summary-only, with the user.
 
 ## 2. TDD-Red
 
 - [x] 2.1 Scan unit: explicit files and a directory sum; a repeated path counts
   once; a stat-only call attempts no content read; a sparse 50 MiB file reports
   its size without a read; a resolved directory is rejected before reading; a
-  missing input leaves the loader to report the error.
+  missing input leaves the loader to report the error. The scan unit tests
+  landed in the implementation commit `a08a6c4`, not in the Red commit
+  `0216742`.
 - [x] 2.2 CLI boundary: a temp directory of smaller valid JUnit files totalling
   50 MiB warns and exits 0; 50 MiB minus one byte does not warn; the exact line
   and one-decimal MB unit are pinned; a `--json` run keeps stdout JSON-only.
@@ -25,7 +27,9 @@
 - [x] 2.5 Limits: above 100 MB still exits 1 with the cap message; a large
   report still emits the existing report-size warning and both lines can appear
   with different totals.
-- [x] 2.6 Confirm RED; no existing test is deleted or weakened.
+- [x] 2.6 Confirm RED; no coverage is deleted or weakened. The separate `--json`
+  test was folded into the first boundary test (see the review findings below),
+  keeping its assertions.
 
 ## 3. Implement
 

@@ -78,7 +78,7 @@ and is covered by real producer fixtures.
 - The scan reads no content and returns the summed `stat` sizes; the loader
   keeps its own per-file stat before reading, its content dedupe and the 100 MB
   total-input cap.
-- The early 50 MiB warning is advisory: it can overcount identical content that
+- The early input warning is advisory: it can overcount identical content that
   the loader later dedupes and never replaces the loader's real error.
 
 ### `src/attachment`
@@ -181,7 +181,8 @@ and is covered by real producer fixtures.
 - Builds a renderer-independent, stable JSON summary from Messages.
 - Reports overall status, executed scenario/step counts, durations, attachments
   and per-scenario step results with failure messages.
-- Exposed as `summarizeReport` and through the CLI `--json` flag.
+- Exposed as `summarizeReport`; the internal `summarizeResolvedReport` serves the
+  CLI's already-resolved list and backs `--json`.
 - Schema version 2 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
   bump the version.
 
@@ -264,6 +265,18 @@ and is covered by real producer fixtures.
 - Exported through `src/index`; `generateReport` appends the current run,
   `renderReport` and `CucumberHtmlStream` render the list they are given.
 
+### `src/run`
+
+- Internal load/render/history assembly for a list the caller already resolved:
+  `loadResolvedInputs` reads and parses the resolved files, `indexRun` builds the
+  report index, and the summary, attachment totals and history come from that one
+  run.
+- `generateReportFromResolved` and `renderReportFromResolved` are the internal
+  entry points for a resolved list; the CLI drives `generateReportFromResolved`
+  and `summarizeResolvedReport` in `src/summary`.
+- The public `generateReport` and `renderReport` stay path-based and resolve
+  first; the resolved list is not a package type.
+
 ### `src/cli`
 
 - `tolkira <input...> [--out <file>] [--pdf <file>] [--pdf-timeout <ms>]`
@@ -338,8 +351,10 @@ optional and reaches the renderer through
 is the synchronous email renderer; it takes a `ReportSummary` and validated
 options, writes nothing and shares the translator. `renderPdf` takes rendered
 report HTML, returns PDF bytes and launches the optional engine only when
-called; it accepts `PdfOptions` (`timeoutMs`) and writes no file. The CLI is a
-thin wrapper around the API.
+called; it accepts `PdfOptions` (`timeoutMs`) and writes no file. The CLI
+resolves inputs once and drives the internal resolved entry points
+(`generateReportFromResolved` and `summarizeResolvedReport`) instead of
+re-resolving through the path-based public functions.
 
 ## Security
 

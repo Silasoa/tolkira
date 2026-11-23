@@ -431,11 +431,14 @@ Contract:
 - `--history` follows the output-path rules: it must not name an input, the
   logo, `--out`, `--ci-out`, `--email` or a path inside an input directory, even
   when the history file does not exist yet.
-- The CLI (through `generateReport`) is the only automatic writer. API callers
-  write through `writeHistory`; `renderReport` and `CucumberHtmlStream` render a
-  given list and record nothing. The writer reads, appends and writes atomically
-  with a rename; that prevents a corrupt file, not lost updates from two
-  concurrent processes. Run one generation per sidecar at a time.
+- The CLI is the only automatic writer: it resolves inputs once and drives the
+  internal `generateReportFromResolved` (report) and `summarizeResolvedReport`
+  (summary) entry points. The public API stays path-based: `generateReport`
+  resolves the paths and appends the current run itself. API callers write
+  through `writeHistory`; `renderReport` and `CucumberHtmlStream` render a given
+  list and record nothing. The writer reads, appends and writes atomically with a
+  rename; that prevents a corrupt file, not lost updates from two concurrent
+  processes. Run one generation per sidecar at a time.
 - The 30-run bound applies to the CLI and `generateReport` path through
   `readHistory` and `appendHistory`; `renderReport` and `CucumberHtmlStream`
   accept the list they are given.

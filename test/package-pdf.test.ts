@@ -96,6 +96,9 @@ describe('PDF package metadata', () => {
 
     expect(declaration).toContain('renderPdf');
     expect(declaration).not.toContain('playwright-core');
+    expect(declaration).not.toContain('InputSource');
+    expect(declaration).not.toContain('ResolvedInputs');
+    expect(declaration).not.toContain('ResolvedInputFile');
   });
 
   it('runs a strict missing-engine --pdf smoke in the package job', () => {

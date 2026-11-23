@@ -612,7 +612,7 @@ for the dated limitations table (last verified 2026-11-23).
 - [`docs/PDF.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PDF.md) — opt-in PDF export, engine install, CLI/API,
   write order and limits.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
-  (last verified 2026-11-20).
+  (last verified 2026-11-23).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested
   Cucumber producers and versions.
 - [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and
