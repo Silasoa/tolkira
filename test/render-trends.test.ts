@@ -349,6 +349,25 @@ describe('Trends view', () => {
     }
   });
 
+  it('hides the sparkline markers above the density threshold', async () => {
+    const history = (count: number): HistoryRun[] =>
+      Array.from({ length: count }, (_, index) =>
+        run({
+          id: `dense-${index}`,
+          recordedAt: new Date(
+            Date.UTC(2026, 0, 1, 0, 0, index),
+          ).toISOString(),
+        }),
+      );
+
+    const atLimit = sparkline(trendsPanel(await renderTrends(history(60))));
+    expect(circles(atLimit)).toHaveLength(60);
+
+    const dense = sparkline(trendsPanel(await renderTrends(history(61))));
+    expect(circles(dense)).toHaveLength(0);
+    expect(lines(dense).length).toBeGreaterThan(0);
+  });
+
   it('omits a run with no attempt and does not bridge the gap', async () => {
     const before = run({ id: 'before', recordedAt: '2026-01-01T00:00:00.000Z' });
     const skipped = run({

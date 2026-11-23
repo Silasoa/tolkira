@@ -14,9 +14,32 @@ import type { Translator } from './i18n.js';
 const SPARK_WIDTH = 320;
 const SPARK_HEIGHT = 64;
 const SPARK_PAD = 6;
+/** Above this many plotted runs the per-run markers merge into a dense chain. */
+const SPARK_MARKER_LIMIT = 60;
 
-const STATUS_CLASSES: Record<string, string> = {
-  passed: 'pass',
+// The Trends shell fixes only matter when the third tab/table exists. Keeping
+// them out of the always-on stylesheet leaves the no-history default HTML
+// byte-identical, as the spec requires.
+export const TRENDS_SHELL_CSS =
+  '@media screen{' +
+  '.views{flex-wrap:wrap;overflow-x:visible}' +
+  '#trends-view .tableWrap{max-height:70vh;overflow-y:auto}' +
+  '#trends-view .trendsTable thead th{position:sticky;top:0;background:var(--surface-2);z-index:1}' +
+  '}' +
+  '@media screen and (max-width:560px){html{scroll-padding-top:9rem}}' +
+  '#trends-view .trendsTable th:first-child,#trends-view .trendsTable td:first-child{width:18%;white-space:nowrap}' +
+  '#trends-view .trendsTable th:nth-child(2),#trends-view .trendsTable td:nth-child(2){width:16%}' +
+  '#trends-view .spark{height:auto;aspect-ratio:320/64}' +
+  '@media print{' +
+  '#trends-view .tableWrap{max-height:none;overflow:visible}' +
+  '#trends-view .trendsTable thead th{position:static}' +
+  '#trends-view .trendsTable th{overflow-wrap:normal;word-break:normal;hyphens:none}' +
+  '#trends-view .trendsTable th:first-child,#trends-view .trendsTable td:first-child{width:15%}' +
+  '#trends-view .trendsTable th:nth-child(n+4),#trends-view .trendsTable td:nth-child(n+4){width:6.375%}' +
+  '#trends-view .trendsTable .currentTag{font-size:6pt}' +
+  '}';
+
+const STATUS_CLASSES: Record<string, string> = {  passed: 'pass',
   failed: 'fail',
   skipped: 'skipped',
   pending: 'pending',
@@ -150,13 +173,17 @@ function sparkline(runs: HistoryRun[]): string {
           .join(' ')}" fill="none" vector-effect="non-scaling-stroke"></polyline>`,
     )
     .join('');
-  const circles = points
-    .filter((point): point is { x: number; y: number } => point !== null)
-    .map(
-      (point) =>
-        `<circle class="sparkPoint" cx="${point.x}" cy="${point.y}" r="2.5"></circle>`,
-    )
-    .join('');
+  const circles =
+    points.filter((point): point is { x: number; y: number } => point !== null)
+      .length > SPARK_MARKER_LIMIT
+      ? ''
+      : points
+          .filter((point): point is { x: number; y: number } => point !== null)
+          .map(
+            (point) =>
+              `<circle class="sparkPoint" cx="${point.x}" cy="${point.y}" r="2.5"></circle>`,
+          )
+          .join('');
   return `<svg class="spark" viewBox="0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}" aria-hidden="true" focusable="false">${lines}${circles}</svg>`;
 }
 

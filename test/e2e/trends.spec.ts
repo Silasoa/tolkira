@@ -189,6 +189,11 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
     await expect(page.locator('#scenario-1-1')).toBeVisible();
     await expectTabsVisibleAndAnchor('320');
 
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto(url);
+    await expect(page.locator('#scenario-1-1')).toBeVisible();
+    await expectTabsVisibleAndAnchor('390');
+
     // Set the zoom after navigation: an init script runs before the document
     // element exists and would leave the page at 100%.
     await page.goto(url);
@@ -352,6 +357,140 @@ test('shows the Flaky count and share at 1440, 390, 320 and 200%', async ({
     for (const report of [first, second]) {
       if (report) await removeReport(report.dir);
     }
+  }
+});
+
+test('keeps a 365-run Trends shell readable at 320 and 200% text', async ({
+  page,
+}) => {
+  let historyDir = '';
+  let report: ReportFile | undefined;
+  try {
+    historyDir = await mkdtemp(path.join(tmpdir(), 'tolkira-trends-dense-'));
+    const history = path.join(historyDir, 'history.json');
+    const runs = Array.from({ length: 364 }, (_, index) => {
+      const counts = {
+        total: 100,
+        passed: index % 3 === 0 ? 95 : 100,
+        failed: index % 3 === 0 ? 5 : 0,
+        skipped: 0,
+        pending: 0,
+        undefined: 0,
+        ambiguous: 0,
+        unknown: 0,
+      };
+      return {
+        id: `dense-${index}`,
+        recordedAt: new Date(
+          Date.UTC(2026, 0, 1) + index * 3_600_000,
+        ).toISOString(),
+        title: `Run ${index + 1}`,
+        status: index % 3 === 0 ? 'failed' : 'passed',
+        counts: { features: 1, scenarios: counts, steps: counts },
+        durationMs: 1000 + index,
+        attachments: { total: 0, bytes: 0 },
+        flaky: index % 5,
+      };
+    });
+    await writeFile(history, JSON.stringify({ schemaVersion: 1, runs }), 'utf8');
+    report = await writeReportWithHistory(
+      [firstInput],
+      history,
+      'Dense trends',
+      'tolkira-trends-dense-report-',
+      '',
+      ['--history-limit', '365'],
+    );
+    const url = reportUrl(report.output);
+    const region = page.locator('#trends-view .tableWrap');
+    const dateCell = page
+      .locator('#trends-view tbody tr')
+      .first()
+      .locator('td')
+      .first();
+    const spark = page.locator('#trends-view .spark');
+
+    async function expectDenseShell(label: string): Promise<void> {
+      await expect(page.locator('#trends-view tbody tr')).toHaveCount(365);
+      await expect(page.locator('#trends-view .sparkPoint')).toHaveCount(0);
+      await expect(
+        page.locator('#trends-view .sparkLine').first(),
+      ).toBeAttached();
+      expect(await pageOverflow(page), `${label} overflow`).toBeLessThanOrEqual(
+        1,
+      );
+      expect(
+        await region.evaluate(
+          (element) => element.scrollHeight > element.clientHeight,
+        ),
+        `${label} table cap`,
+      ).toBe(true);
+      expect(
+        await page
+          .locator('#trends-view .trendsTable thead th')
+          .first()
+          .evaluate((element) => getComputedStyle(element).position),
+        `${label} sticky header`,
+      ).toBe('sticky');
+      const distance = await page.evaluate(() => {
+        const panel = document.querySelector('#trends-view');
+        const sparkline = document.querySelector('#trends-view .spark');
+        if (!panel || !sparkline) return Number.POSITIVE_INFINITY;
+        return (
+          sparkline.getBoundingClientRect().top -
+          panel.getBoundingClientRect().top
+        );
+      });
+      expect(
+        distance,
+        `${label} sparkline below the capped table`,
+      ).toBeLessThan(3000);
+      const line = await dateCell.evaluate((cell) => {
+        const tag = cell.querySelector('.currentTag');
+        if (!tag) return null;
+        const range = document.createRange();
+        range.selectNodeContents(cell.firstChild ?? cell);
+        return {
+          dateBottom: range.getBoundingClientRect().bottom,
+          tagTop: tag.getBoundingClientRect().top,
+        };
+      });
+      expect(line, `${label} current tag`).not.toBeNull();
+      expect(
+        line!.tagTop,
+        `${label} current tag on the date line`,
+      ).toBeLessThan(line!.dateBottom);
+      await expect(spark).toBeVisible();
+    }
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(url);
+    await page.getByRole('tab', { name: 'Trends' }).click();
+    await expectDenseShell('320');
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    await expectDenseShell('320 at 200%');
+
+    await page.emulateMedia({ media: 'print' });
+    expect(
+      await page
+        .locator('#trends-view .trendsTable th')
+        .first()
+        .evaluate((element) => getComputedStyle(element).overflowWrap),
+      'print header keeps whole words',
+    ).toBe('normal');
+    expect(
+      await region.evaluate((element) => getComputedStyle(element).maxHeight),
+      'print table height reset',
+    ).toBe('none');
+    await expect(
+      page.getByRole('columnheader', { name: 'Duration', exact: true }),
+    ).toBeVisible();
+  } finally {
+    if (report) await removeReport(report.dir);
+    if (historyDir) await rm(historyDir, { recursive: true, force: true });
   }
 });
 
