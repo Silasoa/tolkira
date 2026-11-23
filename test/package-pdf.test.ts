@@ -99,6 +99,7 @@ describe('PDF package metadata', () => {
     expect(declaration).not.toContain('InputSource');
     expect(declaration).not.toContain('ResolvedInputs');
     expect(declaration).not.toContain('ResolvedInputFile');
+    expect(declaration).not.toContain('FromResolved');
   });
 
   it('runs a strict missing-engine --pdf smoke in the package job', () => {
