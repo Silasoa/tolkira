@@ -39,9 +39,17 @@ their existing classification.
 #### Scenario: Malformed and non-envelope JSON
 
 - **WHEN** the first line starts with `{` but its first key is not an envelope
-  key, or the line is malformed JSON
+  key, or the line is malformed JSON whose first key is not an envelope key
 - **THEN** the line is not parsed as a Messages candidate
 - **AND** the existing unsupported or validation decision is unchanged
+
+#### Scenario: Malformed line with an envelope first key
+
+- **WHEN** the first line starts with `{"meta":` and is malformed JSON
+- **THEN** it is parsed once as a Messages candidate to discover that it is not
+  a valid envelope
+- **AND** the Playwright sniffer parses it again
+- **AND** the classification stays the existing JSON validation decision
 
 #### Scenario: BOM and blank leading lines
 

@@ -14,7 +14,7 @@ The fixes add one small leaf module, `src/display-path.ts` (`analyzePath`), so
 `displayUri` and `normalizeUri` cannot drift. One tiny comparator helper lives
 in the existing `src/text.ts`; every other seam changes an existing function or
 one call site. The release gate is already implemented by `31dd112`, with the
-full-fetch correction `f448f60`; this change verifies it by a test.
+prior full-fetch correction `f448f60`; this change verifies it by a test.
 
 ## Seams
 
@@ -33,33 +33,42 @@ Current behaviour:
   `home/<user>/...` for a POSIX file URL. For an absolute path without
   `/features/` it returns the last segment only.
 - `buildReportModel` (`src/report/model.ts`) sets
-  `featureName: feature?.name ?? pickle.uri`, so a feature without an AST name
-  can carry the raw file URL into the report, summary and copied text.
+  `featureName: feature?.name ?? pickle.uri`, so a featureless scenario (no AST
+  feature) can carry the raw file URL into the report, summary and copied text.
 
 Change:
 
 - Add `src/display-path.ts` with `analyzePath(uri)`. It normalises backslashes,
-  removes a `file:` scheme, treats an empty or `localhost` authority as local and
-  turns a remote authority into the first path segment, strips an optional drive
-  token and a `/mnt/<drive>` mount, and then drops every `Users`, `home` or
-  `Documents and Settings` segment plus the next segment anywhere in the
-  absolute parts, repeatedly. `%2F` and `%5C` count as separators for this
-  absolute analysis only; the path text itself is not rewritten.
+  removes a `file:` scheme, treats an empty or `localhost` authority as local
+  and turns a remote authority into the first path segment, ignoring authority
+  userinfo, strips an optional drive token and a `/mnt/<drive>` mount, treats
+  `%2F`/`%5C` as separators for this analysis (including a leading one), decodes
+  each segment once for the home comparison, and resolves `.`/`..` and their
+  percent-encoded forms for the analysis only. It then drops every `Users`,
+  `home` or `Documents and Settings` segment plus the next segment anywhere in
+  the absolute parts, repeatedly, including a trailing home segment. Display
+  segments keep their original encoding apart from `%2F`/`%5C`, which are
+  separators. The one-pass decode is the limit: a double-encoded home segment
+  (`%2568ome`) is not treated as home.
 - `displayUri` keeps its `/features/` marker and last-three fallback, joins the
   remaining segments with `/`, never shows a drive prefix, and returns `''` when
   no segment remains instead of the raw URI. Relative URIs stay unchanged.
 - `normalizeUri` keeps its `./` removal, `/features/` marker and last-segment
   fallback plus the `features/legacy-N.feature` fallback; relative URIs stay
-  unchanged. It uses the same `analyzePath`.
+  unchanged. It uses the same `analyzePath`, so an absolute path without a
+  `features` segment becomes its last segment, and a missing URI or a path with
+  no remaining segment becomes `features/legacy-N.feature`.
 - `ReportScenario.uri` and `ReportFeature.uri` stay raw because provenance keys
   and lookups use the raw URI. Every render and summary site applies
-  `displayUri`: summary `uri`, baseline identities, the source strip,
-  definition sources, copied failure text and the feature heading. The model
-  fallback becomes `featureName: feature?.name ?? displayUri(pickle.uri ?? '')`
-  and the feature-row name uses `displayUri(scenarios[0]?.uri ?? '')`. The
-  summary `feature` field stays `feature?.name ?? ''`, so a featureless
-  scenario has an empty `feature` and no user name. No second path-shortening
-  rule is added.
+  `displayUri`: summary `uri`, baseline identities, the per-feature source label
+  (`featureSourceLabel`), definition sources, copied failure text and the
+  feature heading. The model fallback becomes
+  `featureName: feature?.name ?? displayUri(pickle.uri ?? '')` and the
+  feature-row name uses `displayUri(scenarios[0]?.uri ?? '')`. Because the
+  fallback is `??`, a present-but-blank AST name leaves `featureName` empty;
+  only the feature-row heading trims a blank name and falls back. The summary
+  `feature` field stays `feature?.name ?? ''`, so a featureless scenario has an
+  empty `feature` and no user name. No second path-shortening rule is added.
 
 The contract is the absence of a local user name from a display URI on the named
 surfaces, not one particular shortened string. Existing `/features/`-based
@@ -238,9 +247,9 @@ string as given. A read never rewrites.
 Current behaviour (`src/input/junit.ts`, before the fix):
 
 - `checkEntityReferences` accepts only `amp`, `lt`, `gt`, `quot`, `apos` and
-  numeric references whose code point is an XML character. Its pattern is
-  `&([^;]{1,32});`, so an unknown name longer than 32 characters escapes the
-  checker entirely.
+  numeric references whose code point is an XML character. Its pattern had a
+  32-character name limit, so an unknown name longer than 32 characters escaped
+  the checker entirely, and a bare `&` before a later entity was not rejected.
 - The parser was configured with `htmlEntities: true`, which the checker made
   unreachable for named entities, but fast-xml-parser v5 also gates numeric
   character references behind that option.
@@ -253,12 +262,16 @@ Change (kept as a deliberate design deviation, not dead code):
   has no decode path.
 - Move the five names into one `XML_ENTITIES` map shared by the checker and the
   decoder, so the accepted set cannot drift.
-- Scan with `/&([^;&]*);/`: an entity cannot contain `&` or `;`, so a long run of
-  bare ampersands stays linear instead of rescanning to the next semicolon. The
-  pattern has no name-length cap, so an unknown named entity of any length,
-  including a 33-character name, is rejected.
-- Cap the echoed entity at 64 characters plus `...` in the error text, so a huge
-  name cannot inflate stderr.
+- Scan forward from every `&` to the next `&` or `;`. A second `&` or the
+  fragment end before a `;` is a bare ampersand and fails, so `a & b &amp; c`
+  is rejected in text and in a quoted attribute as well as in an unterminated
+  tail. One pass reaches each character once, so a long bare-`&` run stays
+  linear.
+- There is no name-length cap: an unknown named entity of any length, including
+  a 33-character name, is rejected. Decimal (`&#...;`) and hex (`&#x...;`)
+  references must denote an XML character.
+- The error echoes at most the first 64 characters of the entity name plus
+  `...`, so a huge name cannot inflate stderr; the full name is not printed.
 - `&#160;` and `&#xA0;` stay accepted as numeric references; `&nbsp;` remains
   rejected and no partial report is written. `docs/JUNIT-XML.md` states the rule.
 
@@ -305,14 +318,14 @@ Current behaviour (`31dd112`, `.github/workflows/release.yml`):
 `31dd112` added the gates, the `needs` entry, and the tag/version and
 main-ancestor checks, but fetched `origin/main` with `--depth=1`. `f448f60`
 replaced that with the full fetch, which the ancestor check needs and which
-`test/release-workflow.test.ts` pins. No other workflow edit belongs to this
-change.
+`test/release-workflow.test.ts` pins. This change edits no workflow file.
 
 Change: add `test/release-workflow.test.ts`, which reads active `run:` lines and
 asserts the two gates, their commands, the `needs` entry, the tag/version check,
 the main-ancestor check and the full (unshallow) fetch. A regression in the
 workflow fails the unit gate; a green tag follows the recorded path to the
-package smoke and stage step. This is verification plus the recorded fetch fix.
+package smoke and stage step. This is verification of the prior commits; no
+workflow edit is part of this change.
 
 ### 11. Owner-only output (decision)
 
@@ -353,12 +366,20 @@ checks → package smoke → `npm stage publish`.
 
 - **URI prefix and home segment.** Removing `file:` must keep the path absolute:
   Windows `file:///C:/...` becomes `/C:/...`, not `C:/...` with a lost drive.
-  `/mnt/c/Users/...` needs the mount removed before the home rule. The home rule
-  is not leading-only: it drops a `Users`, `home` or `Documents and Settings`
-  segment and the next segment anywhere in the absolute parts, repeatedly, so
-  `/srv/home/...` is covered too. A relative path that begins with `home/...`
-  stays outside the rule. When no part remains the display URI is `''`, never
-  the raw path. Preserve relative paths and the `/features/` marker.
+  `/mnt/c/Users/...` needs the mount removed before the home rule. The absolute
+  analysis ignores authority userinfo, treats a leading `%2F`/`%5C` as a
+  separator, decodes each segment once for the home comparison, and resolves
+  `.`/`..` (also `%2e`/`%2e%2e`) before it, so `%68ome`, a dot segment after
+  `/home/`, and a parent segment before the user name cannot hide a pair. The
+  home rule is not leading-only: it drops a `Users`, `home` or
+  `Documents and Settings` segment and the next segment anywhere in the absolute
+  parts, repeatedly, including a trailing home segment. A relative path that
+  begins with `home/...` stays outside the rule.
+  When no part remains the display URI is `''`, never the raw path. Display
+  segments keep their original encoding apart from `%2F`/`%5C`, which are
+  separators. The comparison decodes once only: a double-encoded home segment is
+  not treated as home and is outside the guarantee. Preserve relative paths and
+  the `/features/` marker.
 - **Surrogate fallback.** `Buffer.from(body, 'utf8')` substitutes U+FFFD for an
   unpaired surrogate; the original code unit cannot be represented in UTF-8.
   The test asserts a valid base64 data URI and no throw, not byte identity.
@@ -390,13 +411,18 @@ checks → package smoke → `npm stage publish`.
 - **ISO regex.** The pattern accepts `T`, `Z` and `±HH:MM` with optional seconds
   and fraction; a zone-less, space-separated or free-text value is rejected.
   `Date.parse` is the finite check, not a round-trip, so valid offsets are kept
-  as written and calendar/offset range validity is `Date.parse`'s: `2026-02-30`
-  and `+23:59` are accepted. No date normalisation is performed.
+  as written. Calendar-day validity is `Date.parse`'s: a nonexistent day such as
+  `2026-02-30` is accepted (`Date.parse` rolls it forward), while the stored
+  string is not rewritten. The pattern allows an offset up to `+23:59`;
+  `+25:00` and an offset without a colon are rejected. No date normalisation is
+  performed.
 - **JUnit entity scan.** The checker runs before the parser. `htmlEntities` is
   replaced by the internal XML-only decoder, so numeric references still decode
-  and HTML names stay rejected. `[^;&]*` keeps a bare-ampersand run linear; the
-  pattern has no length cap, so a 33-character unknown name is rejected like any
-  other, and the echoed name is capped at 64 characters.
+  and HTML names stay rejected. One forward scan rejects a bare `&` before a
+  later entity in text or a quoted attribute and an unknown name of any length;
+  a 33-character unknown name is rejected like any other, and the echoed name is
+  capped at 64 characters plus `...`. Numeric references outside the XML
+  character ranges are rejected.
 - **200k merge.** The loop avoids the argument limit but still holds 200,001
   elements and a JSON string; the test stays under the input cap and uses small
   element objects. The 100 MB input cap is unchanged.
@@ -415,15 +441,24 @@ checks → package smoke → `npm stage publish`.
 - **URI privacy:** `test/summary.test.ts` and `test/model.test.ts` cover POSIX
   `file:///home/<user>/...`, one-slash `file:/home/<user>/...`, localhost, a
   remote file URL and UNC, WSL `/mnt/c/Users/<user>/...`, Windows
-  `file:///C:/Users/<user>/...`, percent-encoded separators, a home segment below
-  another directory, a drive before `Users`, a home-only path (empty display
-  URI), an absolute path without `/features/`, a deeper path, a relative path, a
-  missing URI, idempotency and the model feature-name fallback.
-  `test/render-source-strip.test.ts` covers raw provenance with absolute and
-  file-URL URIs; `test/render-report.test.ts` covers the unnamed-feature heading.
+  `file:///C:/Users/<user>/...`, percent-encoded `%2F`/`%5C` separators including
+  a leading one, percent-encoded home segments (`%68ome`, `%55sers`,
+  `Documents%20and%20Settings`), dot and parent segments (plain and
+  `%2e`/`%2e%2e`), authority userinfo, a home segment below another directory, a
+  drive before `Users`, a home-only path (empty display URI), an absolute path
+  without `/features/`, a deeper path, a relative path, a missing URI,
+  idempotency, a repeated-home linear-time case and the featureless model
+  feature-name fallback. `test/legacy.test.ts` covers the adapter's URI table:
+  one-slash, localhost, remote and UNC forms, percent-encoded separators and
+  leading separators, a home segment below another directory, a drive before
+  `Users`, a home-only path and its `features/legacy-N.feature` fallback, and a
+  `features` marker above a home segment, all reduced to the last segment or
+  marker path. `test/render-source-strip.test.ts` covers raw provenance with
+  absolute and file-URL URIs; the strip shows the input basename, not
+  `displayUri`. `test/render-report.test.ts` covers the unnamed-feature heading.
   `test/cli-edge.test.ts` checks the `--json` `uri` and `feature` fields;
   `test/e2e/clipboard.spec.ts` checks copied failure text. Every assertion names
-  `<user>` as forbidden.
+  `<user>` as forbidden where the form is in scope.
 - **Surrogate media:** `test/render-attachments.test.ts` and
   `test/model.test.ts` cover an unpaired high and low surrogate in an image and
   video body, a normal UTF-8 body, a BASE64 body, an empty body and a valid
@@ -448,13 +483,14 @@ checks → package smoke → `npm stage publish`.
   removed date, with the diff recorded; no other hash changes.
 - **ISO 8601:** `test/history.test.ts` and `test/cli-history.test.ts` cover the
   writer form, `Z` without milliseconds, `+02:00`, a negative offset, optional
-  seconds, 1/3/9 fraction digits, no zone, free text, an invalid offset and a
-  byte-identical read.
+  seconds, 1/3/9 fraction digits, no zone, free text, an invalid offset, the
+  documented `2026-02-30` and `+23:59` boundaries and a byte-identical read.
 - **JUnit entities:** `test/junit.test.ts` covers the five XML named entities,
   `&#160;`, `&#xA0;`, `&nbsp;`, an unknown named entity at 32 and 33 characters,
-  a 100-character entity capped in the error, an out-of-range numeric reference,
-  CDATA declaration text, a long bare-`&` run, explicit and directory input, and
-  no partial report.
+  a bare `&` before a later entity in text and in an attribute, a 100-character
+  entity name echoed with the 64-character cap plus `...`, an out-of-range
+  numeric reference, CDATA declaration text, a long bare-`&` run, explicit and
+  directory input, and no partial report.
 - **Compat merge:** `test/compat-sidecar.test.ts` covers two same-URI features
   with about 65k elements each (130k total, a shape and order case), a one-
   element first feature plus a 200,000-element duplicate (the real spread

@@ -35,8 +35,9 @@ quality-pass change.
   unknown name.
 - **Process:** the release workflow used to run only `npm run check`, so a tag
   could stage without `npm run hygiene` or the browser suite. Commit `31dd112`
-  adds the two gates and the tag/version and main checks; this change records
-  and verifies the requirement, with the full-fetch correction `f448f60`.
+  adds the two gates and the tag/version and main checks; the prior commit
+  `f448f60` makes the main fetch full. This change records and verifies both
+  with a regression test and edits no workflow file.
 - **Decision:** `writeAtomic` creates owner-only files (`0600`). The mode stays
   as the safe default for reports and attachments that may contain secrets; it
   is documented, not changed.
@@ -50,22 +51,29 @@ public API or schema change.
 
 - **Display URIs:** `analyzePath` in the new `src/display-path.ts` shares one
   rule between `displayUri` and the legacy `normalizeUri`. For an absolute path
-  or file URL it removes the `file:` scheme, an empty or `localhost` authority,
-  a remote authority (the host becomes the first path segment), an optional
-  drive token and a `/mnt/<drive>` mount, and treats `%2F`/`%5C` as separators
-  for that analysis only. It then drops a `Users`, `home` or
-  `Documents and Settings` segment **and the segment after it wherever they
-  occur**, repeatedly, not only at the start. The remaining segments use the
-  `/features/` marker or the last three segments and never show a drive prefix;
-  a path that is only a home directory displays an empty URI instead of the raw
-  path. Relative URIs stay unchanged and keep the existing `/features/` marker
-  and last-three/last-segment fallbacks. `displayUri` is applied at every render
-  and summary output site; the report model keeps the raw URI for provenance and
-  uses the display URI only for an unnamed feature's heading. For an absolute
-  path or file URL, no local user name appears in a display URI in the HTML, the
-  `--json` `uri` field or copied failure text; a relative path that starts with
-  a home segment stays unchanged and is outside this rule. The summary `feature`
-  field keeps its current empty fallback.
+  or file URL it removes the `file:` scheme and authority (including userinfo),
+  an optional drive token and a `/mnt/<drive>` mount, turns a remote authority
+  into the first path segment, treats `%2F`/`%5C` as separators including a
+  leading one, decodes each segment once for the home comparison, and resolves
+  `.`/`..` and their percent-encoded forms for the analysis only. It then drops
+  a `Users`, `home` or `Documents and Settings` segment **and the segment after
+  it wherever they occur**, repeatedly, not only at the start, including a
+  trailing home segment. `displayUri` uses the `/features/` marker or the last
+  three remaining segments and never shows a drive prefix; the legacy adapter
+  uses the marker or the last segment, and a path that is only a home directory
+  displays an empty URI instead of the raw path (or `features/legacy-N.feature`
+  in the adapter). Display text keeps its original encoding apart from
+  `%2F`/`%5C`, which are separators. The home comparison decodes once, so a
+  double-encoded segment is not treated as home. Relative
+  URIs stay unchanged and keep the existing `/features/` marker and
+  last-three/last-segment fallbacks. `displayUri` is applied at every render and
+  summary output site; the report model keeps the raw URI for provenance and
+  uses the display URI only for an unnamed feature's heading. For a plain or
+  single-encoded home form on an absolute path or file URL, no local user name
+  appears in a display URI in the HTML, the `--json` `uri` field or copied
+  failure text; a relative path that starts with a home segment stays unchanged
+  and is outside this rule. The summary `feature` field keeps its current empty
+  fallback.
 - **Surrogate media:** a non-base64 image or video body that cannot be
   percent-encoded falls back to a base64 data URI built from its UTF-8 bytes.
   A normal UTF-8 body keeps its readable data URI, a BASE64 body stays
@@ -91,7 +99,7 @@ public API or schema change.
   envelope, the detector checks that the trimmed line starts with `{` and that
   its first key is a known envelope key. Only then does it parse and confirm.
   A one-line Playwright report is classified as Playwright with one parse of the
-  file; Messages, legacy, JUnit and malformed JSON classification is unchanged.
+  file. No other classification changes.
 
 **Correctness and input compatibility**
 
@@ -105,19 +113,23 @@ public API or schema change.
   of this change.
 - **History ISO 8601:** the reader accepts an ISO 8601-shaped timestamp with a
   zone (`Z` or `±HH:MM`), optional seconds and optional fraction digits, and a
-  finite `Date.parse`. Calendar-day and offset-range validity follow
-  `Date.parse`, so `2026-02-30` and `+23:59` are accepted. It keeps the original
-  string, rejects a zone-less or free-text value, and never rewrites on read.
-  The CLI's new-run writer keeps emitting `YYYY-MM-DDTHH:mm:ss.sssZ`.
+  finite `Date.parse`. Calendar-day validity follows `Date.parse`: a nonexistent
+  day such as `2026-02-30` is accepted (`Date.parse` rolls it forward), while
+  the stored string is kept. The pattern allows an offset up to `+23:59`. It
+  rejects a zone-less or free-text value, and never rewrites on read. The CLI's
+  new-run writer keeps emitting `YYYY-MM-DDTHH:mm:ss.sssZ`.
 - **JUnit entities:** only the five XML named entities and numeric character
   references are accepted. The `htmlEntities: true` option is removed; an
   internal `xmlEntityDecoder` replaces it because fast-xml-parser v5 gates
   numeric references behind that option, and it decodes no name outside the
-  shared five-name map. The entity checker scans `&([^;&]*);` linearly, rejects
-  an unknown named entity of any length (a 33-character name no longer escapes
-  the old pattern) and caps the echoed entity in the error. `&nbsp;` keeps the
-  existing invalid-entity error and `docs/JUNIT-XML.md` states the rule. This is
-  a deliberate design deviation, not dead code.
+  shared five-name `XML_ENTITIES` map. One forward scan checks each text and
+  quoted-attribute fragment: it rejects a bare `&` before a later entity as well
+  as an unknown named entity of any length (a 33-character name no longer
+  escapes the old pattern). A decimal or hex numeric reference must denote an
+  XML character. The error echoes at most the first 64 characters of the entity
+  name plus `...`. `&nbsp;` keeps the existing invalid-entity error and
+  `docs/JUNIT-XML.md` states the rule. This is a deliberate design deviation,
+  not dead code.
 
 **Process and decision**
 
@@ -126,7 +138,7 @@ public API or schema change.
   tag to match `package.json` and requires the tag to be on `main`. `31dd112`
   implements the gates and checks with a shallow main fetch; `f448f60` replaces
   that with the full fetch the ancestor check needs. This change adds the
-  regression test and no other workflow code.
+  regression test and edits no workflow file.
 - **Owner-only output:** the existing `0600` mode stays. `SECURITY.md` and
   `docs/LIMITATIONS.md` state that Tolkira-written files, including CI Markdown
   from `--ci-out`, are owner-only on POSIX and inherit Windows ACLs. No code
@@ -148,7 +160,8 @@ public API or schema change.
   `src/input/junit.ts` (entity scan, shared map and decoder) and
   `src/compat/cucumber-html-reporter.ts` (merge loop). `src/report/index-run.ts`
   is not touched; the attempt tie belongs to the quality pass. `src/output.ts`
-  does not change. The only workflow edit is the full main fetch in `f448f60`.
+  does not change. This change edits no workflow file; the release contract is
+  the prior `31dd112` and `f448f60`.
 - **Tests:** `test/summary.test.ts`, `test/model.test.ts`,
   `test/render-attachments.test.ts`, `test/render-source-strip.test.ts`,
   `test/input-resolve-scan.test.ts`, `test/baseline-matcher.test.ts`,
@@ -168,8 +181,8 @@ public API or schema change.
   keeps versions 1 and 2, and no field is added. The JUnit decoder is
   byte-neutral for valid input. The legacy date removal re-pins the two legacy
   characterization hashes and `test/fixtures/render-golden/minimal.html`; no
-  other golden or hash is re-pinned. The workflow bytes change only by the
-  `f448f60` full fetch.
+  other golden or hash is re-pinned. This change changes no workflow byte; the
+  full fetch is the prior `f448f60`.
 - **Dependency and API surface:** no runtime dependency, CLI option, public API
   signature or schema version changes.
 - **Release:** lands in 0.6.1 after `0.6.1-quality-pass`. This change does not
@@ -237,16 +250,19 @@ public API or schema change.
   for affected input. Any other changed hash or golden is a defect, not a re-pin.
 - **ISO 8601 forms.** Accept an ISO 8601-shaped value with a zone (`Z` or
   `±HH:MM`), optional seconds and optional fraction digits, with finite
-  `Date.parse`. Calendar-day and offset-range validity follow `Date.parse`
-  (`2026-02-30` and `+23:59` are accepted). Preserve the original string; reject
-  zone-less and free-text values; never rewrite on read.
+  `Date.parse`. Calendar-day validity follows `Date.parse`: a nonexistent day
+  such as `2026-02-30` is accepted (`Date.parse` rolls it forward), while the
+  stored string is kept as written. The pattern allows an offset up to `+23:59`
+  and rejects `+25:00` or an offset without a colon. Preserve the original
+  string; reject zone-less and free-text values; never rewrite on read.
 - **XML-only entities.** Keep the checker, remove `htmlEntities: true` and
   replace it with the internal `xmlEntityDecoder` that keeps numeric references
   working without exposing HTML names. The five names come from one shared map;
-  the checker scans `[^;&]*` linearly, rejects an unknown name of any length and
-  caps the echoed entity at 64 characters. Only the five XML named entities and
-  numeric references are valid; `&nbsp;` remains an error. The documentation
-  states it.
+  one forward scan rejects a bare `&` before a later entity and an unknown name
+  of any length, and a numeric reference must denote an XML character. The error
+  caps the echoed entity name at 64 characters plus `...`. Only the five XML
+  named entities and numeric references are valid; `&nbsp;` remains an error.
+  The documentation states it.
 - **Compat merge.** Replace the spread with a loop. Small-input output is
   byte-identical; the 200,000-element boundary is bounded by memory, not the
   call stack. The 65,000 + 65,000 case is a shape test.
@@ -256,7 +272,7 @@ public API or schema change.
   change. CI Markdown (`--ci-out`) is included in the owner-only list.
 - **Release gate.** Record the workflow at `31dd112` (gates, `needs`,
   tag/version and ancestor checks) and the full-fetch fix at `f448f60` as the
-  contract, and add a regression test. No other workflow code changed.
+  contract, and add a regression test. This change changes no workflow code.
 - **Release boundary.** 0.6.1 is released after both changes, with the full
   release gate and host matrix; this change performs no version bump, tag, stage
   or publish.

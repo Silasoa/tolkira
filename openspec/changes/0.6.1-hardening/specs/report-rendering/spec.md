@@ -5,12 +5,11 @@
 ### Requirement: Keep local user paths out of display URIs
 
 For an absolute path or file URL, the display URI in the report, JSON summary
-and copied failure text SHALL NOT contain a local user name. The analysis SHALL
-remove a `file:` scheme and local authority, drive token and `/mnt/<drive>`
-mount, treat `%2F`/`%5C` as separators, then drop every `Users`, `home` or
-`Documents and Settings` segment plus the next segment wherever they occur. It
-SHALL use the `/features/` marker or the last three remaining segments and
-SHALL NOT show a drive prefix.
+and copied failure text SHALL NOT contain a local user name that follows a
+plain or percent-encoded `Users`, `home` or `Documents and Settings` segment.
+The analysis SHALL drop every matching home segment plus the next segment
+wherever they occur, including a trailing home segment, and SHALL use the
+`/features/` marker or the last three remaining segments without a drive prefix.
 
 #### Scenario: POSIX file URL
 
@@ -45,13 +44,6 @@ SHALL NOT show a drive prefix.
 - **THEN** the display URI is `proj/login.feature`
 - **AND** no surface contains the user name or the `C:` drive prefix
 
-#### Scenario: Percent-encoded separators
-
-- **WHEN** a scenario URI is `file:///home/<user>%2Fproj%2Flogin.feature` or
-  `file:///C:%5CUsers%5C<user>%5Cproj/login.feature`
-- **THEN** the display URI is `proj/login.feature`
-- **AND** no surface contains the user name
-
 #### Scenario: Home segment below another directory
 
 - **WHEN** a scenario URI is `/srv/home/<user>/proj/login.feature`
@@ -77,16 +69,73 @@ SHALL NOT show a drive prefix.
 - **THEN** it renders as escaped text
 - **AND** the report makes no network request
 
+### Requirement: Resolve encoded and dot path forms before the home rule
+
+Analysis SHALL remove a `file:` scheme, an empty/localhost authority, a drive
+token and a `/mnt/<drive>` mount; ignore authority userinfo; make a remote host
+the first segment; treat `%2F`/`%5C` as separators including a leading one;
+decode each segment once for the home comparison; and resolve `.`/`..` and their
+percent-encoded forms for the analysis only. A double-encoded home segment is
+not treated as home and is out of scope. Display text SHALL keep the original
+encoding of each segment.
+
+#### Scenario: Percent-encoded separators
+
+- **WHEN** a scenario URI is `file:///home/<user>%2Fproj%2Flogin.feature` or
+  `file:///C:%5CUsers%5C<user>%5Cproj/login.feature`
+- **THEN** the display URI is `proj/login.feature`
+- **AND** no surface contains the user name
+
+#### Scenario: Leading encoded separator
+
+- **WHEN** a scenario URI is
+  `file:%2Fhome%2F<user>%2Fproj%2Flogin.feature` or
+  `file:%5Chome%5C<user>%5Cproj%5Clogin.feature`
+- **THEN** the display URI is `proj/login.feature`
+- **AND** no surface contains the user name
+
+#### Scenario: Percent-encoded home segment
+
+- **WHEN** a scenario URI is `file:///%68ome/<user>/proj/login.feature`,
+  `file:///%55sers/<user>/proj/login.feature` or
+  `file:///C:/Documents%20and%20Settings/<user>/proj/login.feature`
+- **THEN** the display URI is `proj/login.feature`
+- **AND** no surface contains the user name
+
+#### Scenario: Dot segments before the home pair
+
+- **WHEN** a scenario URI is `file:///home/./<user>/proj/login.feature`,
+  `file:///home/%2e/<user>/proj/login.feature` or
+  `file:///home/<user>/%2e%2e/<user>/proj/login.feature`
+- **THEN** the display URI is `proj/login.feature`
+- **AND** no surface contains the user name
+
+#### Scenario: Authority userinfo
+
+- **WHEN** a scenario URI is
+  `file://<user>@localhost/home/<user>/proj/login.feature`
+- **THEN** the authority userinfo is ignored
+- **AND** the display URI is `proj/login.feature`
+- **AND** no surface contains the user name
+
 ### Requirement: Empty display URI for a home-only absolute path
 
 An absolute path that contains only a home directory SHALL have an empty display
-URI. It SHALL NOT fall back to the raw path or URI.
+URI. A trailing home segment with no segment after it SHALL be dropped too. The
+display URI SHALL NOT fall back to the raw path or URI.
 
 #### Scenario: Path that is only a home directory
 
 - **WHEN** a scenario URI is `/home/<user>` or `/mnt/c/Users/<user>`
 - **THEN** the display URI is empty
 - **AND** no surface falls back to the raw path or contains the user name
+
+#### Scenario: Trailing bare home segment
+
+- **WHEN** a scenario URI is `/srv/home`
+- **THEN** the trailing home segment is dropped
+- **AND** the display URI is `srv`
+- **AND** no surface contains the user name
 
 ### Requirement: Keep relative paths and the features marker stable
 
@@ -114,8 +163,8 @@ no feature name exists.
 
 #### Scenario: Model feature-name fallback
 
-- **WHEN** a feature has no AST name and its pickle URI is a file URL with a
-  local user name
+- **WHEN** the input is featureless (no AST feature) and its pickle URI is a
+  file URL with a local user name
 - **THEN** the report model's `featureName` uses the display URI
 - **AND** the summary `uri` uses the display URI and its `feature` field stays
   empty

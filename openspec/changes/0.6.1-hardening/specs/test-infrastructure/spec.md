@@ -8,8 +8,8 @@ A release tag workflow SHALL run `npm run hygiene`, `npm run check` and
 `npm run test:e2e` on Linux, and `npm run test:e2e` on macOS, before publish. The
 publish job SHALL require both gates, fail on a tag/version mismatch and fail
 when the tag commit is not on `origin/main`. A green tag SHALL reach the package
-smoke and stage step. This records commit `31dd112`; no workflow code changes
-here.
+smoke and stage step. This records the prior commits `31dd112` (gates and
+checks) and `f448f60` (full main fetch); this change edits no workflow file.
 
 #### Scenario: Tag and version mismatch
 
