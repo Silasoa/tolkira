@@ -196,7 +196,9 @@ it. The gap is the combination.
 
 ### v0.3 and later
 
-- External attachments / split-assets mode for large media (ADR 0006).
+- External attachments / split-assets mode: rejected for now (ADR 0006);
+  revisit only when a user cannot share a report because of media size, and
+  only as an explicitly approved new mode with a new ADR.
 - PDF page numbers and custom headers (B-021/B-022), tagged PDF/accessibility
   (B-027), a size cap (B-028), the Chromium OS sandbox (B-029) and Letter/custom
   paper (B-030); landscape is unscheduled. The Chromium engine and the A4 archive
