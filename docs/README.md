@@ -6,6 +6,8 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [Architecture](ARCHITECTURE.md) — system shape and [ADRs](adr/).
 - [Design](../DESIGN.md) — report design system, components and renderer modules.
 - [Compatibility](COMPATIBILITY.md) — migration from `cucumber-html-reporter`.
+- [Comparison](COMPARISON.md) — dated report-shell comparison with the old
+  reporter; the 0.6.0 flags are out of scope.
 - [Localisation](I18N.md) — report locales, catalogs, German glossary and the
   translation checklist.
 - [Cucumber compatibility](CUCUMBER-COMPATIBILITY.md) — tested producers and versions.

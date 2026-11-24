@@ -18,8 +18,8 @@ const SPARK_PAD = 6;
 const SPARK_MARKER_LIMIT = 60;
 
 // The Trends shell fixes only matter when the third tab/table exists. Keeping
-// them out of the always-on stylesheet leaves the no-history default HTML
-// byte-identical, as the spec requires.
+// them out of the always-on stylesheet keeps the Trends CSS out of a
+// no-history report; the scroll-offset script is a separate release-wide delta.
 export const TRENDS_SHELL_CSS =
   '@media screen{' +
   '.views{flex-wrap:wrap;overflow-x:visible}' +

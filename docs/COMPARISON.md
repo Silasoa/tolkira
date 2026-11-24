@@ -4,6 +4,11 @@ This is a visual and functional comparison between the unmaintained
 `cucumber-html-reporter@7.2.0` (bootstrap theme) and Tolkira, using the Seed-Test
 report options and equivalent scenario, story and group inputs.
 
+**Scope (verified 2026-11-24 for Tolkira 0.6.0).** This page compares the report
+shell and migration content only; `--static`, history and `--baseline` are not
+compared here (see [`README.md`](../README.md), [`CI.md`](CI.md) and
+[`AGENT-INTERFACE.md`](AGENT-INTERFACE.md)).
+
 ## Method
 
 - Seed-Test source: [`adessoSE/Seed-Test`](https://github.com/adessoSE/Seed-Test)
@@ -16,7 +21,8 @@ report options and equivalent scenario, story and group inputs.
   equivalent Cucumber inputs: one scenario (`minimal`), one story (`happy`) and
   a group (`happy` + `unhappy` + `minimal`).
 - Old reporter: `cucumber-html-reporter@7.2.0`, `theme: bootstrap`.
-- Tolkira: current `main`, simple report shell, no external assets.
+- Tolkira: 0.6.0 shell, simple report shell, no external assets; the scope note
+  above applies.
 
 ## Screenshots
 
@@ -94,7 +100,7 @@ Still open or intentionally deferred:
 - Old themes: `bootstrap`, `hierarchy`, `foundation`, `simple`. Tolkira has one
   accessible modern theme with an accent colour and logo.
 - External screenshot directories (`storeScreenshots`) and lazy loading of
-  external image files are not implemented; v0.1 stays single-file. Scenario
+  external image files are not implemented; Tolkira stays single-file. Scenario
   thumbnails already use `loading="lazy"`.
 - Column layout and feature-vs-scenario header counts are not configurable.
 - Relative time is shown; per-scenario absolute timestamps are not configurable.

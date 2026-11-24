@@ -162,3 +162,36 @@ conditional CSS string.
 - **WHEN** a report is rendered with a baseline
 - **THEN** the baseline CSS is appended to the report's style block
 - **AND** the default `report.css` bytes are unchanged
+
+### Requirement: Add an opt-in static report mode
+
+The CLI SHALL accept `--static` and the render API SHALL accept `static: true`.
+The mode SHALL require `--out` or `--pdf`, SHALL default off, and SHALL leave
+the default report's content, markup and CSS unchanged apart from the
+release-wide measured scroll-offset script; a default report with two or more
+history runs also carries the documented Trends shell CSS. JSON, CI and email
+bytes SHALL stay unchanged.
+
+#### Scenario: Static report with HTML
+
+- **WHEN** `--static --out report.html` is used
+- **THEN** the report is written and the process exits 0
+- **AND** the report is the static form
+
+#### Scenario: Static mode without a report surface
+
+- **WHEN** `--static` is used with `--json`, `--ci` or `--email` and without
+  `--out` or `--pdf`
+- **THEN** the CLI exits 2 and names `--out` or `--pdf`
+- **AND** nothing is written
+
+#### Scenario: Static PDF
+
+- **WHEN** `--static --pdf report.pdf` is used
+- **THEN** the PDF is rendered from the static HTML
+- **AND** the HTML source used for the PDF contains no `<script>`
+
+#### Scenario: Help lists the option
+
+- **WHEN** `--help` is requested
+- **THEN** the usage text lists `--static`

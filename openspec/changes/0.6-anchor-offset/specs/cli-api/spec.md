@@ -77,3 +77,67 @@ differ.
 - **WHEN** the change is complete
 - **THEN** no new CLI option or dependency exists
 - **AND** the scan changes no report, JSON, CI, email or history byte
+
+### Requirement: Make the history window configurable
+
+The CLI SHALL accept `--history-limit <n>` only with `--history`. `n` SHALL be a
+decimal integer from 1 to 365; the default SHALL be 30. The limit SHALL bound
+the runs read, appended, written and rendered in Trends. An invalid value SHALL
+exit 2 naming the range; without `--history` it SHALL exit 2 naming both
+options. Without the flag the 30-run behaviour SHALL be unchanged.
+
+#### Scenario: Smaller window
+
+- **WHEN** `--history-limit 5` is used with a sidecar that holds seven runs
+- **THEN** the newest five runs are read, written and rendered in Trends
+- **AND** the report is generated normally
+- **AND** the process exits 0
+
+#### Scenario: Larger window
+
+- **WHEN** `--history-limit 40` is used with a sidecar that holds 40 runs and a
+  new current run
+- **THEN** the current run is appended and the newest 40 of the 41 runs are kept
+- **AND** all 40 kept runs are rendered in Trends
+- **AND** the file does not grow past 40 runs
+
+#### Scenario: One run
+
+- **WHEN** `--history-limit 1` is used
+- **THEN** the sidecar keeps one run
+- **AND** no Trends tab is rendered
+
+#### Scenario: Default
+
+- **WHEN** `--history` is used without `--history-limit`
+- **THEN** the window is 30
+- **AND** the CI bytes match the previous release
+- **AND** the report differs from the previous release only by the 170 B
+  measured scroll-offset script and, with two or more history runs, the
+  documented Trends shell CSS
+- **AND** the email matches except its generated timestamp
+- **AND** the JSON matches apart from the additive outline `example` field,
+  which is owned by the baseline change
+
+#### Scenario: Invalid value
+
+- **WHEN** `--history-limit` is `0`, `366`, `1.5`, `abc`, `05` or empty
+- **THEN** the CLI exits 2 and names the range 1 to 365
+- **AND** no report or sidecar is written
+
+#### Scenario: Missing history option
+
+- **WHEN** `--history-limit 10` is used without `--history`
+- **THEN** the CLI exits 2 and names both options
+- **AND** nothing is written
+
+#### Scenario: Missing HTML
+
+- **WHEN** `--history --history-limit 10` is used without `--out`
+- **THEN** the existing `--history` requires `--out` error exits 2
+- **AND** nothing is written
+
+#### Scenario: Help lists the option
+
+- **WHEN** `--help` is requested
+- **THEN** the usage text lists `--history-limit <n>`

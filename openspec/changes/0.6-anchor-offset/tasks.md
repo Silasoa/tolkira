@@ -17,8 +17,11 @@
   9 passed, 0 failed. (2026-11-24)
 - [x] 1.6 Cross-engine CI green on Linux, Windows and macOS before release prep.
   (run 45385928115)
-- [x] 1.7 Spec correction: restate the four archived byte claims and add the
+- [x] 1.7 Spec correction: restate the five archived byte claims and add the
   measured-offset requirement; no new code. (2026-11-24)
+- [x] 1.8 Release review (2026-11-24): add the fifth archived claim
+  (history-window `Default`) and scope the static-mode byte clause; proposal,
+  tasks and prose corrected.
 
 ## 2. Release evidence
 

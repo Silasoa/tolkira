@@ -728,8 +728,9 @@ abridged; the schema version stays 2:
 }
 ```
 
-Without `--baseline` there is no `baseline` or `change` key, and the Markdown CI
-text and HTML stay byte-identical. The only unconditional delta is the outline
+Without `--baseline` there is no `baseline` or `change` key; the Markdown CI
+text stays byte-identical, the HTML changes only by the 170 B measured
+scroll-offset script, and the only unconditional summary delta is the outline
 `example` field described below.
 
 Undefined and ambiguous Messages steps add optional diagnostic fields:

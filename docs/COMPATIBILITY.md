@@ -172,6 +172,12 @@ the sidecar afterwards.
   100 MB total attachments.
 - The shim is experimental. The option set is frozen; new features are added to
   the core CLI/API, not to the shim.
+- The shim has no equivalent of the 0.6.0 core flags (`--static`,
+  `--history`/`--history-limit`, `--baseline`) or the core outputs (`--json`,
+  `--ci`, `--email`, `--pdf`); use the core CLI/API for those. `jsonDir` group
+  mode and its merged sidecar are supported. The legacy
+  `reportSuiteAsScenarios`, `scenarioTimestamp`, `columnLayout` and
+  `failedSummaryReport` options are warned and ignored.
 - Printing is the browser's print/Save as PDF, not a shim option: with
   JavaScript the complete report prints by default (an active filter still
   narrows the Report view), without it the active Report only. Video/audio do not

@@ -20,8 +20,8 @@ Keep a Changelog and the project uses semantic versioning.
   10 MiB, checks the descriptor for a regular file, strips a BOM and rejects
   prototype keys, deep nesting and malformed entries. Matching is name-first,
   then the outline example coordinate, then display URI; an unreducible group is
-  ambiguous and makes no claim. Without the flag the report, CI and email bytes
-  are unchanged.
+  ambiguous and makes no claim. Without the flag it adds nothing to the report,
+  CI or email.
 - A configurable history window. `--history-limit <n>` (requires `--history`)
   keeps the newest n aggregate runs, a decimal integer from 1 to 365, default
   30; the same limit bounds the runs read, appended, written and rendered in
@@ -58,14 +58,15 @@ Keep a Changelog and the project uses semantic versioning.
   malformed or oversized file is not overwritten with schema 1. A non-finite
   duration is rejected instead of serialized as `null`.
 - The writer prunes to 1,048,576 bytes and always keeps the newest entry. On
-  Windows 11 Pro 10.0.26300, Node v26.13.1, 2026-11-23, a 365-run report measured
-  206,525 bytes against 83,286 bytes at the default 30, and a realistic 365-run
-  schema-2 sidecar measured 297,151 bytes (367,596 with 200-code-point titles);
-  neither pruned, and the report stays below the 10 MB default size-warning
-  threshold. A maximal valid window can exceed the sidecar cap, and the writer
-  then drops the oldest runs and keeps the newest. Reproduce with
-  `node scripts/history-window.mjs` after `npm run build`. No history markup is
-  added to a default report.
+  Windows 11 Pro 10.0.26300, Node v26.13.1, 2026-11-24, a 365-run report
+  measured 184,775 bytes against 84,484 bytes at the default 30, a 100,291-byte
+  difference, and a realistic 365-run schema-2 sidecar measured 297,151 bytes
+  (367,596 with 200-code-point titles); neither pruned, and the report stays
+  below the 10 MB default size-warning threshold. A maximal valid window can
+  exceed the sidecar cap, and the writer then drops the oldest runs and keeps
+  the newest. Reproduce with `node scripts/history-window.mjs` after
+  `npm run build`. Trends markup appears only with `--history` and two or more
+  runs.
 
 ### Fixed
 
@@ -78,9 +79,10 @@ Keep a Changelog and the project uses semantic versioning.
   and text zoom. The offset is measured from the rendered bar instead of a fixed
   CSS reserve, which fell short when the three-tab strip wrapped onto a third
   row with wider fallback fonts; the CSS values stay as the no-JS fallback. The
-  embedded client script grows by 170 B (15,268 to 15,438 B), so every default
-  report is 170 B larger than in 0.5.1; its markup and CSS are otherwise
-  unchanged.
+  embedded client script grows by 170 B (15,268 to 15,438 B), so every
+  non-static report is 170 B larger than in 0.5.1; a no-history report's markup
+  and CSS are otherwise unchanged, while a report with two or more history runs
+  also carries the Trends shell fixes above.
 
 ## [0.5.1] - 2026-11-23
 

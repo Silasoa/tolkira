@@ -144,7 +144,8 @@ and is covered by real producer fixtures.
   and a ratio-correct sparkline) ship in `TRENDS_SHELL_CSS`, appended only when
   Trends renders. The no-history default HTML therefore gains no Trends CSS;
   the fixes apply to every report that has a Trends section, default or static.
-  The separate measured scroll-offset script adds 170 B to every 0.6.0 report.
+  The separate measured scroll-offset script adds 170 B to every non-static
+  0.6.0 report.
 - Renderer module map (top to bottom; a module imports only lower layers, and
   same-layer modules never import each other — `report.ts`, `details.ts` and
   `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and
@@ -505,10 +506,10 @@ Test names, metadata, file names and attachments are untrusted input.
   load.
 - The CLI/`generateReport` history path is capped at 1 MiB and a window of 1 to
   365 runs (default 30), so trend rendering is linear in at most 365 aggregate
-  entries there; `renderReport` accepts the given list as-is. On the 2026-11-23
+  entries there; `renderReport` accepts the given list as-is. On the 2026-11-24
   reference host (Windows 11 Pro 10.0.26300, Node v26.13.1) the
-  `test/fixtures/messages/second.ndjson` report was 206,525 bytes at 365 runs
-  against 83,286 bytes at the default 30, a 123,239-byte difference, measured
+  `test/fixtures/messages/second.ndjson` report was 184,775 bytes at 365 runs
+  against 84,484 bytes at the default 30, a 100,291-byte difference, measured
   with `scripts/history-window.mjs`. Both are well below the 10 MB
   (10,485,760-byte) default `--max-size` threshold, so no size warning fires.
 - `npm run bench:ansi` bundles `src/text.ts` with esbuild, strips fixed

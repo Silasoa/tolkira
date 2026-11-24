@@ -89,10 +89,10 @@ Tolkira view carries, record that functional gap.
 
 | Host | Last run | Result | Notes |
 | --- | --- | --- | --- |
-| Seed-Test | 2026-11-24 | Pass (`0.6.0`) | Pin `ce2cad8` (AI branch), release tarball (631,852 B). `tsc -b` and `report.service.spec.ts` 35/35. Story: 1 feature / 3 scenarios (2 passed, 1 failed), 12 step rows, 1 attachment / 5,234 B, report 88,679 B; group: 2 features / 4 scenarios (3 passed, 1 failed), 16 step rows, 2 attachments / 10,468 B, report 106,291 B; shim group sidecar 21,579 B / 2 stories, byte-identical to the old reporter's sidecar. Static 69,290 B, baseline 1 new failure / 1 fixed, history 3 runs. No overflow, no console errors, no external requests. The +170 B default delta is the measured scroll-offset script; other report bytes move with ids and durations. Limits: per-story JSON synthetic (no live backend/MongoDB), native `cucumber-html-reporter` HTML compared by content counts only. |
+| Seed-Test | 2026-11-24 | Pass (`0.6.0`) | Pin `ce2cad8` (AI branch), host-validated tarball (631,852 B). `tsc -b` and `report.service.spec.ts` 35/35. Story: 1 feature / 3 scenarios (2 passed, 1 failed), 12 step rows, 1 attachment / 5,234 B, report 88,679 B; group: 2 features / 4 scenarios (3 passed, 1 failed), 16 step rows, 2 attachments / 10,468 B, report 106,291 B; shim group sidecar 21,579 B / 2 stories, deep-equal to the old reporter's sidecar; the old reporter adds one trailing newline (21,580 vs 21,579 B). Static 69,290 B, baseline 1 new failure / 1 fixed, history 3 runs. No overflow, no console errors, no external requests. The +170 B default delta is the measured scroll-offset script; other report bytes move with ids and durations. Limits: per-story JSON synthetic (no live backend/MongoDB), native `cucumber-html-reporter` HTML compared by content counts only. |
 | Cucumber-js host | 2026-11-24 | Pass (`0.6.0`) | Official `@cucumber/cucumber@13.3.0` on Node 26.13.1 / npm 10.8.2: 2 scenarios (1 passed, 1 failed), 5 steps (4 passed, 1 failed), 2 inline PNGs / 140 B. `out.json` 3,302 B, `out.ndjson` 9,974 B; reports 72,452 / 72,578 B; the two summaries are byte-identical (2,191 B, same SHA-256). Static 53,322 B with one `<main>`, no `<script>` and all details open; baseline 1 new failure / 1 fixed; history 3 runs / Trends. No overflow, console errors or external requests. Native Cucumber HTML not generated. |
 | Playwright movies-app | 2026-11-24 | Pass (`0.6.0`) | Pin `5d2cdf0`, host Playwright 1.62.1; full `npx playwright test --reporter=list,json`: 123 tests (121 passed, 2 skipped, 0 failed/flaky/retries), 113 explicit steps, 5 host attachments / 161 B of which one has an empty body, so Tolkira renders 4 / 161 B. Tolkira: 3 features / 123 scenarios, 236 step rows, report 281,439 B; 123/123 scenario source lines match `spec.file:spec.line`. Static 262,907 B; baseline 2 fixed plus a supplemental 1 not-in-run list; history 3 runs. 1440/390/320 at 200 % and print clean; no overflow, console errors or external requests. Native HTML report not generated. |
-| Spring PetClinic | 2026-11-24 | Pass (`0.6.0`) | Pin `500158f`; full `mvn -B test` with Docker off (18 XMLs, 937,554 B): 79 tests / 77 passed / 2 skipped / 0 failed, `PostgresIntegrationTests` emits the zero-test Surefire document. Tolkira on the release tarball: 20 features / 79 scenarios / 77 passed / 2 skipped, 79 step rows, 28 attachments / 67,901 B, report 280,900 B; all 79 scenario names match, `PostgresIntegrationTests` appears in neither JSON nor HTML. Static 262,735 B; baseline 76 fixed; history 3 runs. No overflow, console errors or external requests. The system has only JRE 25 and no Maven, so the run used JDK 21.0.9 (JetBrains JBR) and Maven 3.9.9 provisioned into the evidence directory. |
+| Spring PetClinic | 2026-11-24 | Pass (`0.6.0`) | Pin `500158f`; full `mvn -B test` with Docker off (18 XMLs, 937,554 B): 79 tests / 77 passed / 2 skipped / 0 failed, `PostgresIntegrationTests` emits the zero-test Surefire document. Tolkira on the host-validated tarball: 20 features / 79 scenarios / 77 passed / 2 skipped, 79 step rows, 28 attachments / 67,901 B, report 280,900 B; all 79 scenario names match, `PostgresIntegrationTests` appears in neither JSON nor HTML. Static 262,735 B; baseline 76 fixed; history 3 runs. No overflow, console errors or external requests. The system has only JRE 25 and no Maven, so the run used JDK 21.0.9 (JetBrains JBR) and Maven 3.9.9 provisioned into the evidence directory. |
 | Cucumber-JVM examples | 2026-11-24 | Pass (`0.6.0`) | Pin `f71480f`, `calculator-java-junit-jupiter` with a temp-only `cucumber.properties` adding `json:target/cucumber.json` (14,760 B): 3 features / 8 scenarios / 8 passed; 30 scenario steps + 6 background steps + 18 hooks = 54 results; Tolkira renders 36 step rows + 18 hooks and 18 text attachments / 498 B, report 94,666 B. Static 76,113 B with one `<main>`, no `<script>` and 37/37 details open; baseline 3 fixed plus one ambiguous legacy-JSON group; history 3 runs. No overflow, console errors or external requests. JDK 21.0.9 and Maven 3.9.9 were provisioned into the evidence directory; the 8/54 record reproduces, the earlier 9/52 one does not. |
 | `cucumber-html-reporter@7.2.0` reference | 2026-11-20 | Content PASS | Same fixture; screenshots at 1440/390; no visual parity; old install 144 packages / 7 vulnerabilities. The 0.5 shell was not compared to CHR. |
 
@@ -112,9 +112,9 @@ renders 20 features / 79 scenarios / 77 passed / 2 skipped. Report bytes and
 attachment totals move with run-specific ids, timestamps and absolute paths;
 counts and statuses match the earlier baseline on every row.
 
-**`0.6.0` release run (2026-11-24, final tarball).** All five required rows ran
-on the packed 0.6.0 tarball (`tolkira-0.6.0.tgz`, 631,852 B, SHA-256
-`7946DF21455E1899D7AC4E6B609B54C37A0BA870C522162195C98BD6BCE2A928`) in
+**`0.6.0` release run (2026-11-24, host-validated tarball).** All five required
+rows ran on the packed 0.6.0 tarball (`tolkira-0.6.0.tgz`, 631,852 B,
+SHA-256 `7946DF21455E1899D7AC4E6B609B54C37A0BA870C522162195C98BD6BCE2A928`) in
 temporary directories outside the repo: Windows 11 Pro 10.0.26300, Node 26.13.1,
 npm 10.8.2, JDK 21.0.9 (JetBrains JBR) and Maven 3.9.9 for the two Java hosts
 (the system has only JRE 25 and no Maven), Docker daemon not running, Playwright
@@ -132,11 +132,11 @@ row removed from the baseline is classified as `added`; the Playwright row
 closed that gap with a supplemental run where the current input lacked the
 removed scenario. No check produced a console error, a page error, horizontal
 overflow (the raw `-15` is the scrollbar gutter) or an http/https request.
-A later documentation-only correction to the shipped `docs/AGENT-INTERFACE.md`
-repacked the tarball to 631,909 B, SHA-256
-`97B5D2CF2C99D5D1517AC9D85B9A43F941F2FD7892018998DAA9806D1C4F1085`. That
-repack differs only in that sentence and passed the install smoke (`--version`
-`0.6.0`, report 86,430 B); the host rows above ran on the same code.
+A later documentation-only correction to the shipped docs plus one source
+comment, with rebuilt bundles and no behaviour change, goes into the final
+repack; the coordinator records its size and SHA-256 after repacking. The
+install smoke passed (`--version` `0.6.0`), and the host rows above ran on the
+same code.
 
 **`history-window` re-check (2026-11-23).** The change touches the CLI, the
 history sidecar and the Trends list only: no input adapter, report shell, print,

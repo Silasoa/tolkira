@@ -5,9 +5,11 @@
 `0.6-static-no-js` wraps the Trends tab strip onto its own topbar row. At 320 px
 and 200 % text the bar can then take three rows, which is taller than the fixed
 CSS `scroll-padding-top` reserve. An anchored scenario link lands behind the
-bar. The live report-rendering requirement "an anchored scenario is not hidden
-behind the sticky bar" already covers this state, so the fix is a contract fix,
-not a new feature.
+bar. The closest live statement is the `Narrow German report` scenario under
+`Keep German layout usable`; it says an anchored scenario is not hidden behind
+the sticky bar only at that one viewport and text zoom, not at every gate
+viewport. This change adds a cross-viewport requirement, so it is a contract
+fix, not a new feature.
 
 The Linux browser gate caught the failure after the four 0.6.0 changes were
 archived. The fix landed as `dc15812` and measures the rendered bar in the
@@ -27,10 +29,10 @@ API or dependency.
   bundle grows from 15,268 B to 15,438 B (budget 16,000 B), so a default
   document grows by 170 B.
 - The committed characterization hashes and golden HTML include that script.
-- Four archived byte claims are restated so a reader can tell the release-level
+- Five archived byte claims are restated so a reader can tell the release-level
   delta from a flag delta: the static default, the baseline no-baseline HTML,
-  the baseline JSON no-baseline HTML and the early-warning "no new surface"
-  scenario.
+  the baseline JSON no-baseline HTML, the history-window `Default` scenario and
+  the early-warning "no new surface" scenario.
 
 ## Impact
 

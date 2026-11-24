@@ -347,7 +347,9 @@ unredacted-message warning.
   by default and adds a Trends tab from the second run: a newest-first table with
   pass rate, flaky count and flaky share, plus a pass-rate sparkline.
   `--history-limit <n>` changes the window to 1 to 365; lowering it drops older
-  runs on the next write. The flaky share is a flagged share, not a flake
+  runs on the next write. A window above 30 writes schema 2, which Tolkira 0.5
+  readers reject; the 1 MiB sidecar cap can prune the oldest runs before the
+  configured window is full. The flaky share is a flagged share, not a flake
   probability; a positive share below 0.1% shows a less-than boundary, and runs
   recorded without the count show `—` for both flaky cells. A note explains that
   it counts executed non-skipped tagged or passed-after-retry scenarios, which
@@ -359,11 +361,13 @@ unredacted-message warning.
   current run with an earlier `--json` summary: a server-rendered panel shows new
   failures, fixed, still failing, not in this run and ambiguous groups, rows get
   localized new-failure/fixed badges, the JSON gains a `baseline` block and
-  per-scenario `change`, and Markdown CI gets one deterministic line. New failure
-  means it fails now and did not fail in the baseline, including a scenario new
-  to the suite; there is no separate regressed class. Not in this run means
-  absent from this summary (deleted, never started, filtered or another shard),
-  not a claim of deletion. The baseline is read-only, capped at 10 MiB, never
+  per-scenario `change`, and Markdown CI gets one deterministic line such as
+  `Baseline: 2 new failures · 1 fixed · 3 still failing · 1 not in this run`.
+  New failure means it fails now and did not fail in the baseline, including a
+  scenario new to the suite; there is no separate regressed class. Not in this
+  run means absent from this summary (deleted, never started, filtered or
+  another shard), not a claim of deletion. The baseline is read-only, capped at
+  10 MiB, never
   linked and never rewritten; the report embeds its feature/scenario names and
   URIs but never its path. Use one baseline per suite and variant. Without the
   flag the report, CI and email bytes are unchanged; `renderHtml` and
@@ -433,15 +437,19 @@ claim is credible Messages report parity, not full formatter parity.
 
 ### How it compares
 
-Last checked 2026-11-20 against the current package docs. Trade-offs are
-deliberate; pick the tool that fits the job.
+Last checked 2026-11-24 against the current package docs and the 0.6.0 release.
+Trade-offs are deliberate; pick the tool that fits the job.
 
 | Tool | Offline | Legacy JSON | Messages | JUnit | Playwright JSON | JSON summary | History / baseline | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | No | No / No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
 | [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | No | Saved JSON (`saveCollectedJSON`) | Saved JSON dashboard / No | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, build-time UI languages (en/es/fr/pt/ar, no German) and a report folder. |
-| [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | No | No / No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
+| [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | No | No / No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. The single file needs JavaScript. |
 | **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Yes** | **Versioned summary (`--json`)** | **Opt-in aggregate history / Opt-in `--baseline`** | **Branding, dark mode; no theme gallery** | **ESM; CJS compat shim** | **22+** | **Active** | **You need one offline file from legacy JSON, Messages, JUnit or Playwright JSON, plus a stable summary for CI and agents.** |
+
+Allure 3 remains the stronger choice for a full history/trend/retry/quality-gate
+platform; Tolkira's `--history` is an aggregate sidecar and `--baseline` one
+read-only two-run comparison, not a run store or dashboard.
 
 The visual comparison uses the report setup from
 [Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
@@ -554,7 +562,11 @@ legacy strings. If the callback itself throws, handle that error yourself.
 
 `theme` is ignored with a warning. Themes, charts, external screenshots and
 browser launch are not reproduced. The shim consumes the same input JSON,
-never the old rendered HTML.
+never the old rendered HTML. `reportSuiteAsScenarios`, `scenarioTimestamp`,
+`columnLayout` and `failedSummaryReport` are warned and ignored; the `jsonDir`
+group mode and its merged sidecar are supported. The shim has no equivalent of
+the 0.6.0 core flags (`--static`, `--history`/`--history-limit`, `--baseline`)
+or the core outputs (`--json`, `--ci`, `--email`, `--pdf`).
 See [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md)
 for the full mapping and caveats.
 

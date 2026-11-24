@@ -11,8 +11,9 @@ It contains no `<script>`, client-message block, tab bar or lightbox, opens
 every `<details>`, stacks Report, Details and Trends as visible sections and
 omits the search/status/tag filters and copy controls. It keeps the
 `report-view`, `analysis-view` and `trends-view` IDs and exactly one `<main>`;
-the default report without a Trends section is unchanged, and a default report
-with two or more history runs gains the Trends shell CSS. Bookmarked
+the default report without a Trends section gains no static or Trends markup,
+and the release-wide 170 B measured scroll-offset script is separate; a default
+report with two or more history runs gains the Trends shell CSS. Bookmarked
 `?query=`/`?hide=`/`?tag=` URLs show the full report because no script restores
 them, and it does not repair CSS or `data:` images blocked by a host CSP.
 

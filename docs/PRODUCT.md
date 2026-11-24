@@ -161,13 +161,14 @@ it. The gap is the combination.
   filters, copy-failure and log-copy buttons, lightbox and image buttons are removed instead
   of left inert, and images render inline. The CSP is `script-src 'none'` with
   `connect-src 'none'`. The mode needs `--out` or `--pdf`; the default report
-  without a Trends section is unchanged, and a default report with two or more
-  history runs gains the Trends shell CSS. A bookmarked `?query=`/`?hide=`/
-  `?tag=` URL shows the full report because no script restores it. Print/PDF
-  include every present section and
-  open detail. It is for hosts that block scripts and for archival copies; it
-  does not repair CSS or `data:` images blocked by a host CSP and does not
-  restore scripts. See [`CI.md`](CI.md#jenkins-html-publisher) for Jenkins.
+  without a Trends section gains no static or Trends markup, and the
+  release-wide 170 B measured scroll-offset script is separate; a default
+  report with two or more history runs gains the Trends shell CSS. A bookmarked
+  `?query=`/`?hide=`/`?tag=` URL shows the full report because no script restores
+  it. Print/PDF include every present section and open detail. It is for hosts
+  that block scripts and for archival copies; it does not repair CSS or `data:`
+  images blocked by a host CSP and does not restore scripts. See
+  [`CI.md`](CI.md#jenkins-html-publisher) for Jenkins.
 
 ### PDF export (in main)
 
