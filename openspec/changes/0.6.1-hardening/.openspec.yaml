@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-24
+goal: Fix ten findings from the second 0.6.0 audit (display-URI privacy,
+  surrogate media, host-locale ordering, double parsing, attempt ties, legacy run
+  time, ISO 8601 history, JUnit entities, compat merge, release gate) and record
+  the 0600 output decision; depends on 0.6.1-quality-pass. No version bump.

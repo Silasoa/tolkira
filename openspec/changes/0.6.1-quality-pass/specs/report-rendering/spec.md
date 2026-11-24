@@ -155,6 +155,98 @@ document. No runtime dependency SHALL be added.
 - **THEN** no runtime dependency is added
 - **AND** the report still makes no network request
 
+### Requirement: Agree on attachment counts between the report and the summary
+
+The JSON summary per-scenario count SHALL equal the attachments the report
+renders: those whose `testStepId` belongs to a pickle step or hook with a
+result, plus those without a `testStepId`. An attachment on an unrendered or
+resultless step, or on a missing run-hook start, SHALL NOT count.
+`attachments.total` SHALL be the union of rendered-scenario, present-run-hook
+and run-level attachments, and SHALL match `model.counts.attachments` and the
+Details count. The schema SHALL stay version 2.
+
+#### Scenario: Orphan step attachment
+
+- **WHEN** an attachment names a `testStepId` that is absent from the selected
+  test case and it is the scenario's only attachment
+- **THEN** its summary scenario count is 0
+- **AND** `attachments.total` is 0
+- **AND** `model.counts.attachments` and the Details count are 0
+- **AND** the HTML shows no attachment for that scenario
+
+#### Scenario: Step without a result
+
+- **WHEN** an attachment names a test step that has no test-step result
+- **THEN** it is not counted in the scenario or the run total
+- **AND** the HTML does not render it
+
+#### Scenario: Missing run-hook start
+
+- **WHEN** an attachment names a `testRunHookStartedId` with no matching start
+  in the stream and it is the run's only attachment
+- **THEN** `attachments.total` is 0
+- **AND** `model.counts.attachments` and the Details count are 0
+- **AND** no run-hook row is created for it
+
+#### Scenario: Normal step attachment
+
+- **WHEN** an attachment belongs to a rendered pickle step that has a result
+  and it is the scenario's only attachment
+- **THEN** the summary scenario count is 1
+- **AND** `attachments.total` is 1
+- **AND** the model, Details and HTML show the same one attachment
+
+#### Scenario: Attachment without a test step id
+
+- **WHEN** an attachment has no `testStepId` and belongs to an executed
+  selected scenario
+- **THEN** it is counted with the selected scenario
+- **AND** the HTML renders it as a scenario attachment
+- **AND** the run total counts it once
+
+#### Scenario: Screenshot fixture cross-check
+
+- **WHEN** `test/fixtures/messages/screenshot.ndjson` is summarised and
+  rendered
+- **THEN** the summary scenario attachment count equals the rendered scenario
+  attachments
+- **AND** `attachments.total` equals `model.counts.attachments` and the Details
+  count
+- **AND** the HTML shows the screenshot
+
+### Requirement: Omit an unknown run date
+
+When no usable run start time exists, the report SHALL omit the run date
+instead of rendering a 1970-01-01 date. The model SHALL treat a zero-seconds
+`testRunStarted` or `testRunFinished` timestamp as unknown. A real non-zero
+timestamp SHALL render the existing localized date. The JSON summary, CI text
+and email SHALL be unchanged.
+
+#### Scenario: Zero run timestamp
+
+- **WHEN** the only run timestamp is `{ "seconds": 0, "nanos": 0 }`
+- **THEN** the model has no run start time
+- **AND** the report shows no run date
+- **AND** the text `1970` does not appear as the run date
+
+#### Scenario: Real run timestamp
+
+- **WHEN** the run carries a real non-zero start timestamp
+- **THEN** the report shows the existing localized date
+- **AND** the date matches the timestamp
+
+#### Scenario: Zero finish timestamp
+
+- **WHEN** a `testRunFinished` timestamp has zero seconds
+- **THEN** the model treats it as unknown
+- **AND** the report does not render an epoch finish date
+
+#### Scenario: Machine outputs unchanged
+
+- **WHEN** a run has no usable start time
+- **THEN** the JSON summary, CI text and email are unchanged
+- **AND** they gain no date field or placeholder
+
 ## REMOVED Requirements
 
 ### Requirement: Keep the default report and budgets unchanged
