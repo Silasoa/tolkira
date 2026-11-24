@@ -473,6 +473,103 @@ describe('rendered attachment parity', () => {
     expect(summary.scenarios[0]?.attempt).toBe(0);
   });
 
+  it('uses the later timestamp when the attempt is equal', async () => {
+    const starts = [
+      ['earlier-start', 'FAILED', 5, 5_000_000],
+      ['later-start', 'PASSED', 6, 6_000_000],
+    ] as const;
+    const attempts = starts.flatMap(
+      ([id, status, seconds, durationNanos]) => [
+        {
+          testCaseStarted: {
+            id,
+            testCaseId: 'timestamp-case',
+            attempt: 0,
+            timestamp: { seconds, nanos: 0 },
+          },
+        },
+        {
+          testStepFinished: {
+            testCaseStartedId: id,
+            testStepId: 'timestamp-step',
+            testStepResult: {
+              status,
+              duration: { seconds: 0, nanos: durationNanos },
+            },
+            timestamp: { seconds, nanos: 1 },
+          },
+        },
+      ],
+    );
+    const envelopes = [
+      {
+        gherkinDocument: {
+          uri: 'features/timestamp.feature',
+          feature: {
+            name: 'Timestamp feature',
+            keyword: 'Feature',
+            language: 'en',
+            tags: [],
+            children: [
+              {
+                scenario: {
+                  id: 'timestamp',
+                  keyword: 'Scenario',
+                  name: 'Timestamp scenario',
+                  description: '',
+                  tags: [],
+                  steps: [
+                    {
+                      id: 'timestamp-ast',
+                      keyword: 'Given ',
+                      keywordType: 'Context',
+                      text: 'x',
+                      location: { line: 1, column: 1 },
+                    },
+                  ],
+                  examples: [],
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        pickle: {
+          id: 'timestamp-pickle',
+          uri: 'features/timestamp.feature',
+          name: 'Timestamp scenario',
+          language: 'en',
+          astNodeIds: ['timestamp'],
+          tags: [],
+          steps: [{ id: 'timestamp-pickle-step', text: 'x', astNodeIds: [] }],
+        },
+      },
+      {
+        testCase: {
+          id: 'timestamp-case',
+          pickleId: 'timestamp-pickle',
+          testSteps: [
+            { id: 'timestamp-step', pickleStepId: 'timestamp-pickle-step' },
+          ],
+        },
+      },
+      ...attempts,
+    ] as unknown as Envelope[];
+    const model = buildReportModel(envelopes);
+    const summary = summarizeEnvelopes(envelopes);
+    const html = await renderHtml(envelopes, { title: 'Timestamp order' });
+
+    expect(model.scenarios[0]?.status).toBe('passed');
+    expect(model.scenarios[0]?.attempt).toBe(0);
+    expect(model.scenarios[0]?.startedAt).toBe('1970-01-01T00:00:06.000Z');
+    expect(model.scenarios[0]?.durationMs).toBe(6);
+    expect(summary.scenarios[0]?.status).toBe('passed');
+    expect(summary.scenarios[0]?.attempt).toBe(0);
+    expect(summary.scenarios[0]?.durationMs).toBe(6);
+    expect(html).toContain('data-status="passed"');
+  });
+
   it('keeps a higher attempt when its timestamp is earlier', () => {
     const envelopes = [
       {

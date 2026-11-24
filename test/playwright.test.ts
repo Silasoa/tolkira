@@ -1801,6 +1801,37 @@ describe('Playwright JSON input', () => {
     }
   });
 
+  it('uses the last array result when one retry value is missing', async () => {
+    const dir = await tempDir();
+    const spec = playwrightSpec(
+      'mixed retry presence',
+      [
+        {
+          status: 'failed',
+          duration: 1,
+          retry: 0,
+          startTime: '2026-11-22T09:00:00.000Z',
+          error: { message: 'first attempt failed' },
+        },
+        {
+          status: 'passed',
+          duration: 1,
+          startTime: '2026-11-22T09:00:01.000Z',
+        },
+      ],
+      'retry.spec.ts',
+      'flaky',
+    );
+    const file = await writeReport(dir, playwrightReport([spec], 'retry.spec.ts'));
+
+    const summary = await summarizeReport(file);
+    const html = await renderReport(file, { title: 'Mixed retry' });
+
+    expect(summary.scenarios[0]?.status).toBe('passed');
+    expect(summary.scenarios[0]?.attempt).toBe(0);
+    expect(html).toContain('first attempt failed');
+  });
+
   it('keeps the highest retry when retry values are distinct', async () => {
     const summary = await summarizeReport(realRun);
     const flaky = scenario(summary, 'flaky', 'alpha');
