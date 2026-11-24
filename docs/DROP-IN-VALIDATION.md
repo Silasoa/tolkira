@@ -132,11 +132,13 @@ row removed from the baseline is classified as `added`; the Playwright row
 closed that gap with a supplemental run where the current input lacked the
 removed scenario. No check produced a console error, a page error, horizontal
 overflow (the raw `-15` is the scrollbar gutter) or an http/https request.
-A later documentation-only correction to the shipped docs plus one source
-comment, with rebuilt bundles and no behaviour change, goes into the final
-repack; the coordinator records its size and SHA-256 after repacking. The
-install smoke passed (`--version` `0.6.0`), and the host rows above ran on the
-same code.
+The final repack (632,712 B, SHA-256
+`C016225E1E73DF1E19281947C3771162286727F96831078B4F696AA5879587B7`) is a
+documentation-only correction to the shipped docs plus one source comment, with
+rebuilt bundles and no behaviour change. Its install smoke on a fresh directory
+passed: `--version` `0.6.0`, a default report of 70,428 B with the scroll-offset
+script, and a `--static` report of 51,229 B with no `<script>`. The host rows
+above ran on the same code.
 
 **`history-window` re-check (2026-11-23).** The change touches the CLI, the
 history sidecar and the Trends list only: no input adapter, report shell, print,
