@@ -267,11 +267,11 @@
 
 ## 4. Verification and review
 
-- [ ] 4.1 `npm run hygiene`, `npm run check` and `npm run test:e2e`
+- [x] 4.1 `npm run hygiene`, `npm run check` and `npm run test:e2e`
   (report-level change) are green; typecheck, lint, unit tests and build
   included. Record the exact counts, the client bundle size and the report byte
   delta.
-- [ ] 4.2 Independent reviewers in one batch: SCR (all five deltas), CR, DAR,
+- [x] 4.2 Independent reviewers in one batch: SCR (all five deltas), CR, DAR,
   SEC (history input parsing, attachment roots and file handling, path
   trust-model docs), UXR (report shell, stack breakpoint and landmarks), ILA
   (the German `localeCss` override), PCA (loader accounting/cap, final-result
@@ -280,7 +280,7 @@
   390, 768, 1024, 1440 px and 320/200 against 0.6.0; only the wrapper, the
   narrow metadata rule and the removed epoch dates may differ). A failing review
   spawns a fixer, not the implementer of record.
-- [ ] 4.3 Host rows in `docs/DROP-IN-VALIDATION.md`: Seed-Test (legacy JSON and
+- [x] 4.3 Host rows in `docs/DROP-IN-VALIDATION.md`: Seed-Test (legacy JSON and
   the `cucumber-html-reporter` shim), the official Cucumber-js host (legacy
   JSON and Messages) and the Playwright JSON host (because of the final-result,
   skip and inherited-file mapping fixes). Record host, pin, artifact and
@@ -288,18 +288,228 @@
   1440/390 and 320/200, correct final statuses and dates, summary/report
   attachment parity and no console errors. The other required release rows stay
   for the release pass.
-- [ ] 4.4 Gate record: commands, results, characterization re-pin evidence with
+- [x] 4.4 Gate record: commands, results, characterization re-pin evidence with
   the per-fixture reason (shell, narrow CSS, removed epoch date), the exact CSS
   rule and German override, the BOM read/peek/append table, the audit evidence
   table (finding, test, result), the attempt-tie table, the write-error and
   CI-boundary evidence, host rows and the byte delta. Confirm no existing
   Playwright fixture was re-pinned and list any new fixture. Deferred findings
   get a backlog trigger; nothing is dropped silently.
-- [ ] 4.5 Fix every review finding or record a decision with a trigger; re-run
+- [x] 4.5 Fix every review finding or record a decision with a trigger; re-run
   the gate after fixes.
 
 ## 5. Release boundary
 
-- [ ] 5.1 Do not bump the version, tag, stage or publish. 0.6.1 preparation and
+- [x] 5.1 Do not bump the version, tag, stage or publish. 0.6.1 preparation and
   approval remain a separate user decision after this change is complete and
   reviewed.
+
+## Gate record (2026-11-24)
+
+### Gate
+
+| Check | Result |
+| --- | --- |
+| `npm run hygiene` | `hygiene: ok`, 848 tracked files / 391 commits |
+| `npm run check` | catalog 203 keys / 2 locales; typecheck, lint and build green; 91 test files, 1,590 passed / 9 skipped (1,599) |
+| `npm run test:e2e` | 445 passed / 8 skipped (453) on Chromium, Firefox and WebKit |
+| CI for `4414826` | green: hygiene, check (22/24/26), check-windows, e2e, e2e-macos, package |
+| Client bundle | `client-bundle.ts` 15,438 bytes (budget 16,000) |
+
+Report byte delta against 0.6.0 on the same fixed-clock fixture:
+`minimal.html` 66,343 -> 66,458 (+115); `attachments-presentation.html`
+70,519 -> 70,634 (+115). The delta is the B-039 container rule and the
+Details/Trends panel-container move (+104) plus the one-main wrapper (+11). No
+runtime dependency was added.
+
+### Reviewers
+
+One blind batch: SCR, CR, DAR, SEC, UXR, ILA, PCA, STR and CMP.
+
+| Reviewer | Result |
+| --- | --- |
+| SCR | Three blockers: an expected skip took the expected-failure branch; an explicit empty Messages file deduped behind a scanned empty shard lost its `Input is empty` error; the equal/missing-retry suppression was unapproved. Fixed in `a410354`; the third item removed the suppression and relaxed the Red assertion to the every-result-is-an-attempt contract. Targeted re-review: PASS, no blockers. |
+| CR | Confirmed the first two SCR blockers; no further blockers. |
+| DAR | Four doc blockers (static tab roles, wrong commit cites, stale `COMPATIBILITY.md`, `PLAYWRIGHT-JSON.md` row) plus wording; fixed in `b6065fa`. |
+| CMP | One a11y regression: the one `<main>` sat inside `#report-view`, so Details/Trends lost the main landmark and their `runHead` became a second banner. Fixed in `4414826`; re-review: PASS, no blockers. |
+| SEC, UXR, ILA, PCA, STR | No blockers. |
+
+CMP re-review of `4414826` against `v0.6.0` (commit `31fc139`): both revisions
+were built in isolated temporary worktrees and rendered from
+`screenshot.ndjson` with 2- and 3-run `--history` and a long Actions metadata
+URL, default and `--static`, at 320, 390, 768, 1024 and 1440 px and at 320 px
+with 200 % text, measured with Playwright 1.65.1/Chromium. The new tree has
+exactly one `<main>`, exactly one banner (the site `topbar`), and every
+`runHead` plus the active panel inside that main in every state; tab roles,
+aria, panel IDs, heading order and the ID-keyed print page-break rule are
+unchanged. Panel and shell x/width deltas against 0.6.0 are 0 px for every
+report, state and viewport; the only deltas are the approved B-039 stacked
+Details metadata at 320/200 (two tracks to one, long link 478 -> 236 px tall,
+Details -77.19 px) and the approved removed 1970 dates in the all-statuses run,
+plus the inevitable report-byte row value. No horizontal overflow and no
+console or page errors; the static form has one main, no scripts, all details
+open, the three view IDs and the ID-keyed print rule. Evidence: screenshots,
+landmark/geometry tables and raw JSON were captured in a temporary directory
+outside the repo and are not committed.
+
+The targeted SCR re-review confirmed all three blockers closed and named the
+test that fails when each fix is reverted:
+`does not hide an expected skip whose test status is expected`,
+`rejects an explicit empty file deduped behind a scanned shard` and
+`uses the last array result when retry values are missing or equal`. It also
+noted two test-strength limits, recorded in `docs/BACKLOG.md`: the equal-attempt
+acceptance test is order-aligned (a regression to "always last envelope" would
+pass), and the explicit-first dedupe test is an order control rather than a
+pre-fix falsifier.
+
+Residual test nits are recorded in `docs/BACKLOG.md` with the next-change
+trigger; the attempt-label, RTL and test-helper items carry their own triggers.
+
+### Host rows
+
+Recorded in `docs/DROP-IN-VALIDATION.md`, "`0.6.1-quality-pass` host check
+(2026-11-24, pre-release tarball)" (`110ce91`). Tarball 641,686 B, SHA-256
+`7C21915BD364A2EBD8F5103856B36E76F071D8BEDE66466482B8004E67B5172C`, CLI
+prints `0.6.0`. Seed-Test (`ce2cad8`): `tsc -b` and the 35 host tests pass,
+story 88,794 B and group 106,406 B with unchanged counts, shim sidecar
+deep-equal except the old reporter's trailing newline, 45/45 report/viewport
+combinations pass. Cucumber-js (`@cucumber/cucumber@13.3.0`): legacy and
+Messages counts unchanged, summaries byte-identical. Playwright movies-app
+(`5d2cdf0`): 123 tests, 121 passed / 2 skipped, 123/123 source lines and final
+statuses correct, no 1970 date. Every page has one `<main>` and one banner,
+all panels inside it, no overflow, no console errors and no external requests;
+attachment parity 1/1/1, 2/2/2, 2/2/2 and 4/4/4; no failing row.
+
+### Characterization re-pin
+
+Nine default hashes, the two-run history hash and both golden HTML files were
+re-pinned. The first re-pin moves each golden +104 bytes: the `report.css`
+container rule and the three Details/Trends
+`<main class="shell analysis">` -> `<div class="shell analysis">` replacements.
+The three zero-timestamp Messages fixtures (`all-statuses`, `empty-statuses`,
+`examples-tables`) also lose the 1970 run date. The wrapper re-pin moves each
+golden +11 bytes: `<main>`/`</main>` add 13, `<main class="shell">` ->
+`<div class="shell">` and `</main>` -> `</div>` remove 2, and the
+self-referential size row follows. Applying only that wrapper delta to the
+parent golden reproduces the new file exactly; no other diff was found.
+
+| Fixture | SHA-256 |
+| --- | --- |
+| messages screenshot | `5eee7f129a439eb9f93cc881ffff5317d0d8cfeca46bd81966e057c82804a2fa` |
+| messages all statuses | `266529052466a6a334cc283b8e1eaab4d2872e108e009b4042f99c59ef298225` |
+| messages empty statuses | `2658a0f983ef4a6d0461ce95deff71c4799e8ceb798897b910e3dbe70c0f302f` |
+| messages examples tables | `cd64046de63c9930be29f73837160fe234e357e5695443a6990b9d96ad78e725` |
+| legacy happy | `af93978b48b5a0b24655230907f9f17db7837e8c8cc84ba594ae781e9180b320` |
+| legacy failed | `da1109990012f16891a0dacea34699b161688361dcb255b3b7cbdcba96f1eeed` |
+| playwright real run | `bdc438cc7fccddd1738445ef6a3b1dee2ea17b27f782c249413a07dd6e217bc6` |
+| playwright two files | `084947a250043d9b6de5c87ccfbc93f1ddc5234137768262534fb20f59ae8243` |
+| playwright skipped no steps | `aab9fb019fa78109d00560a1c26f29721ef9ec6a336676a0a14f863f144de6c7` |
+| two-run Trends | `e372bc13936bad44e5bd7d5e6d96741aca35c2deae52449eae662613df0aa6a3` |
+
+No existing Playwright fixture was re-pinned. Six Playwright fixtures were
+added: `equal-retry.json`, `expected-skip-failed.json`,
+`expected-skip-passed.json`, `inherited-file.json`, `no-retry.json` and
+`no-timing.json`; `test/fixtures/playwright/PROVENANCE.md` records them.
+
+### B-039 rule and German override
+
+`src/render/report.css`, after the `max-width: 560px` block and keyed to the
+`.shell` inline-size container:
+
+```css
+/* At 320px/200% text the shell content is narrower than 10 text-sized rems;
+   stack the metadata so labels keep a readable width and long URLs wrap. */
+@container (max-width: 10rem) {
+  .metaList { grid-template-columns: minmax(0, 1fr); }
+  .metaList dd { text-align: left; }
+}
+```
+
+The German override in `src/render/html.ts` follows the existing German
+`metaList` share and restores one column at the same boundary:
+
+```css
+:lang(de) .metaList{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}
+@container (max-width:10rem){:lang(de) .metaList{grid-template-columns:minmax(0,1fr)}}
+```
+
+`npm run styles` regenerated `styles.ts`; the generated string is not hand-edited.
+
+### BOM read, peek and append
+
+| Path | Case | Result | Test (`test/history.test.ts`) |
+| --- | --- | --- | --- |
+| read | valid file without BOM | regression, unchanged | `reads a valid BOM-prefixed file exactly like the file without a BOM` |
+| read | one BOM + valid JSON | read equals the no-BOM file | same test |
+| read | BOM only | existing not-valid-JSON error | `rejects a BOM-only file with the existing not-valid-JSON error` |
+| read | BOM + invalid JSON | error, bytes unchanged | `rejects a BOM followed by invalid JSON without rewriting the file` |
+| read | two leading BOMs | exactly one stripped, second stays invalid | `strips exactly one BOM so a second one stays invalid JSON` |
+| write peek | BOM-prefixed target | accepted, next write is BOM-free | `accepts a BOM-prefixed target in the schema peek and writes BOM-free bytes` |
+| write peek | BOM + invalid JSON | rejected before any write | `rejects a BOM followed by invalid JSON in the write peek without touching it` |
+| append | BOM-prefixed sidecar | same bytes as the no-BOM append, no run lost | covered by the append/schema tests |
+| write | any write | no BOM in the output | `writes a schema-1 sidecar without a BOM` |
+
+### Audit evidence (findings 2-12 of `docs/research/audit-2026-11.md`)
+
+| # | Finding | Representative test | Result |
+| --- | --- | --- | --- |
+| 2 | Input accounting counted skipped files and checked the cap first | `test/inputs.test.ts`: `loads two identical 51 MiB reports once and below the total cap`, `does not count large skipped files toward the cap or the input bytes`, `fails unique content above the total cap with the supported remedy` | pass |
+| 3 | `writeHistory` overwrote a malformed target | `test/history.test.ts`: target validation and byte-identity tests | pass |
+| 4 | An empty `.jsonl`/`.ndjson` shard aborted a scan | `test/inputs.test.ts`: `skips an empty shard without a warning`, `rejects an explicit empty file deduped behind a scanned shard`, `rejects the same empty pair when the explicit file sorts first` | pass |
+| 5 | HTML and JSON attachment counts disagreed | `test/model-summary-cross-check.test.ts`, `test/summary.test.ts`, `test/render-attachments.test.ts`: orphan, resultless, missing run-hook, normal, no-step-id and screenshot cross-check | pass |
+| 6 | Playwright reports without timing picked the first attempt | `test/playwright.test.ts`: missing/equal/distinct retry tests; `test/model.test.ts`, `test/summary.test.ts`, `test/model-summary-cross-check.test.ts`, `test/render-report.test.ts`: zero run/scenario timestamp and real-timestamp tests | pass |
+| 7 | `expectedStatus: skipped` hid a failure | `test/playwright.test.ts`: `renders an expected skip with a failed result as failed`, `renders an expected skip with a passed result as an unexpected pass`, `does not hide an expected skip whose test status is expected` | pass |
+| 8 | A spec without `file` lost the suite file name | `test/playwright.test.ts`: `uses the enclosing suite file for a spec without file` | pass |
+| 9 | An unvalidated Messages `attempt` could be `null` in JSON | `test/messages-producers.test.ts`, `test/model.test.ts`: invalid attempt errors; absent is 0, valid is kept, no `null` | pass |
+| 10 | CI output did not cap scenario names, URIs or titles | `test/ci.test.ts`: `caps a long GitHub error title at 200 code points with the marker`, `keeps exactly 200 code points unchanged and cuts 201`, `caps the Markdown feature, name and URI before code-span wrapping`, `caps a long skipped identity with the marker`, `leaves the Azure 4000-code-point identity and message cap unchanged` | pass |
+| 11 | Report write errors exposed the random temporary path | `test/cli-edge.test.ts`, `test/cli-ci.test.ts`: clean target naming, report kept on a failed CI write, no later output, input/logo overwrite refusal | pass |
+| 12 | `ignoreBadJsonFile` failed on a non-feature JSON array | `test/compat.test.ts`, `test/compat-sidecar.test.ts`: skipped/merged array, failure without the flag, one predicate | pass |
+
+Finding 1 (path attachments can read any file under the cwd) is documented in
+`SECURITY.md` and carried by B-058; no behaviour change is part of this change.
+
+### Attempt tie
+
+| Case | Expected | Test |
+| --- | --- | --- |
+| Equal attempt and timestamp, first failed and second passed | later input wins in model, summary and HTML | `test/model-summary-cross-check.test.ts`: `uses the later timestamp when the attempt is equal` |
+| Higher attempt with an earlier timestamp | higher attempt wins | `model.test.ts`: `keeps a higher attempt when its timestamp is earlier` |
+| Same attempt, distinct timestamps | later timestamp wins | the timestamp precedence tests |
+| Three starts on a tie | last input start wins, report and summary agree | `test/model-summary-cross-check.test.ts` |
+| Playwright missing or equal retry | last array result wins; every result stays an attempt | `test/playwright.test.ts`: `uses the last array result when retry values are missing or equal`, `uses the last array result when one retry value is missing`, `keeps the highest retry when retry values are distinct` |
+
+### Write errors and CI boundary
+
+| Area | Case | Result | Test |
+| --- | --- | --- | --- |
+| Report write | directory target | names the requested target, exit 1, no partial file | `test/cli-edge.test.ts`: `creates missing output parents but fails cleanly on an existing directory target` |
+| Report write | failure after the write | no later output | `test/cli-edge.test.ts`: `writes no later output when the report write fails` |
+| Report write | overwrite guard | input and logo files refused | `test/cli-edge.test.ts`: `refuses to overwrite an input file`, `refuses to overwrite the logo file` |
+| CI write | failed `--ci-out` | requested target named, report kept | `test/cli-ci.test.ts`: `names the requested CI target and keeps the report on a failed write` |
+| CI identity | GitHub title/heading/feature/name/URI/skipped | 200 code points kept, 201 cut, marker outside the cap, escaped after truncation | `test/ci.test.ts` (five tests above) |
+| CI identity | Azure | 4,000-code-point cap unchanged | `test/ci.test.ts`: `leaves the Azure 4000-code-point identity and message cap unchanged` |
+
+### Deferred findings
+
+The residual test nits, the `Attempt: 1` label, the RTL `text-align`, the
+synthetic 1970 finish time, the test-helper duplication and the two
+test-strength limits are recorded in `docs/BACKLOG.md` with explicit triggers.
+B-058 covers the path trust model. Nothing from the review or the audit is
+dropped silently.
+
+### Findings closed
+
+| Finding | Fix |
+| --- | --- |
+| SCR blocker 1: expected skip hid a failure | `a410354` |
+| SCR blocker 2: explicit empty file lost its error after dedupe | `a410354` |
+| SCR blocker 3: equal/missing-retry suppression | `a410354`; Red assertion relaxed to the every-result-is-an-attempt contract |
+| Two missing acceptance tests | `e9c0522` |
+| 14 accepted test/hardening items | `a410354` |
+| Four DAR doc blockers | `b6065fa` |
+| CMP a11y regression | `4414826` |
+| Residual nits | `e28a14e` as decisions with triggers |
+
+The gate was re-run after each fix: `npm run check` green (1,590 passed / 9
+skipped at the final tree), Chromium e2e green after every fixer commit, and the
+full three-engine suite green at `4414826`.
