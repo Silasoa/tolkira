@@ -58,7 +58,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-049 | History | P3 | A UTF-8 BOM before the sidecar JSON is not stripped, so `readHistory` rejects a BOM-prefixed file; pre-existing and unchanged by the window | A user or producer writes a BOM-prefixed sidecar, or the sidecar encoding is next touched; then strip a leading U+FEFF before `JSON.parse` and cover it in `test/history.test.ts`. | - |
 | B-050 | Report | P3 | Add a new-failure/fixed list or a local `change` filter for large runs; the panel only counts and lists absent rows | A user asks for the names of new failures or fixed scenarios in a large run; then extend the panel and pin the focus/filter behaviour. | — |
 | B-051 | Report | P3 | Extract the shared outline-coordinate helper duplicated in `src/summary.ts` and `src/report/model.ts` | The next change touches `src/summary.ts` or `src/report/model.ts`; then move the helper to one leaf module and keep both labels equal. | — |
-| B-052 | Report | P3 | README has no report preview image; the existing comparison captures predate 0.6.0 | Before the public 0.6.0 announcement or the next placement post; capture a 0.6.0 default report with a failed scenario and the baseline panel, then run the committed-image audit. | — |
 | B-053 | Test | P3 | No container smoke: CI covers Linux, Windows and macOS runners, but not `node:22-alpine` (musl) or a slim/distroless image | Before claiming container support, or when a user reports an install or run failure in Docker, Alpine or a distroless CI image; then add install-plus-report smokes for `node:22-alpine` and `node:22-slim` and record the host. | - |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
@@ -121,6 +120,16 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-052 README report preview** — resolved on 2026-11-24: `README.md` now
+  shows `docs/comparison/tolkira-0.6.0-report.png` (1440×900, 47,441 bytes),
+  captured from the default English report of
+  `test/fixtures/messages/screenshot.ndjson` in Playwright Chromium with a
+  failed scenario, its error and an inline screenshot visible; viewport-only,
+  no browser chrome, and neither the HTML nor the PNG carries a local path,
+  user name, email or token. The preview shows the default report on purpose;
+  a baseline-panel capture needs a second input and waits for a dedicated
+  baseline section or another announcement asset. The `new-shell-*` captures
+  stay as they are; the preview supersedes none of them.
 - **B-040 Early input warning** — resolved on 2026-11-24 in the
   `0.6-early-size-warning` change: after path validation and before parsing, the
   CLI resolves and stats the inputs once and warns on stderr when they total at
