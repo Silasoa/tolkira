@@ -1,75 +1,32 @@
-// Shared setup for the baseline-comparison Red suite. The baseline API does not
-// exist yet, so this module declares the projection and option shapes the spec
-// and design pin, without importing a missing module.
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect } from 'vitest';
 import { runCli } from '../src/cli.js';
+import type {
+  BaselineBlock,
+  BaselineCounts,
+  BaselineScenario,
+} from '../src/baseline.js';
 import {
   summarizeReport,
+  type BaselineRenderOptions,
+  type BaselineSummary,
   type ReportSummary,
   type SummaryScenario,
-  type SummaryStatus,
 } from '../src/index.js';
 
-/** The validated, read-only projection `readBaseline` returns (design). */
-export interface BaselineScenario {
-  feature: string;
-  name: string;
-  uri: string;
-  status: SummaryStatus;
-  executed: boolean;
-  example?: string;
-}
-
-export interface BaselineSummary {
-  schemaVersion: 2;
-  status: SummaryStatus;
-  scenarios: BaselineScenario[];
-}
-
-export interface BaselineCounts {
-  newFailures: number;
-  fixed: number;
-  stillFailing: number;
-  other: number;
-  notInThisRun: number;
-  added: number;
-  ambiguous: number;
-}
-
-export interface BaselineBlock {
-  status: SummaryStatus;
-  counts: BaselineCounts;
-  notInThisRun: BaselineScenario[];
-}
+export type {
+  BaselineBlock,
+  BaselineCounts,
+  BaselineRenderOptions,
+  BaselineScenario,
+  BaselineSummary,
+};
 
 export type SummaryWithBaseline = ReportSummary & { baseline?: BaselineBlock };
 
-/** `GenerateReportOptions`/`RenderReportOptions` plus the pending baseline. */
-export interface BaselineRenderOptions {
-  title?: string;
-  metadata?: Record<string, string>;
-  logo?: string;
-  accent?: string;
-  locale?: string;
-  static?: boolean;
-  baseline?: BaselineSummary;
-}
-
-export interface BaselineSummarizeOptions {
-  baseline?: BaselineSummary;
-}
-
-/**
- * The future `summarizeReport(inputs, options?)` signature. The current
- * implementation ignores the second argument, which is exactly the Red state.
- */
-export const summarizeWithBaseline = summarizeReport as unknown as (
-  inputs: string | string[],
-  options?: BaselineSummarizeOptions,
-) => Promise<ReportSummary>;
+export const summarizeWithBaseline = summarizeReport;
 
 export const SUMMARY_SCHEMA = 2;
 export const BASELINE_MAX_BYTES = 10_485_760;
@@ -162,11 +119,10 @@ export async function writeLegacyRun(
 
 /** Projects a summary into the baseline the reader would return. */
 export function projectSummary(summary: ReportSummary): BaselineSummary {
-  const rows = summary.scenarios as Array<SummaryScenario & { example?: string }>;
   return {
     schemaVersion: summary.schemaVersion,
     status: summary.status,
-    scenarios: rows.map((row) => ({
+    scenarios: summary.scenarios.map((row) => ({
       feature: row.feature,
       name: row.name,
       uri: row.uri,
@@ -219,9 +175,8 @@ export function summaryWithBaseline(
 }
 
 export function baselineBlock(summary: ReportSummary): BaselineBlock {
-  const block = (summary as SummaryWithBaseline).baseline;
-  expect(block, 'baseline block').toBeDefined();
-  return block as BaselineBlock;
+  expect(summary.baseline, 'baseline block').toBeDefined();
+  return summary.baseline as BaselineBlock;
 }
 
 export function scenarioOf(
@@ -240,11 +195,7 @@ export function changeOf(
   name: string,
   uri?: string,
 ): string | undefined {
-  return (
-    scenarioOf(summary, name, uri) as
-      | (SummaryScenario & { change?: string })
-      | undefined
-  )?.change;
+  return scenarioOf(summary, name, uri)?.change;
 }
 
 export function exampleOf(
@@ -252,11 +203,7 @@ export function exampleOf(
   name: string,
   uri?: string,
 ): string | undefined {
-  return (
-    scenarioOf(summary, name, uri) as
-      | (SummaryScenario & { example?: string })
-      | undefined
-  )?.example;
+  return scenarioOf(summary, name, uri)?.example;
 }
 
 export interface CliResult {

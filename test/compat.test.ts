@@ -214,6 +214,27 @@ describe('cucumber-html-reporter compat', () => {
     });
   });
 
+  it('warns once about a baseline key and ignores it', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'baseline-key.html');
+
+    const result = await generate({
+      jsonFile: legacy,
+      output,
+      baseline: { schemaVersion: 2 },
+    });
+
+    expect(
+      result.warnings.filter((line) => line.startsWith('baseline:')),
+    ).toHaveLength(1);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('baseline:')]),
+    );
+    await expect(readFile(output, 'utf8')).resolves.toContain(
+      'Happy HTML reporting',
+    );
+  });
+
   it('warns on unsupported metadata values', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'metadata.html');

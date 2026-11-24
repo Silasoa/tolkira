@@ -1,6 +1,5 @@
-import type { BaselineSummary } from './baseline.js';
 import { resolveInputFiles } from './input/load.js';
-import type { RenderReportOptions } from './options.js';
+import type { BaselineRenderOptions } from './options.js';
 import {
   generateReportFromResolved,
   renderReportFromResolved,
@@ -36,7 +35,10 @@ export {
   readHistory,
   writeHistory,
 } from './history.js';
-export type { RenderReportOptions } from './options.js';
+export type {
+  BaselineRenderOptions,
+  RenderReportOptions,
+} from './options.js';
 export type { EmailOptions } from './email.js';
 export { renderEmail } from './email.js';
 export type { PdfOptions } from './pdf.js';
@@ -54,7 +56,7 @@ export async function generateReport(
 /** Renders the HTML with the given history; records nothing. */
 export async function renderReport(
   inputs: string | string[],
-  options: RenderReportOptions = {},
+  options: BaselineRenderOptions = {},
 ): Promise<string> {
   return renderReportFromResolved(await resolveInputFiles(inputs), options);
 }
@@ -62,7 +64,7 @@ export async function renderReport(
 /** Builds the stable JSON summary, optionally with a baseline comparison. */
 export async function summarizeReport(
   inputs: string | string[],
-  options: { baseline?: BaselineSummary } = {},
+  options: BaselineRenderOptions = {},
 ): Promise<ReportSummary> {
   return summarizeReportFromResolved(
     await resolveInputFiles(inputs),

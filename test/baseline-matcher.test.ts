@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { compareBaseline } from '../src/baseline.js';
 import { summarizeReport, type ReportSummary, type SummaryScenario } from '../src/index.js';
+import type { SummaryScenarioIdentity } from '../src/summary.js';
 import { messagesFixture } from './fixtures.js';
 import {
   baselineBlock,
@@ -96,6 +98,7 @@ describe('matcher decision table', () => {
       newFailures: 0,
       fixed: 0,
       stillFailing: 0,
+      other: 0,
       notInThisRun: 0,
       added: 0,
       ambiguous: 0,
@@ -105,6 +108,7 @@ describe('matcher decision table', () => {
       if (change === 'new-failure') expected.newFailures += 1;
       if (change === 'fixed') expected.fixed += 1;
       if (change === 'still-failing') expected.stillFailing += 1;
+      if (change === undefined) expected.other += 1;
       expect(changeOf(summary, pair.name), pair.name).toBe(change);
     }
 
@@ -583,6 +587,233 @@ describe('identity', () => {
       ambiguous: 0,
     });
     expect(changeOf(summary, 'pays')).toBe('still-failing');
+  });
+});
+
+describe('repeated groups and pairing cost', () => {
+  function identity(
+    id: string,
+    uri: string,
+    example: string | undefined,
+    status: string,
+    feature = 'Shop',
+    name = 'pays',
+  ): SummaryScenarioIdentity {
+    return {
+      id,
+      feature,
+      name,
+      uri,
+      status: status as SummaryScenarioIdentity['status'],
+      executed: true,
+      ...(example === undefined ? {} : { example }),
+    };
+  }
+
+  it('makes a repeated non-outline name in a renamed file ambiguous', () => {
+    const comparison = compareBaseline(
+      {
+        schemaVersion: 2,
+        status: 'failed',
+        scenarios: [
+          {
+            feature: 'Shop',
+            name: 'pays',
+            uri: 'features/old.feature',
+            status: 'failed',
+            executed: true,
+          },
+          {
+            feature: 'Shop',
+            name: 'pays',
+            uri: 'features/old.feature',
+            status: 'passed',
+            executed: true,
+          },
+        ],
+      },
+      [
+        identity('a', 'features/new.feature', undefined, 'failed'),
+        identity('b', 'features/new.feature', undefined, 'passed'),
+      ],
+    );
+
+    expect(comparison.block.counts).toMatchObject({
+      newFailures: 0,
+      fixed: 0,
+      stillFailing: 0,
+      other: 0,
+      notInThisRun: 0,
+      added: 0,
+      ambiguous: 1,
+    });
+    expect(comparison.block.notInThisRun).toEqual([]);
+    expect(comparison.changes.size).toBe(0);
+  });
+
+  it('pairs the unmatched remainder by URI after a partial coordinate pass', () => {
+    const comparison = compareBaseline(
+      {
+        schemaVersion: 2,
+        status: 'failed',
+        scenarios: [
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'failed',
+            executed: true,
+            example: '#1.1',
+          },
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/b.feature',
+            status: 'passed',
+            executed: true,
+            example: '#1.2',
+          },
+        ],
+      },
+      [
+        identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row'),
+        identity('two', 'features/b.feature', '#1.3', 'passed', 'Outline', 'row'),
+      ],
+    );
+
+    expect(comparison.block.counts).toMatchObject({
+      newFailures: 0,
+      fixed: 0,
+      stillFailing: 1,
+      other: 1,
+      notInThisRun: 0,
+      added: 0,
+      ambiguous: 0,
+    });
+    expect(comparison.changes.get('one')).toBe('still-failing');
+    expect(comparison.changes.get('two')).toBeUndefined();
+  });
+
+  it('stays ambiguous after a partial coordinate pass with no unique URI tie', () => {
+    const comparison = compareBaseline(
+      {
+        schemaVersion: 2,
+        status: 'failed',
+        scenarios: [
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'failed',
+            executed: true,
+            example: '#1.1',
+          },
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'failed',
+            executed: true,
+            example: '#1.2',
+          },
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'passed',
+            executed: true,
+            example: '#1.2',
+          },
+        ],
+      },
+      [
+        identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row'),
+        identity('two', 'features/a.feature', '#1.3', 'failed', 'Outline', 'row'),
+        identity('three', 'features/a.feature', '#1.3', 'passed', 'Outline', 'row'),
+      ],
+    );
+
+    expect(comparison.block.counts).toMatchObject({
+      newFailures: 0,
+      fixed: 0,
+      stillFailing: 0,
+      other: 0,
+      notInThisRun: 0,
+      added: 0,
+      ambiguous: 1,
+    });
+    expect(comparison.changes.size).toBe(0);
+  });
+
+  it('keeps a repeated group ambiguous when only the current side gains a row', () => {
+    const comparison = compareBaseline(
+      {
+        schemaVersion: 2,
+        status: 'failed',
+        scenarios: [
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'failed',
+            executed: true,
+            example: '#1.1',
+          },
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'failed',
+            executed: true,
+            example: '#1.2',
+          },
+        ],
+      },
+      [
+        identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row'),
+        identity('two', 'features/a.feature', '#1.2', 'failed', 'Outline', 'row'),
+        identity('three', 'features/a.feature', '#1.3', 'failed', 'Outline', 'row'),
+      ],
+    );
+
+    expect(comparison.block.counts).toMatchObject({
+      newFailures: 0,
+      fixed: 0,
+      stillFailing: 0,
+      other: 0,
+      notInThisRun: 0,
+      added: 0,
+      ambiguous: 1,
+    });
+    expect(comparison.block.notInThisRun).toEqual([]);
+    expect(comparison.changes.size).toBe(0);
+  });
+
+  it('pairs 20k repeated outline rows in well under 100 ms', () => {
+    const scenarios = Array.from({ length: 20_000 }, (_, index) => ({
+      feature: 'Perf',
+      name: 'row',
+      uri: 'features/perf.feature',
+      status: 'passed' as const,
+      executed: true,
+      example: `#1.${index + 1}`,
+    }));
+    const current: SummaryScenarioIdentity[] = scenarios.map((row, index) => ({
+      id: `id-${index}`,
+      ...row,
+    }));
+
+    const started = performance.now();
+    const comparison = compareBaseline(
+      { schemaVersion: 2, status: 'passed', scenarios },
+      current,
+    );
+    const elapsed = performance.now() - started;
+
+    expect(comparison.block.counts.ambiguous).toBe(0);
+    expect(comparison.block.counts.other).toBe(20_000);
+    expect(comparison.changes.size).toBe(0);
+    expect(elapsed).toBeLessThan(100);
   });
 });
 

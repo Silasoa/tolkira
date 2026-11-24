@@ -13,10 +13,6 @@ import type {
   BaselineComparison,
 } from './baseline.js';
 import { attachmentBytes } from './attachment.js';
-import {
-  loadResolvedInputs,
-  type ResolvedInputs,
-} from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
@@ -433,13 +429,4 @@ export function scenarioIdentities(index: RunIndex): SummaryScenarioIdentity[] {
     });
   }
   return rows;
-}
-
-/** Internal: builds the summary from a list the caller already resolved. */
-export async function summarizeResolvedReport(
-  resolved: ResolvedInputs,
-): Promise<ReportSummary> {
-  return summarizeEnvelopes(
-    (await loadResolvedInputs(resolved)).flatMap((group) => group.envelopes),
-  );
 }

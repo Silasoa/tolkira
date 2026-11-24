@@ -60,7 +60,7 @@ export async function renderHtml(
     ? `<img class="logo" src="${escapeHtml(options.logo)}" alt="">`
     : '';
   const accent = isValidAccent(options.accent)
-    ? `<style>:root{--accent:${options.accent}}</style>`
+    ? `:root{--accent:${options.accent}}`
     : '';
   // German labels are longer than their English counterparts; the scoped
   // rules keep the shell inside 320px without touching the English layout.

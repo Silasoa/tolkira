@@ -16,12 +16,12 @@ import { formatCiOutput } from '../src/ci.js';
 import { renderEmail } from '../src/email.js';
 import { buildHistoryRun, writeHistory } from '../src/history.js';
 import { generateReport } from '../src/index.js';
+import { summarizeReportFromResolved } from '../src/run.js';
 import {
   loadResolvedInputs,
   resolveInputFiles,
   scanInputBytes,
 } from '../src/input/load.js';
-import { summarizeResolvedReport } from '../src/summary.js';
 import { legacyFixture } from './fixtures.js';
 
 vi.mock('../src/input/load.js', async (importOriginal) => {
@@ -34,11 +34,11 @@ vi.mock('../src/input/load.js', async (importOriginal) => {
   };
 });
 
-vi.mock('../src/summary.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../src/summary.js')>();
+vi.mock('../src/run.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/run.js')>();
   return {
     ...actual,
-    summarizeResolvedReport: vi.fn(actual.summarizeResolvedReport),
+    summarizeReportFromResolved: vi.fn(actual.summarizeReportFromResolved),
   };
 });
 
@@ -487,16 +487,17 @@ describe('Early input warning', () => {
     await copyFile(legacyFixture('happy.json'), path.join(dir, 'run.json'));
     vi.mocked(resolveInputFiles).mockClear();
     vi.mocked(scanInputBytes).mockClear();
-    vi.mocked(summarizeResolvedReport).mockClear();
+    vi.mocked(summarizeReportFromResolved).mockClear();
 
     const run = await cli([dir, '--json']);
 
     expect(run.code).toBe(0);
     expect(resolveInputFiles).toHaveBeenCalledTimes(1);
     expect(scanInputBytes).toHaveBeenCalledTimes(1);
-    expect(summarizeResolvedReport).toHaveBeenCalledTimes(1);
+    expect(summarizeReportFromResolved).toHaveBeenCalledTimes(1);
     const scanned = vi.mocked(scanInputBytes).mock.calls[0]?.[0];
-    const summarized = vi.mocked(summarizeResolvedReport).mock.calls[0]?.[0];
+    const summarized =
+      vi.mocked(summarizeReportFromResolved).mock.calls[0]?.[0];
     expect(scanned).toBeDefined();
     expect(summarized?.files).toBe(scanned);
   });

@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readHistory } from '../src/history.js';
-import { renderReport } from '../src/index.js';
+import { renderReport, summarizeReport } from '../src/index.js';
 
 // The legacy parser falls back to `new Date()` for a missing start time, so the
 // clock is pinned to keep the hashes stable.
@@ -32,6 +32,11 @@ const fixtures = [
     name: 'messages empty statuses',
     fixture: 'messages/empty-statuses.ndjson',
     sha256: 'cff5659ab2effdbe7fe4b3af668e2779e18f9d37ae8444797ea7487a8179f0c6',
+  },
+  {
+    name: 'messages examples tables',
+    fixture: 'messages/examples-tables.ndjson',
+    sha256: 'c78ea2b0b3a5d6ef1c24849cee8da05ec4f5e8c98bfe3aa4e80b673323ce819e',
   },
   {
     name: 'legacy happy',
@@ -72,6 +77,22 @@ describe('render characterization', () => {
 
     expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
       sha256,
+    );
+  });
+
+  it('keeps the outline summary minus example at the pre-change bytes', async () => {
+    // Generated from 08a0449 with the same fixture and serialization:
+    // `JSON.stringify(summary, null, 2) + '\n'` was 6,152 bytes.
+    const file = fileURLToPath(
+      new URL('./fixtures/messages/examples-tables.ndjson', import.meta.url),
+    );
+    const summary = await summarizeReport(file);
+    for (const scenario of summary.scenarios) delete scenario.example;
+    const json = `${JSON.stringify(summary, null, 2)}\n`;
+
+    expect(Buffer.byteLength(json, 'utf8')).toBe(6152);
+    expect(createHash('sha256').update(json, 'utf8').digest('hex')).toBe(
+      '88c7fb2528ac1647267ab8cc141ab5ad8427797aab87418480c7916a21d1c6b4',
     );
   });
 

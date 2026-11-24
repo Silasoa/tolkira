@@ -22,7 +22,8 @@ import {
   generateReportFromResolved,
   summarizeReportFromResolved,
 } from './run.js';
-import { summarizeResolvedReport, type ReportSummary } from './summary.js';
+import type { ReportSummary } from './summary.js';
+import { oneLine } from './text.js';
 import { ACCENT_PATTERN } from './validation.js';
 import {
   ATTACHMENT_HINT,
@@ -190,7 +191,7 @@ async function conflictsWithInputs(
   return false;
 }
 
-async function historyConflicts(
+async function pathConflicts(
   file: string,
   inputs: string[],
   logo: string | undefined,
@@ -198,21 +199,15 @@ async function historyConflicts(
   pdfPath: string | undefined,
   ciOut: string | undefined,
   email: string | undefined,
-  baseline: string | undefined,
+  peer: string | undefined,
 ): Promise<boolean> {
   if (output && samePath(file, output)) return true;
   if (pdfPath && samePath(file, pdfPath)) return true;
   if (ciOut && samePath(file, ciOut)) return true;
   if (email && samePath(file, email)) return true;
-  if (baseline && samePath(file, baseline)) return true;
+  if (peer && samePath(file, peer)) return true;
   if (logo && samePath(file, logo)) return true;
   return conflictsWithInputs(file, inputs);
-}
-
-/** Keeps a path on one line in confirmations and error output. */
-function oneLine(value: string): string {
-  // oxlint-disable-next-line no-control-regex
-  return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ');
 }
 
 async function writeEmailSummary(
@@ -505,7 +500,7 @@ export async function runCli(
 
   if (
     historyFile !== undefined &&
-    (await historyConflicts(
+    (await pathConflicts(
       historyFile,
       inputs,
       parsed.values.logo,
@@ -525,7 +520,7 @@ export async function runCli(
 
   if (
     baselineFile !== undefined &&
-    (await historyConflicts(
+    (await pathConflicts(
       baselineFile,
       inputs,
       parsed.values.logo,
@@ -537,7 +532,7 @@ export async function runCli(
     ))
   ) {
     io.stderr(
-      `tolkira: --baseline must not overwrite an input file, the logo, ` +
+      `tolkira: --baseline must not name an input file, the logo, ` +
         `--out, --pdf, --email, --history or --ci-out\n\n${USAGE}`,
     );
     return 2;
@@ -654,10 +649,10 @@ export async function runCli(
     }
 
     if (!output && pdfPath === undefined) {
-      const summary =
-        baseline === undefined
-          ? await summarizeResolvedReport(resolvedInputs)
-          : await summarizeReportFromResolved(resolvedInputs, baseline);
+      const summary = await summarizeReportFromResolved(
+        resolvedInputs,
+        baseline,
+      );
       if (emailPath !== undefined) {
         await writeEmailSummary(emailPath, summary, {
           title: parsed.values.title,

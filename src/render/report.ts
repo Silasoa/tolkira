@@ -14,7 +14,11 @@ import type { ReportStatus } from '../report/status.js';
 import { worstExecutedStatus } from '../report/status.js';
 import { displayUri } from '../summary.js';
 import { renderAttachment } from './attachments.js';
-import { applyBaselineChanges, renderBaselinePanel } from './baseline.js';
+import {
+  applyBaselineChanges,
+  baselineBadge,
+  renderBaselinePanel,
+} from './baseline.js';
 import { ciHeaderMarkup } from './ci.js';
 import {
   DOM_IDS,
@@ -291,12 +295,7 @@ function scenarioSummary(
   const flakyBadge = flaky
     ? `<span class="flakyBadge" aria-hidden="true">${escapeHtml(t.t('report.flakyBadge'))}</span> `
     : '';
-  const changeBadge =
-    scenario.change === 'new-failure'
-      ? `<span class="changeBadge changeBadgeNewFailure">${escapeHtml(t.t('baseline.badgeNewFailure'))}</span> `
-      : scenario.change === 'fixed'
-        ? `<span class="changeBadge changeBadgeFixed">${escapeHtml(t.t('baseline.badgeFixed'))}</span> `
-        : '';
+  const changeBadge = baselineBadge(scenario.change, t);
   return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${changeBadge}${flakyBadge}${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
 }
 

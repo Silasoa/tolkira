@@ -73,6 +73,7 @@ const CURRENT = legacyRun([
 
 let compared: ReportFile | undefined;
 let staticReport: ReportFile | undefined;
+let multiInput: ReportFile | undefined;
 const cleanup: string[] = [];
 
 function report(file: ReportFile | undefined): ReportFile {
@@ -127,10 +128,29 @@ test.beforeAll(async () => {
     '',
     ['--baseline', baseline, '--static'],
   );
+  const extra = await writeInput(
+    'extras.json',
+    legacyRun([
+      {
+        name: 'Extras',
+        uri: 'features/extras.feature',
+        scenarios: [{ name: 'extra passes', status: 'passed' }],
+      },
+    ]),
+    'tolkira-baseline-extra-',
+  );
+  cleanup.push(extra.dir);
+  multiInput = await writeReport(
+    [current.file, extra.file],
+    'Baseline sources',
+    'tolkira-baseline-sources-',
+    '',
+    ['--baseline', baseline],
+  );
 });
 
 test.afterAll(async () => {
-  for (const file of [compared, staticReport]) {
+  for (const file of [compared, staticReport, multiInput]) {
     if (file) await removeReport(file.dir);
   }
   for (const dir of cleanup) {
@@ -182,15 +202,17 @@ test.describe('baseline comparison in the browser', () => {
     ).toBeLessThanOrEqual(1);
   });
 
-  test('keeps the panel visible while a search filter is active', async ({
+  test('keeps the panel while the triage and source strip hide for a filter', async ({
     page,
   }) => {
-    await page.goto(reportUrl(report(compared).output));
+    await page.goto(reportUrl(report(multiInput).output));
     await expect(page.locator('[data-triage]')).toBeVisible();
+    await expect(page.locator('[data-sources]')).toBeVisible();
 
     await page.locator('input[data-search]').fill('zzz-no-such-scenario');
 
     await expect(page.locator('[data-triage]')).toBeHidden();
+    await expect(page.locator('[data-sources]')).toBeHidden();
     await expect(
       page.getByText('Compared with baseline').first(),
     ).toBeVisible();

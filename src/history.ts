@@ -3,6 +3,7 @@ import { constants } from 'node:fs';
 import { open, type FileHandle } from 'node:fs/promises';
 import { writeAtomic } from './output.js';
 import type { ReportSummary, StatusCounts, SummaryStatus } from './summary.js';
+import { oneLine } from './text.js';
 
 /** The default write version; schema 2 only marks a wider window. */
 export const HISTORY_SCHEMA_VERSION = 1;
@@ -59,12 +60,6 @@ function cannotWrite(file: string, reason: string): never {
   throw new HistoryValidationError(
     `Cannot write history file ${oneLine(file)}: ${reason}`,
   );
-}
-
-/** Keeps a path on one line in an error message. */
-function oneLine(value: string): string {
-  // oxlint-disable-next-line no-control-regex
-  return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ');
 }
 
 /** The window size; an omitted limit is exactly 30 and an invalid one throws. */

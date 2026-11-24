@@ -16,7 +16,11 @@ import {
   type ResolvedInputs,
 } from './input/load.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
-import { renderOptions, type RenderReportOptions } from './options.js';
+import {
+  renderOptions,
+  type BaselineRenderOptions,
+  type RenderReportOptions,
+} from './options.js';
 import { indexRun, type RunIndex } from './report/index-run.js';
 import { renderHtml } from './render/html.js';
 import {
@@ -38,7 +42,7 @@ export interface GeneratedReport {
 }
 
 /** Generate-only options: the history window never reaches the renderer. */
-export interface GenerateReportOptions extends RenderReportOptions {
+export interface GenerateReportOptions extends BaselineRenderOptions {
   /** Runs kept in the history; defaults to 30, range 1 to 365. */
   historyLimit?: number;
 }
@@ -127,7 +131,7 @@ export async function generateReportFromResolved(
 /** Internal: renders the HTML for a list the caller already resolved. */
 export async function renderReportFromResolved(
   resolved: ResolvedInputs,
-  options: RenderReportOptions = {},
+  options: BaselineRenderOptions = {},
 ): Promise<string> {
   return render(
     await loadRun(resolved, options.baseline),

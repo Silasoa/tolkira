@@ -8,6 +8,12 @@ export function stripBidiControls(value: string): string {
   return value.replace(BIDI_CONTROLS, '');
 }
 
+/** Keeps a path or label on one line in confirmations and error output. */
+export function oneLine(value: string): string {
+  // oxlint-disable-next-line no-control-regex
+  return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ');
+}
+
 // Returns the index just past the CSI sequence that starts at `start`, where
 // `start` is ESC + '[' or a single C1 CSI byte.
 function csiEnd(text: string, start: number): number {

@@ -262,6 +262,8 @@ export async function loadResolvedInputs(
   return groups;
 }
 
+// Test seam: adapters and model tests load one flat envelope list. Production
+// paths use loadResolvedInputs (or loadInputs) so provenance survives.
 export async function loadEnvelopes(
   inputs: InputSource,
 ): Promise<Envelope[]> {

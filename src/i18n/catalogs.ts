@@ -11,6 +11,7 @@ export type MessageKey =
   | "baseline.fixed"
   | "baseline.heading"
   | "baseline.more"
+  | "baseline.moreCapped"
   | "baseline.newFailures"
   | "baseline.notInThisRun"
   | "baseline.status"
@@ -209,13 +210,14 @@ export const en: Record<MessageKey, string> = {
   "attachment.copyLogLabel": "Copy log {name}",
   "attachment.screenshotFor": "Screenshot for {context}: {name}",
   "attachment.viewFullSize": "View full size: {label}",
-  "baseline.ambiguous": "Ambiguous group",
+  "baseline.ambiguous": "{count, plural, one {Ambiguous group} other {Ambiguous groups}}",
   "baseline.badgeFixed": "Fixed",
   "baseline.badgeNewFailure": "New failure",
   "baseline.fixed": "Fixed",
   "baseline.heading": "Compared with baseline",
   "baseline.more": "{count, plural, one {# more scenario is in the JSON summary; use --json.} other {# more scenarios are in the JSON summary; use --json.}}",
-  "baseline.newFailures": "New failures",
+  "baseline.moreCapped": "{count, plural, one {# more scenario is in the JSON summary of {total} (up to {cap});} other {# more scenarios are in the JSON summary of {total} (up to {cap});}} {missing, plural, one {# is only counted. Use --json.} other {# are only counted. Use --json.}}",
+  "baseline.newFailures": "{count, plural, one {New failure} other {New failures}}",
   "baseline.notInThisRun": "Not in this run",
   "baseline.status": "Baseline status: {status}",
   "baseline.stillFailing": "Still failing",
@@ -414,13 +416,14 @@ export const de: Record<MessageKey, string> = {
   "attachment.copyLogLabel": "Protokoll {name} kopieren",
   "attachment.screenshotFor": "Screenshot für {context}: {name}",
   "attachment.viewFullSize": "In voller Größe anzeigen: {label}",
-  "baseline.ambiguous": "Mehrdeutige Gruppe",
+  "baseline.ambiguous": "{count, plural, one {Mehrdeutige Gruppe} other {Mehrdeutige Gruppen}}",
   "baseline.badgeFixed": "Behoben",
   "baseline.badgeNewFailure": "Neuer Fehler",
   "baseline.fixed": "Behoben",
   "baseline.heading": "Vergleich mit Baseline",
   "baseline.more": "{count, plural, one {# weiteres Szenario steht in der JSON-Zusammenfassung; nutze --json.} other {# weitere Szenarien stehen in der JSON-Zusammenfassung; nutze --json.}}",
-  "baseline.newFailures": "Neuer Fehler",
+  "baseline.moreCapped": "{count, plural, one {# weiteres Szenario steht in der JSON-Zusammenfassung von {total} (bis zu {cap});} other {# weitere Szenarien stehen in der JSON-Zusammenfassung von {total} (bis zu {cap});}} {missing, plural, one {# wird nur gezählt. Nutze --json.} other {# werden nur gezählt. Nutze --json.}}",
+  "baseline.newFailures": "{count, plural, one {Neuer Fehler} other {Neue Fehler}}",
   "baseline.notInThisRun": "Nicht in diesem Lauf",
   "baseline.status": "Baseline-Status: {status}",
   "baseline.stillFailing": "Weiterhin fehlgeschlagen",

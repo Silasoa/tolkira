@@ -1,6 +1,7 @@
 import { constants } from 'node:fs';
-import { open, type FileHandle } from 'node:fs/promises';
+import { open, stat, type FileHandle } from 'node:fs/promises';
 import { displayUri, type SummaryScenarioIdentity, type SummaryStatus } from './summary.js';
+import { oneLine } from './text.js';
 
 /** A baseline summary is one JSON document; the input cap does not apply. */
 export const BASELINE_MAX_BYTES = 10_485_760;
@@ -62,11 +63,6 @@ export interface BaselineComparison {
 
 class BaselineValidationError extends Error {}
 
-function oneLine(value: string): string {
-  // oxlint-disable-next-line no-control-regex
-  return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ');
-}
-
 function fail(file: string, reason: string): never {
   throw new BaselineValidationError(
     `Invalid baseline ${oneLine(file)}: ${reason}`,
@@ -75,7 +71,7 @@ function fail(file: string, reason: string): never {
 
 function readError(file: string, error: unknown): Error {
   const detail = error instanceof Error ? error.message : String(error);
-  return new Error(`Cannot read baseline ${oneLine(file)}: ${detail}`);
+  return new Error(`Cannot read baseline ${oneLine(file)}: ${oneLine(detail)}`);
 }
 
 function excerpt(value: unknown): string {
@@ -94,7 +90,7 @@ function excerpt(value: unknown): string {
   return JSON.stringify(flat.length > 40 ? `${flat.slice(0, 40)}…` : flat);
 }
 
-async function readBounded(handle: FileHandle, size: number): Promise<string> {
+async function readBounded(handle: FileHandle, size: number): Promise<Buffer> {
   const buffer = Buffer.alloc(size);
   let offset = 0;
   while (offset < size) {
@@ -107,46 +103,64 @@ async function readBounded(handle: FileHandle, size: number): Promise<string> {
     if (bytesRead === 0) break;
     offset += bytesRead;
   }
-  return buffer.toString('utf8', 0, offset);
+  return buffer.subarray(0, offset);
+}
+
+function decodeText(file: string, bytes: Uint8Array): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    fail(file, 'not valid UTF-8');
+  }
 }
 
 async function readText(file: string): Promise<string> {
+  let size: number;
+  try {
+    const info = await stat(file);
+    if (!info.isFile()) fail(file, 'not a regular file');
+    if (info.size > BASELINE_MAX_BYTES) {
+      fail(file, `file is larger than ${BASELINE_MAX_BYTES} bytes (10 MiB)`);
+    }
+    size = info.size;
+  } catch (error) {
+    if (error instanceof BaselineValidationError) throw error;
+    throw readError(file, error);
+  }
+
   let handle: FileHandle;
   try {
-    // O_NONBLOCK is undefined on Windows; the fstat regular-file guard does the work.
+    // O_NONBLOCK is undefined on Windows; the regular-file checks do the work.
     handle = await open(file, constants.O_RDONLY | constants.O_NONBLOCK);
   } catch (error) {
     throw readError(file, error);
   }
   try {
-    const info = await handle.stat();
+    // The pre-open stat guards a directory or device; this one closes TOCTOU.
+    const info = await handle.stat().catch((error: unknown) => {
+      throw readError(file, error);
+    });
     if (!info.isFile()) fail(file, 'not a regular file');
     if (info.size > BASELINE_MAX_BYTES) {
-      fail(
-        file,
-        `file is larger than ${BASELINE_MAX_BYTES} bytes (10 MiB)`,
-      );
+      fail(file, `file is larger than ${BASELINE_MAX_BYTES} bytes (10 MiB)`);
     }
-    return await readBounded(handle, info.size);
+    const bytes = await readBounded(handle, size).catch((error: unknown) => {
+      throw readError(file, error);
+    });
+    return decodeText(file, bytes);
   } finally {
     await handle.close().catch(() => undefined);
   }
 }
 
-function assertDepth(value: unknown, file: string): void {
-  const stack: Array<[unknown, number]> = [[value, 0]];
-  while (stack.length > 0) {
-    const entry = stack.pop();
-    if (!entry) break;
-    const [current, depth] = entry;
-    if (depth > MAX_DEPTH) {
-      fail(file, `value is nested deeper than ${MAX_DEPTH} levels`);
-    }
-    if (Array.isArray(current)) {
-      for (const item of current) stack.push([item, depth + 1]);
-    } else if (typeof current === 'object' && current !== null) {
-      for (const item of Object.values(current)) stack.push([item, depth + 1]);
-    }
+function assertDepth(value: unknown, depth: number, file: string): void {
+  if (depth > MAX_DEPTH) {
+    fail(file, `value is nested deeper than ${MAX_DEPTH} levels`);
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) assertDepth(item, depth + 1, file);
+  } else if (typeof value === 'object' && value !== null) {
+    for (const item of Object.values(value)) assertDepth(item, depth + 1, file);
   }
 }
 
@@ -201,7 +215,8 @@ function parseScenario(
 
 /**
  * Reads and validates a schema-2 summary. The file is opened read-only, checked
- * on the descriptor, capped before any content is read and never rewritten.
+ * before and after opening, capped before any content is read and never
+ * rewritten.
  */
 export async function readBaseline(file: string): Promise<BaselineSummary> {
   let text = await readText(file);
@@ -210,7 +225,10 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
   let document: unknown;
   try {
     document = JSON.parse(text);
-  } catch {
+  } catch (error) {
+    if (error instanceof RangeError) {
+      fail(file, 'value is nested too deeply to parse');
+    }
     fail(file, 'not valid JSON');
   }
   if (
@@ -225,6 +243,9 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
     if (Object.hasOwn(data, key)) {
       fail(file, `unsupported key ${key}`);
     }
+  }
+  if (Array.isArray(data.runs) && !Array.isArray(data.scenarios)) {
+    fail(file, 'is a history sidecar; expected a schema-2 report summary');
   }
   if (data.schemaVersion !== 2) {
     fail(
@@ -241,7 +262,7 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
   if (!Array.isArray(data.scenarios)) {
     fail(file, 'scenarios must be an array');
   }
-  assertDepth(document, file);
+  assertDepth(document, 0, file);
 
   const scenarios = data.scenarios.map((entry, index) =>
     parseScenario(entry, index, file),
@@ -256,6 +277,12 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
 interface Pair {
   base: BaselineScenario;
   current: SummaryScenarioIdentity;
+}
+
+interface Pairing {
+  pairs: Pair[];
+  unmatchedBase: BaselineScenario[];
+  unmatchedCurrent: SummaryScenarioIdentity[];
 }
 
 function groupKey(feature: string, name: string): string {
@@ -273,7 +300,7 @@ function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
   return groups;
 }
 
-function copyBaselineRow(row: BaselineScenario): BaselineScenario {
+function normalizeBaselineRow(row: BaselineScenario): BaselineScenario {
   return {
     feature: row.feature,
     name: row.name,
@@ -311,41 +338,83 @@ function compareBaselineRows(a: BaselineScenario, b: BaselineScenario): number {
   );
 }
 
-function pairUnique(
+/**
+ * Pairs only keys that occur exactly once on each side. A duplicate or missing
+ * key leaves both rows unmatched for the next pass. O(base + current).
+ */
+function pairByKey(
   baseRows: BaselineScenario[],
   currentRows: SummaryScenarioIdentity[],
   key: (row: { uri: string; example?: string }) => string | undefined,
-): Pair[] | undefined {
-  const used = new Set<number>();
-  const pairs: Pair[] = [];
-  for (const base of baseRows) {
-    const wanted = key(base);
-    let match = -1;
-    for (let index = 0; index < currentRows.length; index += 1) {
-      const candidate = currentRows[index];
-      if (!candidate || used.has(index) || key(candidate) !== wanted) continue;
-      if (match >= 0) return undefined;
-      match = index;
-    }
-    const current = currentRows[match];
-    if (!current) return undefined;
-    used.add(match);
-    pairs.push({ base, current });
+): Pairing {
+  const baseCounts = new Map<string, number>();
+  for (const row of baseRows) {
+    const id = key(row);
+    if (id !== undefined) baseCounts.set(id, (baseCounts.get(id) ?? 0) + 1);
   }
-  return used.size === currentRows.length ? pairs : undefined;
+  const currentCounts = new Map<string, number>();
+  const currentIndex = new Map<string, number>();
+  currentRows.forEach((row, index) => {
+    const id = key(row);
+    if (id === undefined) return;
+    currentCounts.set(id, (currentCounts.get(id) ?? 0) + 1);
+    currentIndex.set(id, index);
+  });
+
+  const pairs: Pair[] = [];
+  const matched = new Set<number>();
+  const unmatchedBase: BaselineScenario[] = [];
+  for (const base of baseRows) {
+    const id = key(base);
+    if (
+      id === undefined ||
+      baseCounts.get(id) !== 1 ||
+      currentCounts.get(id) !== 1
+    ) {
+      unmatchedBase.push(base);
+      continue;
+    }
+    const index = currentIndex.get(id);
+    const current = index === undefined ? undefined : currentRows[index];
+    if (index === undefined || current === undefined || matched.has(index)) {
+      unmatchedBase.push(base);
+      continue;
+    }
+    pairs.push({ base, current });
+    matched.add(index);
+  }
+  const unmatchedCurrent = currentRows.filter((_, index) => !matched.has(index));
+  return { pairs, unmatchedBase, unmatchedCurrent };
 }
 
+/**
+ * Two passes: the example coordinate when every row on both sides carries it,
+ * then display URI for the genuinely unmatched remainder. Any row left over
+ * makes the whole group ambiguous.
+ */
 function pairRepeated(
   baseRows: BaselineScenario[],
   currentRows: SummaryScenarioIdentity[],
 ): Pair[] | undefined {
-  if (
+  const coordinates =
     baseRows.every((row) => row.example !== undefined) &&
-    currentRows.every((row) => row.example !== undefined)
-  ) {
-    return pairUnique(baseRows, currentRows, (row) => row.example);
+    currentRows.every((row) => row.example !== undefined);
+  const first = coordinates
+    ? pairByKey(baseRows, currentRows, (row) => row.example)
+    : {
+        pairs: [] as Pair[],
+        unmatchedBase: baseRows,
+        unmatchedCurrent: currentRows,
+      };
+  const second = pairByKey(
+    first.unmatchedBase,
+    first.unmatchedCurrent,
+    (row) => displayUri(row.uri),
+  );
+  if (second.unmatchedBase.length > 0 || second.unmatchedCurrent.length > 0) {
+    return undefined;
   }
-  return pairUnique(baseRows, currentRows, (row) => displayUri(row.uri));
+  return [...first.pairs, ...second.pairs];
 }
 
 function classifyPair(
@@ -412,7 +481,8 @@ export function compareBaseline(
   };
   const changes = new Map<string, BaselineChange>();
   const notInThisRun: BaselineScenario[] = [];
-  const baseGroups = groupBy(baseline.scenarios, (row) =>
+  const baseScenarios = baseline.scenarios.map(normalizeBaselineRow);
+  const baseGroups = groupBy(baseScenarios, (row) =>
     groupKey(row.feature, row.name),
   );
   const currentGroups = groupBy(current, (row) =>
@@ -428,7 +498,7 @@ export function compareBaseline(
       continue;
     }
     if (currentRows.length === 0) {
-      for (const row of baseRows) notInThisRun.push(copyBaselineRow(row));
+      for (const row of baseRows) notInThisRun.push(row);
       counts.notInThisRun += baseRows.length;
       continue;
     }

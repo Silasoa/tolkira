@@ -12,6 +12,10 @@ export interface RenderReportOptions {
   history?: HistoryRun[];
   /** Opt-in script-free report with every view stacked and every detail open. */
   static?: boolean;
+}
+
+/** Report options plus the validated earlier summary; not for the stream. */
+export interface BaselineRenderOptions extends RenderReportOptions {
   /** Validated earlier summary; the API accepts the projection, never a path. */
   baseline?: BaselineSummary;
 }

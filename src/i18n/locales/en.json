@@ -20,7 +20,7 @@
     "description": "Accessible label for opening an image attachment in the lightbox"
   },
   "baseline.ambiguous": {
-    "message": "Ambiguous group",
+    "message": "{count, plural, one {Ambiguous group} other {Ambiguous groups}}",
     "description": "Panel count label for base-key groups that could not be paired"
   },
   "baseline.badgeFixed": {
@@ -43,8 +43,12 @@
     "message": "{count, plural, one {# more scenario is in the JSON summary; use --json.} other {# more scenarios are in the JSON summary; use --json.}}",
     "description": "Remainder line after the ten shown not-in-this-run rows"
   },
+  "baseline.moreCapped": {
+    "message": "{count, plural, one {# more scenario is in the JSON summary of {total} (up to {cap});} other {# more scenarios are in the JSON summary of {total} (up to {cap});}} {missing, plural, one {# is only counted. Use --json.} other {# are only counted. Use --json.}}",
+    "description": "Remainder line when the JSON list cap hides some not-in-this-run scenarios"
+  },
   "baseline.newFailures": {
-    "message": "New failures",
+    "message": "{count, plural, one {New failure} other {New failures}}",
     "description": "Panel count label for scenarios that fail now and did not fail in the baseline"
   },
   "baseline.notInThisRun": {

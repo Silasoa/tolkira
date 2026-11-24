@@ -1,8 +1,7 @@
 import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { Readable, type Transform } from 'node:stream';
+import { Readable } from 'node:stream';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Envelope } from '@cucumber/messages';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { legacyFixture, messagesFixture } from './fixtures.js';
 import {
@@ -18,7 +17,6 @@ import {
   writeLegacyRun,
   writeText,
   type BaselineRenderOptions,
-  type BaselineSummary,
 } from './baseline-helpers.js';
 import {
   CucumberHtmlStream,
@@ -28,8 +26,6 @@ import {
 } from '../src/index.js';
 import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
-import type { RenderOptions } from '../src/render/types.js';
-import type { RenderReportOptions } from '../src/options.js';
 
 // The CLI tests never launch a browser: the PDF module is replaced here.
 const pdf = vi.hoisted(() => ({ renderPdf: vi.fn() }));
@@ -191,6 +187,65 @@ describe('CLI --baseline', () => {
       'Baseline: 2 new failures · 1 fixed · 3 still failing · 1 not in this run',
     );
     expect(result.stdout).not.toContain('gone one');
+  });
+
+  it('writes a Markdown CI file beside a baseline report', async () => {
+    const dir = await makeTempDir();
+    const current = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
+    const baseline = await writeText(
+      dir,
+      'mixed-baseline.json',
+      JSON.stringify(mixedBaseline(), null, 2),
+    );
+    const ciOut = path.join(dir, 'summary.md');
+
+    const result = await cli([
+      current,
+      '--baseline',
+      baseline,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      ciOut,
+    ]);
+
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout).toBe('');
+    expect(await readFile(ciOut, 'utf8')).toContain(
+      'Baseline: 2 new failures · 1 fixed · 3 still failing · 1 not in this run',
+    );
+  });
+
+  it('keeps the email bytes unchanged when a baseline is supplied', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const dir = await makeTempDir();
+    const current = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
+    const baseline = await writeText(
+      dir,
+      'mixed-baseline.json',
+      JSON.stringify(mixedBaseline(), null, 2),
+    );
+    const plainEmail = path.join(dir, 'plain-email.html');
+    const comparedEmail = path.join(dir, 'compared-email.html');
+    const report = path.join(dir, 'report.html');
+
+    const plain = await cli([current, '--out', report, '--email', plainEmail]);
+    const compared = await cli([
+      current,
+      '--baseline',
+      baseline,
+      '--out',
+      report,
+      '--email',
+      comparedEmail,
+    ]);
+
+    expect(plain.code, plain.stderr).toBe(0);
+    expect(compared.code, compared.stderr).toBe(0);
+    expect(await readFile(comparedEmail, 'utf8')).toBe(
+      await readFile(plainEmail, 'utf8'),
+    );
   });
 
   it('renders the PDF from a report that contains the panel', async () => {
@@ -373,6 +428,31 @@ describe('CLI --baseline usage errors', () => {
     await expectMissing(report);
   });
 
+  it('rejects the same path for --baseline and --history', async () => {
+    const dir = await makeTempDir();
+    const current = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
+    const baseline = await writeText(
+      dir,
+      'shared.json',
+      JSON.stringify(mixedBaseline(), null, 2),
+    );
+    const report = path.join(dir, 'report.html');
+
+    const result = await cli([
+      current,
+      '--baseline',
+      baseline,
+      '--out',
+      report,
+      '--history',
+      baseline,
+    ]);
+
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain('--baseline');
+    await expectMissing(report);
+  });
+
   it('rejects every path collision before reading the baseline', async () => {
     const dir = await makeTempDir();
     const inputFile = path.join(dir, 'input.json');
@@ -501,7 +581,7 @@ describe('baseline API', () => {
     expect(baselineBlock(summary).counts.fixed).toBe(1);
   });
 
-  it('does not accept a baseline on renderHtml or the stream', async () => {
+  it('rejects a baseline at the type level and ignores it at runtime', async () => {
     const envelopes = parseMessages(
       await readFile(screenshot, 'utf8'),
       screenshot,
@@ -509,24 +589,13 @@ describe('baseline API', () => {
     const plain = await renderHtml(envelopes, { title: 'Stream' });
     const baseline = validBaseline();
 
-    type RenderWithBaseline = (
-      list: Envelope[],
-      options: RenderOptions & { baseline?: BaselineSummary },
-    ) => Promise<string>;
-    const renderWithBaseline = renderHtml as unknown as RenderWithBaseline;
-    const ignored = await renderWithBaseline(envelopes, {
-      title: 'Stream',
-      baseline,
-    });
+    // @ts-expect-error renderHtml keeps RenderOptions; it takes no baseline.
+    const ignored = await renderHtml(envelopes, { title: 'Stream', baseline });
     expect(ignored).toBe(plain);
 
-    type StreamWithBaseline = new (
-      options: RenderReportOptions & { baseline?: BaselineSummary },
-    ) => Transform;
-    const Stream = CucumberHtmlStream as unknown as StreamWithBaseline;
-    const streamed = Readable.from(envelopes).pipe(
-      new Stream({ title: 'Stream', baseline }),
-    );
+    // @ts-expect-error the stream keeps RenderReportOptions; it takes no baseline.
+    const stream = new CucumberHtmlStream({ title: 'Stream', baseline });
+    const streamed = Readable.from(envelopes).pipe(stream);
     let html = '';
     for await (const chunk of streamed) html += chunk;
     expect(html).toBe(plain);
@@ -547,6 +616,7 @@ describe('baseline API', () => {
     expect(index).toMatch(
       /export\s+type\s*\{[^}]*\bBaselineSummary\b[^}]*\}/s,
     );
+    expect(index).toMatch(/\bBaselineRenderOptions\b/);
   });
 });
 

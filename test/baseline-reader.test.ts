@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { mkdir, readFile, symlink } from 'node:fs/promises';
+import { chmod, mkdir, readFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { legacyFixture } from './fixtures.js';
 import {
   BASELINE_MAX_BYTES,
@@ -117,16 +117,27 @@ const INVALID_CASES: Array<{
   { label: 'a document null', content: 'null' },
   {
     label: 'missing scenarios',
-    content: JSON.stringify({ schemaVersion: 2 }),
+    content: JSON.stringify({ schemaVersion: 2, status: 'passed' }),
+    reason: /scenarios must be an array/,
   },
   {
     label: 'non-array scenarios',
-    content: JSON.stringify({ schemaVersion: 2, scenarios: {} }),
+    content: JSON.stringify({
+      schemaVersion: 2,
+      status: 'passed',
+      scenarios: {},
+    }),
+    reason: /scenarios must be an array/,
   },
   {
     label: 'a history sidecar (schema 1)',
     content: JSON.stringify({ schemaVersion: 1, runs: [] }),
-    reason: /schema/i,
+    reason: /history sidecar|schema-2 report summary/i,
+  },
+  {
+    label: 'a history sidecar (schema 2)',
+    content: JSON.stringify({ schemaVersion: 2, runs: [] }),
+    reason: /history sidecar|schema-2 report summary/i,
   },
   {
     label: 'schema version 3',
@@ -261,9 +272,11 @@ const INVALID_CASES: Array<{
     label: 'a value nested deeper than 64 levels',
     content: JSON.stringify({
       schemaVersion: 2,
+      status: 'passed',
       scenarios: [],
       extra: nested(100),
     }),
+    reason: /deeper than 64/,
   },
 ];
 
@@ -279,6 +292,70 @@ describe('hostile baseline shapes', () => {
       'Object.prototype pollution',
     ).toBeUndefined();
     expect(Object.prototype).not.toHaveProperty('polluted');
+  });
+
+  it('accepts a document 64 levels deep and rejects 65', async () => {
+    const dir = await makeTempDir();
+    const accepted = await writeText(
+      dir,
+      'depth-64.json',
+      JSON.stringify({
+        schemaVersion: 2,
+        status: 'passed',
+        scenarios: [],
+        extra: nested(63),
+      }),
+    );
+    const atBoundary = await cli([input, '--baseline', accepted, '--json']);
+    expect(atBoundary.code, atBoundary.stderr).toBe(0);
+
+    const rejected = await writeText(
+      dir,
+      'depth-65.json',
+      JSON.stringify({
+        schemaVersion: 2,
+        status: 'passed',
+        scenarios: [],
+        extra: nested(64),
+      }),
+    );
+    const overBoundary = await cli([input, '--baseline', rejected, '--json']);
+    expect(overBoundary.code).toBe(1);
+    expect(overBoundary.stderr).toContain('depth-65.json');
+    expect(overBoundary.stderr).toMatch(/deeper than 64/);
+  });
+
+  it('names the file when JSON.parse overflows on extreme nesting', async () => {
+    // V8 parses multi-million-level arrays iteratively, so inject the RangeError
+    // at the parse seam to exercise the reader's overflow branch.
+    const dir = await makeTempDir();
+    const file = await writeText(dir, 'range-error.json', JSON.stringify(validBaseline()));
+    const parse = vi.spyOn(JSON, 'parse').mockImplementationOnce(() => {
+      throw new RangeError('Maximum call stack size exceeded');
+    });
+    try {
+      const result = await cli([input, '--baseline', file, '--json']);
+
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain('range-error.json');
+      expect(result.stderr).toMatch(/nested too deeply/);
+      expect(result.stderr).not.toMatch(/call stack|JSON\.parse/);
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it('rejects invalid UTF-8 and names the file', async () => {
+    const dir = await makeTempDir();
+    const file = path.join(dir, 'invalid-utf8.json');
+    await writeFileSync(file, Buffer.from([0x7b, 0xff, 0xfe, 0x7d]));
+
+    const result = await cli([input, '--baseline', file, '--json']);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('invalid-utf8.json');
+    expect(result.stderr).toContain('not valid UTF-8');
+    expect(result.stdout).toBe('');
   });
 
   it('rejects a missing file, naming it, and writes nothing', async () => {
@@ -319,10 +396,33 @@ describe('hostile baseline shapes', () => {
 
     expect(result.code, result.stderr).toBe(1);
     expect(result.stderr).toContain('baseline-directory');
+    expect(result.stderr).toMatch(/not a regular file/);
     await expect(
       readFile(path.join(dir, 'report.html'), 'utf8'),
     ).rejects.toMatchObject({ code: 'ENOENT' });
   });
+
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'rejects an unreadable baseline and names the file',
+    async () => {
+      const dir = await makeTempDir();
+      const file = await writeText(
+        dir,
+        'unreadable-baseline.json',
+        JSON.stringify(validBaseline()),
+      );
+      await chmod(file, 0o000);
+      try {
+        const result = await cli([input, '--baseline', file, '--json']);
+
+        expect(result.code, result.stderr).toBe(1);
+        expect(result.stderr).toContain('unreadable-baseline.json');
+        expect(result.stdout).toBe('');
+      } finally {
+        await chmod(file, 0o600);
+      }
+    },
+  );
 
   it.skipIf(!DIR_SYMLINKS)('rejects a symlink to a directory', async () => {
     const dir = await makeTempDir();

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderReport } from '../src/index.js';
-import { REPORT_CSS } from '../src/render/styles.js';
+import { renderBaselinePanel } from '../src/render/baseline.js';
+import { createTranslator } from '../src/render/i18n.js';
+import { BASELINE_CSS, REPORT_CSS } from '../src/render/styles.js';
 import {
   cleanupTempDirs,
   makeTempDir,
@@ -11,6 +13,7 @@ import {
   scenarioSummaryFor,
   styleBlock,
   writeLegacyRun,
+  type BaselineCounts,
   type BaselineRenderOptions,
   type BaselineScenario,
   type BaselineSummary,
@@ -101,7 +104,56 @@ describe('baseline report panel', () => {
     expect(slice).toContain('Failed');
     expect(slice).toContain('Not in this run');
     expect(slice).toContain('gone one');
+    expect(slice).toContain('<li><b>2</b> New failures</li>');
+    expect(slice).toContain('<li><b>1</b> Fixed</li>');
+    expect(slice).toContain('<li><b>3</b> Still failing</li>');
+    expect(slice).toContain('<li><b>1</b> Not in this run</li>');
+    expect(slice).not.toContain('Ambiguous group');
+    expect(slice).not.toContain('Added');
+    expect(slice).toContain(
+      '<span class="baselineFeature">Checkout</span> · <span class="baselineName">gone one</span>',
+    );
+    expect(slice).toMatch(/statusText fail">Failed/);
     expect(slice).not.toContain('<a ');
+  });
+
+  it('shows a not-in-this-run row with its feature, name, example and status', async () => {
+    const dir = await makeTempDir();
+    const file = await writeLegacyRun(dir, 'example.json', mixedFeatures());
+    const baseline: BaselineSummary = {
+      schemaVersion: 2,
+      status: 'failed',
+      scenarios: [
+        {
+          feature: 'Checkout',
+          name: 'pays by card',
+          uri: MIXED_URI,
+          status: 'failed',
+          executed: true,
+          example: '#1.2',
+        },
+      ],
+    };
+
+    const html = await render(file, baseline);
+    const slice = panelSlice(html);
+
+    expect(slice).toContain(
+      '<span class="baselineFeature">Checkout</span> · <span class="baselineName">pays by card</span> <span class="baselineExample">#1.2</span>',
+    );
+    expect(slice).toContain('statusText fail">Failed');
+    expect(slice).toContain('<li><b>1</b> Not in this run</li>');
+  });
+
+  it('omits the heading and list when no baseline row is absent', async () => {
+    const { file, baseline } = await badgeRun();
+    const html = await render(file, baseline);
+    const slice = panelSlice(html);
+
+    expect(slice).toContain('<li><b>0</b> Not in this run</li>');
+    expect(slice).not.toContain('<h3>');
+    expect(slice).not.toContain('class="baselineList"');
+    expect(slice).not.toContain('Ambiguous group');
   });
 
   it('lists at most ten not-in-this-run rows and points to --json for the rest', async () => {
@@ -131,8 +183,36 @@ describe('baseline report panel', () => {
     expect(slice).toContain('15');
     // The complete count is 15; the standalone 5 is the remainder line.
     expect(slice).toMatch(/(?<!1)5/);
-    expect(slice).toContain('--json');
+    expect(slice).toContain(
+      '5 more scenarios are in the JSON summary; use --json.',
+    );
     expect(slice).not.toContain('<button');
+    expect(slice).not.toContain('<a ');
+  });
+
+  it('states the JSON cap honestly when more than 50 rows are absent', async () => {
+    const dir = await makeTempDir();
+    const file = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
+    const absent: BaselineScenario[] = Array.from({ length: 60 }, (_, index) => ({
+      feature: 'Checkout',
+      name: `entry ${String(index).padStart(2, '0')}`,
+      uri: MIXED_URI,
+      status: 'failed',
+      executed: true,
+    }));
+
+    const html = await render(file, {
+      schemaVersion: 2,
+      status: 'failed',
+      scenarios: absent,
+    });
+    const slice = panelSlice(html);
+
+    expect(slice).toContain('<li><b>60</b> Not in this run</li>');
+    expect(slice).toContain(
+      '40 more scenarios are in the JSON summary of 60 (up to 50); 10 are only counted. Use --json.',
+    );
+    expect(slice).not.toContain('entry 10');
     expect(slice).not.toContain('<a ');
   });
 
@@ -143,12 +223,12 @@ describe('baseline report panel', () => {
 
     expect(scenarioSummaryFor(html, uri, 'turns red')).toMatch(/new failure/i);
     expect(scenarioSummaryFor(html, uri, 'turns green')).toMatch(/fixed/i);
-    expect(scenarioSummaryFor(html, uri, 'stays red')).not.toMatch(
-      /new failure|fixed/i,
-    );
-    expect(scenarioSummaryFor(html, uri, 'appears')).not.toMatch(
-      /new failure|fixed/i,
-    );
+    const stillFailing = scenarioSummaryFor(html, uri, 'stays red');
+    expect(stillFailing).not.toMatch(/new failure|fixed/i);
+    expect(stillFailing).not.toContain('class="changeBadge"');
+    const added = scenarioSummaryFor(html, uri, 'appears');
+    expect(added).not.toMatch(/new failure|fixed/i);
+    expect(added).not.toContain('class="changeBadge"');
   });
 
   it('joins rows by the pickle id, not by a repeated name', async () => {
@@ -202,7 +282,7 @@ describe('baseline report panel', () => {
     const slice = panelRegion(html);
 
     expect(slice).toContain('Baseline');
-    expect(slice).toContain('Neuer Fehler');
+    expect(slice).toContain('Neue Fehler');
     expect(slice).toContain('Behoben');
     expect(slice).toContain('Weiterhin fehlgeschlagen');
     expect(slice).toContain('Nicht in diesem Lauf');
@@ -263,6 +343,89 @@ describe('baseline report panel', () => {
     expect(slice).toMatch(/1/);
   });
 
+  function panelFor(
+    locale: string,
+    counts: Partial<BaselineCounts>,
+  ): string {
+    return renderBaselinePanel(
+      {
+        block: {
+          status: 'failed',
+          counts: {
+            newFailures: 0,
+            fixed: 0,
+            stillFailing: 0,
+            other: 0,
+            notInThisRun: 0,
+            added: 0,
+            ambiguous: 0,
+            ...counts,
+          },
+          notInThisRun: [],
+        },
+        changes: new Map(),
+      },
+      createTranslator(locale),
+    );
+  }
+
+  it.each([
+    ['en', 0, 'New failures'],
+    ['en', 1, 'New failure'],
+    ['en', 2, 'New failures'],
+    ['de', 0, 'Neue Fehler'],
+    ['de', 1, 'Neuer Fehler'],
+    ['de', 2, 'Neue Fehler'],
+  ])('pluralizes the new-failure count %i in %s', (locale, count, label) => {
+    expect(panelFor(locale, { newFailures: count })).toContain(
+      `<li><b>${count}</b> ${label}</li>`,
+    );
+  });
+
+  it.each([
+    ['en', 1, 'Ambiguous group'],
+    ['en', 2, 'Ambiguous groups'],
+    ['de', 1, 'Mehrdeutige Gruppe'],
+    ['de', 2, 'Mehrdeutige Gruppen'],
+  ])('pluralizes the ambiguous count %i in %s', (locale, count, label) => {
+    expect(panelFor(locale, { ambiguous: count })).toContain(
+      `<li><b>${count}</b> ${label}</li>`,
+    );
+  });
+
+  it('hides the ambiguous count at zero in both locales', () => {
+    expect(panelFor('en', { ambiguous: 0 })).not.toContain('Ambiguous');
+    expect(panelFor('de', { ambiguous: 0 })).not.toContain('Mehrdeutig');
+  });
+
+  it('strips controls, ANSI and bidi marks from baseline text', async () => {
+    const dir = await makeTempDir();
+    const file = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
+    const baseline: BaselineSummary = {
+      schemaVersion: 2,
+      status: 'failed',
+      scenarios: [
+        {
+          feature: 'Check\u0007out',
+          name: 'pays\u0000\u001b[31m by\u202E card',
+          uri: 'features/control.feature',
+          status: 'failed',
+          executed: true,
+          example: '#1.\u00002',
+        },
+      ],
+    };
+
+    const html = await render(file, baseline);
+    const slice = panelSlice(html);
+
+    expect(slice).toContain(
+      '<span class="baselineFeature">Checkout</span> · <span class="baselineName">pays by card</span> <span class="baselineExample">#1.2</span>',
+    );
+    // oxlint-disable-next-line no-control-regex
+    expect(slice).not.toMatch(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u202e]/);
+  });
+
   it('escapes hostile baseline text and adds no link', async () => {
     const dir = await makeTempDir();
     const file = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
@@ -306,8 +469,18 @@ describe('baseline report panel', () => {
 
     expect(styleBlock(plain)).toBe(REPORT_CSS);
     const style = styleBlock(compared);
-    expect(style.startsWith(REPORT_CSS)).toBe(true);
-    expect(style.length).toBeGreaterThan(REPORT_CSS.length);
+    expect(style).toBe(REPORT_CSS + BASELINE_CSS);
+    expect(style).toContain('.baselinePanel{');
+  });
+
+  it('keeps the baseline CSS in the first style block when an accent is set', async () => {
+    const { file, baseline } = await mixedRun();
+    const html = await render(file, baseline, { accent: '#123456' });
+    const style = styleBlock(html);
+
+    expect(style).toBe(`${REPORT_CSS}:root{--accent:#123456}${BASELINE_CSS}`);
+    expect(html.match(/<style>/g) ?? []).toHaveLength(1);
+    expect(style.endsWith(BASELINE_CSS)).toBe(true);
   });
 
   it('renders no panel without a baseline', async () => {
