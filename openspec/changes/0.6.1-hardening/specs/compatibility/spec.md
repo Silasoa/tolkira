@@ -38,3 +38,11 @@ NOT produce a sidecar.
 - **AND** all about 130,000 elements are present
 - **AND** their order is the input order
 - **AND** every element has `retried: 0`
+
+#### Scenario: Merge above the engine argument limit
+
+- **WHEN** a one-element feature is followed by a same-URI duplicate with about
+  200,000 elements
+- **THEN** the sidecar is written without `RangeError`
+- **AND** the appended element order is preserved
+- **AND** the old `push(...elements)` spread boundary is exercised

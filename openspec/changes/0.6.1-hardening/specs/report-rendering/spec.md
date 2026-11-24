@@ -4,12 +4,13 @@
 
 ### Requirement: Keep local user paths out of display URIs
 
-For an absolute path or file URL, the display URI shown in the report, JSON
-summary and copied failure text SHALL NOT contain a local user name. A
-`file://` URL and the Windows `/C:/...` form SHALL keep their path root. On an
-absolute path or file URL, including after a `/mnt/<drive>` mount, a leading
-`Users`, `home` or `Documents and Settings` segment and the next segment SHALL
-be dropped.
+For an absolute path or file URL, the display URI in the report, JSON summary
+and copied failure text SHALL NOT contain a local user name. The analysis SHALL
+remove a `file:` scheme and local authority, drive token and `/mnt/<drive>`
+mount, treat `%2F`/`%5C` as separators, then drop every `Users`, `home` or
+`Documents and Settings` segment plus the next segment wherever they occur. It
+SHALL use the `/features/` marker or the last three remaining segments and
+SHALL NOT show a drive prefix.
 
 #### Scenario: POSIX file URL
 
@@ -17,6 +18,20 @@ be dropped.
 - **THEN** the display URI is `features/login.feature`
 - **AND** the HTML, the `--json` `uri` field and the copied failure text contain
   no `<user>`
+
+#### Scenario: Single-slash and localhost file URLs
+
+- **WHEN** a scenario URI is `file:/home/<user>/proj/login.feature` or
+  `file://localhost/home/<user>/proj/login.feature`
+- **THEN** the display URI is `proj/login.feature`
+- **AND** no surface contains the user name
+
+#### Scenario: Remote file URL and UNC path
+
+- **WHEN** a scenario URI is `file://server/share/home/<user>/proj/login.feature`
+  or `//server/share/Users/<user>/proj/login.feature`
+- **THEN** the display URI is `share/proj/login.feature`
+- **AND** no surface contains the user name
 
 #### Scenario: WSL mount path
 
@@ -29,6 +44,19 @@ be dropped.
 - **WHEN** a scenario URI is `file:///C:/Users/<user>/proj/login.feature`
 - **THEN** the display URI is `proj/login.feature`
 - **AND** no surface contains the user name or the `C:` drive prefix
+
+#### Scenario: Percent-encoded separators
+
+- **WHEN** a scenario URI is `file:///home/<user>%2Fproj%2Flogin.feature` or
+  `file:///C:%5CUsers%5C<user>%5Cproj/login.feature`
+- **THEN** the display URI is `proj/login.feature`
+- **AND** no surface contains the user name
+
+#### Scenario: Home segment below another directory
+
+- **WHEN** a scenario URI is `/srv/home/<user>/proj/login.feature`
+- **THEN** the display URI is `srv/proj/login.feature`
+- **AND** no surface contains the user name
 
 #### Scenario: Absolute path without a features marker
 
@@ -48,6 +76,17 @@ be dropped.
 - **WHEN** a shortened URI contains HTML-like text
 - **THEN** it renders as escaped text
 - **AND** the report makes no network request
+
+### Requirement: Empty display URI for a home-only absolute path
+
+An absolute path that contains only a home directory SHALL have an empty display
+URI. It SHALL NOT fall back to the raw path or URI.
+
+#### Scenario: Path that is only a home directory
+
+- **WHEN** a scenario URI is `/home/<user>` or `/mnt/c/Users/<user>`
+- **THEN** the display URI is empty
+- **AND** no surface falls back to the raw path or contains the user name
 
 ### Requirement: Keep relative paths and the features marker stable
 
@@ -87,12 +126,15 @@ no feature name exists.
 ### Requirement: Render attachments safely
 
 The report SHALL render supported images, videos and text attachments. It SHALL
-NOT execute HTML or SVG attachments as active content. A non-base64 image,
-video or audio body that cannot be percent-encoded because it contains an
-unpaired UTF-16 surrogate SHALL fall back to a base64 data URI built from its
-UTF-8 bytes. A normal UTF-8 media body SHALL keep a readable data URI, a BASE64
-body SHALL keep its existing data URI unchanged, and an empty body SHALL render
-no data URI. No attachment SHALL abort the whole report.
+NOT execute HTML or SVG attachments as active content. A non-base64 image or
+video body that cannot be percent-encoded because it contains an unpaired
+UTF-16 surrogate SHALL fall back to a base64 data URI built from its UTF-8
+bytes. A normal UTF-8 image or video body SHALL keep a readable data URI, a
+BASE64 body SHALL keep its existing data URI unchanged, and an empty body SHALL
+render no data URI. No attachment SHALL abort the whole report. Every other
+media type, including every `audio/*` type, SHALL be normalised to
+`application/octet-stream` and shown as a binary attachment rather than inline
+media; adding an `audio/*` MIME is a separate change.
 
 #### Scenario: Screenshot is shown
 
@@ -111,17 +153,23 @@ no data URI. No attachment SHALL abort the whole report.
 - **AND** the image uses a `data:<type>;base64,` source
 - **AND** no partial report is written
 
-#### Scenario: Lone surrogate in a video or audio body
+#### Scenario: Lone surrogate in a video body
 
-- **WHEN** a non-base64 video or audio body contains an unpaired UTF-16
-  surrogate
+- **WHEN** a non-base64 video body contains an unpaired UTF-16 surrogate
 - **THEN** the report renders
 - **AND** the media uses a `data:<type>;base64,` source
 - **AND** the run does not fail with `URI malformed`
 
+#### Scenario: Audio media type is a binary attachment
+
+- **WHEN** an attachment declares `audio/mpeg`
+- **THEN** its media type is `application/octet-stream`
+- **AND** it is shown as a binary attachment, not an inline player
+- **AND** the report still renders
+
 #### Scenario: Normal UTF-8 media body
 
-- **WHEN** a non-base64 image, video or audio body is valid UTF-8
+- **WHEN** a non-base64 image or video body is valid UTF-8
 - **THEN** its existing readable percent-encoded data URI is unchanged
 - **AND** no base64 fallback is used
 
