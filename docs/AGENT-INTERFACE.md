@@ -116,16 +116,26 @@ tolkira test-results/ --ci markdown --baseline previous.json
   invalid or wrong-schema baseline exits 1, names the file and writes nothing.
   The cap is 10 MiB (10,485,760 bytes).
 - Match by feature name + scenario name. A unique key matches. A repeated group
-  is refined by the outline example coordinate when every row on both sides
-  carries `example`, then by display URI when exactly one unmatched row on each
-  side carries it. A group that still cannot be reduced to unique rows is
-  ambiguous: its rows make no claim and count once in `ambiguous`. Pickle id,
-  order, line, tags, step text and status are never identity.
+  is paired in two passes: the outline example coordinate when every row on both
+  sides carries `example`, then display URI for the genuinely unmatched remainder
+  when exactly one unmatched row on each side carries it. A group that still
+  cannot be reduced to unique rows is ambiguous: its rows make no claim and
+  count once in `ambiguous`. Pickle id, order, line, tags, step text and status
+  are never identity.
 - Classify every baseline row outside an ambiguous group as new failure, fixed,
   still failing, `other` (no claim) or not in this run. An unmatched current row
   that fails is a new failure; an unmatched executed row that does not fail is
-  `added`. Use one baseline per suite and variant, and compare the merged run
-  for shards. A wrong baseline produces spurious counts, not a crash.
+  `added`. New failure means the row fails now and did not fail in the baseline,
+  including a scenario new to the suite; there is no separate regressed class.
+  Not in this run means absent from this summary (deleted, never started,
+  filtered or another shard), not a claim of deletion. A repeated group that
+  gains an extra current row is ambiguous, not a new failure or added row. Use
+  one baseline per suite and variant, and compare the merged run for shards. A
+  wrong baseline produces spurious counts, not a crash.
+- The report and summary embed baseline feature/scenario names and URIs, escaped
+  like current-run text, but never the baseline path. The file has no baseline
+  title or timestamp; the two artifacts are linked by the command. `renderHtml`
+  and `CucumberHtmlStream` keep their current-run options.
 - Keep the baseline path separate from the current `--json` redirect:
   `--json > baseline.json` truncates the file before Tolkira starts when the
   same path is also passed to `--baseline`. The CLI cannot detect that shell
@@ -253,6 +263,7 @@ import {
   renderPdf,
   renderReport,
   summarizeReport,
+  type BaselineRenderOptions,
   type BaselineSummary,
 } from 'tolkira';
 
@@ -284,11 +295,12 @@ const {
   historyLimit: 365,
   baseline: previous,
 });
-const htmlOnly = await renderReport(inputs, {
+const renderOptions: BaselineRenderOptions = {
   title: 'Nightly',
   locale: 'de',
   baseline: previous,
-});
+};
+const htmlOnly = await renderReport(inputs, renderOptions);
 const email = renderEmail(summary, {
   title: 'Nightly',
   locale: 'de',
@@ -357,12 +369,15 @@ fields are additive.
 
 `baseline` is the validated `BaselineSummary` projection, never a path; the CLI
 is the only file reader. `generateReport`, `renderReport` and `summarizeReport`
-accept it and build the comparison once. `renderHtml` and `CucumberHtmlStream`
-do not take a baseline in 0.6.0: their accepted options stay unchanged, an
-unknown `baseline` key is ignored, and the stream keeps its same-input-same-HTML
-contract. Read a baseline with your own file handling and validate it before
-passing the projection; the exported type carries `schemaVersion`, the overall
-status and the scenario identity/status/execution fields.
+accept it and build the comparison once. The exported `BaselineRenderOptions`
+extends `RenderReportOptions` with that field. `renderHtml` and
+`CucumberHtmlStream` do not take a baseline in 0.6.0: they keep
+`RenderOptions`/`RenderReportOptions`, an unknown `baseline` key is ignored, and
+the stream keeps its same-input-same-HTML contract. Read a baseline with your own
+file handling and validate it before passing the projection; the exported type
+carries `schemaVersion`, the overall status and the scenario
+identity/status/execution fields. The report and summary embed baseline
+feature/scenario names and URIs, never the baseline path.
 
 The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 
@@ -373,7 +388,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | history | `--history <file>` reads and appends a sidecar; needs `--out`. `--history-limit <n>` sets the window (default 30, range 1 to 365) and needs `--history` | `history` array and `historyLimit`; `generateReport` appends the current run and bounds the list, `renderReport` and the stream render it as given |
-| baseline | `--baseline <file>` reads a read-only schema-2 summary and compares; needs `--out`, `--pdf`, `--json` or `--ci markdown` | `baseline: BaselineSummary` on `generateReport`, `renderReport` and `summarizeReport`; not on `renderHtml` or the stream |
+| baseline | `--baseline <file>` reads a read-only schema-2 summary and compares; needs `--out`, `--pdf`, `--json` or `--ci markdown` | `baseline: BaselineSummary` on `BaselineRenderOptions` for `generateReport`, `renderReport` and `summarizeReport`; not on `renderHtml` or the stream |
 | static | `--static` renders the script-free all-expanded form; needs `--out` or `--pdf` | `static: true` |
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
@@ -545,12 +560,13 @@ Contract:
   history write leaves it in place and leaves no partial sidecar.
 - `--history` follows the output-path rules: it must not name an input, the
   logo, `--out`, `--pdf`, `--ci-out`, `--email` or a path inside an input
-  directory, even when the history file does not exist yet. `--baseline` joins
-  that list when the `0.6-baseline-comparison` change lands.
+  directory, even when the history file does not exist yet. `--baseline` is part
+  of that list.
 - The CLI is the only automatic writer: it resolves inputs once and drives the
-  internal `generateReportFromResolved` (report) and `summarizeResolvedReport`
-  (summary) entry points. The public API stays path-based: `generateReport`
-  resolves the paths and appends the current run itself. API callers write
+  internal `generateReportFromResolved` (report) and
+  `summarizeReportFromResolved` (summary) entry points. The public API stays
+  path-based: `generateReport` resolves the paths and appends the current run
+  itself. API callers write
   through `writeHistory`; `renderReport` and `CucumberHtmlStream` render a given
   list and record nothing. The writer reads, appends and writes atomically with a
   rename; that prevents a corrupt file, not lost updates from two concurrent
@@ -599,9 +615,8 @@ Print/PDF follow the existing print CSS: every present section and open detail
 prints, with no tab bar. A bookmarked `?query=`, `?hide=` or `?tag=` URL shows
 the full static report because no script restores the filter. The mode does not
 repair CSS or `data:` images blocked by a host CSP and does not restore scripts;
-for Jenkins, see [`CI.md`](CI.md#jenkins-html-publisher). The baseline change
-owns the `--static --baseline` composition; when it lands, the comparison panel
-is server-rendered and visible without JavaScript.
+for Jenkins, see [`CI.md`](CI.md#jenkins-html-publisher). `--static --baseline`
+keeps the comparison panel server-rendered and visible without JavaScript.
 
 ## Summary schema, version 2
 

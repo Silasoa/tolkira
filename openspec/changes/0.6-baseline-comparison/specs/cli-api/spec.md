@@ -105,11 +105,11 @@ document or a scenario entry with exit 1 and no write.
 ### Requirement: Match baseline scenarios by stable identity
 
 The comparison SHALL group by feature name + scenario name, match a unique base
-key, then pair a repeated group by the example coordinate when every row carries
-it and by display URI when exactly one unmatched row on each side carries it.
-Any remaining unpaired row SHALL make the whole group ambiguous and count it
-once. No pickle id, position, line, tags, step text, status or order SHALL be
-used.
+key, then pair a repeated group in two passes: by the example coordinate when
+every row on both sides carries it, then by display URI when exactly one
+genuinely unmatched row on each side carries it. Any remaining unpaired row
+SHALL make the whole group ambiguous and count it once. No pickle id, position,
+line, tags, step text, status or order SHALL be used.
 
 #### Scenario: Reordered run
 
@@ -240,10 +240,13 @@ still failing, `other` or not in this run; `added` counts current rows and
 
 #### Scenario: Unmatched current row
 
-- **WHEN** a current row has no baseline match
+- **WHEN** a current row has no baseline match because its feature + name group
+  has no baseline row at all
 - **THEN** an executed failing row is a new failure
 - **AND** an executed non-failing row is added
 - **AND** an unexecuted row makes no claim and is not a baseline row
+- **AND** a row in a repeated group that gains an extra current row is not
+  unmatched; the whole group is ambiguous instead
 
 #### Scenario: Count reconciliation
 
@@ -336,15 +339,20 @@ SHALL NOT carry it. The field is additive, stays schema 2 and appears after
 
 - **WHEN** a 0.5 baseline without `example` is compared
 - **THEN** unique scenario names still match
-- **AND** repeated names become ambiguous instead of pairing by order
+- **AND** repeated names in different URIs pair by URI
+- **AND** repeated names in the same URI become ambiguous instead of pairing by
+  order
 
 ### Requirement: Expose the baseline comparison on the API
 
-The package SHALL export the `BaselineSummary` type. `generateReport`,
-`renderReport` and `summarizeReport` SHALL accept `options.baseline` as that
-projection. `renderHtml` and `CucumberHtmlStream` SHALL NOT accept a baseline in
-0.6.0; the stream's same-input-same-HTML contract is unchanged. The API SHALL
-accept the projection, never a path.
+The package SHALL export the `BaselineSummary` type and a
+`BaselineRenderOptions` type that extends `RenderReportOptions` with
+`baseline?: BaselineSummary`. `generateReport`, `renderReport` and
+`summarizeReport` SHALL accept `options.baseline` as that projection.
+`renderHtml` and `CucumberHtmlStream` SHALL NOT accept a baseline in 0.6.0 and
+SHALL keep `RenderReportOptions`/`RenderOptions`; the stream's
+same-input-same-HTML contract is unchanged. The API SHALL accept the projection,
+never a path.
 
 #### Scenario: API projection
 
@@ -363,7 +371,7 @@ accept the projection, never a path.
 #### Scenario: Type export
 
 - **WHEN** a TypeScript caller imports from `tolkira`
-- **THEN** `BaselineSummary` is exported
+- **THEN** `BaselineSummary` and `BaselineRenderOptions` are exported
 
 ### Requirement: Emit one Markdown baseline line
 

@@ -181,9 +181,12 @@ Baseline: 2 new failures · 1 fixed · 3 still failing · 1 not in this run
 
 All four counts appear, including zeros, and the line appears before the
 empty-run and zero-executed messages. A positive ambiguous-group count is
-appended as ` · 1 ambiguous group`; `added` stays JSON-only. The line is English
-and contains no dynamic names. GitHub and Azure annotation bytes do not change
-with a baseline.
+appended as ` · 1 ambiguous group`; `added` and `other` stay JSON-only. The line
+is English and contains no dynamic names. GitHub and Azure annotation bytes do
+not change with a baseline. New failure means the row fails now and did not fail
+in the baseline, including a scenario new to the suite; not in this run means
+absent from this summary (deleted, never started, filtered or another shard),
+not a claim of deletion.
 
 A baseline needs a surface that shows it: `--out`, `--pdf`, `--json` or
 `--ci markdown`. `--email` alone, `--ci github` alone and `--ci azure` alone are

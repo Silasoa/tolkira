@@ -210,6 +210,12 @@ Persist `.history/history.json` between CI runs (for example with
 `actions/cache`) so the next run continues the trend. A missing sidecar starts a
 new history; upload it beside the report if you want another job to continue it.
 
+For a baseline, cache the previous `--json` summary and pass it with
+`--baseline`; write the current summary to a new path (a shell redirect to the
+same path truncates it before Tolkira starts). The report becomes a two-run
+artifact and carries baseline names and URIs, so share it with that in mind. See
+[Baseline comparison](docs/CI.md#baseline-comparison).
+
 `--json` writes exactly one JSON document to stdout; warnings go to stderr.
 Exit code 0 means the report was generated, not that the tests passed. Read
 `status` and `counts` from the summary. Abridged real output (counts and steps
@@ -353,9 +359,15 @@ unredacted-message warning.
   current run with an earlier `--json` summary: a server-rendered panel shows new
   failures, fixed, still failing, not in this run and ambiguous groups, rows get
   localized new-failure/fixed badges, the JSON gains a `baseline` block and
-  per-scenario `change`, and Markdown CI gets one deterministic line. The
-  baseline is read-only, capped at 10 MiB and never linked; without the flag the
-  report, CI and email bytes are unchanged.
+  per-scenario `change`, and Markdown CI gets one deterministic line. New failure
+  means it fails now and did not fail in the baseline, including a scenario new
+  to the suite; there is no separate regressed class. Not in this run means
+  absent from this summary (deleted, never started, filtered or another shard),
+  not a claim of deletion. The baseline is read-only, capped at 10 MiB, never
+  linked and never rewritten; the report embeds its feature/scenario names and
+  URIs but never its path. Use one baseline per suite and variant. Without the
+  flag the report, CI and email bytes are unchanged; `renderHtml` and
+  `CucumberHtmlStream` keep their current-run options.
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure
   messages. Messages outline rows carry an `example` coordinate.
@@ -424,12 +436,12 @@ claim is credible Messages report parity, not full formatter parity.
 Last checked 2026-11-20 against the current package docs. Trade-offs are
 deliberate; pick the tool that fits the job.
 
-| Tool | Offline | Legacy JSON | Messages | JUnit | Playwright JSON | JSON summary | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
-| [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | No | Saved JSON (`saveCollectedJSON`) | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, build-time UI languages (en/es/fr/pt/ar, no German) and a report folder. |
-| [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
-| **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Yes** | **Versioned summary (`--json`)** | **Branding, dark mode; no theme gallery** | **ESM; CJS compat shim** | **22+** | **Active** | **You need one offline file from legacy JSON, Messages, JUnit or Playwright JSON, plus a stable summary for CI and agents.** |
+| Tool | Offline | Legacy JSON | Messages | JUnit | Playwright JSON | JSON summary | History / baseline | Themes | ESM/CJS | Node | Maintenance | Choose it if… |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [cucumber-html-reporter](https://github.com/gkushang/cucumber-html-reporter) | No, CDN assets | Yes | No | No | No | No | No / No | Three built-in themes | CJS | Old, no engine pin | Unmaintained since Oct 2024 | You need its exact themes and offline use is not a requirement. |
+| [multiple-cucumber-html-reporter](https://github.com/WasiqB/multiple-cucumber-html-reporter) | Yes, report folder (CDN optional) | Yes | Yes | No | No | Saved JSON (`saveCollectedJSON`) | Saved JSON dashboard / No | Dark mode, custom CSS | ESM (v4) | 22+ | Active | You want a dashboard, multi-run grouping, build-time UI languages (en/es/fr/pt/ar, no German) and a report folder. |
+| [Official Cucumber HTML formatter](https://github.com/cucumber/html-formatter) | Yes, one file | No | Yes | No | No | No | No / No | Custom CSS/JS only | ESM | Modern Node | Official Cucumber project | You use Cucumber Messages only and want the official look. |
+| **Tolkira** | **Yes, one file** | **Yes** | **Yes** | **Basic** | **Yes** | **Versioned summary (`--json`)** | **Opt-in aggregate history / Opt-in `--baseline`** | **Branding, dark mode; no theme gallery** | **ESM; CJS compat shim** | **22+** | **Active** | **You need one offline file from legacy JSON, Messages, JUnit or Playwright JSON, plus a stable summary for CI and agents.** |
 
 The visual comparison uses the report setup from
 [Seed-Test](https://github.com/adessoSE/Seed-Test). If you are curious about
@@ -606,6 +618,13 @@ for the mapping.
   CLI is the only automatic writer, so use one sidecar per suite and variant and
   one generation at a time. No scenario names, steps, paths, tags or attachment
   content are stored.
+- Baseline comparison is opt-in and file-only. The report and summary embed the
+  baseline's feature and scenario names, URIs, statuses and example coordinates,
+  never the baseline path; the file is read-only and capped at 10 MiB (10,485,760
+  bytes). Use one baseline per suite and variant, and compare the merged run for
+  shards. There is no baseline title or timestamp field, so the two artifacts are
+  linked by the command, not by embedded run metadata. `renderHtml` and
+  `CucumberHtmlStream` do not take a baseline in 0.6.0.
 - The opt-in email summary contains feature and scenario names, statuses, counts,
   durations, the title (which may carry a branch or build name) and the report
   basename. It is written only with `--email`; there is no redaction mode, no
@@ -623,7 +642,7 @@ for the mapping.
   future option.
 
 See [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md)
-for the dated limitations table (last verified 2026-11-23).
+for the dated limitations table (last verified 2026-11-24).
 
 ## Documentation
 
@@ -638,7 +657,7 @@ for the dated limitations table (last verified 2026-11-23).
 - [`docs/PDF.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PDF.md) — opt-in PDF export, engine install, CLI/API,
   write order and limits.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
-  (last verified 2026-11-23).
+  (last verified 2026-11-24).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested
   Cucumber producers and versions.
 - [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and

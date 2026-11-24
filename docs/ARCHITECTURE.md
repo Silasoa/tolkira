@@ -205,17 +205,20 @@ and is covered by real producer fixtures.
 
 - Owns the read-only baseline reader, matcher and classification. The CLI is the
   only file reader; the API accepts the validated `BaselineSummary` projection.
-- The reader opens the descriptor non-blocking, checks that it is a regular file,
-  caps it at 10 MiB (10,485,760 bytes), strips a UTF-8 BOM, rejects prototype
-  keys, values deeper than 64 levels and malformed entries, and applies
-  `displayUri` to every baseline URI. It trusts only identity, status and
-  `executed` (plus optional `example`); steps, tags, counts, attachments and a
-  nested `baseline` block are ignored.
-- `compareBaseline` groups by feature + scenario name, matches a unique key, then
-  refines a repeated group by the example coordinate when every row carries it,
-  then by display URI. A group that cannot be reduced to unique rows is
-  ambiguous and makes no claim. It returns one comparison: the seven-count
-  summary block and a change map keyed by pickle id.
+- The reader is read-only, `O_NONBLOCK` where available, checks the target before
+  and after opening, caps it at 10 MiB (10,485,760 bytes), decodes strict UTF-8,
+  strips a BOM, rejects a history sidecar, prototype keys, values deeper than 64
+  levels and malformed entries, and applies `displayUri` to every baseline URI.
+  It trusts only identity, status and `executed` (plus optional `example`);
+  steps, tags, counts, attachments and a nested `baseline` block are ignored.
+- `compareBaseline(baseline, current)` groups by feature + scenario name, matches
+  a unique key, then pairs a repeated group in two passes: the example coordinate
+  when every row on both sides carries it, then display URI for the genuinely
+  unmatched remainder. A group that cannot be reduced to unique rows is
+  ambiguous and makes no claim. Both passes use a key-to-index map, so the
+  matcher is linear in the rows; a 20,000 by 20,000 repeated outline compares in
+  well under 100 ms. It returns one comparison: the seven-count summary block and
+  a change map keyed by pickle id.
 - `src/summary.ts` type-imports the comparison type only; the comparison is
   built once in `src/run.ts`. `src/baseline.ts` imports `displayUri` from the
   summary module, so the runtime dependency points one way and there is no
@@ -228,8 +231,10 @@ and is covered by real producer fixtures.
   and per-scenario step results with failure messages. With a comparison it adds
   the `baseline` block and a per-scenario `change`; Messages outline rows carry
   an unconditional `example` coordinate.
-- Exposed as `summarizeReport`; the internal `summarizeResolvedReport` serves the
-  CLI's already-resolved list and backs `--json`.
+- Pure: it builds from an index or envelope list and owns no file reading. The
+  CLI always drives `summarizeReportFromResolved` in `src/run.ts`, the single
+  summary seam, even without a baseline.
+- Exposed as `summarizeReport(inputs, options?)`.
 - Schema version 2 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
   bump the version.
 
@@ -342,17 +347,18 @@ and is covered by real producer fixtures.
   `loadResolvedInputs` reads and parses the resolved files, `indexRun` builds the
   report index, and the summary, attachment totals and history come from that one
   run.
-- `generateReportFromResolved` and `renderReportFromResolved` are the internal
-  entry points for a resolved list; the CLI drives `generateReportFromResolved`
-  and `summarizeResolvedReport` in `src/summary`.
-- The public `generateReport` and `renderReport` stay path-based and resolve
-  first; the resolved list is not a package type.
+- `generateReportFromResolved`, `renderReportFromResolved` and
+  `summarizeReportFromResolved` are the internal entry points for a resolved
+  list; the CLI drives the first and the last.
+- The public `generateReport`, `renderReport` and `summarizeReport` stay
+  path-based and resolve first; the resolved list is not a package type.
 
 ### `src/cli`
 
-- `tolkira <input...> [--out <file>] [--pdf <file>] [--pdf-timeout <ms>]`
-  `[--email <file>] [--json] [--ci github|azure|markdown] [--ci-out <file>]`
-  `[--history <file>] [--history-limit <n>] [--locale <tag>] [--title <title>]`
+- `tolkira <input...> [--out <file>] [--static] [--pdf <file>]`
+  `[--pdf-timeout <ms>] [--email <file>] [--json]`
+  `[--ci github|azure|markdown] [--ci-out <file>] [--history <file>]`
+  `[--history-limit <n>] [--baseline <file>] [--locale <tag>] [--title <title>]`
   `[--meta key=value] [--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
@@ -363,12 +369,17 @@ and is covered by real producer fixtures.
 - `--ci` may run without `--out`; `--ci-out` is a standalone atomic Markdown
   file and is rejected for GitHub and Azure annotations.
 - `--history` requires `--out`. It is validated like an output path (inputs,
-  logo, `--out`, `--pdf`, `--ci-out`, `--email` and input directories, even when
-  missing; `--baseline` joins the list with the baseline change), read once
-  before generation and written after the HTML. `--history-limit <n>`
-  requires `--history` and accepts a decimal integer from 1 to 365 (default 30);
-  the same limit goes to read, generate and write. A history read or write
-  failure exits 1 and names the file; a written HTML stays in place.
+  logo, `--out`, `--pdf`, `--ci-out`, `--email`, `--baseline` and input
+  directories, even when missing), read once before generation and written after
+  the HTML. `--history-limit <n>` requires `--history` and accepts a decimal
+  integer from 1 to 365 (default 30); the same limit goes to read, generate and
+  write. A history read or write failure exits 1 and names the file; a written
+  HTML stays in place.
+- `--baseline <file>` reads one earlier schema-2 summary, needs `--out`,
+  `--pdf`, `--json` or `--ci markdown`, and is validated against every input and
+  output path before any read. A missing, unreadable, non-regular, oversized,
+  invalid or wrong-schema baseline exits 1, names the file and writes nothing.
+  The reader never rewrites it and the report and summary never embed its path.
 - `--email` is an output: alone, with `--out`, `--json`, `--ci` or `--ci-out`
   (`--ci-out` still requires `--ci markdown`). It is validated like an output
   path and must not collide with an input, the logo, `--out`, `--ci-out`,
@@ -411,7 +422,7 @@ generateReport(inputs, options): Promise<{
 }>
 renderEmail(summary, options): string
 renderPdf(html, options?): Promise<Uint8Array>
-summarizeReport(inputs): Promise<ReportSummary>
+summarizeReport(inputs, options?): Promise<ReportSummary>
 ```
 
 `generateReport` accepts `history`, appends the current aggregate run and returns
@@ -431,8 +442,16 @@ writes nothing and shares the translator. `renderPdf` takes rendered
 report HTML, returns PDF bytes and launches the optional engine only when
 called; it accepts `PdfOptions` (`timeoutMs`) and writes no file. The CLI
 resolves inputs once and drives the internal resolved entry points
-(`generateReportFromResolved` and `summarizeResolvedReport`) instead of
+(`generateReportFromResolved` and `summarizeReportFromResolved`) instead of
 re-resolving through the path-based public functions.
+
+`BaselineRenderOptions extends RenderReportOptions` with
+`baseline?: BaselineSummary`; `generateReport`, `renderReport` and
+`summarizeReport` accept it, build one comparison and never read a file.
+`renderHtml` and `CucumberHtmlStream` keep `RenderOptions`/
+`RenderReportOptions` and ignore a `baseline` key, so the stream's
+same-input-same-HTML contract is unchanged. The package exports both
+`BaselineSummary` and `BaselineRenderOptions`.
 
 ## Security
 
@@ -457,6 +476,10 @@ Test names, metadata, file names and attachments are untrusted input.
   regular file, capped at 1 MiB on the descriptor and rewritten atomically. It
   stores aggregates only, so it cannot leak scenario names, step text, paths,
   tags or attachment content.
+- The baseline summary is untrusted: strict UTF-8, a regular-file check before
+  and after opening, a 10 MiB cap, prototype-key and depth rejection, no file
+  reads, links or rewrites from its content, and escaped, control-stripped
+  feature/name/example text in the panel. The path is never embedded.
 - The email summary escapes the title, feature/scenario names and report name,
   ignores an invalid accent, wraps and caps long names, and contains no script,
   image, link or remote URL. Its path is contained: it cannot overwrite an input
@@ -520,7 +543,12 @@ Test names, metadata, file names and attachments are untrusted input.
   `test/cli-history.test.ts` and `test/render-trends.test.ts` cover the
   `--history` flow and the Trends view; `test/e2e/trends.spec.ts` covers the
   two-run browser flow at 320, 390, 1440 and 200 % text zoom.
-  `test/email.test.ts`,
+  `test/baseline-reader.test.ts`, `test/baseline-matcher.test.ts`,
+  `test/baseline-summary.test.ts`, `test/ci-baseline.test.ts`,
+  `test/cli-baseline.test.ts`, `test/render-baseline.test.ts` and
+  `test/e2e/baseline.spec.ts` pin the untrusted reader, two-pass identity,
+  classification and reconciliation, JSON block, CI line, panel/badges and the
+  two-run browser flow. `test/email.test.ts`,
   `test/cli-email.test.ts`, `test/email-catalog.test.ts` and
   `test/e2e/email.spec.ts` pin the email template, metrics, escaping, locale,
   size, CLI composition and 600/320 px rendering. `test/pdf.test.ts` mocks

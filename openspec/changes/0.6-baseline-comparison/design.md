@@ -23,7 +23,7 @@ status and `executed` fields. The CLI passes that object to `generateReport`,
 `renderReport` or `summarizeReport` as `options.baseline`; the API accepts the
 projection, never a path.
 
-`compareBaseline(current, baseline)` runs once and returns one comparison: the
+`compareBaseline(baseline, current)` runs once and returns one comparison: the
 summary `baseline` block and a change map keyed by the report model's pickle id.
 The summary builder reads the block and looks up each pickle id for `change`; the
 renderer receives the same map and joins each row by `ReportScenario.id` (the
@@ -212,7 +212,7 @@ the report model's pickle id.
 
 The panel and badge CSS is a separate conditional string, not a rule in
 `src/render/report.css`: `scripts/build-styles.mjs` minifies `report.css` into
-the single `REPORT_CSS` constant used by every report (`src/render/html.ts:94`),
+the single `REPORT_CSS` constant used by every report (`src/render/html.ts:96`),
 so a rule there would change every default report and fail the characterization
 hashes. Put the rules in `src/render/baseline.css`, build a second
 `BASELINE_CSS` constant, and append it only when a baseline is supplied (B3).

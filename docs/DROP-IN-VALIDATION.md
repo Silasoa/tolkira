@@ -148,10 +148,10 @@ npm 10.8.2): `out.ndjson` 6,991 B, 1 feature / 2 scenarios (1 passed, 1 failed) 
 project hit a Cucumber-side support-code loader error before executing any
 scenario (`Given` reported status `PENDING`), so the artifact was reused; the
 change does not touch the input adapters. A baseline projection with the two
-statuses flipped plus one removed scenario produced a valid comparison. The
-current tree's CLI wrote default 71,746 B and baseline 73,469 B (+1,723 B,
+statuses flipped plus one removed scenario produced a valid comparison. On the
+final tree the CLI wrote default 71,746 B and baseline 73,471 B (+1,725 B,
 including the 1,058 B conditional `BASELINE_CSS`); the baseline JSON is 2,457 B
-against 1,976 B default (+481 B), and the static baseline report is 54,451 B.
+against 1,976 B default (+481 B), and the static baseline report is 54,453 B.
 The CI line read `Baseline: 1 new failure · 1 fixed · 0 still failing · 1 not
 in this run` (75 B with its newline). The baseline file's bytes and mtime were
 unchanged. Playwright 1.65.1 / Chromium at 1440x900 and 390x844: the panel,
@@ -160,6 +160,16 @@ unchanged. Playwright 1.65.1 / Chromium at 1440x900 and 390x844: the panel,
 media keeps the panel and list. The other required host rows and the
 Linux/macOS runs were not re-run for this slice; they stay pending for CI or the
 next release.
+
+The earlier +1,723 B and 1,690 B figures are superseded. The 1,690 B value was
+not reproducible from a named fixture or artifact. The final host delta is
++1,725 B (1,058 B `BASELINE_CSS` + 667 B panel/badges/plural copy). The
+one-run standard-fixture measurement with
+`node scripts/baseline-bytes.mjs` (the script fixes the title `Byte check` and
+prints its host/date; reports embed the generation date) is +1,426 B
+for `test/fixtures/messages/examples-tables.ndjson` and +1,393 B for
+`test/fixtures/legacy/failed.json`. Those deltas differ by panel content length,
+not by a missing stylesheet: both include the same 1,058 B `BASELINE_CSS`.
 
 **`size-details-followups` host check (2026-11-23).** The Seed-Test story
 artifact rendered with the 0.5.1 tarball and `--locale de` (90,842 B): at

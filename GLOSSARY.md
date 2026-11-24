@@ -62,6 +62,12 @@ and the old English fallback map is gone.
 | Flaky share | Flaky-Anteil |
 | Rule | Rule |
 | URI | URI |
+| Baseline | Baseline |
+| New failure | Neuer Fehler |
+| Fixed | Behoben |
+| Still failing | Weiterhin fehlgeschlagen |
+| Not in this run | Nicht in diesem Lauf |
+| Ambiguous group | Mehrdeutige Gruppe |
 
 The address form is impersonal; avoid `du` and `Sie`. The full
 `Fehlgeschlagen` chip is used and wraps; there is no short form. `de` is the
@@ -226,30 +232,37 @@ with pass rate, flaky count and flaky share and adds a decorative pass-rate
 sparkline oldest to newest; the table is the accessible source, and a note
 states the tag-or-retry proxy limits.
 
-**Baseline** — the read-only earlier schema-2 `--json` summary passed with
-`--baseline <file>`. It is never rewritten and its path is never embedded. The
-CLI is the only reader; the API accepts the validated `BaselineSummary`
-projection. One baseline belongs to one suite and variant, and a sharded run
-compares the merged run.
+**Baseline** - the read-only earlier schema-2 `--json` summary passed with
+`--baseline <file>`. It is never rewritten and its path is never embedded; the
+report and summary do embed its feature/scenario names and URIs. It is capped at
+10 MiB (10,485,760 bytes). There is no title or timestamp field, so the two
+artifacts are linked by the command. The CLI is the only reader; the API accepts
+the validated `BaselineSummary` projection. One baseline belongs to one suite and
+variant, and a sharded run compares the merged run. `renderHtml` and
+`CucumberHtmlStream` do not take a baseline in 0.6.0.
 
-**Baseline comparison** — the one result built from a baseline and the current
+**Baseline comparison** - the one result built from a baseline and the current
 run: the summary block with seven counts and the capped `notInThisRun` list, and
 a change map keyed by the report model's pickle id. It feeds the JSON block and
 per-scenario `change`, the HTML panel and badges, and the Markdown CI line.
 
-**Baseline identity** — feature name + scenario name, then the outline example
-coordinate when every row in a repeated group carries it, then the display URI.
-A group that cannot be reduced to unique rows is ambiguous and makes no claim;
-pickle id, order, line, tags, step text and status are never identity.
+**Baseline identity** - feature name + scenario name, then the outline example
+coordinate when every row on both sides carries it, then the display URI for the
+genuinely unmatched remainder. A group that cannot be reduced to unique rows is
+ambiguous and makes no claim; pickle id, order, line, tags, step text and status
+are never identity.
 
-**Change** — the per-scenario baseline classification: `new-failure`, `fixed`,
+**Change** - the per-scenario baseline classification: `new-failure`, `fixed`,
 `still-failing` or `added`. Unchanged, no-claim, unexecuted and ambiguous rows
-have no `change`.
+have no `change`. **New failure** means the row fails now and did not fail in the
+baseline, including a scenario new to the suite; there is no separate regressed
+class.
 
-**Not in this run** — a baseline scenario with no current match. It is counted
-in `notInThisRun`, listed in the panel (at most 10 entries) and in the summary
-(at most 50, sorted by feature, name, example coordinate and URI). The count
-stays complete.
+**Not in this run** - a baseline scenario with no current match in this summary.
+It is counted in `notInThisRun`, listed in the panel (at most 10 entries) and in
+the summary (at most 50, sorted by feature, name, example coordinate and URI).
+The count stays complete. The class means absent here (deleted, never started,
+filtered or another shard), not a claim of deletion.
 
 **Ambiguous group** — a repeated feature + scenario name that cannot be paired
 uniquely by example coordinate or display URI. No row in the group is paired,
