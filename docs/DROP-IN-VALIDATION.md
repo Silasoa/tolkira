@@ -289,6 +289,50 @@ here: the packed tarball is 522,870 B with three runtime dependencies; a clean
 consumer install is 6.71 MB and has no playwright; global, npx, pnpm and Yarn PnP
 PDF runs worked with a project peer; `chromiumSandbox: true` worked on Windows.
 
+**`0.6.1-quality-pass` host check (2026-11-24, pre-release tarball).** The
+tarball packed from the `4414826` tree (`tolkira-0.6.0.tgz`, 641,686 B, SHA-256
+`7C21915BD364A2EBD8F5103856B36E76F071D8BEDE66466482B8004E67B5172C`) installed
+as 0.6.0 and printed `0.6.0` from `--version` in all three host tools.
+Seed-Test at `ce2cad8` (AI branch) passed `tsc -b` and
+`report.service.spec.ts` 35/35: story 88,794 B (1 feature / 3 scenarios, 2
+passed and 1 failed / 12 step rows / 1 attachment of 5,234 B), group 106,406 B
+(2 features / 4 scenarios, 3 passed and 1 failed / 16 step rows / 2 attachments
+of 10,468 B), directory cross-check 107,387 B, shim story 89,377 B and shim
+group 107,856 B plus the 21,579 B sidecar, deep-equal to the old reporter's
+21,580 B sidecar (one trailing newline; old HTML 59,954 / 87,798 B). Static was
+69,407 B, baseline 90,309 B (1 new failure, 1 fixed) and history 88,821 /
+92,591 / 92,973 B with three runs; the eight summary payloads are byte-identical
+to the 0.6.0 row. The official `@cucumber/cucumber@13.3.0` host on Node 26.13.1
+/ npm 10.8.2 produced `out.json` 3,302 B and `out.ndjson` 9,974 B (2 scenarios,
+1 passed and 1 failed / 5 steps / 2 inline PNGs of 140 B): legacy 72,569 B and
+Messages 72,695 B with both 2,191 B summaries byte-identical (SHA-256
+`9A8F9CB22707A97621E0E22AF571C33E3712587EE0F4BA78A66A6AC72B456C06`), static
+53,315 B, baseline 74,084 B (1 new failure, 1 fixed, 0 not in this run) and
+history 72,722 / 76,482 / 76,859 B with three runs. Playwright movies-app at
+`5d2cdf0` with its host Playwright 1.62.1 ran the full suite: 123 tests (121
+passed, 2 skipped, 0 failed or flaky, 0 retries), 113 explicit steps and 5 host
+attachments / 161 B of which one has an empty body, so Tolkira counts 4 / 161 B;
+3 features / 123 scenarios / 236 step rows / 281,547 B report, 123/123 scenario
+source lines match `spec.file:spec.line`, the final statuses are 121 passed and
+2 skipped, every scenario start date matches its final result, the header is
+`2026-11-24 21:37 UTC` and no `1970` remains; static 263,017 B, baseline 283,086
+B (2 fixed and 2 ambiguous groups, with the supplemental not-in-run report
+279,789 B listing 1 not in this run) and history 281,541 / 285,291 / 285,663 B
+with three Trends rows. Playwright 1.65.1 / Chromium 159.0.8154.6 checked all
+45 report/viewport combinations (default and static reports at 1440x900,
+390x844 and 320x700 at 200 % text): exactly one `<main>`, exactly one banner,
+every `runHead` and every Report/Details/Trends panel inside `main` with the
+panel IDs and `tabpanel` roles intact (static: no tab roles, no `<script>`, all
+details open), no horizontal overflow (the raw -15 px is the scrollbar gutter),
+no console or page errors, no http/https requests, and summary/report/Details
+attachment parity (Seed-Test 1/1/1 and 2/2/2, Cucumber-js 2/2/2, Playwright
+4/4/4). Counts and statuses are unchanged against the 0.6.0 row; default report
+bytes moved by +115 B on Seed-Test, +117 B on Cucumber-js and +108 B on
+Playwright (static +117 / -7 / +110 B, history +113..+115, +126..+133 and
++106 B) with run-specific ids, durations and the approved shell changes. The
+Seed-Test per-story JSON remains synthetic (no live backend/MongoDB) and the
+native reporter HTML was compared by content only.
+
 ## Release rule
 
 Before a tag, stage or publish:
