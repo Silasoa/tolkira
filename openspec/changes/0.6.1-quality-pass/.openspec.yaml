@@ -1,9 +1,10 @@
 schema: spec-driven
 created: 2026-11-24
-goal: Close the three accepted quality defects and audit findings 2-12 in the
-  0.6.1 patch: one main landmark around the report views, a readable Details
-  metadata list at 320 px and 200 % text, a BOM-tolerant history sidecar read
-  with a BOM-free next write, the input/accounting, history-target, empty-shard,
+goal: >-
+  Close the three accepted quality defects and audit findings 2-12 in the 0.6.1
+  patch: one main landmark around the report views, a readable Details metadata
+  list at 320 px and 200 % text, a BOM-tolerant history sidecar read with a
+  BOM-free next write, the input/accounting, history-target, empty-shard,
   attachment-count, Playwright final-result/skip/file, Messages attempt, CI
   identity, write-error and compat feature-shape fixes, and B-054 visual
   evidence. No version bump.
