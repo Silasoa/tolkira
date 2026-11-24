@@ -2,13 +2,13 @@
 
 ## 1. Gate
 
-- [ ] 1.1 PIR + DXR over this proposal, the five spec deltas and the design.
+- [x] 1.1 PIR + DXR over this proposal, the five spec deltas and the design.
   Check every base requirement that mentions display URIs, attachments,
   deterministic merge/order, Playwright detection, attempt selection (owned by
   the quality pass), legacy timestamps, history schema/timestamps, JUnit
   entities, the compat sidecar and the release workflow for a contradiction.
   Fold blockers into the contract before Red.
-- [ ] 1.2 Confirm the seams: `src/summary.ts` (`displayUri`, scenario sort),
+- [x] 1.2 Confirm the seams: `src/summary.ts` (`displayUri`, scenario sort),
   `src/input/legacy.ts` (`normalizeUri`, `startedAt`/`clock`),
   `src/report/model.ts` (`toAttachment`, feature-name fallback),
   `src/text.ts` (new comparator), `src/input/load.ts`, `src/baseline.ts`,
@@ -19,19 +19,19 @@
   `src/compat/cucumber-html-reporter.ts` (merged element append) and
   `.github/workflows/release.yml` (already fixed by `31dd112`). Confirm no new
   dependency, option or public API. `src/report/index-run.ts` is not touched.
-- [ ] 1.3 Record the decisions before Red: the URI root/home rule and its
+- [x] 1.3 Record the decisions before Red: the URI root/home rule and its
   relative-path boundary, the single UTF-16 comparator, the try/catch base64
   media fallback, the first-key parse check, the legacy zero timestamp with its
   dependency on the `0.6.1-quality-pass` zero-is-unknown model rule, the ISO 8601
   forms, the XML-only entity rule, the compat loop, the legacy-date re-pin and
   the `0600` docs decision. The attempt tie is inherited from the quality pass
   and is not re-implemented here.
-- [ ] 1.4 Confirm the sequencing: land after `0.6.1-quality-pass`, rebase on
+- [x] 1.4 Confirm the sequencing: land after `0.6.1-quality-pass`, rebase on
   its re-pinned characterization/goldens, its zero-timestamp rule and its
   later-start tie rule, and do not edit that change. Confirm the release
   workflow contract at commit `31dd112`, including the full main fetch used by
   the ancestor check.
-- [ ] 1.5 Confirm the second audit is the tracking record and no remote issue
+- [x] 1.5 Confirm the second audit is the tracking record and no remote issue
   exists; do not open an issue for this change without the user's direction.
 
 ## 2. TDD-Red

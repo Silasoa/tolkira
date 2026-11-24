@@ -2,12 +2,12 @@
 
 ## 1. Gate
 
-- [ ] 1.1 PIR + DXR over this proposal, the five spec deltas and the design;
+- [x] 1.1 PIR + DXR over this proposal, the five spec deltas and the design;
   check every base requirement that mentions the default shell, print, static
   mode, input loading, history reading/writing, summary counts, Playwright
   mapping, Messages validation, CI formatting, CLI writes or compat scanning
   for a contradiction. Fold blockers into the contract before Red.
-- [ ] 1.2 Confirm the seams: `src/render/details.ts` (`renderAnalysisView`),
+- [x] 1.2 Confirm the seams: `src/render/details.ts` (`renderAnalysisView`),
   `src/render/trends.ts` (`renderTrendsView`), `src/render/report.css` around
   the `.metaList` rules and the new narrow container query, the `localeCss`
   block in `src/render/html.ts`, the generated `src/render/styles.ts`,
@@ -17,14 +17,14 @@
   `src/report/model.ts`, `src/summary.ts`, `src/ci.ts`, `src/cli.ts`,
   `src/compat/options.ts` and `src/compat/cucumber-html-reporter.ts`. Confirm no
   new catalog key, option, summary field or dependency.
-- [ ] 1.3 Record the BOM scope decision (strip in `readSidecar`, so
+- [x] 1.3 Record the BOM scope decision (strip in `readSidecar`, so
   `readHistory` and `storedSchema` accept a BOM; `writeHistory` stays BOM-free
   and normalises on the next successful write) and the intentional
   characterization/golden re-pin (design decisions: all nine for the shell,
   three Messages fixtures also for the removed 1970 date; legacy fixtures stay
   pinned here). Record that B-051 stays open (no refactor in this patch) and
   that the compat shim keeps its own write and byte accounting, before Red.
-- [ ] 1.4 Record the audit evidence and the B-058 doc decision: findings 2-12
+- [x] 1.4 Record the audit evidence and the B-058 doc decision: findings 2-12
   from `docs/research/audit-2026-11.md`, their exact acceptance scenarios in
   `specs/input-formats`, `specs/report-rendering`, `specs/cli-api` and
   `specs/compatibility`, and the docs-only trust-model sentence for finding 1.
