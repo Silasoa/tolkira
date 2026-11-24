@@ -127,7 +127,8 @@ describe('release workflow gate', () => {
     expect(publish).toContain(
       '- name: Require the tag to match the package version',
     );
-    expect(publish).toContain(
+    expectStep(
+      publish,
       `test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"`,
     );
   });
@@ -136,9 +137,12 @@ describe('release workflow gate', () => {
     const publish = job(await workflowJobs(), 'publish');
 
     expect(publish).toContain('- name: Require the tag to be on main');
-    expect(publish).toContain('git fetch origin main');
-    expect(publish).toContain('git merge-base --is-ancestor HEAD FETCH_HEAD');
+    expectStep(
+      publish,
+      'git fetch origin main\ngit merge-base --is-ancestor HEAD FETCH_HEAD',
+    );
     // A shallow clone cannot prove the ancestor relation; the fetch is full.
+    // `fetch-depth` is a `with:` key, not a run command.
     expect(publish).toContain('fetch-depth: 0');
     expect(publish).not.toContain('--depth');
   });
