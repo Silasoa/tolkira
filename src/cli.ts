@@ -765,7 +765,7 @@ export async function runCli(
       io.stdout(ciText);
     } else {
       if (output) {
-        io.stdout(`Report written to ${output}\n`);
+        io.stdout(`Report written to ${oneLine(output)}\n`);
       }
       if (pdfPath !== undefined) {
         io.stdout(`PDF written to ${oneLine(pdfPath)}\n`);

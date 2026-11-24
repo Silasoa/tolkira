@@ -2,6 +2,7 @@ import {
   copyFile,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rm,
   stat,
@@ -11,12 +12,17 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
+import { runCli } from '../src/cli.js';
 import {
   generateReport,
   renderReport,
   summarizeReport,
 } from '../src/index.js';
-import { loadInputs, provenanceFor } from '../src/input/load.js';
+import {
+  MAX_TOTAL_INPUT_BYTES,
+  loadInputs,
+  provenanceFor,
+} from '../src/input/load.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
 
 const messages = fileURLToPath(
@@ -39,36 +45,36 @@ afterEach(async () => {
 
 const MIB = 1024 * 1024;
 
+function paddedLegacy(name: string, padding: number): string {
+  return JSON.stringify([
+    {
+      uri: `features/${name}.feature`,
+      name,
+      description: 'x'.repeat(padding),
+      elements: [
+        {
+          keyword: 'Scenario',
+          type: 'scenario',
+          name: `${name} scenario`,
+          steps: [
+            {
+              keyword: 'Given ',
+              name: 'a step',
+              result: { status: 'passed', duration: 1 },
+            },
+          ],
+        },
+      ],
+    },
+  ]);
+}
+
 async function writePaddedLegacy(
   file: string,
   name: string,
   padding: number,
 ): Promise<void> {
-  await writeFile(
-    file,
-    JSON.stringify([
-      {
-        uri: `features/${name}.feature`,
-        name,
-        description: 'x'.repeat(padding),
-        elements: [
-          {
-            keyword: 'Scenario',
-            type: 'scenario',
-            name: `${name} scenario`,
-            steps: [
-              {
-                keyword: 'Given ',
-                name: 'a step',
-                result: { status: 'passed', duration: 1 },
-              },
-            ],
-          },
-        ],
-      },
-    ]),
-    'utf8',
-  );
+  await writeFile(file, paddedLegacy(name, padding), 'utf8');
 }
 
 describe('input accounting', () => {
@@ -146,16 +152,40 @@ describe('input accounting', () => {
     );
   }, 120_000);
 
-  it('does not count a large skipped file toward the cap or the input bytes', async () => {
+  it('accepts a unique file at exactly the 100 MiB total cap', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-exact-cap-'));
+    tempDirs.push(dir);
+    const file = path.join(dir, 'exact.json');
+    const base = Buffer.byteLength(paddedLegacy('exact-cap', 0), 'utf8');
+    await writePaddedLegacy(file, 'exact-cap', MAX_TOTAL_INPUT_BYTES - base);
+    expect((await stat(file)).size).toBe(MAX_TOTAL_INPUT_BYTES);
+
+    const groups = await loadInputs([file]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.bytes).toBe(MAX_TOTAL_INPUT_BYTES);
+  }, 120_000);
+
+  it('does not count large skipped files toward the cap or the input bytes', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-skip-large-'));
     tempDirs.push(dir);
     const report = path.join(dir, 'messages.ndjson');
     await copyFile(messages, report);
+    const skippedA = path.join(dir, 'unrelated.json');
+    const skippedB = path.join(dir, 'unrelated2.json');
     await writeFile(
-      path.join(dir, 'unrelated.json'),
+      skippedA,
       JSON.stringify({ name: 'not-a-report', padding: 'x'.repeat(51 * MIB) }),
       'utf8',
     );
+    await writeFile(
+      skippedB,
+      JSON.stringify({ name: 'also-not-a-report', padding: 'y'.repeat(51 * MIB) }),
+      'utf8',
+    );
+    const skippedBytes =
+      (await stat(skippedA)).size + (await stat(skippedB)).size;
+    expect(skippedBytes).toBeGreaterThan(MAX_TOTAL_INPUT_BYTES);
 
     const groups = await loadInputs(dir);
     const summary = await summarizeReport(dir);
@@ -208,6 +238,52 @@ describe('empty Messages shards in a directory scan', () => {
     await expect(renderReport(file, { title: 'Explicit empty' })).rejects.toThrow(
       path.basename(file),
     );
+  });
+
+  it('rejects an explicit empty file deduped behind a scanned shard', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-deduped-'));
+    tempDirs.push(dir);
+    await copyFile(messages, path.join(dir, 'm-valid.ndjson'));
+    await writeFile(path.join(dir, 'a-empty.ndjson'), '', 'utf8');
+    const explicit = path.join(dir, 'z-explicit.jsonl');
+    await writeFile(explicit, '', 'utf8');
+    const before = (await readdir(dir)).sort();
+
+    await expect(
+      renderReport([dir, explicit], { title: 'Deduped empty' }),
+    ).rejects.toThrow(/Input is empty: .*z-explicit\.jsonl/);
+    expect((await readdir(dir)).sort()).toEqual(before);
+  });
+
+  it('rejects the same empty pair when the explicit file sorts first', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-order-'));
+    tempDirs.push(dir);
+    await copyFile(messages, path.join(dir, 'm-valid.ndjson'));
+    const explicit = path.join(dir, 'a-explicit.ndjson');
+    await writeFile(explicit, '', 'utf8');
+    await writeFile(path.join(dir, 'z-empty.ndjson'), '', 'utf8');
+
+    await expect(
+      renderReport([dir, explicit], { title: 'Empty order' }),
+    ).rejects.toThrow(/Input is empty: .*a-explicit\.ndjson/);
+  });
+
+  it('skips an empty shard without a warning', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-empty-quiet-'));
+    tempDirs.push(dir);
+    await copyFile(messages, path.join(dir, 'messages.ndjson'));
+    await writeFile(path.join(dir, 'empty.ndjson'), '', 'utf8');
+    let stderr = '';
+
+    const code = await runCli([dir, '--json'], {
+      stdout: () => undefined,
+      stderr: (text) => {
+        stderr += text;
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(stderr).toBe('');
   });
 
   it('rejects a directory with only empty shards with the no-report error', async () => {

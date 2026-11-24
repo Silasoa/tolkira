@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runCli } from '../../src/cli.js';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
+import { waitForImages } from './helpers.js';
 
 const fixtures = [
   'failed.json',
@@ -21,16 +22,6 @@ const rulesOutlineBackground = messagesFixture(
   'rules-outline-background.ndjson',
 );
 const rulesBackgrounds = messagesFixture('rules-backgrounds.ndjson');
-
-async function waitForImages(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    const images = Array.from(document.images);
-    images.forEach((image) => {
-      image.loading = 'eager';
-    });
-    return Promise.all(images.map((image) => image.decode().catch(() => undefined)));
-  });
-}
 
 async function capture(
   page: Page,

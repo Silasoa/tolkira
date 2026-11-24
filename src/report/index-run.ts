@@ -81,10 +81,6 @@ export interface RunIndex {
   caseAttachments: Map<string, Attachment[]>;
   /** Attachments owned by a test-run hook start. */
   runHookAttachments: Map<string, Attachment[]>;
-  /** Every attachment with a test case start id; the summary's view. */
-  attachmentsByStarted: Map<string, Attachment[]>;
-  /** Every attachment envelope in input order. */
-  attachments: Attachment[];
   /** Attachments without a test case or run-hook owner. */
   runAttachments: Attachment[];
   suggestions: Map<string, RunSuggestion[]>;
@@ -96,8 +92,10 @@ function latestAttempt(
 ): TestCaseStarted | undefined {
   return candidates.reduce<TestCaseStarted | undefined>((current, candidate) => {
     if (!current) return candidate;
-    if (candidate.attempt > current.attempt) return candidate;
-    if (candidate.attempt < current.attempt) return current;
+    const cAttempt = candidate.attempt ?? 0;
+    const currentAttempt = current.attempt ?? 0;
+    if (cAttempt > currentAttempt) return candidate;
+    if (cAttempt < currentAttempt) return current;
     const cSeconds = candidate.timestamp?.seconds ?? 0;
     const currentSeconds = current.timestamp?.seconds ?? 0;
     if (cSeconds !== currentSeconds) return cSeconds > currentSeconds ? candidate : current;
@@ -203,8 +201,6 @@ export function indexRun(envelopes: Envelope[]): RunIndex {
     runHookFinishes: new Map(),
     caseAttachments: new Map(),
     runHookAttachments: new Map(),
-    attachmentsByStarted: new Map(),
-    attachments: [],
     runAttachments: [],
     suggestions: new Map(),
     definitions: new Map(),
@@ -266,12 +262,6 @@ export function indexRun(envelopes: Envelope[]): RunIndex {
       const attachment = envelope.attachment;
       const startedId = attachment.testCaseStartedId;
       const runHookId = attachment.testRunHookStartedId;
-      index.attachments.push(attachment);
-      if (startedId) {
-        const list = index.attachmentsByStarted.get(startedId) ?? [];
-        list.push(attachment);
-        index.attachmentsByStarted.set(startedId, list);
-      }
       if (runHookId) {
         const list = index.runHookAttachments.get(runHookId) ?? [];
         list.push(attachment);

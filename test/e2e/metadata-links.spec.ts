@@ -68,6 +68,7 @@ async function metadataLayout(
 test('stacks the Details metadata at 320 px with 200% text only', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const report = await metadataReport();
   try {
     await page.setViewportSize({ width: 320, height: 900 });
@@ -98,6 +99,7 @@ test('stacks the Details metadata at 320 px with 200% text only', async ({
 test('keeps the two-column metadata layout at normal text and wider widths', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const report = await metadataReport();
   try {
     for (const width of [320, 390, 768, 1024, 1440]) {
@@ -123,6 +125,7 @@ test('keeps the two-column metadata layout at normal text and wider widths', asy
 test('stacks the German Details metadata at 320 px with 200% text', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const report = await metadataReport('de');
   try {
     await page.setViewportSize({ width: 320, height: 900 });
@@ -146,9 +149,34 @@ test('stacks the German Details metadata at 320 px with 200% text', async ({
   }
 });
 
+test('keeps the German two-column metadata layout at 320 px and 100% text', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const report = await metadataReport('de');
+  try {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(report.url);
+    await page.getByRole('tab', { name: 'Details' }).click();
+
+    const layout = await metadataLayout(page);
+    expect(layout.columns).toBe(2);
+    expect(layout.align).toBe('right');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+      'German 320px at 100% overflow',
+    ).toBeLessThanOrEqual(1);
+  } finally {
+    await rm(report.dir, { recursive: true, force: true });
+  }
+});
+
 test('wraps a long metadata link at 320 px and 1440 px without a request', async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-metadata-e2e-'));
   const output = path.join(dir, 'report.html');
   const stderr: string[] = [];

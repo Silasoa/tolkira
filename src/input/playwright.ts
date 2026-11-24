@@ -748,6 +748,7 @@ function canonicalSteps(
   result: PlaywrightResult | undefined,
   mode: 'expected-failure' | 'unexpected-pass' | 'skipped' | 'normal',
   inputDir: string,
+  unexpectedPassMessage = 'Unexpected pass: expected to fail, but passed.',
 ): CanonicalStep[] {
   const flat = flattenSteps(result?.steps ?? []);
   let steps: CanonicalStep[];
@@ -762,7 +763,7 @@ function canonicalSteps(
       text: 'Unexpected pass',
       durationMs: steps.length > 0 ? 0 : (result?.duration ?? 0),
       status: FAILED,
-      message: 'Unexpected pass: expected to fail, but passed.',
+      message: unexpectedPassMessage,
     });
   } else if (mode === 'expected-failure' || mode === 'skipped') {
     const status = mode === 'skipped' ? SKIPPED : PASSED;
@@ -1255,13 +1256,19 @@ async function scenarioPlan(
   const passedFinal = finalStatus === 'passed';
   const expectsFailure = test.expectedStatus === 'failed';
   const expectedFailure =
-    failedFinal && (test.status === 'expected' || expectsFailure);
+    failedFinal &&
+    test.expectedStatus !== 'skipped' &&
+    (test.status === 'expected' || expectsFailure);
   const unexpectedPass =
     passedFinal &&
     (test.status === 'unexpected' ||
       expectsFailure ||
       test.expectedStatus === 'skipped');
   const flakyPass = passedFinal && test.status === 'flaky';
+  const unexpectedPassMessage =
+    test.expectedStatus === 'skipped'
+      ? 'Unexpected pass: expected to be skipped, but passed.'
+      : 'Unexpected pass: expected to fail, but passed.';
 
   const mode = expectedFailure
     ? 'expected-failure'
@@ -1270,7 +1277,12 @@ async function scenarioPlan(
       : skipped
         ? 'skipped'
         : 'normal';
-  const canonical = canonicalSteps(final, mode, context.inputDir);
+  const canonical = canonicalSteps(
+    final,
+    mode,
+    context.inputDir,
+    unexpectedPassMessage,
+  );
 
   const tagNames: string[] = [];
   const addTag = (value: string): void => {
@@ -1297,7 +1309,7 @@ async function scenarioPlan(
     if (text) descriptionParts.push(text);
   }
   if (unexpectedPass) {
-    descriptionParts.push('Unexpected pass: expected to fail, but passed.');
+    descriptionParts.push(unexpectedPassMessage);
   }
 
   const scenarioId = context.nextId('scenario');
@@ -1368,9 +1380,6 @@ async function scenarioPlan(
   } else {
     for (const [index, result] of results.entries()) {
       const isFinal = index === finalIndex;
-      // Missing or equal retry values describe one attempt: the last array
-      // element wins, so no phantom earlier attempt is emitted for it.
-      if (!isFinal && final && result.retry === final.retry) continue;
       // Final attachments are planned first across every scenario. An earlier
       // attempt keeps only its image references; the retry probe reads at most
       // one after all final reads have spent the budget.

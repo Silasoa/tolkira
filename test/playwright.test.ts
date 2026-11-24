@@ -1794,7 +1794,10 @@ describe('Playwright JSON input', () => {
       expect(summary.scenarios[0]?.attempt, name).toBe(0);
       expect(model.scenarios[0]?.status, name).toBe('passed');
       expect(html, name).toContain('data-status="passed"');
-      expect(html, name).not.toContain('first attempt failed');
+      // Every result is an attempt, so the earlier failure stays visible in
+      // the earlier-attempts block even when it has the same attempt number.
+      expect(html, name).toContain('class="earlierAttempts"');
+      expect(html, name).toContain('first attempt failed');
     }
   });
 
@@ -1849,9 +1852,54 @@ describe('Playwright JSON input', () => {
     expect(unexpected?.tags).toContain('@unexpected-pass');
     expect(unexpected?.steps[0]?.status).toBe('failed');
     expect(unexpected?.steps[0]?.message).toMatch(/unexpected pass/i);
+    expect(unexpected?.steps[0]?.message).toMatch(
+      /expected to be skipped, but passed/i,
+    );
     expect(html).toContain('data-status="failed"');
     expect(html).toMatch(/Unexpected pass/i);
     expect(buildHistoryRun(summary, 'Expected skip passed').status).toBe(
+      'failed',
+    );
+  });
+
+  it('does not hide an expected skip whose test status is expected', async () => {
+    const dir = await tempDir();
+    const spec = playwrightSpec('expected skip with expected status', [
+      {
+        status: 'failed',
+        duration: 1,
+        retry: 0,
+        startTime: '2026-11-22T09:00:00.000Z',
+        error: { message: 'failed despite the expected skip' },
+      },
+    ]);
+    (spec as { tests: Array<Record<string, unknown>> }).tests[0]!.expectedStatus =
+      'skipped';
+    const file = await writeReport(dir, playwrightReport([spec]));
+
+    const summary = await summarizeReport(file);
+    const html = await renderReport(file, { title: 'Expected skip expected' });
+    const failed = summary.scenarios[0];
+
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 1,
+      failed: 1,
+      passed: 0,
+      skipped: 0,
+    });
+    expect(failed?.status).toBe('failed');
+    expect(failed?.tags).not.toContain('@expected-failure');
+    expect(
+      failed?.steps.some(
+        (step) =>
+          step.status === 'failed' &&
+          step.message?.includes('failed despite the expected skip'),
+      ),
+    ).toBe(true);
+    expect(html).toContain('data-status="failed"');
+    expect(html).toContain('failed despite the expected skip');
+    expect(html).not.toContain('@expected-failure');
+    expect(buildHistoryRun(summary, 'Expected skip expected').status).toBe(
       'failed',
     );
   });
@@ -1875,6 +1923,22 @@ describe('Playwright JSON input', () => {
       .filter(Boolean)
       .join(' ');
     expect(ruleText).toContain('a.spec.ts');
+
+    const nested = scenario(summary, 'nested inherits the root file');
+    expect(nested.uri).toBe('a.spec.ts');
+    expect(nested.feature).toBe('a.spec.ts');
+    const nestedModel = model.scenarios.find(
+      (entry) => entry.name === 'nested inherits the root file',
+    );
+    const nestedRuleText = [
+      nestedModel?.ruleName,
+      nestedModel?.rule?.name,
+      nestedModel?.rule?.description,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    expect(nestedRuleText).toContain('a.spec.ts');
+    expect(nestedRuleText).toContain('nested describe');
 
     const project = scenario(summary, 'keeps the project feature');
     expect(project.feature).toBe('chromium');

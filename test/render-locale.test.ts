@@ -172,10 +172,10 @@ describe('German report rendering', () => {
       expect(html, label).toContain(`>${label}</span>`);
     }
     expect(html).toContain('>Versuch: ');
-    // The zero-second fixture timestamps are unknown now, so the started label
+    // The zero-second fixture timestamps are unknown now, so the started date
     // is checked on the real-timestamp German report instead of a 1970 date.
     expect(html).not.toContain('1970');
-    expect(german).toContain('>Gestartet: ');
+    expect(german).toContain('>Gestartet: 02.11.2026, 14:58 UTC');
     expect(html).toContain('Feature: All statuses');
   });
 

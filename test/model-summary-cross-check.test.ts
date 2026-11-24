@@ -96,6 +96,7 @@ interface ScenarioFingerprint {
   tags: string[];
   steps: ReportStatus[];
   hooks: ReportStatus[];
+  attachments: number;
 }
 
 const sorted = (rows: ScenarioFingerprint[]): ScenarioFingerprint[] =>
@@ -113,6 +114,7 @@ function modelFingerprint(model: ReportModel): ScenarioFingerprint[] {
       tags: [...scenario.tags],
       steps: scenario.steps.map((step) => step.status),
       hooks: scenario.hooks.map((hook) => hook.status),
+      attachments: scenario.attachments.length,
     })),
   );
 }
@@ -133,6 +135,7 @@ function summaryFingerprint(summary: ReportSummary): ScenarioFingerprint[] {
       hooks: scenario.steps
         .filter((step) => step.keyword === 'Hook')
         .map((step) => step.status),
+      attachments: scenario.attachments,
     })),
   );
 }
@@ -468,6 +471,76 @@ describe('rendered attachment parity', () => {
     expect(model.scenarios[0]?.status).toBe('passed');
     expect(summary.scenarios[0]?.status).toBe('passed');
     expect(summary.scenarios[0]?.attempt).toBe(0);
+  });
+
+  it('keeps a higher attempt when its timestamp is earlier', () => {
+    const envelopes = [
+      {
+        pickle: {
+          id: 'attempt-pickle',
+          uri: 'features/attempt.feature',
+          name: 'Attempt scenario',
+          language: 'en',
+          astNodeIds: ['attempt'],
+          tags: [],
+          steps: [{ id: 'attempt-pickle-step', text: 'x', astNodeIds: [] }],
+        },
+      },
+      {
+        testCase: {
+          id: 'attempt-case',
+          pickleId: 'attempt-pickle',
+          testSteps: [
+            { id: 'attempt-step', pickleStepId: 'attempt-pickle-step' },
+          ],
+        },
+      },
+      {
+        // Absent attempt is 0; its later timestamp must not beat attempt 1.
+        testCaseStarted: {
+          id: 'absent-attempt',
+          testCaseId: 'attempt-case',
+          timestamp: { seconds: 10, nanos: 0 },
+        },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: 'absent-attempt',
+          testStepId: 'attempt-step',
+          testStepResult: {
+            status: 'FAILED',
+            duration: { seconds: 0, nanos: 1 },
+          },
+          timestamp: { seconds: 10, nanos: 1 },
+        },
+      },
+      {
+        testCaseStarted: {
+          id: 'higher-attempt',
+          testCaseId: 'attempt-case',
+          attempt: 1,
+          timestamp: { seconds: 5, nanos: 0 },
+        },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: 'higher-attempt',
+          testStepId: 'attempt-step',
+          testStepResult: {
+            status: 'PASSED',
+            duration: { seconds: 0, nanos: 1 },
+          },
+          timestamp: { seconds: 5, nanos: 1 },
+        },
+      },
+    ] as unknown as Envelope[];
+    const model = buildReportModel(envelopes);
+    const summary = summarizeEnvelopes(envelopes);
+
+    expect(model.scenarios[0]?.attempt).toBe(1);
+    expect(model.scenarios[0]?.status).toBe('passed');
+    expect(summary.scenarios[0]?.attempt).toBe(1);
+    expect(summary.scenarios[0]?.status).toBe('passed');
   });
 
   it('agrees with the rendered screenshot fixture', async () => {

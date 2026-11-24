@@ -36,6 +36,39 @@
             }
           ]
         }
+      ],
+      "suites": [
+        {
+          "title": "nested describe",
+          "line": 0,
+          "column": 0,
+          "specs": [
+            {
+              "title": "nested inherits the root file",
+              "ok": true,
+              "tags": [],
+              "id": "inherited-a-nested-1",
+              "line": 1,
+              "column": 1,
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "status": "expected",
+                  "results": [
+                    {
+                      "status": "passed",
+                      "duration": 1,
+                      "retry": 0,
+                      "startTime": "2026-11-22T09:00:03.000Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {

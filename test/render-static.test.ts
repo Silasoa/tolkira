@@ -343,6 +343,18 @@ describe('default report guard', () => {
     expect(html.match(/<main\b/g) ?? []).toHaveLength(1);
     expect(html.match(/\brole="tab"/g) ?? []).toHaveLength(3);
     expect(html.match(/\brole="tabpanel"/g) ?? []).toHaveLength(3);
+    for (const id of [
+      'report-view',
+      'analysis-view',
+      'trends-view',
+      'view-report',
+      'view-analysis',
+      'view-trends',
+    ]) {
+      expect(html.match(new RegExp(`id="${id}"`, 'g')) ?? [], id).toHaveLength(
+        1,
+      );
+    }
 
     const script = cspDirectives(html).get('script-src') ?? [];
     expect(script).not.toEqual(["'none'"]);

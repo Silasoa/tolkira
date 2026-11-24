@@ -157,13 +157,29 @@ export async function loadResolvedInputs(
     const content = await readFile(input.file, 'utf8');
     const hash = createHash('sha256').update(content).digest('hex');
     if (seenContent.has(hash)) {
-      // shortcut: only an explicit JUnit duplicate is re-validated here; other
-      // formats keep the pre-existing dedup. Upgrade when another format gains
-      // an explicit-only guard that a directory copy could bypass.
-      if (input.explicit && detectInput(content, input).kind === 'junit') {
-        await parseJUnitXml(content, input.file, {
-          idPrefix: `junit-${index}`,
-        });
+      // A scanned copy may already have seen the content. An explicitly named
+      // duplicate still takes its explicit validation-only branch, so an empty
+      // or malformed file cannot hide behind a skipped or valid copy.
+      if (input.explicit) {
+        switch (detectInput(content, input).kind) {
+          case 'messages-validation':
+            parseMessages(content, input.file);
+            break;
+          case 'junit':
+          case 'junit-validation':
+            await parseJUnitXml(content, input.file, {
+              idPrefix: `junit-${index}`,
+            });
+            break;
+          case 'legacy-validation':
+            parseLegacyJson(content, input.file, {
+              idPrefix: `legacy-${index}`,
+            });
+            break;
+          case 'json-validation':
+            invalidJson(content, input.file);
+            break;
+        }
       }
       continue;
     }

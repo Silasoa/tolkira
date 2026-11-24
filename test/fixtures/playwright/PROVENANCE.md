@@ -36,5 +36,5 @@ JSON shape. They contain no recorded CI run, real path, token or personal data.
 | `no-timing.json` | Playwright JSON shape | no `stats.startTime` and no result `startTime`, for the unknown run date |
 | `expected-skip-failed.json` | Playwright JSON shape | `expectedStatus: skipped` with a failed final result |
 | `expected-skip-passed.json` | Playwright JSON shape | `expectedStatus: skipped` with a passed final result, for an unexpected pass |
-| `inherited-file.json` | Playwright JSON shape | suite file inherited by specs without `file`, project feature grouping and an explicit spec file |
+| `inherited-file.json` | Playwright JSON shape | suite file inherited by specs without `file`, a nested describe without `file`, project feature grouping and an explicit spec file |
 | `malformed-*.json` | Playwright JSON shape | invalid `suites`, suite `specs`, test `results` and attachment `contentType` |

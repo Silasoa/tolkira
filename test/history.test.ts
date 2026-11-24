@@ -543,6 +543,18 @@ describe('reading a BOM-prefixed history sidecar', () => {
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
   });
 
+  it('rejects a BOM followed by invalid JSON in the write peek without touching it', async () => {
+    const file = await writeBom('bom-write-invalid.json', '{not json');
+    const before = await readFile(file, 'utf8');
+    const beforeStat = await stat(file);
+
+    await expect(writeHistory(file, [makeRun(0)])).rejects.toThrow(
+      `Cannot write history file ${file}: not valid JSON`,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+    expect((await stat(file)).mtimeMs).toBe(beforeStat.mtimeMs);
+  });
+
   it('accepts a BOM-prefixed target in the schema peek and writes BOM-free bytes', async () => {
     const runs = [makeRun(0), makeRun(1)];
     const plain = await writeRaw(

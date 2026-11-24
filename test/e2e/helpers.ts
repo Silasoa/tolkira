@@ -99,6 +99,18 @@ export async function removeReport(dir: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
 }
 
+export async function waitForImages(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const images = Array.from(document.images);
+    images.forEach((image) => {
+      image.loading = 'eager';
+    });
+    return Promise.all(
+      images.map((image) => image.decode().catch(() => undefined)),
+    );
+  });
+}
+
 // Writes the email, optionally together with the report, in one CLI run.
 export async function writeEmail(
   inputs: string[],
