@@ -19,6 +19,46 @@
     "message": "View full size: {label}",
     "description": "Accessible label for opening an image attachment in the lightbox"
   },
+  "baseline.ambiguous": {
+    "message": "Ambiguous group",
+    "description": "Panel count label for base-key groups that could not be paired"
+  },
+  "baseline.badgeFixed": {
+    "message": "Fixed",
+    "description": "Row badge for a scenario that failed in the baseline and passes now"
+  },
+  "baseline.badgeNewFailure": {
+    "message": "New failure",
+    "description": "Row badge for a scenario that fails now and did not fail in the baseline"
+  },
+  "baseline.fixed": {
+    "message": "Fixed",
+    "description": "Panel count label for scenarios that failed in the baseline and pass now"
+  },
+  "baseline.heading": {
+    "message": "Compared with baseline",
+    "description": "Heading of the baseline comparison panel"
+  },
+  "baseline.more": {
+    "message": "{count, plural, one {# more scenario is in the JSON summary; use --json.} other {# more scenarios are in the JSON summary; use --json.}}",
+    "description": "Remainder line after the ten shown not-in-this-run rows"
+  },
+  "baseline.newFailures": {
+    "message": "New failures",
+    "description": "Panel count label for scenarios that fail now and did not fail in the baseline"
+  },
+  "baseline.notInThisRun": {
+    "message": "Not in this run",
+    "description": "Panel list label for baseline scenarios with no current match"
+  },
+  "baseline.status": {
+    "message": "Baseline status: {status}",
+    "description": "Baseline overall status in the comparison panel"
+  },
+  "baseline.stillFailing": {
+    "message": "Still failing",
+    "description": "Panel count label for scenarios that failed in the baseline and still fail"
+  },
   "ci.branch": {
     "message": "Branch",
     "description": "CI branch label"

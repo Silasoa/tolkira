@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { readBaseline, type BaselineSummary } from './baseline.js';
 import { formatCiOutput, type CiFormat } from './ci.js';
 import { renderEmail, type EmailOptions } from './email.js';
 import {
@@ -17,7 +18,10 @@ import { resolveInputFiles, scanInputBytes } from './input/load.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { renderPdf } from './pdf.js';
 import { resolveLocale } from './render/i18n.js';
-import { generateReportFromResolved } from './run.js';
+import {
+  generateReportFromResolved,
+  summarizeReportFromResolved,
+} from './run.js';
 import { summarizeResolvedReport, type ReportSummary } from './summary.js';
 import { ACCENT_PATTERN } from './validation.js';
 import {
@@ -54,6 +58,7 @@ Options:
       --ci-out <file>  Write the markdown CI summary to a file
       --history <file> Read and append an aggregate run history; needs --out
       --history-limit <n> Runs kept in that history (default ${HISTORY_LIMIT}, range 1 to ${HISTORY_LIMIT_MAX}); needs --history
+      --baseline <file> Compare with an earlier schema-2 summary; needs --out, --pdf, --json or --ci markdown
       --title <text>   Report title, email subject/heading and Markdown CI heading
       --locale <tag>   Report, PDF and email language: en or de (default en); needs --out, --pdf or --email
       --meta key=value Add metadata (repeatable)
@@ -95,6 +100,7 @@ function parseCliArgs(argv: string[]) {
       'ci-out': { type: 'string' },
       history: { type: 'string' },
       'history-limit': { type: 'string' },
+      baseline: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -192,11 +198,13 @@ async function historyConflicts(
   pdfPath: string | undefined,
   ciOut: string | undefined,
   email: string | undefined,
+  baseline: string | undefined,
 ): Promise<boolean> {
   if (output && samePath(file, output)) return true;
   if (pdfPath && samePath(file, pdfPath)) return true;
   if (ciOut && samePath(file, ciOut)) return true;
   if (email && samePath(file, email)) return true;
+  if (baseline && samePath(file, baseline)) return true;
   if (logo && samePath(file, logo)) return true;
   return conflictsWithInputs(file, inputs);
 }
@@ -329,6 +337,7 @@ export async function runCli(
   const wantsJson = parsed.values.json;
   const ciOut = parsed.values['ci-out'];
   const historyFile = parsed.values.history;
+  const baselineFile = parsed.values.baseline;
 
   if (parsed.values.out === '') {
     io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
@@ -337,6 +346,11 @@ export async function runCli(
 
   if (pdfPath === '') {
     io.stderr(`tolkira: --pdf requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (baselineFile === '') {
+    io.stderr(`tolkira: --baseline requires a file path\n\n${USAGE}`);
     return 2;
   }
 
@@ -427,6 +441,20 @@ export async function runCli(
   }
 
   if (
+    baselineFile !== undefined &&
+    !output &&
+    !wantsJson &&
+    pdfPath === undefined &&
+    ci !== 'markdown'
+  ) {
+    io.stderr(
+      `tolkira: --baseline requires --out, --pdf, --json or --ci markdown` +
+        `\n\n${USAGE}`,
+    );
+    return 2;
+  }
+
+  if (
     parsed.values['history-limit'] !== undefined &&
     historyFile === undefined
   ) {
@@ -485,11 +513,32 @@ export async function runCli(
       pdfPath,
       ciOut,
       emailPath,
+      baselineFile,
     ))
   ) {
     io.stderr(
       `tolkira: --history must not overwrite an input file, the logo, ` +
-        `--out, --pdf, --ci-out or --email\n\n${USAGE}`,
+        `--out, --pdf, --ci-out, --email or --baseline\n\n${USAGE}`,
+    );
+    return 2;
+  }
+
+  if (
+    baselineFile !== undefined &&
+    (await historyConflicts(
+      baselineFile,
+      inputs,
+      parsed.values.logo,
+      output,
+      pdfPath,
+      ciOut,
+      emailPath,
+      historyFile,
+    ))
+  ) {
+    io.stderr(
+      `tolkira: --baseline must not overwrite an input file, the logo, ` +
+        `--out, --pdf, --email, --history or --ci-out\n\n${USAGE}`,
     );
     return 2;
   }
@@ -599,8 +648,16 @@ export async function runCli(
       history = await readHistory(historyFile, historyLimit);
     }
 
+    let baseline: BaselineSummary | undefined;
+    if (baselineFile !== undefined) {
+      baseline = await readBaseline(baselineFile);
+    }
+
     if (!output && pdfPath === undefined) {
-      const summary = await summarizeResolvedReport(resolvedInputs);
+      const summary =
+        baseline === undefined
+          ? await summarizeResolvedReport(resolvedInputs)
+          : await summarizeReportFromResolved(resolvedInputs, baseline);
       if (emailPath !== undefined) {
         await writeEmailSummary(emailPath, summary, {
           title: parsed.values.title,
@@ -635,6 +692,7 @@ export async function runCli(
       ...(parsed.values.static ? { static: true } : {}),
       ...(locale === undefined ? {} : { locale }),
       ...(history === undefined ? {} : { history }),
+      ...(baseline === undefined ? {} : { baseline }),
     });
     const { html, summary, skippedAttachments } = generated;
 

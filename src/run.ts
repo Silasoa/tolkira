@@ -1,5 +1,10 @@
 import type { Envelope } from '@cucumber/messages';
 import {
+  compareBaseline,
+  type BaselineComparison,
+  type BaselineSummary,
+} from './baseline.js';
+import {
   appendHistory,
   buildHistoryRun,
   historyWindow,
@@ -14,7 +19,11 @@ import { sanitizeEnvelopes } from './input/sanitize.js';
 import { renderOptions, type RenderReportOptions } from './options.js';
 import { indexRun, type RunIndex } from './report/index-run.js';
 import { renderHtml } from './render/html.js';
-import { summarizeIndex, type ReportSummary } from './summary.js';
+import {
+  scenarioIdentities,
+  summarizeIndex,
+  type ReportSummary,
+} from './summary.js';
 
 export interface GeneratedReport {
   html: string;
@@ -38,22 +47,30 @@ interface LoadedRun {
   envelopes: Envelope[];
   index: RunIndex;
   summary: ReportSummary;
+  comparison?: BaselineComparison;
   skippedAttachments: number;
   inputFiles: number;
   inputBytes: number;
   provenance?: Map<string, string>;
 }
 
-async function loadRun(resolved: ResolvedInputs): Promise<LoadedRun> {
+async function loadRun(
+  resolved: ResolvedInputs,
+  baseline?: BaselineSummary,
+): Promise<LoadedRun> {
   const groups = await loadResolvedInputs(resolved);
   const envelopes = sanitizeEnvelopes(
     groups.flatMap((group) => group.envelopes),
   );
   const index = indexRun(envelopes);
+  const comparison = baseline
+    ? compareBaseline(baseline, scenarioIdentities(index))
+    : undefined;
   return {
     envelopes,
     index,
-    summary: summarizeIndex(index),
+    summary: summarizeIndex(index, comparison),
+    ...(comparison === undefined ? {} : { comparison }),
     skippedAttachments: groups.reduce(
       (sum, group) => sum + group.skippedAttachments,
       0,
@@ -72,6 +89,7 @@ function render(
   return renderHtml(run.envelopes, {
     ...renderOptions(options),
     ...(history === undefined ? {} : { history }),
+    ...(run.comparison === undefined ? {} : { comparison: run.comparison }),
     summary: run.summary,
     index: run.index,
     provenance: run.provenance,
@@ -87,7 +105,7 @@ export async function generateReportFromResolved(
   options: GenerateReportOptions = {},
 ): Promise<GeneratedReport> {
   const historyLimit = historyWindow(options.historyLimit);
-  const run = await loadRun(resolved);
+  const run = await loadRun(resolved, options.baseline);
   const history =
     options.history === undefined
       ? undefined
@@ -111,5 +129,17 @@ export async function renderReportFromResolved(
   resolved: ResolvedInputs,
   options: RenderReportOptions = {},
 ): Promise<string> {
-  return render(await loadRun(resolved), options, options.history);
+  return render(
+    await loadRun(resolved, options.baseline),
+    options,
+    options.history,
+  );
+}
+
+/** Internal: builds the summary, including a baseline comparison, without HTML. */
+export async function summarizeReportFromResolved(
+  resolved: ResolvedInputs,
+  baseline?: BaselineSummary,
+): Promise<ReportSummary> {
+  return (await loadRun(resolved, baseline)).summary;
 }

@@ -4,8 +4,14 @@ import type {
   Duration,
   Envelope,
   Feature,
+  Pickle,
   TestStepResult,
 } from '@cucumber/messages';
+import type {
+  BaselineBlock,
+  BaselineChange,
+  BaselineComparison,
+} from './baseline.js';
 import { attachmentBytes } from './attachment.js';
 import {
   loadEnvelopes,
@@ -55,11 +61,26 @@ export interface SummaryScenario {
   status: SummaryStatus;
   /** True when the selected test case reported at least one raw result. */
   executed: boolean;
+  /** Baseline classification; present only with a baseline and a claim. */
+  change?: BaselineChange;
   durationMs: number;
   attempt: number;
+  /** Messages outline coordinate, `#<examples>.<example>`, 1-based. */
+  example?: string;
   tags: string[];
   attachments: number;
   steps: SummaryStep[];
+}
+
+/** The identity fields the baseline matcher needs from a current row. */
+export interface SummaryScenarioIdentity {
+  id: string;
+  feature: string;
+  name: string;
+  uri: string;
+  status: SummaryStatus;
+  executed: boolean;
+  example?: string;
 }
 
 export interface ReportSummary {
@@ -75,6 +96,8 @@ export interface ReportSummary {
     total: number;
     bytes: number;
   };
+  /** Present only when a baseline was supplied. */
+  baseline?: BaselineBlock;
   scenarios: SummaryScenario[];
 }
 
@@ -177,16 +200,47 @@ export function displayUri(uri: string): string {
   return parts.slice(-3).join('/') || uri;
 }
 
+function featureFor(index: RunIndex, pickle: Pickle): Feature | undefined {
+  return (
+    index.featureByScenarioId.get(pickle.astNodeIds[0] ?? '') ??
+    index.featuresByUri.get(pickle.uri)
+  );
+}
+
+/** The same coordinate the report model labels a grouped outline row with. */
+function exampleCoordinate(
+  index: RunIndex,
+  pickle: Pickle,
+): string | undefined {
+  const astIds = pickle.astNodeIds ?? [];
+  const candidate = astIds.length
+    ? index.outlineRows.get(astIds.at(-1) ?? '')
+    : undefined;
+  const row =
+    candidate &&
+    astIds.includes(candidate.scenario.id) &&
+    (!candidate.uri || !pickle.uri || candidate.uri === pickle.uri)
+      ? candidate
+      : undefined;
+  return row ? `#${row.examplesIndex + 1}.${row.exampleIndex + 1}` : undefined;
+}
+
 /**
  * Builds a stable, renderer-independent summary from Cucumber Messages.
  * This is the machine-readable contract for agents and CI tools.
  */
-export function summarizeEnvelopes(input: Envelope[]): ReportSummary {
-  return summarizeIndex(indexRun(sanitizeEnvelopes(input)));
+export function summarizeEnvelopes(
+  input: Envelope[],
+  comparison?: BaselineComparison,
+): ReportSummary {
+  return summarizeIndex(indexRun(sanitizeEnvelopes(input)), comparison);
 }
 
 /** Builds the summary from an index already reduced from sanitized envelopes. */
-export function summarizeIndex(index: RunIndex): ReportSummary {
+export function summarizeIndex(
+  index: RunIndex,
+  comparison?: BaselineComparison,
+): ReportSummary {
   const scenarioCounts = emptyCounts();
   const stepCounts = emptyCounts();
   const scenarios: SummaryScenario[] = [];
@@ -204,9 +258,7 @@ export function summarizeIndex(index: RunIndex): ReportSummary {
     const resultByStep = new Map(
       finished.map((entry) => [entry.testStepId, entry.testStepResult]),
     );
-    const feature =
-      index.featureByScenarioId.get(pickle.astNodeIds[0] ?? '') ??
-      index.featuresByUri.get(pickle.uri);
+    const feature = featureFor(index, pickle);
     if (feature) featureSet.add(feature);
     const featureName = feature?.name ?? '';
     const pickleSteps = new Map(
@@ -276,6 +328,8 @@ export function summarizeIndex(index: RunIndex): ReportSummary {
 
     const status = scenarioStatus(finished.map((entry) => entry.testStepResult));
     const executed = finished.length > 0;
+    const example = exampleCoordinate(index, pickle);
+    const change = comparison?.changes.get(pickle.id);
     const scenarioDuration = steps.reduce((sum, step) => sum + step.durationMs, 0);
     const scenarioAttachments = executed
       ? (index.attachmentsByStarted.get(started.id) ?? [])
@@ -294,8 +348,10 @@ export function summarizeIndex(index: RunIndex): ReportSummary {
       feature: featureName,
       status,
       executed,
+      ...(change ? { change } : {}),
       durationMs: finiteDuration(scenarioDuration),
       attempt: started?.attempt ?? 0,
+      ...(example ? { example } : {}),
       tags: (pickle.tags ?? []).map((tag) => tag.name),
       attachments: scenarioAttachments.length,
       steps,
@@ -349,8 +405,35 @@ export function summarizeIndex(index: RunIndex): ReportSummary {
         0,
       ),
     },
+    ...(comparison ? { baseline: comparison.block } : {}),
     scenarios,
   };
+}
+
+/**
+ * The current-run identity rows the baseline matcher compares against. The
+ * fields and the example coordinate come from the same helpers as the summary,
+ * so the report, summary and matcher cannot drift.
+ */
+export function scenarioIdentities(index: RunIndex): SummaryScenarioIdentity[] {
+  const rows: SummaryScenarioIdentity[] = [];
+  for (const pickle of index.pickles.values()) {
+    const started = index.attempts.get(pickle.id);
+    if (!started) continue;
+    const finished = index.results.get(started.id) ?? [];
+    const feature = featureFor(index, pickle);
+    const example = exampleCoordinate(index, pickle);
+    rows.push({
+      id: pickle.id,
+      feature: feature?.name ?? '',
+      name: pickle.name ?? '',
+      uri: displayUri(pickle.uri ?? ''),
+      status: scenarioStatus(finished.map((entry) => entry.testStepResult)),
+      executed: finished.length > 0,
+      ...(example ? { example } : {}),
+    });
+  }
+  return rows;
 }
 
 export async function summarizeReport(

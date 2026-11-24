@@ -57,14 +57,11 @@ describe('baseline JSON block', () => {
     const block = baselineBlock(withBaseline);
     expect(block.status).toBe('failed');
     expect(Object.keys(block)).toEqual(['status', 'counts', 'notInThisRun']);
-    // The design exposes six counts and keeps `other` as the derived
-    // residual; the delta text names seven. Pin the six without rejecting an
-    // extra residual field.
-    const countKeys = Object.keys(block.counts).filter((key) => key !== 'other');
-    expect(countKeys).toEqual([
+    expect(Object.keys(block.counts)).toEqual([
       'newFailures',
       'fixed',
       'stillFailing',
+      'other',
       'notInThisRun',
       'added',
       'ambiguous',
@@ -108,10 +105,7 @@ describe('baseline JSON block', () => {
         block.counts.stillFailing +
         block.counts.notInThisRun);
     expect(residual).toBe(2);
-    expect(
-      (block.counts as typeof block.counts & { other?: number }).other ??
-        residual,
-    ).toBe(2);
+    expect(block.counts.other).toBe(2);
   });
 
   it('takes the baseline overall status from the baseline document', async () => {

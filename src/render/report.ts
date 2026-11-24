@@ -14,6 +14,7 @@ import type { ReportStatus } from '../report/status.js';
 import { worstExecutedStatus } from '../report/status.js';
 import { displayUri } from '../summary.js';
 import { renderAttachment } from './attachments.js';
+import { applyBaselineChanges, renderBaselinePanel } from './baseline.js';
 import { ciHeaderMarkup } from './ci.js';
 import {
   DOM_IDS,
@@ -290,7 +291,13 @@ function scenarioSummary(
   const flakyBadge = flaky
     ? `<span class="flakyBadge" aria-hidden="true">${escapeHtml(t.t('report.flakyBadge'))}</span> `
     : '';
-  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${flakyBadge}${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
+  const changeBadge =
+    scenario.change === 'new-failure'
+      ? `<span class="changeBadge changeBadgeNewFailure">${escapeHtml(t.t('baseline.badgeNewFailure'))}</span> `
+      : scenario.change === 'fixed'
+        ? `<span class="changeBadge changeBadgeFixed">${escapeHtml(t.t('baseline.badgeFixed'))}</span> `
+        : '';
+  return `<summary class="scenarioButton">${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${changeBadge}${flakyBadge}${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span><span class="chev" aria-hidden="true"></span></summary>`;
 }
 
 function skippedAttachmentNotice(
@@ -813,6 +820,12 @@ export function renderReportView(
   staticMode = false,
 ): string {
   const total = model.counts.scenarios.total;
+  if (options.comparison) {
+    applyBaselineChanges(model, options.comparison.changes);
+  }
+  const baselinePanel = options.comparison
+    ? renderBaselinePanel(options.comparison, t)
+    : '';
   const ordered = orderFeatures(model.features);
   const features = ordered
     .map((feature, index) => renderFeature(feature, index, t, staticMode))
@@ -820,7 +833,7 @@ export function renderReportView(
   const triage = renderTriage(ordered, t, staticMode);
   const sources = renderSourceStrip(model, t);
   const runHooks = renderRunHooks(model, t, staticMode);
-  const shell = `${reportHeader(model, options, t)}${staticMode ? '' : toolbar(model, t)}<p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${triage}${sources}<div id="feature-list">${features || `<div class="empty">${t.t('report.noScenarios')}</div>`}</div>${runHooks}${staticMode ? '' : `<div class="empty" id="${DOM_IDS.emptyResults}" hidden>${t.t('report.noMatches')}</div>`}<p class="foot">${t.t('report.footer')}</p>`;
+  const shell = `${reportHeader(model, options, t)}${staticMode ? '' : toolbar(model, t)}<p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${baselinePanel}${triage}${sources}<div id="feature-list">${features || `<div class="empty">${t.t('report.noScenarios')}</div>`}</div>${runHooks}${staticMode ? '' : `<div class="empty" id="${DOM_IDS.emptyResults}" hidden>${t.t('report.noMatches')}</div>`}<p class="foot">${t.t('report.footer')}</p>`;
   return staticMode
     ? `<div class="tabPanel" id="${DOM_IDS.reportView}"><main class="shell">${shell}</main></div>`
     : `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell">${shell}</main></div>`;

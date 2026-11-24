@@ -12,7 +12,7 @@ import { escapeHtml } from './escape.js';
 import { createTranslator, type Translator } from './i18n.js';
 import { PRINT_SCRIPT } from './print-script.js';
 import { renderReportView } from './report.js';
-import { REPORT_CSS } from './styles.js';
+import { BASELINE_CSS, REPORT_CSS } from './styles.js';
 import { renderTrendsView, TRENDS_SHELL_CSS } from './trends.js';
 import type { RenderOptions } from './types.js';
 
@@ -53,7 +53,7 @@ export async function renderHtml(
   const safeEnvelopes = sanitizeEnvelopes(envelopes);
   const index = options.index ?? indexRun(safeEnvelopes);
   const model = buildReportModel(safeEnvelopes, options.provenance, index);
-  const summary = options.summary ?? summarizeIndex(index);
+  const summary = options.summary ?? summarizeIndex(index, options.comparison);
   const history = Array.isArray(options.history) ? options.history : [];
   const staticMode = options.static === true;
   const logo = isLogoDataUri(options.logo)
@@ -93,6 +93,6 @@ export async function renderHtml(
   const messages = staticMode ? '' : `<script type="application/json" id="${DOM_IDS.i18nMessages}">${t.clientMessages()}</script>`;
   const lightbox = staticMode ? '' : `<dialog class="lightbox" id="${DOM_IDS.lightbox}" aria-label="${t.t('lightbox.label')}"><button class="lightboxClose" type="button" data-lightbox-close>${t.t('lightbox.close')}</button><img alt=""></dialog>`;
   const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div>${staticMode ? '' : tabBar(history.length, t)}</div></header><p class="sr" id="${DOM_IDS.copyLive}" aria-live="polite"></p>${notice}${renderReportView(model, options, t, staticMode)}${renderAnalysisView(model, options, summary, t, staticMode)}${trends}${lightbox}${messages}${clientScript}${printScript}`;
-  const html = `<!doctype html>\n<html lang="${escapeHtml(t.lang)}" dir="${t.dir}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(inlineScriptHashes(body))}\n<style>${REPORT_CSS}${accent}${localeCss}${trends ? TRENDS_SHELL_CSS : ''}</style>\n</head>\n<body>${body}</body>\n</html>`;
+  const html = `<!doctype html>\n<html lang="${escapeHtml(t.lang)}" dir="${t.dir}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(inlineScriptHashes(body))}\n<style>${REPORT_CSS}${accent}${localeCss}${trends ? TRENDS_SHELL_CSS : ''}${options.comparison ? BASELINE_CSS : ''}</style>\n</head>\n<body>${body}</body>\n</html>`;
   return applyReportSize(html, t);
 }

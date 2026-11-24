@@ -1,11 +1,14 @@
+import type { BaselineSummary } from './baseline.js';
 import { resolveInputFiles } from './input/load.js';
 import type { RenderReportOptions } from './options.js';
 import {
   generateReportFromResolved,
   renderReportFromResolved,
+  summarizeReportFromResolved,
   type GeneratedReport,
   type GenerateReportOptions,
 } from './run.js';
+import type { ReportSummary } from './summary.js';
 
 export const version = '0.5.1';
 export const phase = 'development';
@@ -17,7 +20,8 @@ export type {
   SummaryStatus,
   SummaryStep,
 } from './summary.js';
-export { summarizeReport, SUMMARY_SCHEMA_VERSION } from './summary.js';
+export { SUMMARY_SCHEMA_VERSION } from './summary.js';
+export type { BaselineSummary } from './baseline.js';
 export type { HistoryRun } from './history.js';
 export {
   HISTORY_LIMIT,
@@ -53,4 +57,15 @@ export async function renderReport(
   options: RenderReportOptions = {},
 ): Promise<string> {
   return renderReportFromResolved(await resolveInputFiles(inputs), options);
+}
+
+/** Builds the stable JSON summary, optionally with a baseline comparison. */
+export async function summarizeReport(
+  inputs: string | string[],
+  options: { baseline?: BaselineSummary } = {},
+): Promise<ReportSummary> {
+  return summarizeReportFromResolved(
+    await resolveInputFiles(inputs),
+    options.baseline,
+  );
 }

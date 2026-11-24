@@ -33,6 +33,7 @@ export interface BaselineCounts {
   newFailures: number;
   fixed: number;
   stillFailing: number;
+  other: number;
   notInThisRun: number;
   added: number;
   ambiguous: number;
@@ -206,6 +207,7 @@ export function summaryWithBaseline(
         newFailures: 0,
         fixed: 0,
         stillFailing: 0,
+        other: 0,
         notInThisRun: 0,
         added: 0,
         ambiguous: 0,

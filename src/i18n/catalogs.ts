@@ -5,6 +5,16 @@ export type MessageKey =
   | "attachment.copyLogLabel"
   | "attachment.screenshotFor"
   | "attachment.viewFullSize"
+  | "baseline.ambiguous"
+  | "baseline.badgeFixed"
+  | "baseline.badgeNewFailure"
+  | "baseline.fixed"
+  | "baseline.heading"
+  | "baseline.more"
+  | "baseline.newFailures"
+  | "baseline.notInThisRun"
+  | "baseline.status"
+  | "baseline.stillFailing"
   | "ci.branch"
   | "ci.label"
   | "ci.revision"
@@ -199,6 +209,16 @@ export const en: Record<MessageKey, string> = {
   "attachment.copyLogLabel": "Copy log {name}",
   "attachment.screenshotFor": "Screenshot for {context}: {name}",
   "attachment.viewFullSize": "View full size: {label}",
+  "baseline.ambiguous": "Ambiguous group",
+  "baseline.badgeFixed": "Fixed",
+  "baseline.badgeNewFailure": "New failure",
+  "baseline.fixed": "Fixed",
+  "baseline.heading": "Compared with baseline",
+  "baseline.more": "{count, plural, one {# more scenario is in the JSON summary; use --json.} other {# more scenarios are in the JSON summary; use --json.}}",
+  "baseline.newFailures": "New failures",
+  "baseline.notInThisRun": "Not in this run",
+  "baseline.status": "Baseline status: {status}",
+  "baseline.stillFailing": "Still failing",
   "ci.branch": "Branch",
   "ci.label": "CI",
   "ci.revision": "Revision",
@@ -394,6 +414,16 @@ export const de: Record<MessageKey, string> = {
   "attachment.copyLogLabel": "Protokoll {name} kopieren",
   "attachment.screenshotFor": "Screenshot für {context}: {name}",
   "attachment.viewFullSize": "In voller Größe anzeigen: {label}",
+  "baseline.ambiguous": "Mehrdeutige Gruppe",
+  "baseline.badgeFixed": "Behoben",
+  "baseline.badgeNewFailure": "Neuer Fehler",
+  "baseline.fixed": "Behoben",
+  "baseline.heading": "Vergleich mit Baseline",
+  "baseline.more": "{count, plural, one {# weiteres Szenario steht in der JSON-Zusammenfassung; nutze --json.} other {# weitere Szenarien stehen in der JSON-Zusammenfassung; nutze --json.}}",
+  "baseline.newFailures": "Neuer Fehler",
+  "baseline.notInThisRun": "Nicht in diesem Lauf",
+  "baseline.status": "Baseline-Status: {status}",
+  "baseline.stillFailing": "Weiterhin fehlgeschlagen",
   "ci.branch": "Branch",
   "ci.label": "CI",
   "ci.revision": "Revision",

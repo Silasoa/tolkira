@@ -633,21 +633,19 @@ describe('reconciliation', () => {
 
     const summary = await summarizeWithBaseline(file, { baseline });
     const block = baselineBlock(summary);
-    const counts = block.counts as typeof block.counts & { other?: number };
 
     expect(block.counts).toMatchObject({
       newFailures: 2,
       fixed: 1,
       stillFailing: 3,
+      other: 3,
       notInThisRun: 1,
       added: 0,
       ambiguous: 0,
     });
     const residual = 10 - (2 + 1 + 3 + 1);
     expect(residual).toBe(3);
-    // The design keeps `other` as the derived no-claim residual; the delta
-    // text names it as a count. Accept either representation but pin the sum.
-    expect(counts.other ?? residual).toBe(3);
+    expect(block.counts.other).toBe(3);
     expect(2 + 1 + 3 + 3 + 1).toBe(10);
     expect(block.notInThisRun.map((row) => row.name)).toEqual(['gone one']);
   });

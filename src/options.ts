@@ -1,3 +1,4 @@
+import type { BaselineSummary } from './baseline.js';
 import type { HistoryRun } from './history.js';
 
 export interface RenderReportOptions {
@@ -11,6 +12,8 @@ export interface RenderReportOptions {
   history?: HistoryRun[];
   /** Opt-in script-free report with every view stacked and every detail open. */
   static?: boolean;
+  /** Validated earlier summary; the API accepts the projection, never a path. */
+  baseline?: BaselineSummary;
 }
 
 export function renderOptions(options: RenderReportOptions) {

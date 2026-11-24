@@ -17,6 +17,7 @@ import {
   type AttachmentKind,
   type AttachmentTextFormat,
 } from '../attachment.js';
+import type { BaselineChange } from '../baseline.js';
 import {
   isRetryEvidence,
   skippedAttachmentEntriesOf,
@@ -137,6 +138,8 @@ export interface ReportScenario {
   status: ReportStatus;
   /** True when the selected test case reported at least one raw result. */
   executed: boolean;
+  /** Baseline classification joined by pickle id; absent without a baseline. */
+  change?: BaselineChange;
   durationMs: number;
   attempt: number;
   startedAt?: string;

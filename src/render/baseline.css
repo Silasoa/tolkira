@@ -1,0 +1,72 @@
+/* Baseline comparison panel and row badges. Loaded only with --baseline. */
+.baselinePanel {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  break-inside: avoid;
+}
+.baselinePanel h2 {
+  margin: 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.baselineStatusLine {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.baselineCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.baselineCounts li {
+  min-width: 0;
+}
+.baselinePanel h3 {
+  margin: 0.875rem 0 0.25rem;
+  font-size: 0.875rem;
+}
+.baselineList {
+  margin: 0;
+  padding-left: 1.125rem;
+  font-size: 0.875rem;
+}
+.baselineList li {
+  overflow-wrap: anywhere;
+}
+.baselineFeature {
+  color: var(--muted);
+}
+.baselineExample {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.baselineMore {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.changeBadge {
+  display: inline-block;
+  margin-right: 0.375rem;
+  padding: 0 0.375rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.changeBadgeNewFailure {
+  color: var(--fail);
+}
+.changeBadgeFixed {
+  color: var(--pass);
+}

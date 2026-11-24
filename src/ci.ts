@@ -428,6 +428,20 @@ export function formatMarkdownSummary(
     '',
   ];
 
+  const baseline = summary.baseline;
+  if (baseline) {
+    const parts = [
+      plural(baseline.counts.newFailures, 'new failure'),
+      `${baseline.counts.fixed} fixed`,
+      `${baseline.counts.stillFailing} still failing`,
+      `${baseline.counts.notInThisRun} not in this run`,
+    ];
+    if (baseline.counts.ambiguous > 0) {
+      parts.push(plural(baseline.counts.ambiguous, 'ambiguous group'));
+    }
+    lines.push(`Baseline: ${parts.join(' · ')}`, '');
+  }
+
   if (isEmptyRun(summary)) {
     lines.push('No scenarios in this report.');
     return `${lines.join('\n')}\n`;

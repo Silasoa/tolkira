@@ -16,6 +16,7 @@ const layers: Record<string, number> = {
   attachments: 2,
   ci: 2,
   format: 3,
+  baseline: 2,
   types: 4,
 };
 
