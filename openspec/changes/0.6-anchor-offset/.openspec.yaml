@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-24
+goal: Keep an anchored scenario clear of a wrapped sticky topbar and record the
+  resulting 170 B default-document delta in the 0.6.0 contracts.

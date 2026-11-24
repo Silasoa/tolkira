@@ -89,11 +89,11 @@ Tolkira view carries, record that functional gap.
 
 | Host | Last run | Result | Notes |
 | --- | --- | --- | --- |
-| Seed-Test | 2026-11-23 | Pass (0.5.1; not re-run for `static-no-js`) | Pin `ce2cad8` (AI branch), final 0.5.1 tarball (581,397 B). `tsc -b` in `backend/` and `report.service.spec.ts` 35/35. Story: 1 feature / 3 scenarios (2 passed, 1 failed), 12 step rows, 1 attachment / 5,234 B, report 89,092 B. Group: 2 features / 4 scenarios (3 passed, 1 failed), 16 step rows, 2 attachments / 10,468 B, CLI report 106,590 B (shim group HTML 107,571 B); sidecar `group-mode.html.json` 21,579 B with 2 stories. Metadata, inline PNG, failure text, source row, search/filter, 1440/390 no overflow, no console errors. Report bytes move with ids, names and durations (-400 B story, -1,530 B group CLI, +262 B sidecar) and are not content loss. Limits: per-story JSON synthetic (no live backend/MongoDB), the shim has no `--history`, no native `cucumber-html-reporter` HTML compared, Linux/Node 22 unrun. |
-| Cucumber-js host | 2026-11-23 | Pass (`static-no-js`) | Official `@cucumber/cucumber@13.3.0`: 2 scenarios (1 passed, 1 failed), 5 steps (4 passed, 1 failed), 1 PNG / 5,234 B. `out.json` 9,801 B, `out.ndjson` 16,277 B; reports 84,917 B / 85,044 B. Legacy and Messages summaries are byte-identical (same SHA-256): 1 feature, 2 scenarios, 5 steps, 5,234 attachment bytes. No overflow, no console errors. Native Cucumber HTML not generated; shim ESM named/await and CJS stay covered by the CI tests. |
-| Playwright movies-app | 2026-11-23 | Pass (0.5.1; not re-run for `static-no-js`) | Pin `5d2cdf0`, host Playwright 1.62.1; full `npx playwright test --reporter=json`: 123 tests (121 passed, 2 skipped, 0 failed/flaky/retries), 113 explicit steps, 5 attachments / 265 B. Tolkira: 3 features / 123 scenarios (121 passed, 2 skipped), 236 step rows (113 + 123 documented synthetic overhead rows), 5 attachments / 265 B, report 281,486 B; 123/123 scenario source lines match `spec.file:spec.line`. 1440/390 no overflow, no console errors. The first full run was red on two 30 s host-side timeouts; a targeted rerun passed 3/3 and the second full run passed 121/2, so the red is host cold-start load, not Tolkira. The earlier 4 attachments / 161 B record had one 0-byte inline attachment; this run wrote 104 B for the same attachment and all five rendered. Native HTML report not generated. |
-| Spring PetClinic | 2026-11-23 | Pass (0.5.1 full suite; not re-run for `static-no-js`) | Pin `500158f`; full `mvn -B test` with Docker off (18 XMLs, 940,097 B): 79 tests / 77 passed / 2 skipped / 0 failed, `PostgresIntegrationTests` emits the zero-test Surefire document. Tolkira on the final 0.5.1 tarball (581,397 B): 20 features / 79 scenarios / 77 passed / 2 skipped, 79 step rows, 28 attachments / 67,797 B, report 280,632 B; all 79 scenario names match the summary, `PostgresIntegrationTests` appears in neither JSON nor HTML. B-047 acceptance passed. Attachment bytes differ by -220 B from the earlier exclusion render (67,797 vs 68,017): the attachments are Testcontainers `<system-out>` text with timestamps and absolute paths, so the total is run-specific; no attachment is missing. No overflow, no console errors, no external requests. |
-| Cucumber-JVM examples | 2026-11-23 | Pass (0.5.1; not re-run for `static-no-js`) | Pin `f71480f`, `calculator-java-junit-jupiter` with a temp-only `cucumber.properties` adding `json:target/cucumber.json` (14,686 B): 3 features / 8 scenarios / 8 passed; 30 scenario steps + 6 background steps + 18 hooks = 54 results; Tolkira renders 36 step rows + 18 hooks and 18 text attachments / 498 B, report 94,480 B. The earlier 9/52/12-hook record does not reproduce at this pin. No overflow, no console errors. |
+| Seed-Test | 2026-11-24 | Pass (`0.6.0`) | Pin `ce2cad8` (AI branch), release tarball (631,852 B). `tsc -b` and `report.service.spec.ts` 35/35. Story: 1 feature / 3 scenarios (2 passed, 1 failed), 12 step rows, 1 attachment / 5,234 B, report 88,679 B; group: 2 features / 4 scenarios (3 passed, 1 failed), 16 step rows, 2 attachments / 10,468 B, report 106,291 B; shim group sidecar 21,579 B / 2 stories, byte-identical to the old reporter's sidecar. Static 69,290 B, baseline 1 new failure / 1 fixed, history 3 runs. No overflow, no console errors, no external requests. The +170 B default delta is the measured scroll-offset script; other report bytes move with ids and durations. Limits: per-story JSON synthetic (no live backend/MongoDB), native `cucumber-html-reporter` HTML compared by content counts only. |
+| Cucumber-js host | 2026-11-24 | Pass (`0.6.0`) | Official `@cucumber/cucumber@13.3.0` on Node 26.13.1 / npm 10.8.2: 2 scenarios (1 passed, 1 failed), 5 steps (4 passed, 1 failed), 2 inline PNGs / 140 B. `out.json` 3,302 B, `out.ndjson` 9,974 B; reports 72,452 / 72,578 B; the two summaries are byte-identical (2,191 B, same SHA-256). Static 53,322 B with one `<main>`, no `<script>` and all details open; baseline 1 new failure / 1 fixed; history 3 runs / Trends. No overflow, console errors or external requests. Native Cucumber HTML not generated. |
+| Playwright movies-app | 2026-11-24 | Pass (`0.6.0`) | Pin `5d2cdf0`, host Playwright 1.62.1; full `npx playwright test --reporter=list,json`: 123 tests (121 passed, 2 skipped, 0 failed/flaky/retries), 113 explicit steps, 5 host attachments / 161 B of which one has an empty body, so Tolkira renders 4 / 161 B. Tolkira: 3 features / 123 scenarios, 236 step rows, report 281,439 B; 123/123 scenario source lines match `spec.file:spec.line`. Static 262,907 B; baseline 2 fixed plus a supplemental 1 not-in-run list; history 3 runs. 1440/390/320 at 200 % and print clean; no overflow, console errors or external requests. Native HTML report not generated. |
+| Spring PetClinic | 2026-11-24 | Pass (`0.6.0`) | Pin `500158f`; full `mvn -B test` with Docker off (18 XMLs, 937,554 B): 79 tests / 77 passed / 2 skipped / 0 failed, `PostgresIntegrationTests` emits the zero-test Surefire document. Tolkira on the release tarball: 20 features / 79 scenarios / 77 passed / 2 skipped, 79 step rows, 28 attachments / 67,901 B, report 280,900 B; all 79 scenario names match, `PostgresIntegrationTests` appears in neither JSON nor HTML. Static 262,735 B; baseline 76 fixed; history 3 runs. No overflow, console errors or external requests. The system has only JRE 25 and no Maven, so the run used JDK 21.0.9 (JetBrains JBR) and Maven 3.9.9 provisioned into the evidence directory. |
+| Cucumber-JVM examples | 2026-11-24 | Pass (`0.6.0`) | Pin `f71480f`, `calculator-java-junit-jupiter` with a temp-only `cucumber.properties` adding `json:target/cucumber.json` (14,760 B): 3 features / 8 scenarios / 8 passed; 30 scenario steps + 6 background steps + 18 hooks = 54 results; Tolkira renders 36 step rows + 18 hooks and 18 text attachments / 498 B, report 94,666 B. Static 76,113 B with one `<main>`, no `<script>` and 37/37 details open; baseline 3 fixed plus one ambiguous legacy-JSON group; history 3 runs. No overflow, console errors or external requests. JDK 21.0.9 and Maven 3.9.9 were provisioned into the evidence directory; the 8/54 record reproduces, the earlier 9/52 one does not. |
 | `cucumber-html-reporter@7.2.0` reference | 2026-11-20 | Content PASS | Same fixture; screenshots at 1440/390; no visual parity; old install 144 packages / 7 vulnerabilities. The 0.5 shell was not compared to CHR. |
 
 **`0.5.1` release run (2026-11-23, final tarball).** All five required rows ran
@@ -111,6 +111,32 @@ scope. That full suite was the B-047 acceptance: the zero-test
 renders 20 features / 79 scenarios / 77 passed / 2 skipped. Report bytes and
 attachment totals move with run-specific ids, timestamps and absolute paths;
 counts and statuses match the earlier baseline on every row.
+
+**`0.6.0` release run (2026-11-24, final tarball).** All five required rows ran
+on the packed 0.6.0 tarball (`tolkira-0.6.0.tgz`, 631,852 B, SHA-256
+`7946DF21455E1899D7AC4E6B609B54C37A0BA870C522162195C98BD6BCE2A928`) in
+temporary directories outside the repo: Windows 11 Pro 10.0.26300, Node 26.13.1,
+npm 10.8.2, JDK 21.0.9 (JetBrains JBR) and Maven 3.9.9 for the two Java hosts
+(the system has only JRE 25 and no Maven), Docker daemon not running, Playwright
+1.65.1 on Chromium for the report checks. Screenshots at 1440x900, 390x844 and
+320 px at 200 % text were captured in the temporary evidence roots and are not
+committed. The default report is 170 B larger than in 0.5.1 because the client
+script measures the wrapped sticky bar; other byte movement comes from
+run-specific ids, durations and absolute paths. Counts and statuses are
+unchanged on every row. Each row also ran `--static`, `--baseline` and a
+three-run `--history`: static reports have one `<main>`, no `<script>`, no tab
+roles and every `<details>` open; baseline panels show the localized badges and
+the four tracked counts; Trends shows three newest-first rows. The baseline
+"Not in this run" list has no entries in the requested projections because a
+row removed from the baseline is classified as `added`; the Playwright row
+closed that gap with a supplemental run where the current input lacked the
+removed scenario. No check produced a console error, a page error, horizontal
+overflow (the raw `-15` is the scrollbar gutter) or an http/https request.
+A later documentation-only correction to the shipped `docs/AGENT-INTERFACE.md`
+repacked the tarball to 631,909 B, SHA-256
+`97B5D2CF2C99D5D1517AC9D85B9A43F941F2FD7892018998DAA9806D1C4F1085`. That
+repack differs only in that sentence and passed the install smoke (`--version`
+`0.6.0`, report 86,430 B); the host rows above ran on the same code.
 
 **`history-window` re-check (2026-11-23).** The change touches the CLI, the
 history sidecar and the Trends list only: no input adapter, report shell, print,
@@ -139,7 +165,7 @@ no topbar. The default report keeps three tabs, the toolbar and search, with no
 overflow at 1440/390 and no page errors. The other four required host rows and
 the Linux/macOS runs were not re-run for this slice; the table marks those four
 0.5.1 rows as not re-run for `static-no-js`, and they stay pending for CI or the
-next release.
+next release. The 0.6.0 release run above closes that pending state.
 
 **`baseline-comparison` host check (2026-11-24, Windows).** Official
 `@cucumber/cucumber@13.3.0` artifact from the `static-no-js` host (Node 26.13.1,
@@ -158,8 +184,8 @@ unchanged. Playwright 1.65.1 / Chromium at 1440x900 and 390x844: the panel,
 `Not in this run` and the fixed badge are visible, no document overflow
 (-15 px scrollbar offset at both widths) and no console or page errors; print
 media keeps the panel and list. The other required host rows and the
-Linux/macOS runs were not re-run for this slice; they stay pending for CI or the
-next release.
+Linux/macOS runs were not re-run for this slice; they stayed pending for CI or
+the next release. The 0.6.0 release run above closes that pending state.
 
 The earlier +1,723 B and 1,690 B figures are superseded. The 1,690 B value was
 not reproducible from a named fixture or artifact. The final host delta is

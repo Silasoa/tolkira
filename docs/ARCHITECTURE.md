@@ -142,8 +142,9 @@ and is covered by real producer fixtures.
 - The history-only Trends shell fixes (wrapped tab strip, capped table with a
   sticky header, whole-word print headers, the `Current` tag on the date line
   and a ratio-correct sparkline) ship in `TRENDS_SHELL_CSS`, appended only when
-  Trends renders. The no-history default HTML therefore stays byte-identical;
+  Trends renders. The no-history default HTML therefore gains no Trends CSS;
   the fixes apply to every report that has a Trends section, default or static.
+  The separate measured scroll-offset script adds 170 B to every 0.6.0 report.
 - Renderer module map (top to bottom; a module imports only lower layers, and
   same-layer modules never import each other — `report.ts`, `details.ts` and
   `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and

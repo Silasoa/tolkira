@@ -10,8 +10,8 @@ Keep a Changelog and the project uses semantic versioning.
 - A script-free static report. `--static` (API `static: true`) writes one
   all-expanded report with no `<script>`, a `script-src 'none'` CSP, stacked
   Report/Details/Trends sections, inline images and no toolbar, copy, lightbox or
-  tab bar. It needs `--out` or `--pdf`; the no-Trends default report stays
-  byte-identical.
+  tab bar. It needs `--out` or `--pdf`; the default report gains no static
+  markup.
 - A baseline comparison. `--baseline <file>` (API `baseline: BaselineSummary`
   on `generateReport`, `renderReport` and `summarizeReport`) reads a read-only
   earlier schema-2 summary and adds a server-rendered comparison panel,
@@ -45,7 +45,7 @@ Keep a Changelog and the project uses semantic versioning.
   `attempt` to every Messages scenario-outline row, executed or unexecuted, so a
   later baseline can match it. The field is additive, `schemaVersion` stays 2,
   and plain, legacy JSON and JUnit rows have no key. It is the only default
-  summary delta; the default HTML, Markdown CI and email bytes are unchanged.
+  summary delta; it adds nothing to the default HTML, Markdown CI or email.
 - The history sidecar writes schema 2 when the window is above 30 or the file
   already uses schema 2; a default run on a schema-1 file stays schema 1 and a
   schema-2 file is never downgraded. Readers accept schema 1 and 2, and a 0.5
@@ -64,8 +64,8 @@ Keep a Changelog and the project uses semantic versioning.
   neither pruned, and the report stays below the 10 MB default size-warning
   threshold. A maximal valid window can exceed the sidecar cap, and the writer
   then drops the oldest runs and keeps the newest. Reproduce with
-  `node scripts/history-window.mjs` after `npm run build`. The no-history
-  default report bytes are unchanged.
+  `node scripts/history-window.mjs` after `npm run build`. No history markup is
+  added to a default report.
 
 ### Fixed
 
@@ -73,11 +73,14 @@ Keep a Changelog and the project uses semantic versioning.
   gets its own topbar row and wraps instead of clipping the third tab at 320 px
   / 200 % text, the table is capped with a sticky header, the print header keeps
   whole words, the `Current` tag stays on the date line and the sparkline keeps
-  its aspect ratio. The no-history default report bytes are unchanged.
+  its aspect ratio. A no-history default report gains no Trends markup.
 - An anchored scenario link now clears the sticky topbar at any wrapped height
   and text zoom. The offset is measured from the rendered bar instead of a fixed
   CSS reserve, which fell short when the three-tab strip wrapped onto a third
-  row with wider fallback fonts; the CSS values stay as the no-JS fallback.
+  row with wider fallback fonts; the CSS values stay as the no-JS fallback. The
+  embedded client script grows by 170 B (15,268 to 15,438 B), so every default
+  report is 170 B larger than in 0.5.1; its markup and CSS are otherwise
+  unchanged.
 
 ## [0.5.1] - 2026-11-23
 

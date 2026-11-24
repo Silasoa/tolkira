@@ -591,8 +591,9 @@ The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`,
 `--static` (API `static: true`) renders one script-free, all-expanded form of
 the report. It needs `--out` or `--pdf`; a `--static` run with only `--json`,
 `--ci` or `--email` exits 2 and writes nothing. Without a Trends section the
-default report is byte-identical and remains the opt-in-free form; a default
-report with two or more history runs gains the Trends shell CSS.
+default report gains no static or Trends markup and remains the opt-in-free
+form; a default report with two or more history runs gains the Trends shell CSS.
+Every 0.6.0 default report also carries the 170 B measured scroll-offset script.
 
 The static document contains no `<script>`, no client-message JSON block and no
 print script. Its CSP is `script-src 'none'` with `connect-src 'none'` and no
