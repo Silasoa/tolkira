@@ -83,7 +83,9 @@ and is covered by real producer fixtures.
   the advisory stat-only size scan (`scanInputBytes`) and the loader, so a
   directory scan or `realpath` cannot see two different trees. The list is
   ordered by the shared UTF-16 code-unit comparator in `src/text`, not by the
-  host locale, and that order becomes the report feature order.
+  host locale. That order is the report model's feature order (the Details
+  matrix order) and the stable tie-break inside the Report's status-first
+  feature grouping; the top-level Report list itself sorts by status first.
 - The scan reads no content and returns the summed `stat` sizes; the loader
   keeps its own per-file stat guard before reading, its content dedupe and the
   100 MB total-input cap over unique loaded content after dedupe and skip.
@@ -239,15 +241,20 @@ and is covered by real producer fixtures.
   and per-scenario step results with failure messages. With a comparison it adds
   the `baseline` block and a per-scenario `change`; Messages outline rows carry
   an unconditional `example` coordinate.
-- `displayUri` strips a `file://` scheme without losing the path root, maps
-  `/C:/...` to drive form, and drops a leading `Users`, `home` or
-  `Documents and Settings` segment plus the next segment on an absolute path or
-  file URL (including `/mnt/<drive>`); relative paths and the `/features/`
-  marker stay unchanged. The report model uses it for the feature-name fallback
-  and the renderer uses it for display URIs and copied failure text.
-- One comparator in `src/text` orders every deterministic sort by UTF-16 code
-  units: summary scenarios, resolved input files, baseline not-in-run rows and
-  report tags. No `Intl`, `localeCompare`, host locale or ICU collation
+- `displayUri` shares `analyzePath` from `src/display-path.ts` with the legacy
+  adapter. For an absolute path or file URL it removes the `file:` scheme, an
+  empty/localhost authority, a remote authority (as the first path segment), an
+  optional drive and a `/mnt/<drive>` mount, and treats `%2F`/`%5C` as
+  separators for that analysis; it then drops every `Users`, `home` or
+  `Documents and Settings` segment plus the next segment anywhere in the path,
+  repeatedly. The result uses the `/features/` marker or the last three
+  remaining segments, never a drive prefix, and is empty when nothing remains.
+  Relative paths stay unchanged. The report model keeps raw URIs for provenance
+  and uses the display URI for an unnamed feature's heading; the renderer uses
+  it for display URIs and copied failure text.
+- One comparator in `src/text` orders every deterministic text sort by UTF-16
+  code units: summary scenarios, resolved input files, baseline not-in-run rows
+  and report tags. No `Intl`, `localeCompare`, host locale or ICU collation
   participates, so the same input gives byte-identical `--json`, CI Markdown and
   report order across hosts. The visible order for non-ASCII names differs from
   locale-aware order.
@@ -492,10 +499,10 @@ Test names, metadata, file names and attachments are untrusted input.
 - No network requests, telemetry or remote fonts.
 - No path traversal when writing output or external attachments.
 - The history sidecar is validated before use (schema version, field types,
-  finite non-negative numbers, strict ISO time, count totals), opened as a
-  regular file, capped at 1 MiB on the descriptor and rewritten atomically. It
-  stores aggregates only, so it cannot leak scenario names, step text, paths,
-  tags or attachment content.
+  finite non-negative numbers, ISO 8601-shaped time with a zone, count totals),
+  opened as a regular file, capped at 1 MiB on the descriptor and rewritten
+  atomically. It stores aggregates only, so it cannot leak scenario names, step
+  text, paths, tags or attachment content.
 - The baseline summary is untrusted: strict UTF-8, a regular-file check before
   and after opening, a 10 MiB cap, prototype-key and depth rejection, no file
   reads, links or rewrites from its content, and escaped, control-stripped

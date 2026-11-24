@@ -539,13 +539,17 @@ Contract:
 - `id` is the SHA-256 of the aggregates and the resolved title, excluding
   `recordedAt`. When the last entry has the same id, the new run is not
   appended and the old `recordedAt` stays.
-- `recordedAt` accepts a strict ISO 8601 timestamp with a zone (`Z` or
-  `±HH:MM`), optional seconds and optional fractional seconds, and a finite
-  `Date.parse`. The original string is kept on read and on write; a
-  `+02:00` value is not rewritten to `Z`. A zone-less value such as
-  `2026-11-19T08:00:00` and free text such as `yesterday` fail with the existing
-  `runs[i].recordedAt must be an ISO timestamp` error. The CLI's newly recorded
-  run keeps the `YYYY-MM-DDTHH:mm:ss.sssZ` writer form.
+- `recordedAt` accepts an ISO 8601-shaped timestamp with a zone (`Z` or
+  `±HH:MM`), optional seconds and optional fraction digits
+  (`YYYY-MM-DDTHH:mm[:ss[.fff]]`), and a finite `Date.parse`. Calendar-day and
+  offset-range validity follow `Date.parse`, not a calendar check:
+  `2026-02-30` and `+23:59` are accepted, and the stored string is never
+  normalised. The tests pin 1, 3 and 9 fraction digits. The pattern rejects
+  `+25:00` and an offset without a colon. The original string is kept on read
+  and on write; a `+02:00` value is not rewritten to `Z`. A zone-less value such
+  as `2026-11-19T08:00:00` and free text such as `yesterday` fail with the
+  existing `runs[i].recordedAt must be an ISO timestamp` error. The CLI's newly
+  recorded run keeps the `YYYY-MM-DDTHH:mm:ss.sssZ` writer form.
 - `flaky` is optional and new entries always carry it: the number of executed,
   non-skipped scenarios tagged `@flaky` (any final status) or whose final status
   is passed after at least one retry (`attempt > 0`). It is a flagged share
@@ -953,15 +957,29 @@ cover executed scenarios only:
 - Never-started pickles remain absent from `scenarios` and the counts.
 
 The summary does not expose absolute input paths: absolute `uri` values are
-reduced to a relative form (`features/...`, or the last path segments for files
-outside `features/`). A `file://` URL keeps its path root, a Windows `/C:/...`
-path is shown in drive form, and an absolute path or file URL (including a
-`/mnt/<drive>` mount) drops a leading `Users`, `home` or `Documents and
-Settings` segment plus the next segment, so a local user name does not appear
-in the HTML display URI, the summary `uri` or copied failure text. Relative
-URIs are unchanged. The report model uses the same display URI as its
-feature-name fallback when the AST has no feature name; the summary `feature`
-field stays `""` for a featureless scenario.
+reduced to a relative form (`features/...`, or the last three remaining path
+segments for files outside `features/`). For an absolute path or file URL, the
+analysis removes a `file:` scheme, an empty or `localhost` authority, a remote
+authority (whose host becomes the first path segment), an optional drive token
+and a `/mnt/<drive>` mount; `%2F` and `%5C` count as separators for that
+analysis only. A `Users`, `home` or `Documents and Settings` segment and the
+segment after it are then dropped **wherever they occur** in the absolute path,
+repeatedly. The display URI joins the remaining segments with `/` and never
+shows a drive prefix; when no segment remains it is empty instead of the raw
+path. For example, `file:///C:/Users/<user>/proj/login.feature`,
+`file:/home/<user>/proj/login.feature` and
+`file://localhost/home/<user>/proj/login.feature` display as
+`proj/login.feature`; `file://server/share/home/<user>/proj/login.feature` and
+`//server/share/Users/<user>/proj/login.feature` as `share/proj/login.feature`;
+`/srv/home/<user>/proj/login.feature` as `srv/proj/login.feature`; and a path
+that is only a home directory (`/home/<user>`, `/mnt/c/Users/<user>`) shows an
+empty display URI. A local user name therefore does not appear in the HTML
+display URI, the summary `uri` or copied failure text. Relative URIs are
+unchanged and keep the existing `/features/` marker and last-three fallback; a
+relative path that starts with a home segment is outside this rule. The report
+model keeps raw URIs for provenance and uses the same display URI for an
+unnamed feature's heading; the summary `feature` field stays `""` for a
+featureless scenario.
 
 ## Recommended agent workflow
 

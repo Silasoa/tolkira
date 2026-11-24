@@ -84,42 +84,58 @@ Keep a Changelog and the project uses semantic versioning.
   skipped with the existing warning and is not merged. Without the flag the
   same file fails with the compat legacy-array error. Both compat checks use the
   same feature-shape predicate as `detectInput`.
-- Display URIs keep the path root when removing `file://`, map `/C:/...` to
-  drive form and drop a leading `Users`, `home` or `Documents and Settings`
-  segment plus the user name on an absolute path or file URL, including a
-  `/mnt/<drive>` mount. The report model uses the display URI for its
-  feature-name fallback; the summary `feature` field keeps its empty fallback.
-  Relative paths, the `/features/` marker and the last-three fallback are
-  unchanged.
-- A non-base64 image, video or audio body with an unpaired UTF-16 surrogate
-  falls back to a base64 data URI built from its UTF-8 bytes instead of
-  aborting with `URI malformed`. A normal UTF-8 body keeps its readable data
-  URI, a BASE64 body stays byte-identical, and an empty body renders no data
-  URI.
+- Display URIs share one `analyzePath` rule between `displayUri` and the legacy
+  adapter. For an absolute path or file URL it removes the `file:` scheme, an
+  empty or `localhost` authority, a remote authority (whose host becomes the
+  first path segment), an optional drive and a `/mnt/<drive>` mount, treats
+  `%2F`/`%5C` as separators for that analysis, and drops every `Users`, `home` or
+  `Documents and Settings` segment plus the next segment **wherever they occur**
+  in the path, repeatedly. The result uses the `/features/` marker or the last
+  three remaining segments, never a drive prefix, and is empty when nothing
+  remains instead of falling back to the raw path. Relative paths stay
+  unchanged. The report model keeps raw URIs for provenance and uses the display
+  URI for an unnamed feature's heading; the summary `feature` field keeps its
+  empty fallback.
+- A non-base64 image or video body with an unpaired UTF-16 surrogate falls back
+  to a base64 data URI built from its UTF-8 bytes instead of aborting with
+  `URI malformed`. A normal UTF-8 body keeps its readable data URI, a BASE64
+  body stays byte-identical, and an empty body renders no data URI. `audio/*`
+  is not a supported media type: it becomes an `application/octet-stream`
+  binary attachment, not an inline player; adding an audio MIME is a separate
+  change.
 - The compat merge appends duplicate features' elements one at a time instead
-  of using a spread, so a merge of about 130,000 elements no longer throws
-  `RangeError` and keeps input order and `retried: 0`.
+  of using a spread, so a one-element first feature plus a 200,000-element
+  duplicate no longer throws `RangeError` and keeps input order and
+  `retried: 0`; a 65,000 + 65,000 merge stays a shape and order test.
 - A one-line Playwright report is parsed once: the Messages detector checks the
   trimmed first key against the envelope keys before parsing and leaves a
-  non-envelope document to the Playwright sniffer. Messages, legacy JSON, JUnit
-  and malformed JSON classification is unchanged.
+  non-envelope document to the Playwright sniffer. An escaped first key such as
+  `{"\u006deta":...}` is decoded before the check, so it is still Messages.
+  Messages, legacy JSON, JUnit and malformed JSON classification is unchanged.
 - Legacy JSON uses `options.startedAt` as its only date source. Without it the
   adapter emits zero timestamps and never reads the clock, so the report shows
   no run date and no scenario shows a 1970 date; an explicit non-zero pin still
   shows its date. The two legacy characterization hashes and `minimal.html` are
   re-pinned for the removed date.
-- History reads accept a strict ISO 8601 timestamp with a zone (`Z` or
-  `±HH:MM`), optional seconds and optional fractional seconds, and keep the
+- History reads accept an ISO 8601-shaped timestamp with a zone (`Z` or
+  `±HH:MM`), optional seconds and optional fraction digits, and keep the
   original string. A zone-less or free-text value still fails with the
   malformed-entry error, and the CLI's newly recorded run keeps
-  `YYYY-MM-DDTHH:mm:ss.sssZ`.
+  `YYYY-MM-DDTHH:mm:ss.sssZ`. Calendar-day and offset-range validity follow
+  `Date.parse`: `2026-02-30` and `+23:59` are accepted.
 - JUnit XML accepts only the five XML named entities and numeric character
-  references. The unreachable `htmlEntities: true` parser option is removed,
-  `&nbsp;` stays an invalid-entity error, and no partial report is written.
+  references. `htmlEntities: true` is replaced by an internal
+  `xmlEntityDecoder`, because fast-xml-parser v5 gates numeric references
+  behind that option; the five names come from one shared map. The checker scans
+  `&([^;&]*);` linearly, rejects an unknown name of any length (including 33
+  characters) and caps the echoed entity at 64 characters. `&nbsp;` stays an
+  invalid-entity error and no partial report is written.
 - The release workflow contract is covered by `test/release-workflow.test.ts`:
   the Linux gate runs hygiene, check and the browser suite, the macOS gate runs
   the browser suite, publish needs both, and the tag/version and
-  main-ancestor checks stay in place. No workflow code changed in this change.
+  main-ancestor checks stay in place. `31dd112` added the gates and checks;
+  `f448f60` replaced its shallow main fetch with the full fetch the ancestor
+  check needs.
 
 ### Changed
 
@@ -128,11 +144,13 @@ Keep a Changelog and the project uses semantic versioning.
   Host locale and ICU collation no longer participate, so the same input gives
   byte-identical `--json`, CI Markdown and report order; the visible order for
   non-ASCII names changes. No runtime dependency was added.
-- Tolkira-written reports, emails, PDFs, history sidecars and compat sidecars
-  stay owner-only (`0600`) on POSIX; Windows ignores the mode and inherits the
-  destination ACL. Reports can contain secrets, so this is the safe default; a
-  shared artifact, service account or another user needs an explicit `chmod` or
-  ACL change, and there is no mode option.
+- Tolkira-written files stay owner-only (`0600`) on POSIX: report, email, PDF,
+  CI Markdown (`--ci-out`), history sidecar and compat sidecar. Windows ignores
+  the mode and inherits the destination ACL. Reports can contain secrets, so
+  this is the safe default; on POSIX a shared artifact, service account or
+  another user needs an explicit `chmod` or copy, and there is no mode option.
+  On Windows the inherited ACL decides, so a folder that already grants read
+  exposes the file without a permission change.
 
 ## [0.6.0] - 2026-11-24
 
