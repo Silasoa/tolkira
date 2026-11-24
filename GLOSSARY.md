@@ -226,6 +226,36 @@ with pass rate, flaky count and flaky share and adds a decorative pass-rate
 sparkline oldest to newest; the table is the accessible source, and a note
 states the tag-or-retry proxy limits.
 
+**Baseline** — the read-only earlier schema-2 `--json` summary passed with
+`--baseline <file>`. It is never rewritten and its path is never embedded. The
+CLI is the only reader; the API accepts the validated `BaselineSummary`
+projection. One baseline belongs to one suite and variant, and a sharded run
+compares the merged run.
+
+**Baseline comparison** — the one result built from a baseline and the current
+run: the summary block with seven counts and the capped `notInThisRun` list, and
+a change map keyed by the report model's pickle id. It feeds the JSON block and
+per-scenario `change`, the HTML panel and badges, and the Markdown CI line.
+
+**Baseline identity** — feature name + scenario name, then the outline example
+coordinate when every row in a repeated group carries it, then the display URI.
+A group that cannot be reduced to unique rows is ambiguous and makes no claim;
+pickle id, order, line, tags, step text and status are never identity.
+
+**Change** — the per-scenario baseline classification: `new-failure`, `fixed`,
+`still-failing` or `added`. Unchanged, no-claim, unexecuted and ambiguous rows
+have no `change`.
+
+**Not in this run** — a baseline scenario with no current match. It is counted
+in `notInThisRun`, listed in the panel (at most 10 entries) and in the summary
+(at most 50, sorted by feature, name, example coordinate and URI). The count
+stays complete.
+
+**Ambiguous group** — a repeated feature + scenario name that cannot be paired
+uniquely by example coordinate or display URI. No row in the group is paired,
+classified, counted in the tracked counts or listed as not in this run, and the
+group counts once in `ambiguous`.
+
 **Unexecuted scenario** — a scenario whose selected test case started but
 reported no raw step result, including a started-but-unfinished case. It stays
 visible without an outcome unless the failed-only preset is active, keeps
@@ -301,7 +331,9 @@ renders a flat report.
 
 **Summary** — the stable, renderer-independent JSON document emitted by
 `--json` / `summarizeReport` for agents and CI. It is versioned and is not the
-HTML report.
+HTML report. A Messages outline row carries an unconditional `example`
+coordinate; with a baseline the document also gains the `baseline` block and
+per-scenario `change`.
 
 **Schema version** — the integer in `summary.schemaVersion`. A breaking change
 increments it; consumers may reject versions they do not know.

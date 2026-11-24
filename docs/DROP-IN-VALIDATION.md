@@ -141,6 +141,26 @@ the Linux/macOS runs were not re-run for this slice; the table marks those four
 0.5.1 rows as not re-run for `static-no-js`, and they stay pending for CI or the
 next release.
 
+**`baseline-comparison` host check (2026-11-24, Windows).** Official
+`@cucumber/cucumber@13.3.0` artifact from the `static-no-js` host (Node 26.13.1,
+npm 10.8.2): `out.ndjson` 6,991 B, 1 feature / 2 scenarios (1 passed, 1 failed) /
+2 steps / 2 inline PNG attachments (140 B). A fresh producer run in a new temp
+project hit a Cucumber-side support-code loader error before executing any
+scenario (`Given` reported status `PENDING`), so the artifact was reused; the
+change does not touch the input adapters. A baseline projection with the two
+statuses flipped plus one removed scenario produced a valid comparison. The
+current tree's CLI wrote default 71,746 B and baseline 73,469 B (+1,723 B,
+including the 1,058 B conditional `BASELINE_CSS`); the baseline JSON is 2,457 B
+against 1,976 B default (+481 B), and the static baseline report is 54,451 B.
+The CI line read `Baseline: 1 new failure · 1 fixed · 0 still failing · 1 not
+in this run` (75 B with its newline). The baseline file's bytes and mtime were
+unchanged. Playwright 1.65.1 / Chromium at 1440x900 and 390x844: the panel,
+`Not in this run` and the fixed badge are visible, no document overflow
+(-15 px scrollbar offset at both widths) and no console or page errors; print
+media keeps the panel and list. The other required host rows and the
+Linux/macOS runs were not re-run for this slice; they stay pending for CI or the
+next release.
+
 **`size-details-followups` host check (2026-11-23).** The Seed-Test story
 artifact rendered with the 0.5.1 tarball and `--locale de` (90,842 B): at
 560x900 the Details Run panel is one 475 px track and the exact byte row

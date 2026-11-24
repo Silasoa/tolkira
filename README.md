@@ -66,6 +66,9 @@ tolkira test-results/ --out report.html --history .history/history.json
 tolkira test-results/ --out report.html --history .history/history.json \
   --history-limit 365
 
+# Compare with an earlier --json summary: panel, badges and JSON change
+tolkira test-results/ --out report.html --baseline previous-summary.json
+
 # German report UI; test data stays verbatim
 tolkira test-results/ --out report.html --locale de
 
@@ -346,9 +349,16 @@ unredacted-message warning.
   holds counts, status, the resolved title, duration, attachment totals and the
   optional flaky count only, never scenario names or paths; a report embeds the
   runs it was generated with, so share it with that in mind.
+- **Baseline comparison.** `--baseline previous-summary.json` compares the
+  current run with an earlier `--json` summary: a server-rendered panel shows new
+  failures, fixed, still failing, not in this run and ambiguous groups, rows get
+  localized new-failure/fixed badges, the JSON gains a `baseline` block and
+  per-scenario `change`, and Markdown CI gets one deterministic line. The
+  baseline is read-only, capped at 10 MiB and never linked; without the flag the
+  report, CI and email bytes are unchanged.
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure
-  messages.
+  messages. Messages outline rows carry an `example` coordinate.
 - **Accessible by default.** Keyboard navigation, visible focus, text status
   labels as well as colour, dark mode and 200% zoom reflow. Accessibility is an
   ongoing effort; feedback is welcome.

@@ -119,6 +119,19 @@ it. The gap is the combination.
   second run; aggregate-only data, one CLI writer, no server and no
   scenario-level history. Lowering the window drops older runs on the next write.
 
+### Baseline comparison (in main)
+
+- Opt-in `--baseline <file>` compares the current run with an earlier schema-2
+  `--json` summary: a server-rendered "Compared with baseline" panel with new
+  failures, fixed, still failing, not in this run and ambiguous groups, localized
+  new-failure/fixed row badges, a seven-count JSON block with per-scenario
+  `change`, and one Markdown CI line. The baseline is read-only, capped at 10 MiB
+  and never embedded by path. There is no automatic writer, scenario-level
+  history, run store or flaky trend; one baseline belongs to one suite and
+  variant, and sharded runs compare the merged run. The report becomes a two-run
+  artifact (baseline + current). Without the flag the report, CI and email bytes
+  are unchanged.
+
 ### Localisation (in main)
 
 - `--locale en|de` localizes the report shell, labels and accessibility text;

@@ -31,6 +31,12 @@ list, and the renderer adds a Trends view when the list has two or more entries.
 renders the list it is given and never prunes. It holds no scenario, step or
 path data and stays opt-in.
 
+An optional baseline (`--baseline <file>`) is a read-only earlier schema-2
+summary: the CLI validates and reads it, `src/baseline.ts` builds one comparison
+(the summary block plus a change map keyed by the report model's pickle id), and
+the summary, renderer and Markdown CI formatter read that result. It stays
+opt-in; without the flag the one-file report, CI and email bytes are unchanged.
+
 An optional HTML email summary (`--email <file>`) is a second output derived from
 the same `ReportSummary`: no logo, scripts, images, network or SMTP, one 600 px
 table with inline styles. It stays opt-in; without the flag the one-file report
@@ -148,10 +154,12 @@ and is covered by real producer fixtures.
   recorded-runs table and the sparkline; `triage.ts` owns the needs-attention
   index and source strip; `matrix.ts` owns the feature-by-status matrix;
   `attachments.ts` owns image/text/video/log/file rendering; `ci.ts` owns the CI
-  header and detail rows; `format.ts` owns status, duration, date, bar, count,
-  health, pass-rate and tag helpers; `types.ts` owns `RenderOptions`
-  (including the optional `history` list and `static` flag), `DisplayStatus` and
-  `OrderedFeature`. Two shared foundation modules carry localisation:
+  header and detail rows; `baseline.ts` owns the comparison panel and the row
+  badges, and joins the precomputed change map by pickle id; `format.ts` owns
+  status, duration, date, bar, count, health, pass-rate and tag helpers;
+  `types.ts` owns `RenderOptions` (including the optional `history` list,
+  `static` flag and internal comparison), `DisplayStatus` and `OrderedFeature`.
+  Two shared foundation modules carry localisation:
   `i18n.ts` owns locale resolution, the catalog translator and locale-aware
   number/percent/duration/date helpers, caching `Intl` formatters per translator;
   `client-i18n.ts` owns the browser formatter for the embedded `client.*` block,
@@ -173,7 +181,10 @@ and is covered by real producer fixtures.
   block. The browser bundle contains no non-English catalog. See
   [`docs/I18N.md`](I18N.md).
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
-  minifies it into `src/render/styles.ts` for the inline report.
+  minifies it into `src/render/styles.ts` for the inline report. The baseline
+  panel and badges live in `src/render/baseline.css`, minified into a second
+  `BASELINE_CSS` constant and appended only when a comparison is supplied, so
+  the default `report.css` bytes and every default report stay unchanged.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
   helpers; `src/render/report-client.ts` is the browser script.
   `src/render/print-script.ts` is the static print lifecycle, imported only by
@@ -190,11 +201,33 @@ and is covered by real producer fixtures.
 - Injects a restrictive Content-Security-Policy meta tag.
 - Optional external-attachments mode is a later change.
 
+### `src/baseline`
+
+- Owns the read-only baseline reader, matcher and classification. The CLI is the
+  only file reader; the API accepts the validated `BaselineSummary` projection.
+- The reader opens the descriptor non-blocking, checks that it is a regular file,
+  caps it at 10 MiB (10,485,760 bytes), strips a UTF-8 BOM, rejects prototype
+  keys, values deeper than 64 levels and malformed entries, and applies
+  `displayUri` to every baseline URI. It trusts only identity, status and
+  `executed` (plus optional `example`); steps, tags, counts, attachments and a
+  nested `baseline` block are ignored.
+- `compareBaseline` groups by feature + scenario name, matches a unique key, then
+  refines a repeated group by the example coordinate when every row carries it,
+  then by display URI. A group that cannot be reduced to unique rows is
+  ambiguous and makes no claim. It returns one comparison: the seven-count
+  summary block and a change map keyed by pickle id.
+- `src/summary.ts` type-imports the comparison type only; the comparison is
+  built once in `src/run.ts`. `src/baseline.ts` imports `displayUri` from the
+  summary module, so the runtime dependency points one way and there is no
+  runtime cycle.
+
 ### `src/summary`
 
 - Builds a renderer-independent, stable JSON summary from Messages.
 - Reports overall status, executed scenario/step counts, durations, attachments
-  and per-scenario step results with failure messages.
+  and per-scenario step results with failure messages. With a comparison it adds
+  the `baseline` block and a per-scenario `change`; Messages outline rows carry
+  an unconditional `example` coordinate.
 - Exposed as `summarizeReport`; the internal `summarizeResolvedReport` serves the
   CLI's already-resolved list and backs `--json`.
 - Schema version 2 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
@@ -205,7 +238,9 @@ and is covered by real producer fixtures.
 - Formats the summary as GitHub Actions workflow commands, Azure DevOps logging
   commands or deterministic Markdown for GitLab and step summaries.
 - Pure and offline: no network, no report-model access and no schema change.
-- Caps annotations and lists while keeping the exact counts.
+- Caps annotations and lists while keeping the exact counts. Markdown adds one
+  `Baseline:` line after the counts table only when the summary carries a
+  baseline block; GitHub and Azure bytes are unchanged.
 
 ### `src/email`
 

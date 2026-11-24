@@ -170,6 +170,51 @@ space so they cannot start a new Markdown block. The failed list is capped at
 the skipped name list at 20 names. The counts stay complete and every omitted
 count is stated.
 
+## Baseline comparison
+
+`--baseline <file>` reads an earlier `--json` summary and compares it with the
+current run. Markdown gets one deterministic line after the counts table:
+
+```text
+Baseline: 2 new failures · 1 fixed · 3 still failing · 1 not in this run
+```
+
+All four counts appear, including zeros, and the line appears before the
+empty-run and zero-executed messages. A positive ambiguous-group count is
+appended as ` · 1 ambiguous group`; `added` stays JSON-only. The line is English
+and contains no dynamic names. GitHub and Azure annotation bytes do not change
+with a baseline.
+
+A baseline needs a surface that shows it: `--out`, `--pdf`, `--json` or
+`--ci markdown`. `--email` alone, `--ci github` alone and `--ci azure` alone are
+usage errors. The baseline path must not collide with an input, the logo,
+`--out`, `--pdf`, `--email`, `--history`, `--ci-out` or a path inside an input
+directory; a collision exits 2 before any read. A missing, unreadable,
+non-regular, invalid or wrong-schema baseline exits 1 and writes nothing. The
+cap is 10 MiB (10,485,760 bytes); a summary larger than that cannot be a
+baseline.
+
+Write the current summary to a **new** path. Do not reuse the baseline path with
+a shell redirect:
+
+```shell
+# Wrong: the shell truncates baseline.json before Tolkira starts
+npx tolkira test-results/ --json --baseline baseline.json > baseline.json
+
+# Right: write the next baseline separately, then cache or copy it
+npx tolkira test-results/ --json --baseline baseline.json > summary.json
+cp summary.json baseline.json
+```
+
+The CLI cannot detect a shell truncation. Keep one baseline per suite and
+variant; comparing a mixed or different suite produces spurious counts, not a
+crash. For sharded runs, compare the merged run on both sides: generate the
+baseline from the merged result of the previous run and the current summary from
+the merged result of this run. The report becomes a two-run artifact (baseline
+plus current), so keep the baseline in the CI cache or artifact store. The API
+accepts the `BaselineSummary` projection; `renderHtml` and `CucumberHtmlStream`
+do not take a baseline in 0.6.0.
+
 ## Jenkins HTML Publisher
 
 Jenkins can archive the one-file report and publish it from a `post` block that

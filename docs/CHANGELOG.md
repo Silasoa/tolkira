@@ -12,6 +12,16 @@ Keep a Changelog and the project uses semantic versioning.
   Report/Details/Trends sections, inline images and no toolbar, copy, lightbox or
   tab bar. It needs `--out` or `--pdf`; the no-Trends default report stays
   byte-identical.
+- A baseline comparison. `--baseline <file>` (API `baseline: BaselineSummary`
+  on `generateReport`, `renderReport` and `summarizeReport`) reads a read-only
+  earlier schema-2 summary and adds a server-rendered comparison panel,
+  localized new-failure/fixed row badges, a seven-count JSON block with a
+  per-scenario `change`, and one Markdown CI line. The reader caps the file at
+  10 MiB, checks the descriptor for a regular file, strips a BOM and rejects
+  prototype keys, deep nesting and malformed entries. Matching is name-first,
+  then the outline example coordinate, then display URI; an unreducible group is
+  ambiguous and makes no claim. Without the flag the report, CI and email bytes
+  are unchanged.
 - A configurable history window. `--history-limit <n>` (requires `--history`)
   keeps the newest n aggregate runs, a decimal integer from 1 to 365, default
   30; the same limit bounds the runs read, appended, written and rendered in
@@ -31,6 +41,11 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- The JSON summary adds an `example` coordinate (`#<examples>.<example>`) after
+  `attempt` to every Messages scenario-outline row, executed or unexecuted, so a
+  later baseline can match it. The field is additive, `schemaVersion` stays 2,
+  and plain, legacy JSON and JUnit rows have no key. It is the only default
+  summary delta; the default HTML, Markdown CI and email bytes are unchanged.
 - The history sidecar writes schema 2 when the window is above 30 or the file
   already uses schema 2; a default run on a schema-1 file stays schema 1 and a
   schema-2 file is never downgraded. Readers accept schema 1 and 2, and a 0.5

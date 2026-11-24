@@ -87,6 +87,51 @@ separators into one inert command line. Markdown caps the failed list at 50
 scenarios, each message at 500 raw characters and the skipped name list at 20,
 while the counts and the overall `Status` row stay complete.
 
+## Baseline comparison
+
+`--baseline <file>` reads an earlier schema-2 `--json` summary and compares it
+with the current run. The comparison appears in the HTML report, in the JSON
+summary and in Markdown CI text:
+
+```shell
+# Report with the comparison panel and row badges
+tolkira test-results/ --out report.html --baseline previous.json
+
+# Comparison block and per-scenario change in the JSON summary
+tolkira test-results/ --json --baseline previous.json
+
+# One Markdown baseline line after the counts table
+tolkira test-results/ --ci markdown --baseline previous.json
+```
+
+- The baseline is a read-only earlier `--json` document. It is never rewritten,
+  and the report and summary never embed its path.
+- It needs a surface that shows it: `--out`, `--pdf`, `--json` or
+  `--ci markdown`. `--email` alone, `--ci github` alone or `--ci azure` alone is
+  a usage error (exit 2). GitHub and Azure annotation bytes do not change; the
+  email stays current-run only.
+- A baseline path that names an input, the logo, `--out`, `--pdf`, `--email`,
+  `--history`, `--ci-out` or a path inside an input directory is a usage error
+  (exit 2) before any read. A missing, unreadable, non-regular, oversized,
+  invalid or wrong-schema baseline exits 1, names the file and writes nothing.
+  The cap is 10 MiB (10,485,760 bytes).
+- Match by feature name + scenario name. A unique key matches. A repeated group
+  is refined by the outline example coordinate when every row on both sides
+  carries `example`, then by display URI when exactly one unmatched row on each
+  side carries it. A group that still cannot be reduced to unique rows is
+  ambiguous: its rows make no claim and count once in `ambiguous`. Pickle id,
+  order, line, tags, step text and status are never identity.
+- Classify every baseline row outside an ambiguous group as new failure, fixed,
+  still failing, `other` (no claim) or not in this run. An unmatched current row
+  that fails is a new failure; an unmatched executed row that does not fail is
+  `added`. Use one baseline per suite and variant, and compare the merged run
+  for shards. A wrong baseline produces spurious counts, not a crash.
+- Keep the baseline path separate from the current `--json` redirect:
+  `--json > baseline.json` truncates the file before Tolkira starts when the
+  same path is also passed to `--baseline`. The CLI cannot detect that shell
+  truncation. Write the current summary to a new path, then copy or cache it for
+  the next run.
+
 ## Email summary
 
 `--email <file>` writes one self-contained HTML mail body from the same summary.
@@ -200,6 +245,7 @@ every locale. With only `--json` or `--ci`, `--locale` stays a usage error. See
 ## API
 
 ```ts
+import { readFile } from 'node:fs/promises';
 import {
   generateReport,
   readHistory,
@@ -207,10 +253,15 @@ import {
   renderPdf,
   renderReport,
   summarizeReport,
+  type BaselineSummary,
 } from 'tolkira';
 
 const inputs = ['test-results/'];
+const previous: BaselineSummary = JSON.parse(
+  await readFile('baseline.json', 'utf8'),
+);
 const summary = await summarizeReport(inputs);
+const compared = await summarizeReport(inputs, { baseline: previous });
 const previousRuns = await readHistory('.history/history.json', 365);
 const {
   html,
@@ -231,8 +282,13 @@ const {
   accent: '#1b5e20',
   history: previousRuns,
   historyLimit: 365,
+  baseline: previous,
 });
-const htmlOnly = await renderReport(inputs, { title: 'Nightly', locale: 'de' });
+const htmlOnly = await renderReport(inputs, {
+  title: 'Nightly',
+  locale: 'de',
+  baseline: previous,
+});
 const email = renderEmail(summary, {
   title: 'Nightly',
   locale: 'de',
@@ -299,6 +355,15 @@ and default an omitted one to 30. `renderReport` and `CucumberHtmlStream` render
 `options.history` exactly as given, never prune it and record nothing. Both
 fields are additive.
 
+`baseline` is the validated `BaselineSummary` projection, never a path; the CLI
+is the only file reader. `generateReport`, `renderReport` and `summarizeReport`
+accept it and build the comparison once. `renderHtml` and `CucumberHtmlStream`
+do not take a baseline in 0.6.0: their accepted options stay unchanged, an
+unknown `baseline` key is ignored, and the stream keeps its same-input-same-HTML
+contract. Read a baseline with your own file handling and validate it before
+passing the projection; the exported type carries `schemaVersion`, the overall
+status and the scenario identity/status/execution fields.
+
 The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 
 | Option | CLI | API |
@@ -308,6 +373,7 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | logo | `--logo <file>` reads a local image | `logo` base64 image data URI |
 | accent | `--accent #rrggbb` | `accent` hex string; invalid values are ignored |
 | history | `--history <file>` reads and appends a sidecar; needs `--out`. `--history-limit <n>` sets the window (default 30, range 1 to 365) and needs `--history` | `history` array and `historyLimit`; `generateReport` appends the current run and bounds the list, `renderReport` and the stream render it as given |
+| baseline | `--baseline <file>` reads a read-only schema-2 summary and compares; needs `--out`, `--pdf`, `--json` or `--ci markdown` | `baseline: BaselineSummary` on `generateReport`, `renderReport` and `summarizeReport`; not on `renderHtml` or the stream |
 | static | `--static` renders the script-free all-expanded form; needs `--out` or `--pdf` | `static: true` |
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
@@ -599,6 +665,57 @@ is server-rendered and visible without JavaScript.
 This example is abridged: it shows only the failing scenario, not the passing
 one that carries the screenshot. The totals reflect the whole input.
 
+With `--baseline`, the summary adds a `baseline` block between `attachments` and
+`scenarios` and a `change` field to classified scenario rows. This example is
+abridged; the schema version stays 2:
+
+```json
+{
+  "schemaVersion": 2,
+  "baseline": {
+    "status": "failed",
+    "counts": {
+      "newFailures": 2,
+      "fixed": 1,
+      "stillFailing": 3,
+      "other": 1,
+      "notInThisRun": 1,
+      "added": 4,
+      "ambiguous": 0
+    },
+    "notInThisRun": [
+      {
+        "feature": "Checkout",
+        "name": "pays by card",
+        "uri": "features/checkout.feature",
+        "status": "failed",
+        "executed": true,
+        "example": "#1.2"
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "refunds",
+      "uri": "features/checkout.feature",
+      "feature": "Checkout",
+      "status": "failed",
+      "executed": true,
+      "change": "new-failure",
+      "durationMs": 4,
+      "attempt": 0,
+      "tags": [],
+      "attachments": 0,
+      "steps": []
+    }
+  ]
+}
+```
+
+Without `--baseline` there is no `baseline` or `change` key, and the Markdown CI
+text and HTML stay byte-identical. The only unconditional delta is the outline
+`example` field described below.
+
 Undefined and ambiguous Messages steps add optional diagnostic fields:
 
 ```json
@@ -662,14 +779,34 @@ Field contract:
   reports it as executed. An unexecuted scenario keeps `status: "unknown"` and
   `executed: false`; it is not counted in `counts.scenarios`. A pickle that
   never started has no entry at all.
+- With a baseline, `scenarios[].change` is `new-failure`, `fixed`,
+  `still-failing` or `added`, placed after `executed`. Unchanged, no-claim,
+  unexecuted and ambiguous rows have no `change`. No scenario row carries an
+  `id` or `pickleId`.
+- `baseline.status` is the earlier run's overall status. `baseline.counts` has
+  all seven keys: `newFailures`, `fixed`, `stillFailing`, `other`,
+  `notInThisRun`, `added` and `ambiguous`. Every baseline row outside an
+  ambiguous group falls into exactly one of new failure, fixed, still failing,
+  `other` or not in this run; `added` counts current rows and `ambiguous` counts
+  base-key groups. An unmatched current failing row also counts as a new
+  failure, so `newFailures` can exceed the matched baseline rows.
+- `baseline.notInThisRun` is capped at 50 entries while `counts.notInThisRun`
+  stays complete. It is sorted by feature, then name, then the example
+  coordinate (numeric; rows without `example` last), then URI. Each entry has
+  `feature`, `name`, `uri`, `status`, `executed` and optional `example`. Baseline
+  URIs pass the same display-URI rule as current rows and are never links or
+  file paths.
 - `durationMs` is a number of milliseconds and sums the final attempt per
   scenario plus test-run hooks. It is not wall-clock time.
   `steps[].durationMs` is rounded to three decimals.
 - `scenarios` is sorted by `uri`, then `name`, so output is stable across runs.
 - `scenarios[].name` is the Cucumber pickle name. Examples of one scenario
-  outline can share the same name; the HTML report labels rows with `#1.1` and
-  shows the examples block name on the examples heading and in triage and
-  copy-failure text, but the summary does not expose them yet.
+  outline can share the same name. A Messages outline row carries `example` as
+  `#<examples>.<example>` with 1-based numbers, matching the HTML label and
+  placed after `attempt`. A plain, legacy JSON or JUnit row has no `example`
+  key. The HTML report also shows the examples block name on the examples
+  heading and in triage and copy-failure text; the summary does not expose that
+  name.
 - `scenarios[].tags` is the inherited pickle tag set, including feature, rule,
   scenario and examples tags. The HTML report uses the same set for its tag
   filter and search. Feature and rule tags render once at their section;
@@ -800,6 +937,14 @@ outside `features/`).
   basic input mode; see
   [`LIMITATIONS.md`](LIMITATIONS.md). Playwright producer metadata and
   annotation descriptions are HTML-only and do not change schema version 2.
+- The baseline is explicit and file-only: there is no automatic writer,
+  scenario-level history, run store or first/last-seen trend. A baseline summary
+  larger than 10 MiB (10,485,760 bytes) cannot be a baseline. Use one baseline
+  per suite and variant and compare the merged run for shards; a wrong baseline
+  produces spurious counts, not a crash. Keep the baseline in a separate path
+  from the current `--json` redirect and cache it as a CI artifact. The report
+  becomes a two-run artifact (baseline + current). `renderHtml` and
+  `CucumberHtmlStream` do not accept a baseline in 0.6.0.
 - The email summary is opt-in and file-only. It has no sending, recipients,
   scheduling, `.eml` draft, logo, error snippets or redaction mode; the report
   basename (or the no-report note) is the only path-like content.

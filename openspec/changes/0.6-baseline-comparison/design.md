@@ -135,12 +135,13 @@ reconciliation. Every unmatched baseline row is **not in this run**.
 The comparison has one count set (D8): `newFailures`, `fixed`, `stillFailing`,
 `other`, `notInThisRun`, `added` and `ambiguous`. For every baseline row outside
 an ambiguous group, exactly one of new failure, fixed, still failing, `other` or
-not in this run applies, so
-`newFailures + fixed + stillFailing + other + notInThisRun` equals that row
-count. `added` counts current rows and is not part of the baseline sum.
-`ambiguous` counts base-key groups, not rows; its rows are outside the sum. The
-JSON block exposes six counts; `other` is the derived no-claim residual and is
-not a JSON field in 0.6.0.
+not in this run applies. `added` counts current rows and is not part of the
+baseline sum. `ambiguous` counts base-key groups, not rows; its rows are outside
+the sum. An unmatched current failing row is also a new failure, so
+`newFailures` can exceed the matched baseline rows; the reconciliation identity
+`newFailures + fixed + stillFailing + other + notInThisRun` equals the baseline
+row count only when no unmatched current row fails. The JSON block exposes all
+seven counts, including `other`.
 
 ## Summary shape
 
@@ -156,6 +157,7 @@ example is abridged; the rest of the summary is unchanged:
       "newFailures": 2,
       "fixed": 1,
       "stillFailing": 3,
+      "other": 1,
       "notInThisRun": 1,
       "added": 4,
       "ambiguous": 0
@@ -183,9 +185,9 @@ example is abridged; the rest of the summary is unchanged:
 - `notInThisRun` entries carry `feature`, `name`, `uri`, `status`, `executed`
   and the optional `example` (D9). The list is capped at 50 entries;
   `counts.notInThisRun` stays complete.
-- `notInThisRun` is sorted by the example coordinate (examples then example,
-  numeric, rows without `example` last), then feature, name and URI (D18). The
-  coordinate is compared numerically, so `#1.10` sorts after `#1.2`.
+- `notInThisRun` is sorted by feature, then name, then the example coordinate
+  (examples then example, numeric, rows without `example` last), then URI (D18).
+  The coordinate is compared numerically, so `#1.10` sorts after `#1.2`.
 - Without a baseline there is no `baseline` or `change` key and the Markdown CI
   bytes and HTML are byte-identical. The unconditional `example` field is the
   only summary delta.
