@@ -1,6 +1,13 @@
-import { readFile } from 'node:fs/promises';
-import { describe, expect, it } from 'vitest';
-import { renderReport } from '../src/index.js';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { build } from 'esbuild';
+import { afterEach, describe, expect, it } from 'vitest';
+import { compareBaseline } from '../src/baseline.js';
+import { formatMarkdownSummary } from '../src/ci.js';
+import { renderReport, summarizeReport } from '../src/index.js';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
@@ -15,6 +22,62 @@ const fixture = messagesFixture('screenshot.ndjson');
 const legacyTableFixture = legacyFixture('happy.json');
 const passedOnlyFixture = legacyFixture('behave.json');
 const minimalFixture = legacyFixture('minimal.json');
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
+});
+
+async function tempDir(prefix: string): Promise<string> {
+  const dir = await mkdtemp(path.join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+
+function tagOptions(html: string): string[] {
+  return [...html.matchAll(/<option value="(@[^"]*)">/g)].map(
+    (match) => match[1] ?? '',
+  );
+}
+
+function featureMatrixNames(html: string): string[] {
+  const matrix = html.slice(html.indexOf('<table class="featureTable">'));
+  return [
+    ...matrix.matchAll(
+      /<tr><th scope="row"><span class="matrixName">(.*?)<\/span>/g,
+    ),
+  ].map((match) => match[1] ?? '');
+}
+
+function markdownFailureTitles(markdown: string): string[] {
+  return [
+    ...markdown.matchAll(/^#### `([^`]*)` - `([^`]*)`$/gm),
+  ].map((match) => match[1] ?? '');
+}
+
+function legacyOrderFeature(name: string, status: 'passed' | 'failed') {
+  return {
+    uri: `features/${name}.feature`,
+    name,
+    elements: [
+      {
+        keyword: 'Scenario',
+        name: `${name} scenario`,
+        tags: [{ name: `@${name}` }],
+        steps: [
+          {
+            keyword: 'Given ',
+            name: 'a step',
+            result: { status, duration: 1 },
+          },
+        ],
+      },
+    ],
+  };
+}
 
 function tiedAttempts(): ReturnType<typeof parseMessages> {
   const lines: unknown[] = [
@@ -478,4 +541,236 @@ describe('messages rendering', () => {
     expect(html).not.toContain('-5000');
     expect(html).toContain('0 ms');
   });
+});
+
+describe('legacy run dates', () => {
+  it.each(['happy.json', 'failed.json', 'minimal.json'])(
+    'omits the run date for legacy %s without a start time',
+    async (name) => {
+      const html = await renderReport(legacyFixture(name), {
+        title: 'Legacy date',
+      });
+
+      expect(html).not.toContain('Started:');
+      expect(html).not.toContain('1970');
+    },
+  );
+
+  it('shows an explicit non-zero legacy start time', async () => {
+    const content = await readFile(legacyFixture('minimal.json'), 'utf8');
+    const envelopes = parseLegacyJson(content, 'minimal.json', {
+      idPrefix: 'date',
+      startedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    const html = await renderHtml(envelopes, { title: 'Pinned date' });
+
+    expect(html).toContain('Started: 2026-01-01');
+    expect(html).not.toContain('1970');
+  });
+
+  it('keeps the real Messages run date unchanged', async () => {
+    const html = await renderReport(messagesFixture('screenshot.ndjson'), {
+      title: 'Real messages date',
+    });
+
+    expect(html).toContain('Started: 2026-11-02');
+    expect(html).not.toContain('1970');
+  });
+});
+
+describe('host-locale-independent report order', () => {
+  async function orderInputDir(
+    status: 'passed' | 'failed' = 'passed',
+  ): Promise<string> {
+    const dir = await tempDir('tolkira-order-input-');
+    for (const name of ['Zebra', 'apple', 'Äpfel']) {
+      await writeFile(
+        path.join(dir, `${name}.json`),
+        JSON.stringify([legacyOrderFeature(name, status)]),
+        'utf8',
+      );
+    }
+    return dir;
+  }
+
+  it('sorts the tag filter by UTF-16 code units', async () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          uri: 'features/tags.feature',
+          name: 'Tags',
+          elements: ['apple', 'Zebra', 'Äpfel'].map((name) => ({
+            keyword: 'Scenario',
+            name: `tag ${name}`,
+            tags: [{ name: `@${name}` }],
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a step',
+                result: { status: 'passed', duration: 1 },
+              },
+            ],
+          })),
+        },
+      ]),
+      'tag-order.json',
+    );
+
+    const html = await renderHtml(envelopes, { title: 'Tag order' });
+
+    expect(tagOptions(html)).toEqual(['@Zebra', '@apple', '@Äpfel']);
+  });
+
+  it('sorts report features by the fixed resolved input order', async () => {
+    const dir = await orderInputDir();
+
+    const html = await renderReport(dir, { title: 'Feature order' });
+
+    expect(featureMatrixNames(html)).toEqual(['Zebra', 'apple', 'Äpfel']);
+    expect(tagOptions(html)).toEqual(['@Zebra', '@apple', '@Äpfel']);
+  });
+
+  it('keeps every order fixed when the host localeCompare is replaced', async () => {
+    const dir = await orderInputDir('failed');
+    const baselineRows = ['apple', 'Zebra', 'Äpfel'].map((name) => ({
+      feature: name,
+      name: `${name} scenario`,
+      uri: `features/${name}.feature`,
+      status: 'passed' as const,
+      executed: true,
+    }));
+    const original = String.prototype.localeCompare;
+    const collator = new Intl.Collator('sv');
+    String.prototype.localeCompare = function (
+      this: string,
+      that: string,
+    ): number {
+      return collator.compare(this, that);
+    } as typeof String.prototype.localeCompare;
+
+    try {
+      const summary = await summarizeReport(dir);
+      const markdown = formatMarkdownSummary(summary);
+      const html = await renderReport(dir, { title: 'Locale stub' });
+      const comparison = compareBaseline(
+        { schemaVersion: 2, status: 'passed', scenarios: baselineRows },
+        [],
+      );
+
+      expect(summary.scenarios.map((scenario) => scenario.uri)).toEqual([
+        'features/Zebra.feature',
+        'features/apple.feature',
+        'features/Äpfel.feature',
+      ]);
+      expect(markdownFailureTitles(markdown)).toEqual([
+        'Zebra',
+        'apple',
+        'Äpfel',
+      ]);
+      expect(featureMatrixNames(html)).toEqual(['Zebra', 'apple', 'Äpfel']);
+      expect(tagOptions(html)).toEqual(['@Zebra', '@apple', '@Äpfel']);
+      expect(comparison.block.notInThisRun.map((row) => row.feature)).toEqual([
+        'Zebra',
+        'apple',
+        'Äpfel',
+      ]);
+    } finally {
+      String.prototype.localeCompare = original;
+    }
+  });
+
+  it(
+    'produces byte-identical JSON and Markdown and one fixed report order under sv_SE and de_DE',
+    async () => {
+      const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+      const inputDir = await tempDir('tolkira-locale-input-');
+      for (const name of ['Zebra', 'apple', 'Äpfel']) {
+        await writeFile(
+          path.join(inputDir, `${name}.json`),
+          JSON.stringify([legacyOrderFeature(name, 'failed')]),
+          'utf8',
+        );
+      }
+      const outputDir = await tempDir('tolkira-locale-output-');
+      await mkdir(outputDir, { recursive: true });
+      const bundleDir = await tempDir('tolkira-locale-bundle-');
+      const bundle = path.join(bundleDir, 'cli.mjs');
+
+      await build({
+        entryPoints: [path.join(repoRoot, 'src', 'cli.ts')],
+        bundle: true,
+        platform: 'node',
+        target: 'node22',
+        format: 'esm',
+        outfile: bundle,
+        logLevel: 'silent',
+      });
+
+      const run = async (locale: string) => {
+        const htmlFile = path.join(outputDir, `${locale}.html`);
+        const markdownFile = path.join(outputDir, `${locale}.md`);
+        const result = spawnSync(
+          process.execPath,
+          [
+            bundle,
+            inputDir,
+            '--json',
+            '--ci',
+            'markdown',
+            '--ci-out',
+            markdownFile,
+            '--out',
+            htmlFile,
+          ],
+          {
+            cwd: repoRoot,
+            encoding: 'utf8',
+            timeout: 120_000,
+            env: { ...process.env, LANG: locale, LC_ALL: locale },
+          },
+        );
+        if (result.status !== 0) {
+          throw new Error(
+            `tolkira exited ${result.status} under ${locale}: ${result.stderr}`,
+          );
+        }
+        return {
+          json: result.stdout,
+          markdown: await readFile(markdownFile, 'utf8'),
+          html: await readFile(htmlFile, 'utf8'),
+        };
+      };
+
+      const swedish = await run('sv_SE.UTF-8');
+      const german = await run('de_DE.UTF-8');
+      const summary = JSON.parse(swedish.json) as {
+        scenarios: Array<{ uri: string }>;
+      };
+
+      expect(german.json).toBe(swedish.json);
+      expect(summary.scenarios.map((scenario) => scenario.uri)).toEqual([
+        'features/Zebra.feature',
+        'features/apple.feature',
+        'features/Äpfel.feature',
+      ]);
+      expect(german.markdown).toBe(swedish.markdown);
+      expect(markdownFailureTitles(swedish.markdown)).toEqual([
+        'Zebra',
+        'apple',
+        'Äpfel',
+      ]);
+      expect(featureMatrixNames(swedish.html)).toEqual([
+        'Zebra',
+        'apple',
+        'Äpfel',
+      ]);
+      expect(tagOptions(swedish.html)).toEqual([
+        '@Zebra',
+        '@apple',
+        '@Äpfel',
+      ]);
+    },
+    180_000,
+  );
 });

@@ -592,3 +592,84 @@ describe('CLI flaky history count', () => {
     expect(afterSecond.runs.map((entry) => entry.flaky)).toEqual([1, 0]);
   });
 });
+
+describe('CLI history ISO 8601 timestamps', () => {
+  function historyEntry(recordedAt: string): Record<string, unknown> {
+    const counts = {
+      total: 1,
+      passed: 1,
+      failed: 0,
+      skipped: 0,
+      pending: 0,
+      undefined: 0,
+      ambiguous: 0,
+      unknown: 0,
+    };
+    return {
+      id: 'existing-run',
+      recordedAt,
+      title: 'Existing run',
+      status: 'passed',
+      counts: { features: 1, scenarios: counts, steps: counts },
+      durationMs: 1,
+      attachments: { total: 0, bytes: 0 },
+    };
+  }
+
+  it('reads an offset timestamp unchanged and appends a writer-form run', async () => {
+    const dir = await tempDir();
+    const history = path.join(dir, 'history.json');
+    const output = path.join(dir, 'report.html');
+    const recordedAt = '2026-11-19T08:00:00+02:00';
+    await writeFile(
+      history,
+      JSON.stringify({
+        schemaVersion: 1,
+        runs: [historyEntry(recordedAt)],
+      }),
+      'utf8',
+    );
+
+    const run = await cli([messages, '--out', output, '--history', history]);
+
+    expect(run.code, run.stderr).toBe(0);
+    const stored = await readSidecar(history);
+    expect(stored.runs).toHaveLength(2);
+    expect(stored.runs[0]?.recordedAt).toBe(recordedAt);
+    expect(String(stored.runs[1]?.recordedAt)).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
+    await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+  });
+
+  it.each([
+    ['a zone-less timestamp', '2026-11-19T08:00:00'],
+    ['free text', 'yesterday'],
+  ])(
+    'exits 1 on %s and leaves the file and output untouched',
+    async (_name, recordedAt) => {
+      const dir = await tempDir();
+      const history = path.join(dir, 'history.json');
+      const output = path.join(dir, 'report.html');
+      await writeFile(
+        history,
+        JSON.stringify({
+          schemaVersion: 1,
+          runs: [historyEntry(recordedAt)],
+        }),
+        'utf8',
+      );
+      const before = await readFile(history, 'utf8');
+
+      const run = await cli([messages, '--out', output, '--history', history]);
+
+      expect(run.code).toBe(1);
+      expect(run.stderr).toContain(`Invalid history file ${history}:`);
+      expect(run.stderr).toContain('runs[0].recordedAt must be an ISO timestamp');
+      await expect(readFile(history, 'utf8')).resolves.toBe(before);
+      await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    },
+  );
+});

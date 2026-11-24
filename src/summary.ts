@@ -14,7 +14,7 @@ import type {
 } from './baseline.js';
 import { attachmentBytes } from './attachment.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
-import { stripAnsi } from './text.js';
+import { compareText, stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
 import {
   indexRun,
@@ -176,7 +176,10 @@ function scenarioStatus(results: TestStepResult[]): SummaryStatus {
 }
 
 export function displayUri(uri: string): string {
-  const normalized = uri.replace(/\\/g, '/').replace(/^file:\/\/+/i, '');
+  const slashed = uri.replace(/\\/g, '/');
+  const normalized = slashed
+    .replace(/^file:\/\//i, '')
+    .replace(/^\/([a-z]:\/)/i, '$1');
   if (!/^[a-z]:\//i.test(normalized) && !normalized.startsWith('/')) {
     return normalized;
   }
@@ -186,6 +189,14 @@ export function displayUri(uri: string): string {
     .replace(/^[a-z]:/i, '')
     .split('/')
     .filter(Boolean);
+  // /mnt/<drive> is the WSL mount form of a Windows path.
+  if (
+    parts.length > 2 &&
+    /^mnt$/i.test(parts[0] ?? '') &&
+    /^[a-z]$/i.test(parts[1] ?? '')
+  ) {
+    parts.splice(0, 2);
+  }
   // Drop a home directory so a user name never reaches the report.
   if (
     parts.length > 1 &&
@@ -357,7 +368,7 @@ export function summarizeIndex(
   }
 
   scenarios.sort(
-    (a, b) => a.uri.localeCompare(b.uri) || a.name.localeCompare(b.name),
+    (a, b) => compareText(a.uri, b.uri) || compareText(a.name, b.name),
   );
 
   const runHookResults: TestStepResult[] = [];

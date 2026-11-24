@@ -3,7 +3,7 @@ import type { Envelope } from '@cucumber/messages';
 
 const STATUS_VALUES = new Set(Object.values(TestStepResultStatus));
 
-const ENVELOPE_KEYS = new Set([
+export const ENVELOPE_KEYS = new Set([
   'attachment',
   'externalAttachment',
   'gherkinDocument',

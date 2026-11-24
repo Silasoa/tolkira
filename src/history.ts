@@ -152,10 +152,12 @@ function statusCounts(
   return parsed;
 }
 
+const ISO_TIMESTAMP =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
+
 function isIsoTime(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
-  const time = Date.parse(value);
-  return Number.isFinite(time) && new Date(time).toISOString() === value;
+  if (typeof value !== 'string' || !ISO_TIMESTAMP.test(value)) return false;
+  return Number.isFinite(Date.parse(value));
 }
 
 /** The reader's field rules, shared by read and write. */

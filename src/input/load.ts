@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Envelope } from '@cucumber/messages';
+import { compareText } from '../text.js';
 import { detectInput } from './detect.js';
 import { parseLegacyJson, parseLegacyValue } from './legacy.js';
 import { collectReportFiles } from './files.js';
@@ -89,7 +90,7 @@ export async function resolveInputFiles(
   }
 
   return {
-    files: [...files.values()].sort((a, b) => a.file.localeCompare(b.file)),
+    files: [...files.values()].sort((a, b) => compareText(a.file, b.file)),
   };
 }
 

@@ -331,12 +331,29 @@ function createIdFactory(prefix: string): (kind: string) => string {
 
 function normalizeUri(uri: string | undefined, index: number): string {
   if (!uri) return `features/legacy-${index}.feature`;
-  const slashed = uri.replace(/\\/g, '/').replace(/^file:\/\/+/i, '');
+  const slashed = uri
+    .replace(/\\/g, '/')
+    .replace(/^file:\/\//i, '')
+    .replace(/^\/([a-z]:\/)/i, '$1');
   const normalized = slashed.replace(/^\.\//, '');
-  if (/^[a-z]:\//i.test(normalized) || slashed.startsWith('/')) {
+  if (/^[a-z]:\//i.test(slashed) || slashed.startsWith('/')) {
     const marker = slashed.lastIndexOf('/features/');
     if (marker >= 0) return slashed.slice(marker + 1);
-    const parts = slashed.split('/').filter(Boolean);
+    const parts = slashed.replace(/^[a-z]:/i, '').split('/').filter(Boolean);
+    // /mnt/<drive> is the WSL mount form of a Windows path.
+    if (
+      parts.length > 2 &&
+      /^mnt$/i.test(parts[0] ?? '') &&
+      /^[a-z]$/i.test(parts[1] ?? '')
+    ) {
+      parts.splice(0, 2);
+    }
+    if (
+      parts.length > 1 &&
+      /^(Users|home|Documents and Settings)$/i.test(parts[0] ?? '')
+    ) {
+      parts.splice(0, 2);
+    }
     return parts[parts.length - 1] ?? `features/legacy-${index}.feature`;
   }
   return normalized || `features/legacy-${index}.feature`;
@@ -619,7 +636,12 @@ export function parseLegacyValue(
   validateLegacyFeatures(parsed, source);
   const features = parsed;
   const nextId = createIdFactory(options.idPrefix ?? 'legacy');
-  const startedAt = Math.floor((options.startedAt ?? new Date()).getTime() / 1000);
+  const startedAt = options.startedAt
+    ? Math.floor(options.startedAt.getTime() / 1000)
+    : 0;
+  // An unpinned run has an unknown start: the synthetic clock stays at zero so
+  // every scenario start is zero, and the model renders no date.
+  const advances = startedAt !== 0;
   const runId = nextId('run');
   const envelopes: Envelope[] = [];
   const statuses: TestStepResultStatus[] = [];
@@ -891,7 +913,7 @@ export function parseLegacyValue(
           scenarioEnvelopes.push({ attachment });
         }
 
-        clock = finishedAt;
+        clock = advances ? finishedAt : clock;
       }
 
       scenarioEnvelopes.push({

@@ -1,10 +1,12 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { Envelope } from '@cucumber/messages';
 import { afterEach, describe, expect, it } from 'vitest';
 import { recordSkippedAttachments } from '../src/attempt-diagnostics.js';
 import { generateReport } from '../src/index.js';
 import { parseMessages } from '../src/input/messages.js';
+import { buildReportModel } from '../src/report/model.js';
 import { renderHtml } from '../src/render/html.js';
 import {
   NEUTRAL_FOOTER,
@@ -167,5 +169,148 @@ describe('skipped attachment notice', () => {
     expect(html).not.toContain('Screenshots are embedded');
     expect(html).toContain(skipNotice(1));
     expect(html).toContain(SKIP_WHERE);
+  });
+});
+
+describe('media data URIs in the report', () => {
+  function mediaEnvelopes(
+    body: string,
+    mediaType: string,
+    contentEncoding = 'IDENTITY',
+  ): Envelope[] {
+    return [
+      {
+        gherkinDocument: {
+          uri: 'features/media.feature',
+          comments: [],
+          feature: {
+            location: { line: 1, column: 1 },
+            tags: [],
+            language: 'en',
+            keyword: 'Feature',
+            name: 'Media feature',
+            description: '',
+            children: [
+              {
+                scenario: {
+                  id: 'media-scenario',
+                  location: { line: 3, column: 3 },
+                  tags: [],
+                  keyword: 'Scenario',
+                  name: 'Media scenario',
+                  description: '',
+                  steps: [
+                    {
+                      id: 'media-step-def',
+                      location: { line: 4, column: 5 },
+                      keyword: 'Given ',
+                      keywordType: 'Context',
+                      text: 'a step',
+                    },
+                  ],
+                  examples: [],
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        pickle: {
+          id: 'media-pickle',
+          uri: 'features/media.feature',
+          name: 'Media scenario',
+          language: 'en',
+          astNodeIds: ['media-scenario'],
+          tags: [],
+          steps: [
+            { id: 'media-pickle-step', text: 'a step', astNodeIds: [] },
+          ],
+        },
+      },
+      {
+        testCase: {
+          id: 'media-case',
+          pickleId: 'media-pickle',
+          testSteps: [{ id: 'media-step', pickleStepId: 'media-pickle-step' }],
+        },
+      },
+      {
+        testCaseStarted: {
+          id: 'media-start',
+          testCaseId: 'media-case',
+          attempt: 0,
+          timestamp: { seconds: 1, nanos: 0 },
+        },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: 'media-start',
+          testStepId: 'media-step',
+          testStepResult: {
+            status: 'PASSED',
+            duration: { seconds: 0, nanos: 1 },
+          },
+          timestamp: { seconds: 1, nanos: 1 },
+        },
+      },
+      {
+        attachment: {
+          body,
+          contentEncoding,
+          mediaType,
+          fileName: 'media',
+          testCaseStartedId: 'media-start',
+        },
+      },
+    ] as unknown as Envelope[];
+  }
+
+  it.each([
+    ['image/png', '\uD800', '<img'],
+    ['image/png', '\uDC00', '<img'],
+    ['video/mp4', '\uD800', '<video'],
+    ['video/mp4', '\uDC00', '<video'],
+  ])(
+    'renders a complete report for a lone surrogate in a %s body (%j)',
+    async (mediaType, body, tag) => {
+      const envelopes = mediaEnvelopes(body, mediaType);
+      const model = buildReportModel(envelopes);
+      const html = await renderHtml(envelopes, { title: 'Lone surrogate' });
+      const dataUri = model.scenarios[0]?.extraAttachments[0]?.dataUri;
+
+      expect(dataUri).toBe(
+        `data:${mediaType};base64,${Buffer.from(body, 'utf8').toString('base64')}`,
+      );
+      expect(html).toContain(tag);
+      expect(html).toContain(`data:${mediaType};base64,`);
+      expect(html).toContain('</html>');
+      expect(html).not.toContain('URI malformed');
+    },
+  );
+
+  it('keeps a normal UTF-8 media body readable in the report', async () => {
+    const envelopes = mediaEnvelopes('hello', 'image/png');
+    const html = await renderHtml(envelopes, { title: 'Readable body' });
+
+    expect(html).toContain('data:image/png;charset=utf-8,hello');
+    expect(html).not.toContain('data:image/png;base64,');
+  });
+
+  it('keeps a BASE64 media body unchanged in the report', async () => {
+    const envelopes = mediaEnvelopes('AAAA', 'image/png', 'BASE64');
+    const html = await renderHtml(envelopes, { title: 'Base64 body' });
+
+    expect(html).toContain('data:image/png;base64,AAAA');
+  });
+
+  it('renders no media data URI for an empty body', async () => {
+    const envelopes = mediaEnvelopes('', 'image/png');
+    const model = buildReportModel(envelopes);
+    const html = await renderHtml(envelopes, { title: 'Empty body' });
+
+    expect(model.scenarios[0]?.extraAttachments[0]?.dataUri).toBeUndefined();
+    expect(html).not.toContain('data:image/png');
+    expect(html).toContain('</html>');
   });
 });

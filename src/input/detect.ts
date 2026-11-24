@@ -1,8 +1,9 @@
 import path from 'node:path';
 import { looksLikeJUnit } from './junit.js';
-import { isEnvelopeLike } from './messages.js';
+import { ENVELOPE_KEYS, isEnvelopeLike } from './messages.js';
 
 const MESSAGES_EXTENSIONS = new Set(['.jsonl', '.ndjson']);
+const FIRST_KEY = /^\{\s*"([^"]+)"\s*:/;
 
 export interface InputIdentity {
   file: string;
@@ -60,6 +61,11 @@ function looksLikeMessages(content: string): boolean {
     .map((line) => line.trim())
     .find(Boolean);
   if (!firstLine) return false;
+
+  // Only parse a first line that names an envelope key; the Playwright sniffer
+  // parses every other one-line document, so a report is read once.
+  const key = FIRST_KEY.exec(firstLine)?.[1];
+  if (!key || !ENVELOPE_KEYS.has(key)) return false;
 
   try {
     return isEnvelopeLike(JSON.parse(firstLine));

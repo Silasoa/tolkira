@@ -13,6 +13,7 @@ import type { SkippedAttachment } from '../attempt-diagnostics.js';
 import type { ReportStatus } from '../report/status.js';
 import { worstExecutedStatus } from '../report/status.js';
 import { displayUri } from '../summary.js';
+import { compareText } from '../text.js';
 import { renderAttachment } from './attachments.js';
 import {
   applyBaselineChanges,
@@ -71,7 +72,7 @@ const SKIP_REASON_KEYS: Record<SkippedAttachment['reason'], MessageKey> = {
 
 function scenarioTags(model: ReportModel): string[] {
   return [...new Set(model.scenarios.flatMap((scenario) => scenario.tags))].sort(
-    (a, b) => a.localeCompare(b),
+    compareText,
   );
 }
 

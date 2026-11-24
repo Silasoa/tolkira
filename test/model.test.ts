@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import type { Envelope } from '@cucumber/messages';
 import { TestStepResultStatus } from '@cucumber/messages';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { loadEnvelopes } from '../src/input/load.js';
 import { parseMessages } from '../src/input/messages.js';
@@ -106,6 +107,9 @@ const noTimingFixture = fileURLToPath(
 );
 const realRunFixture = fileURLToPath(
   new URL('./fixtures/playwright/real-run.json', import.meta.url),
+);
+const legacyMinimalFixture = fileURLToPath(
+  new URL('./fixtures/legacy/minimal.json', import.meta.url),
 );
 
 async function modelFor(file: string) {
@@ -1194,5 +1198,356 @@ describe('empty-run model', () => {
     expect(model.startedAt).toMatch(/^2026-11-18/);
     expect(model.finishedAt).toBeDefined();
     expect(model.scenarios[0]?.startedAt).toMatch(/^2026-11-18/);
+  });
+});
+
+describe('display URI model fallback', () => {
+  const USER = 'alice';
+
+  function featurelessModel(uri: string) {
+    const envelopes = [
+      {
+        pickle: {
+          id: 'uri-pickle',
+          uri,
+          name: 'Orphan scenario',
+          language: 'en',
+          astNodeIds: ['uri-scenario'],
+          tags: [],
+          steps: [{ id: 'uri-pickle-step', text: 'a step', astNodeIds: [] }],
+        },
+      },
+      {
+        testCase: {
+          id: 'uri-case',
+          pickleId: 'uri-pickle',
+          testSteps: [
+            { id: 'uri-step', pickleStepId: 'uri-pickle-step' },
+          ],
+        },
+      },
+      {
+        testCaseStarted: {
+          id: 'uri-start',
+          testCaseId: 'uri-case',
+          attempt: 0,
+          timestamp: { seconds: 1, nanos: 0 },
+        },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: 'uri-start',
+          testStepId: 'uri-step',
+          testStepResult: {
+            status: 'PASSED',
+            duration: { seconds: 0, nanos: 1 },
+          },
+          timestamp: { seconds: 1, nanos: 1 },
+        },
+      },
+    ];
+    return buildReportModel(envelopes as unknown as Envelope[]);
+  }
+
+  it.each([
+    {
+      name: 'POSIX file URL',
+      uri: `file:///home/${USER}/proj/features/login.feature`,
+      expected: 'features/login.feature',
+    },
+    {
+      name: 'POSIX file URL without a features marker',
+      uri: `file:///home/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'WSL mount path',
+      uri: `/mnt/c/Users/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'Windows file URL',
+      uri: `file:///C:/Users/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+  ])('uses the display URI for a feature without an AST name: $name', ({
+    uri,
+    expected,
+  }) => {
+    const model = featurelessModel(uri);
+
+    expect(model.scenarios[0]?.featureName).toBe(expected);
+    expect(model.scenarios[0]?.featureName).not.toContain(USER);
+    expect(JSON.stringify(model)).not.toContain(USER);
+  });
+
+  it('keeps a relative feature fallback unchanged', () => {
+    const model = featurelessModel(`home/${USER}/proj/login.feature`);
+
+    expect(model.scenarios[0]?.featureName).toBe(
+      `home/${USER}/proj/login.feature`,
+    );
+  });
+
+  it('keeps an empty URI fallback empty', () => {
+    const model = featurelessModel('');
+
+    expect(model.scenarios[0]?.featureName).toBe('');
+  });
+
+  it('normalises a legacy file URL before the model fallback', async () => {
+    const content = await readFile(legacyMinimalFixture, 'utf8');
+    const envelopes = parseLegacyJson(
+      content.replace('features/minimal.feature', `file:///home/${USER}/proj/login.feature`),
+      'legacy-uri.json',
+      { idPrefix: 'uri' },
+    );
+    const model = buildReportModel(envelopes);
+
+    expect(model.scenarios[0]?.uri).toBe('login.feature');
+    expect(model.scenarios[0]?.uri).not.toContain(USER);
+    expect(JSON.stringify(model)).not.toContain(USER);
+  });
+});
+
+describe('legacy run time', () => {
+  async function legacyEnvelopesWithoutPin() {
+    const content = await readFile(legacyMinimalFixture, 'utf8');
+    return parseLegacyJson(content, 'minimal.json', { idPrefix: 'clock' });
+  }
+
+  it('emits zero start timestamps and never reads the clock without a pin', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2031-07-08T09:10:11.000Z'));
+    try {
+      const envelopes = await legacyEnvelopesWithoutPin();
+      const runStart = envelopes.find(
+        (envelope) => envelope.testRunStarted,
+      )?.testRunStarted;
+      const scenarioStarts = envelopes.flatMap((envelope) =>
+        envelope.testCaseStarted ? [envelope.testCaseStarted.timestamp] : [],
+      );
+
+      expect(runStart?.timestamp).toEqual({ seconds: 0, nanos: 0 });
+      expect(scenarioStarts.length).toBeGreaterThan(0);
+      expect(
+        scenarioStarts.every(
+          (timestamp) => timestamp?.seconds === 0 && timestamp?.nanos === 0,
+        ),
+      ).toBe(true);
+
+      const model = buildReportModel(envelopes);
+      expect(model.startedAt).toBeUndefined();
+      expect(model.scenarios[0]?.startedAt).toBeUndefined();
+      expect(JSON.stringify(model)).not.toContain('1970');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps scenario starts at zero for zero and non-zero durations', async () => {
+    const content = JSON.stringify([
+      {
+        uri: 'features/durations.feature',
+        name: 'Durations',
+        elements: [
+          {
+            keyword: 'Scenario',
+            name: 'zero duration',
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a zero step',
+                result: { status: 'passed', duration: 0 },
+              },
+            ],
+          },
+          {
+            keyword: 'Scenario',
+            name: 'non-zero duration',
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a slow step',
+                result: { status: 'passed', duration: 2_000_000_000 },
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    const envelopes = parseLegacyJson(content, 'durations.json', {
+      idPrefix: 'durations',
+    });
+    const starts = envelopes.flatMap((envelope) =>
+      envelope.testCaseStarted ? [envelope.testCaseStarted.timestamp] : [],
+    );
+
+    expect(starts).toEqual([
+      { seconds: 0, nanos: 0 },
+      { seconds: 0, nanos: 0 },
+    ]);
+  });
+
+  it('pins an explicit non-zero start time and keeps the advancing clock', async () => {
+    const content = await readFile(legacyMinimalFixture, 'utf8');
+    const pin = new Date('2026-01-01T00:00:00.000Z');
+    const envelopes = parseLegacyJson(content, 'minimal.json', {
+      idPrefix: 'pin',
+      startedAt: pin,
+    });
+    const runStart = envelopes.find(
+      (envelope) => envelope.testRunStarted,
+    )?.testRunStarted;
+    const model = buildReportModel(envelopes);
+
+    expect(runStart?.timestamp.seconds).toBe(pin.getTime() / 1000);
+    expect(model.startedAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(model.scenarios[0]?.startedAt).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('treats an explicit epoch pin as zero and unknown', async () => {
+    const content = await readFile(legacyMinimalFixture, 'utf8');
+    const envelopes = parseLegacyJson(content, 'minimal.json', {
+      idPrefix: 'epoch',
+      startedAt: new Date(0),
+    });
+    const model = buildReportModel(envelopes);
+
+    expect(
+      envelopes.find((envelope) => envelope.testRunStarted)?.testRunStarted
+        ?.timestamp,
+    ).toEqual({ seconds: 0, nanos: 0 });
+    expect(model.startedAt).toBeUndefined();
+    expect(JSON.stringify(model)).not.toContain('1970');
+  });
+
+  it('keeps the summary date-free and shape-stable without a pin', async () => {
+    const { summarizeEnvelopes } = await import('../src/summary.js');
+    const envelopes = await legacyEnvelopesWithoutPin();
+    const summary = summarizeEnvelopes(envelopes);
+
+    expect(Object.hasOwn(summary, 'date')).toBe(false);
+    expect(Object.hasOwn(summary, 'startedAt')).toBe(false);
+    expect(summary.schemaVersion).toBe(2);
+    expect(JSON.stringify(summary)).not.toContain('1970');
+  });
+});
+
+describe('media attachment data URIs', () => {
+  function mediaModel(
+    body: string,
+    mediaType: string,
+    contentEncoding = 'IDENTITY',
+  ) {
+    const envelopes = [
+      {
+        pickle: {
+          id: 'media-pickle',
+          uri: 'features/media.feature',
+          name: 'Media scenario',
+          language: 'en',
+          astNodeIds: ['media-scenario'],
+          tags: [],
+          steps: [{ id: 'media-pickle-step', text: 'a step', astNodeIds: [] }],
+        },
+      },
+      {
+        testCase: {
+          id: 'media-case',
+          pickleId: 'media-pickle',
+          testSteps: [
+            { id: 'media-step', pickleStepId: 'media-pickle-step' },
+          ],
+        },
+      },
+      {
+        testCaseStarted: {
+          id: 'media-start',
+          testCaseId: 'media-case',
+          attempt: 0,
+          timestamp: { seconds: 1, nanos: 0 },
+        },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: 'media-start',
+          testStepId: 'media-step',
+          testStepResult: {
+            status: 'PASSED',
+            duration: { seconds: 0, nanos: 1 },
+          },
+          timestamp: { seconds: 1, nanos: 1 },
+        },
+      },
+      {
+        attachment: {
+          body,
+          contentEncoding,
+          mediaType,
+          fileName: 'media',
+          testCaseStartedId: 'media-start',
+        },
+      },
+    ];
+    return buildReportModel(envelopes as unknown as Envelope[]);
+  }
+
+  function dataUriOf(model: ReturnType<typeof buildReportModel>) {
+    return model.scenarios[0]?.extraAttachments[0]?.dataUri;
+  }
+
+  const fallback = (mediaType: string, body: string) =>
+    `data:${mediaType};base64,${Buffer.from(body, 'utf8').toString('base64')}`;
+
+  it.each([
+    ['image/png', '\uD800'],
+    ['image/png', '\uDC00'],
+    ['video/mp4', '\uD800'],
+    ['video/mp4', '\uDC00'],
+  ])(
+    'falls back to base64 for a lone surrogate in a %s body (%j)',
+    (mediaType, body) => {
+      const model = mediaModel(body, mediaType);
+      const dataUri = dataUriOf(model);
+
+      expect(dataUri).toBe(fallback(mediaType, body));
+      expect(dataUri ?? '').toMatch(/;base64,/);
+    },
+  );
+
+  it('does not abort the report for a lone surrogate in an audio body', () => {
+    let model: ReturnType<typeof buildReportModel> | undefined;
+    expect(() => {
+      model = mediaModel('\uD800', 'audio/mpeg');
+    }).not.toThrow();
+
+    expect(model?.scenarios).toHaveLength(1);
+  });
+
+  it('keeps a readable data URI for a normal UTF-8 body', () => {
+    const model = mediaModel('hello', 'image/png');
+
+    expect(dataUriOf(model)).toBe('data:image/png;charset=utf-8,hello');
+  });
+
+  it('keeps a valid surrogate pair readable', () => {
+    const model = mediaModel('\uD83D\uDE00', 'image/png');
+    const dataUri = dataUriOf(model);
+
+    expect(dataUri).toBe('data:image/png;charset=utf-8,%F0%9F%98%80');
+    expect(dataUri ?? '').not.toContain(';base64,');
+  });
+
+  it('keeps a BASE64 media body byte-identical and un-re-encoded', () => {
+    const model = mediaModel('AAAA', 'image/png', 'BASE64');
+
+    expect(dataUriOf(model)).toBe('data:image/png;base64,AAAA');
+  });
+
+  it('renders no data URI for an empty media body', () => {
+    const model = mediaModel('', 'image/png');
+
+    expect(dataUriOf(model)).toBeUndefined();
   });
 });

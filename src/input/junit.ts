@@ -60,7 +60,7 @@ function isXmlChar(code: number): boolean {
 }
 
 function checkEntityReferences(fragment: string, source: string): void {
-  const entityPattern = /&([^;]{1,32});/g;
+  const entityPattern = /&([^;]*);/g;
   let match: RegExpExecArray | null;
 
   while ((match = entityPattern.exec(fragment)) !== null) {
@@ -352,6 +352,39 @@ function featuresFromSuite(
   return features;
 }
 
+const XML_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+};
+
+// fast-xml-parser v5 gates numeric references behind its deprecated boolean
+// htmlEntities option, which would also expose every HTML name. This decoder
+// keeps the XML-only rule the checker enforces and decodes no other name.
+const xmlEntityDecoder = {
+  setXmlVersion: () => {},
+  setExternalEntities: () => {},
+  addInputEntities: () => {},
+  reset: () => {},
+  decode(value: string): string {
+    return value.replace(
+      /&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g,
+      (whole, name: string) => {
+        const code = name.startsWith('#x')
+          ? Number.parseInt(name.slice(2), 16)
+          : name.startsWith('#')
+            ? Number.parseInt(name.slice(1), 10)
+            : undefined;
+        return code === undefined
+          ? (XML_ENTITIES[name] ?? whole)
+          : String.fromCodePoint(code);
+      },
+    );
+  },
+};
+
 export function looksLikeJUnit(content: string): boolean {
   const trimmed = content.replace(/^\uFEFF/, '').trimStart();
   return trimmed.startsWith('<') && /<testsuites?\b/i.test(trimmed);
@@ -386,7 +419,7 @@ export async function parseJUnitXml(
     attributeNamePrefix: '',
     parseTagValue: false,
     parseAttributeValue: false,
-    htmlEntities: true,
+    entityDecoder: xmlEntityDecoder,
     isArray: (name: string) => ARRAY_TAGS.has(name),
   });
 

@@ -689,3 +689,62 @@ describe('CLI input edge cases', () => {
     20_000,
   );
 });
+
+describe('CLI JSON display URI privacy', () => {
+  const USER = 'alice';
+  const stepFinished =
+    '{"testStepFinished":{"testCaseStartedId":"tcs","testStepId":"ts","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1}},"timestamp":{"seconds":1,"nanos":1}}}';
+
+  it('keeps a featureless Messages URI free of the user name and the feature empty', async () => {
+    const dir = await tempDir();
+    const uri = `file:///home/${USER}/proj/login.feature`;
+    const file = path.join(dir, 'privacy.ndjson');
+    await writeFile(
+      file,
+      minimalMessages(stepFinished).replace('features/x.feature', uri),
+      'utf8',
+    );
+
+    const run = await cli([file, '--json']);
+
+    expect(run.code, run.stderr).toBe(0);
+    const summary = parseSummary(run.stdout);
+    expect(summary.scenarios[0]?.uri).toBe('proj/login.feature');
+    expect(summary.scenarios[0]?.feature).toBe('');
+    expect(run.stdout).not.toContain(USER);
+    expect(run.stdout).not.toContain('/home/');
+  });
+
+  it('normalises a legacy file URL in the JSON uri field', async () => {
+    const dir = await tempDir();
+    const file = await writeLegacy(dir, 'legacy-privacy.json', [
+      {
+        uri: `file:///home/${USER}/proj/features/login.feature`,
+        name: 'Login',
+        elements: [
+          {
+            keyword: 'Scenario',
+            type: 'scenario',
+            name: 'signs in',
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a step',
+                result: { status: 'passed', duration: 1 },
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const run = await cli([file, '--json']);
+
+    expect(run.code, run.stderr).toBe(0);
+    const summary = parseSummary(run.stdout);
+    expect(summary.scenarios[0]?.uri).toBe('features/login.feature');
+    expect(summary.scenarios[0]?.feature).toBe('Login');
+    expect(run.stdout).not.toContain(USER);
+    expect(run.stdout).not.toContain('/home/');
+  });
+});

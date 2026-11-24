@@ -242,3 +242,32 @@ describe('Early input warning: resolved list identity', () => {
     expect(groups[0]?.file).toBe(resolved.files[0]?.file);
   });
 });
+
+describe('host-locale-independent input order', () => {
+  it('sorts resolved input files by UTF-16 code units, not the host locale', async () => {
+    const dir = await tempDir();
+    const names = [
+      'apple.json',
+      'Zebra.json',
+      'Äpfel.json',
+      'B.json',
+      // A bare `b.json` would be the same file as `B.json` on a
+      // case-insensitive host; the suffix keeps the case-boundary pair.
+      'b0.json',
+    ];
+    for (const name of names) {
+      await writeFile(path.join(dir, name), LEGACY, 'utf8');
+    }
+
+    const { files } = await resolveInputFiles(dir);
+
+    // ASCII case, non-ASCII and equal/prefix names in one boundary table.
+    expect(files.map((input) => path.basename(input.file))).toEqual([
+      'B.json',
+      'Zebra.json',
+      'apple.json',
+      'b0.json',
+      'Äpfel.json',
+    ]);
+  });
+});

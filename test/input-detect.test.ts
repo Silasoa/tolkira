@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detectInput } from '../src/input/detect.js';
 import type { InputDecision } from '../src/input/detect.js';
 
@@ -441,5 +441,102 @@ describe('input detection decision table', () => {
       kind: 'legacy',
       parsed: JSON.parse(LEGACY),
     });
+  });
+});
+
+describe('first-line parse count', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function parseCount(content: string, file = 'report.json'): number {
+    const spy = vi.spyOn(JSON, 'parse');
+    try {
+      detectInput(content, { file, explicit: true });
+      return spy.mock.calls.length;
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  it('parses a one-line Playwright report once', () => {
+    expect(detectInput(PLAYWRIGHT, { file: 'report.json', explicit: true }).kind)
+      .toBe('playwright');
+    expect(parseCount(PLAYWRIGHT)).toBe(1);
+  });
+
+  it('parses a one-line Messages envelope once', () => {
+    expect(detectInput(MESSAGES, { file: 'report.ndjson', explicit: true }).kind)
+      .toBe('messages');
+    expect(parseCount(MESSAGES, 'report.ndjson')).toBe(1);
+  });
+
+  it('does not parse the first line of a multi-line Playwright report', () => {
+    const content = `{\n${PLAYWRIGHT.slice(1)}`;
+
+    expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
+      .toBe('playwright');
+    expect(parseCount(content)).toBe(1);
+  });
+
+  it('keeps legacy and JUnit parse counts unchanged', () => {
+    expect(detectInput(LEGACY, { file: 'report.json', explicit: true }).kind)
+      .toBe('legacy');
+    expect(parseCount(LEGACY)).toBe(1);
+    expect(detectInput(JUNIT, { file: 'report.xml', explicit: true }).kind)
+      .toBe('junit');
+    expect(parseCount(JUNIT, 'report.xml')).toBe(0);
+  });
+
+  it.each([
+    {
+      name: 'a malformed non-envelope first key',
+      content: '{"config":{',
+      expected: 'json-validation',
+    },
+    {
+      name: 'a non-envelope first key',
+      content: '{"a":1}',
+      expected: 'json-validation',
+      file: 'report.ndjson',
+    },
+  ])(
+    'parses $name once through the Playwright sniffer',
+    ({ content, expected, file }) => {
+      expect(
+        detectInput(content, { file: file ?? 'report.json', explicit: true })
+          .kind,
+      ).toBe(expected);
+      expect(parseCount(content, file ?? 'report.json')).toBe(1);
+    },
+  );
+
+  it('parses an envelope-key line once before failing validation', () => {
+    const content = '{"meta":';
+
+    expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
+      .toBe('json-validation');
+    expect(parseCount(content)).toBeGreaterThanOrEqual(1);
+  });
+
+  it('reads the first key after a BOM and blank lines', () => {
+    const messages = `\uFEFF\n\n  ${MESSAGES}`;
+    const playwright = `\uFEFF\n${PLAYWRIGHT}`;
+
+    expect(detectInput(messages, { file: 'report.ndjson', explicit: true }).kind)
+      .toBe('messages');
+    expect(parseCount(messages, 'report.ndjson')).toBe(1);
+    expect(
+      detectInput(playwright, { file: 'report.json', explicit: true }).kind,
+    ).toBe('playwright');
+    expect(parseCount(playwright)).toBe(1);
+  });
+
+  it('accepts a spaced first key', () => {
+    const content = `{ "config": {"version":"1.65.0"}, "suites": [], "stats": {} }`;
+
+    expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
+      .toBe('playwright');
+    expect(parseCount(content)).toBe(1);
   });
 });

@@ -26,6 +26,7 @@ import {
 } from '../attempt-diagnostics.js';
 import { isSyntheticBackground } from '../input/background.js';
 import { stepResultMessage } from '../result-message.js';
+import { displayUri } from '../summary.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
 import {
   indexRun,
@@ -333,6 +334,15 @@ function hookLabel(type: string | undefined): string {
   }
 }
 
+function mediaDataUri(mediaType: string, body: string): string {
+  try {
+    return `data:${mediaType};charset=utf-8,${encodeURIComponent(body)}`;
+  } catch {
+    // A lone UTF-16 surrogate cannot be percent-encoded; keep the media inline.
+    return `data:${mediaType};base64,${Buffer.from(body, 'utf8').toString('base64')}`;
+  }
+}
+
 function toAttachment(attachment: Attachment): ReportAttachment {
   const body = attachment.body ?? '';
   const { fileName, mediaType, kind, bytes, textFormat } =
@@ -350,7 +360,7 @@ function toAttachment(attachment: Attachment): ReportAttachment {
         ? {
             dataUri: isBase64
               ? `data:${mediaType};base64,${body}`
-              : `data:${mediaType};charset=utf-8,${encodeURIComponent(body)}`,
+              : mediaDataUri(mediaType, body),
           }
         : {}),
     };
@@ -759,9 +769,9 @@ export function buildReportModel(
       name: pickle.name,
       keyword: tree?.scenario.keyword ?? 'Scenario',
       description: normalizeText(tree?.scenario.description),
-      uri: pickle.uri,
+      uri: displayUri(pickle.uri ?? ''),
       ...(pickleLine ? { line: pickleLine } : {}),
-      featureName: feature?.name ?? pickle.uri,
+      featureName: feature?.name ?? displayUri(pickle.uri ?? ''),
       ...(rule ? { rule } : {}),
       ...(rule?.name ? { ruleName: rule.name } : {}),
       status,

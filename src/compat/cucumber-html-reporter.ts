@@ -110,7 +110,7 @@ async function planSidecar(
       ).map((element) => ({ ...(element as object), retried: 0 }));
       const existing = merged.get(key);
       if (existing) {
-        existing.elements.push(...elements);
+        for (const element of elements) existing.elements.push(element);
       } else {
         merged.set(key, { feature, elements });
       }

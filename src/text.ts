@@ -8,6 +8,11 @@ export function stripBidiControls(value: string): string {
   return value.replace(BIDI_CONTROLS, '');
 }
 
+/** Fixed order by UTF-16 code units; the host locale and ICU do not participate. */
+export function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 /** Keeps a path or label on one line in confirmations and error output. */
 export function oneLine(value: string): string {
   // oxlint-disable-next-line no-control-regex

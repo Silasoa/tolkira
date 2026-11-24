@@ -1,7 +1,7 @@
 import { constants } from 'node:fs';
 import { open, stat, type FileHandle } from 'node:fs/promises';
 import { displayUri, type SummaryScenarioIdentity, type SummaryStatus } from './summary.js';
-import { oneLine } from './text.js';
+import { compareText, oneLine } from './text.js';
 
 /** A baseline summary is one JSON document; the input cap does not apply. */
 export const BASELINE_MAX_BYTES = 10_485_760;
@@ -331,10 +331,10 @@ function compareExamples(
 
 function compareBaselineRows(a: BaselineScenario, b: BaselineScenario): number {
   return (
-    a.feature.localeCompare(b.feature) ||
-    a.name.localeCompare(b.name) ||
+    compareText(a.feature, b.feature) ||
+    compareText(a.name, b.name) ||
     compareExamples(a.example, b.example) ||
-    a.uri.localeCompare(b.uri)
+    compareText(a.uri, b.uri)
   );
 }
 

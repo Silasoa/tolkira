@@ -920,3 +920,43 @@ describe('reconciliation', () => {
     expect(block.notInThisRun.map((row) => row.name)).toEqual(['gone one']);
   });
 });
+
+describe('host-locale-independent baseline order', () => {
+  it('sorts not-in-this-run rows by UTF-16 code units, not the host locale', () => {
+    const rows: BaselineScenario[] = [
+      {
+        feature: 'apple',
+        name: 'apple scenario',
+        uri: 'features/apple.feature',
+        status: 'passed',
+        executed: true,
+      },
+      {
+        feature: 'Zebra',
+        name: 'Zebra scenario',
+        uri: 'features/Zebra.feature',
+        status: 'passed',
+        executed: true,
+      },
+      {
+        feature: 'Äpfel',
+        name: 'Äpfel scenario',
+        uri: 'features/Äpfel.feature',
+        status: 'passed',
+        executed: true,
+      },
+    ];
+
+    const comparison = compareBaseline(
+      { schemaVersion: 2, status: 'passed', scenarios: rows },
+      [],
+    );
+
+    expect(comparison.block.notInThisRun.map((row) => row.feature)).toEqual([
+      'Zebra',
+      'apple',
+      'Äpfel',
+    ]);
+    expect(comparison.block.counts.notInThisRun).toBe(3);
+  });
+});

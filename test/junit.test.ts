@@ -1,6 +1,7 @@
 import {
   copyFile,
   mkdtemp,
+  readFile,
   readdir,
   rm,
   writeFile,
@@ -667,5 +668,151 @@ describe('JUnit XML input', () => {
         renderReport([dir, explicit], { title: 'Duplicate' }),
       ).rejects.toThrow(/Unsupported JUnit XML in .*z-empty\.xml/);
     });
+  });
+});
+
+describe('JUnit XML entities', () => {
+  it('accepts the five XML named entities in text and attributes', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'named.xml');
+    await writeFile(
+      file,
+      '<testsuites><testsuite name="A &amp; B &lt; C &gt; D &quot; E &apos; F">' +
+        '<testcase name="named &amp; entities"><failure>A &amp; B &lt; C &gt; D &quot; E &apos; F</failure></testcase>' +
+        '</testsuite></testsuites>',
+      'utf8',
+    );
+
+    const summary = await summarizeReport(file);
+
+    expect(summary.scenarios[0]?.name).toBe('named & entities');
+    expect(summary.scenarios[0]?.feature).toBe(
+      'A & B < C > D " E \' F',
+    );
+    expect(summary.scenarios[0]?.steps[0]?.message).toBe(
+      'A & B < C > D " E \' F',
+    );
+  });
+
+  it.each(['&#160;', '&#xA0;'])(
+    'accepts the numeric reference %s as data',
+    async (reference) => {
+      const dir = await tempDir();
+      const file = path.join(dir, 'numeric-nbsp.xml');
+      await writeFile(
+        file,
+        `<testsuites><testsuite name="numeric"><testcase name="passes${reference}here"><failure/></testcase></testsuite></testsuites>`,
+        'utf8',
+      );
+
+      const summary = await summarizeReport(file);
+
+      expect(summary.scenarios[0]?.name).toBe('passes\u00A0here');
+    },
+  );
+
+  it.each([
+    ['an unknown named entity', '&copy;'],
+    ['a 32-character unknown entity', `&${'a'.repeat(32)};`],
+    ['a 33-character unknown entity', `&${'a'.repeat(33)};`],
+  ])('rejects %s with the invalid-entity error', async (name, entity) => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'unknown-named.xml');
+    await writeFile(
+      file,
+      `<testsuites><testsuite name="named"><testcase name="bad ${entity}"><failure/></testcase></testsuite></testsuites>`,
+      'utf8',
+    );
+    const before = await readFile(file, 'utf8');
+
+    await expect(renderReport(file, { title: name })).rejects.toThrow(
+      new RegExp(
+        `Invalid JUnit XML in .*unknown-named\\.xml: invalid entity reference &${entity.slice(1, -1)};`,
+      ),
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects numeric references outside the XML character ranges', async () => {
+    const dir = await tempDir();
+    for (const [name, reference] of [
+      ['above-max.xml', '&#x110000;'],
+      ['surrogate.xml', '&#xD800;'],
+    ] as const) {
+      const file = path.join(dir, name);
+      await writeFile(
+        file,
+        `<testsuites><testsuite name="range"><testcase name="bad"><failure>${reference}</failure></testcase></testsuite></testsuites>`,
+        'utf8',
+      );
+
+      await expect(renderReport(file, { title: name })).rejects.toThrow(
+        new RegExp(
+          `Invalid JUnit XML in .*${name.replace('.', '\\.')}: invalid entity reference ${reference}`,
+        ),
+      );
+    }
+  });
+
+  it('keeps an entity-looking value inside CDATA as data', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'cdata-entity.xml');
+    await writeFile(
+      file,
+      '<testsuites><testsuite name="cdata"><testcase name="cdata">' +
+        '<failure><![CDATA[&nbsp; stays data]]></failure>' +
+        '</testcase></testsuite></testsuites>',
+      'utf8',
+    );
+
+    const summary = await summarizeReport(file);
+
+    expect(summary.scenarios[0]?.steps[0]?.message).toBe('&nbsp; stays data');
+  });
+
+  it('keeps the same entity decision for explicit and directory input', async () => {
+    const acceptedDir = await tempDir();
+    const accepted = path.join(acceptedDir, 'accepted.xml');
+    await writeFile(
+      accepted,
+      '<testsuites><testsuite name="accepted"><testcase name="passes &amp; prints"><failure/></testcase></testsuite></testsuites>',
+      'utf8',
+    );
+    const rejectedDir = await tempDir();
+    const rejected = path.join(rejectedDir, 'rejected.xml');
+    await writeFile(
+      rejected,
+      '<testsuites><testsuite name="rejected"><testcase name="bad &nbsp;"><failure/></testcase></testsuite></testsuites>',
+      'utf8',
+    );
+
+    await expect(renderReport(acceptedDir, { title: 'Accepted dir' })).resolves
+      .toContain('passes &amp; prints');
+    await expect(renderReport(rejectedDir, { title: 'Rejected dir' })).rejects
+      .toThrow(/Invalid JUnit XML in .*rejected\.xml: invalid entity reference &nbsp;/);
+  });
+
+  it('writes no partial report when a long named entity is rejected', async () => {
+    const dir = await tempDir();
+    const input = path.join(dir, 'long-entity.xml');
+    await writeFile(
+      input,
+      `<testsuites><testsuite name="long"><testcase name="bad &${'a'.repeat(33)};"><failure/></testcase></testsuite></testsuites>`,
+      'utf8',
+    );
+    const outDir = await tempDir();
+    const output = path.join(outDir, 'report.html');
+    let stderr = '';
+
+    const code = await runCli([input, '--out', output], {
+      stdout: () => {},
+      stderr: (text) => {
+        stderr += text;
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(stderr).toContain('invalid entity reference');
+    expect(await readdir(outDir)).toEqual([]);
   });
 });

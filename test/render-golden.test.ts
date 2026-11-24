@@ -1,16 +1,6 @@
 import { fileURLToPath } from 'node:url';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { renderReport } from '../src/index.js';
-
-// Same pin as the characterization test: the legacy parser needs a fixed clock.
-beforeEach(() => {
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 function fixture(relative: string): string {
   return fileURLToPath(new URL(`./fixtures/${relative}`, import.meta.url));

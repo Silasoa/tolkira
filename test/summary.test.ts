@@ -272,7 +272,10 @@ describe('machine-readable summary', () => {
     expect(first.attachments.total).toBe(attachmentCount);
 
     const keys = first.scenarios.map((scenario) => `${scenario.uri}\0${scenario.name}`);
-    expect(keys).toEqual([...keys].sort((a, b) => a.localeCompare(b)));
+    // Fixed UTF-16 code-unit order; the host locale must not participate.
+    expect(keys).toEqual(
+      [...keys].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+    );
   });
 
   it('fails the summary when a test-run hook fails', async () => {
@@ -667,5 +670,231 @@ describe('empty-run summary', () => {
     );
     expect(summary.counts.scenarios.total).toBe(summary.scenarios.length);
     expect(summary.attachments.total).toBeGreaterThan(0);
+  });
+});
+
+describe('display URI privacy', () => {
+  const USER = 'alice';
+
+  it.each([
+    {
+      name: 'POSIX file URL',
+      uri: `file:///home/${USER}/proj/features/login.feature`,
+      expected: 'features/login.feature',
+    },
+    {
+      name: 'WSL mount path',
+      uri: `/mnt/c/Users/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'Windows file URL',
+      uri: `file:///C:/Users/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'absolute path without a features marker',
+      uri: `/home/${USER}/work/proj/login.feature`,
+      expected: 'work/proj/login.feature',
+    },
+    {
+      name: 'deeper absolute path keeps the last three segments',
+      uri: `/home/${USER}/work/team/proj/login.feature`,
+      expected: 'team/proj/login.feature',
+    },
+    {
+      name: 'drive form one segment before the home segment',
+      uri: `C:/Users/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'WSL mount path with one segment after the home segment',
+      uri: `/mnt/c/Users/${USER}/login.feature`,
+      expected: 'login.feature',
+    },
+    {
+      name: 'Documents and Settings home segment',
+      uri: `C:/Documents and Settings/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'features marker after an absolute home path',
+      uri: `/home/${USER}/proj/features/login.feature`,
+      expected: 'features/login.feature',
+    },
+  ])('drops the local user name for a $name', ({ uri, expected }) => {
+    const display = displayUri(uri);
+
+    expect(display).toBe(expected);
+    expect(display).not.toContain(USER);
+    expect(display).not.toContain('/home/');
+    expect(display).not.toMatch(/^[a-z]:\//i);
+  });
+
+  it.each([
+    { name: 'a plain relative path', uri: 'features/login.feature' },
+    {
+      name: 'a relative path that starts with a home segment',
+      uri: `home/${USER}/proj/login.feature`,
+    },
+    { name: 'a missing URI', uri: '' },
+  ])('keeps $name unchanged', ({ uri }) => {
+    expect(displayUri(uri)).toBe(uri);
+  });
+
+  it('removes a legacy file URL user name through the adapter', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          uri: `file:///home/${USER}/proj/login.feature`,
+          name: 'Login',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'signs in',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a step',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'privacy.json',
+    );
+
+    const summary = summarizeEnvelopes(envelopes);
+    const serialized = JSON.stringify(summary);
+
+    expect(summary.scenarios[0]?.uri).toBe('login.feature');
+    expect(serialized).not.toContain(USER);
+    expect(serialized).not.toContain('/home/');
+  });
+
+  it('escapes HTML-like text in a shortened URI and makes no network request', async () => {
+    const marker = '<img src=x onerror=alert(1)>.feature';
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          uri: `file:///home/${USER}/proj/${marker}`,
+          name: 'Escaped URI',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'escapes',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a step',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'escaped-uri.json',
+    );
+
+    const html = await renderHtml(envelopes, { title: 'Escaped URI' });
+
+    expect(html).not.toContain('<img src=x onerror=alert(1)>.feature');
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;.feature');
+    expect(html).not.toMatch(/<script[^>]+src=["']https?:/i);
+    expect(html).not.toMatch(/<link[^>]+href=["']https?:/i);
+  });
+});
+
+describe('host-locale-independent order', () => {
+  function orderedScenarios(names: string[]) {
+    return parseLegacyJson(
+      JSON.stringify([
+        {
+          uri: 'features/order.feature',
+          name: 'Order',
+          elements: names.map((name) => ({
+            keyword: 'Scenario',
+            name,
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a step',
+                result: { status: 'passed', duration: 1 },
+              },
+            ],
+          })),
+        },
+      ]),
+      'order.json',
+    );
+  }
+
+  it('orders summary scenarios by UTF-16 code units, not the host locale', () => {
+    const names = [
+      'apple',
+      'Zebra',
+      'Äpfel',
+      'B',
+      'b',
+      '😀',
+      'same',
+      'same',
+      'a',
+      'ab',
+    ];
+
+    const summary = summarizeEnvelopes(orderedScenarios(names));
+
+    // ASCII case, non-ASCII, equal and prefix strings in one equivalence table.
+    expect(summary.scenarios.map((scenario) => scenario.name)).toEqual([
+      'B',
+      'Zebra',
+      'a',
+      'ab',
+      'apple',
+      'b',
+      'same',
+      'same',
+      'Äpfel',
+      '😀',
+    ]);
+  });
+
+  it('orders summary scenarios by URI before name', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        'Zebra',
+        'apple',
+        'Äpfel',
+      ].map((name) => ({
+        uri: `features/${name}.feature`,
+        name,
+        elements: [
+          {
+            keyword: 'Scenario',
+            name: `${name} scenario`,
+            steps: [
+              {
+                keyword: 'Given ',
+                name: 'a step',
+                result: { status: 'passed', duration: 1 },
+              },
+            ],
+          },
+        ],
+      }))),
+      'uri-order.json',
+    );
+
+    const summary = summarizeEnvelopes(envelopes);
+
+    expect(summary.scenarios.map((scenario) => scenario.uri)).toEqual([
+      'features/Zebra.feature',
+      'features/apple.feature',
+      'features/Äpfel.feature',
+    ]);
   });
 });

@@ -492,6 +492,73 @@ describe('reading the history sidecar', () => {
   });
 });
 
+describe('ISO 8601 history timestamps', () => {
+  const accepted = [
+    ['writer form', '2026-11-19T08:00:00.000Z'],
+    ['Z without milliseconds', '2026-11-19T08:00:00Z'],
+    ['positive offset', '2026-11-19T08:00:00+02:00'],
+    ['negative offset without seconds', '2026-11-19T08:00-05:30'],
+    ['one fraction digit', '2026-11-19T08:00:00.1Z'],
+    ['three fraction digits', '2026-11-19T08:00:00.123Z'],
+    ['nine fraction digits', '2026-11-19T08:00:00.123456789Z'],
+    ['offset with seconds', '2026-11-19T08:00:30+02:00'],
+  ] as const;
+
+  it.each(accepted)(
+    'accepts %s and keeps the original string',
+    async (_name, recordedAt) => {
+      const run = makeRun(0, { recordedAt });
+      const file = await writeRaw('iso.json', sidecar([run]));
+      const before = await readFile(file, 'utf8');
+      const beforeStat = await stat(file);
+
+      const runs = await readHistory(file);
+
+      expect(runs).toStrictEqual([run]);
+      expect(runs[0]?.recordedAt).toBe(recordedAt);
+      await expect(readFile(file, 'utf8')).resolves.toBe(before);
+      expect((await stat(file)).mtimeMs).toBe(beforeStat.mtimeMs);
+    },
+  );
+
+  it('keeps a stored offset when writing the sidecar', async () => {
+    const run = makeRun(0, { recordedAt: '2026-11-19T08:00:00+02:00' });
+    const dir = await tempDir();
+    const file = path.join(dir, 'history.json');
+
+    await writeHistory(file, [run]);
+
+    const text = await readFile(file, 'utf8');
+    expect(text).toContain('2026-11-19T08:00:00+02:00');
+    await expect(readHistory(file)).resolves.toStrictEqual([run]);
+  });
+
+  const rejected = [
+    ['no zone', '2026-11-19T08:00:00'],
+    ['no zone with milliseconds', '2026-11-19T08:00:00.000'],
+    ['free text', 'yesterday'],
+    ['local date', '01/02/2026'],
+    ['invalid offset hour', '2026-11-19T08:00:00+25:00'],
+    ['offset without a colon', '2026-11-19T08:00:00+0200'],
+  ] as const;
+
+  it.each(rejected)(
+    'rejects %s with the existing malformed-entry error',
+    async (_name, recordedAt) => {
+      const file = await writeRaw(
+        'bad-iso.json',
+        sidecar([makeRun(0, { recordedAt })]),
+      );
+      const before = await readFile(file, 'utf8');
+
+      await expect(readHistory(file)).rejects.toThrow(
+        'runs[0].recordedAt must be an ISO timestamp',
+      );
+      await expect(readFile(file, 'utf8')).resolves.toBe(before);
+    },
+  );
+});
+
 describe('reading a BOM-prefixed history sidecar', () => {
   async function writeBom(name: string, raw: string): Promise<string> {
     return writeRaw(name, `\uFEFF${raw}`);

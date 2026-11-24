@@ -2,20 +2,12 @@
 // then replaces the failing hashes from the failure output.
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { readHistory } from '../src/history.js';
 import { renderReport, summarizeReport } from '../src/index.js';
 
-// The legacy parser falls back to `new Date()` for a missing start time, so the
-// clock is pinned to keep the hashes stable.
-beforeEach(() => {
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+// Legacy JSON without a pinned run time emits a zero timestamp, so no output
+// date remains to stabilise here.
 
 const fixtures = [
   {
@@ -41,12 +33,12 @@ const fixtures = [
   {
     name: 'legacy happy',
     fixture: 'legacy/happy.json',
-    sha256: 'af93978b48b5a0b24655230907f9f17db7837e8c8cc84ba594ae781e9180b320',
+    sha256: '72cce021b1827ff81f437470c406229d7695bf28e1c4dbcfbd3bb3ece0db8067',
   },
   {
     name: 'legacy failed',
     fixture: 'legacy/failed.json',
-    sha256: 'da1109990012f16891a0dacea34699b161688361dcb255b3b7cbdcba96f1eeed',
+    sha256: '582fa5d5154cb0bb8ff079156037441bcfa24c761b3c94efb27411e275dc39ee',
   },
   {
     name: 'playwright real run',

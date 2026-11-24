@@ -498,3 +498,81 @@ describe('compat merged JSON sidecar', () => {
     );
   });
 });
+
+describe('compat merged sidecar argument boundary', () => {
+  function backgroundFeature(
+    uri: string,
+    count: number,
+    prefix: string,
+  ): LegacyFeature {
+    return {
+      uri,
+      name: 'Merged backgrounds',
+      elements: Array.from({ length: count }, (_, index) => ({
+        keyword: 'Background',
+        type: 'background',
+        name: `${prefix}${index}`,
+      })),
+    };
+  }
+
+  async function writeBoundaryFeatures(
+    dir: string,
+    first: number,
+    second: number,
+  ): Promise<string> {
+    const uri = 'features/duplicate.feature';
+    await writeFeature(
+      path.join(dir, 'first.json'),
+      backgroundFeature(uri, first, 'a'),
+    );
+    await writeFeature(
+      path.join(dir, 'second.json'),
+      backgroundFeature(uri, second, 'b'),
+    );
+    return path.join(dir, 'report.html');
+  }
+
+  it('merges two same-URI features with about 65,000 elements each', async () => {
+    const dir = await tempDir();
+    const output = await writeBoundaryFeatures(dir, 65_000, 65_000);
+
+    await expect(generate({ jsonDir: dir, output })).resolves.toBeDefined();
+
+    const merged = await readSidecar(`${output}.json`);
+    const elements = merged[0]?.elements ?? [];
+    expect(elements).toHaveLength(130_000);
+    expect(elements[0]?.name).toBe('a0');
+    expect(elements[64_999]?.name).toBe('a64999');
+    expect(elements[65_000]?.name).toBe('b0');
+    expect(elements[129_999]?.name).toBe('b64999');
+    expect(elements.every((element) => element.retried === 0)).toBe(true);
+  }, 60_000);
+
+  it('merges a duplicate feature above the engine argument limit without RangeError', async () => {
+    const dir = await tempDir();
+    const output = await writeBoundaryFeatures(dir, 1, 200_000);
+
+    await expect(generate({ jsonDir: dir, output })).resolves.toBeDefined();
+
+    const merged = await readSidecar(`${output}.json`);
+    const elements = merged[0]?.elements ?? [];
+    expect(elements).toHaveLength(200_001);
+    expect(elements[0]?.name).toBe('a0');
+    expect(elements[1]?.name).toBe('b0');
+    expect(elements[200_000]?.name).toBe('b199999');
+    expect(elements.every((element) => element.retried === 0)).toBe(true);
+  }, 120_000);
+
+  it('merges a single element and an empty feature in input order', async () => {
+    const dir = await tempDir();
+    const output = await writeBoundaryFeatures(dir, 0, 1);
+
+    await expect(generate({ jsonDir: dir, output })).resolves.toBeDefined();
+
+    const merged = await readSidecar(`${output}.json`);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.elements.map((element) => element.name)).toEqual(['b0']);
+    expect(merged[0]?.elements[0]?.retried).toBe(0);
+  });
+});

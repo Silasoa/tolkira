@@ -1,7 +1,7 @@
 import { TestStepResultStatus } from '@cucumber/messages';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { renderReport, summarizeReport } from '../src/index.js';
 import { renderHtml } from '../src/render/html.js';
@@ -659,5 +659,117 @@ describe('legacy JSON adapter', () => {
     const second = await legacyEnvelopes(happy);
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
+  });
+});
+
+describe('legacy run start time', () => {
+  function timedLegacy(durations: number[]): string {
+    return JSON.stringify([
+      {
+        uri: 'features/timing.feature',
+        name: 'Timing',
+        elements: durations.map((duration, index) => ({
+          keyword: 'Scenario',
+          name: `scenario ${index + 1}`,
+          steps: [
+            {
+              keyword: 'Given ',
+              name: 'a step',
+              result: { status: 'passed', duration },
+            },
+          ],
+        })),
+      },
+    ]);
+  }
+
+  it('emits zero timestamps and never reads the clock without a start time', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2031-07-08T09:10:11.000Z'));
+    try {
+      const envelopes = parseLegacyJson(timedLegacy([2_000_000_000]), 'timing.json', {
+        idPrefix: 'clock',
+      });
+      const starts = envelopes.flatMap((envelope) =>
+        envelope.testRunStarted
+          ? [envelope.testRunStarted.timestamp]
+          : envelope.testCaseStarted
+            ? [envelope.testCaseStarted.timestamp]
+            : [],
+      );
+
+      expect(starts.length).toBeGreaterThan(1);
+      expect(starts.every((timestamp) => timestamp.seconds === 0 && timestamp.nanos === 0))
+        .toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps every scenario start at zero for zero and non-zero durations', () => {
+    const envelopes = parseLegacyJson(
+      timedLegacy([0, 2_000_000_000, 1]),
+      'timing.json',
+      { idPrefix: 'durations' },
+    );
+    const starts = envelopes.flatMap((envelope) =>
+      envelope.testCaseStarted ? [envelope.testCaseStarted.timestamp] : [],
+    );
+
+    expect(starts).toEqual([
+      { seconds: 0, nanos: 0 },
+      { seconds: 0, nanos: 0 },
+      { seconds: 0, nanos: 0 },
+    ]);
+  });
+
+  it('pins an explicit non-zero start time and advances the clock by durations', () => {
+    const pin = new Date('2026-01-01T00:00:00.000Z');
+    const envelopes = parseLegacyJson(timedLegacy([2_000_000_000, 1]), 'timing.json', {
+      idPrefix: 'pin',
+      startedAt: pin,
+    });
+    const runStart = envelopes.find(
+      (envelope) => envelope.testRunStarted,
+    )?.testRunStarted;
+    const starts = envelopes.flatMap((envelope) =>
+      envelope.testCaseStarted ? [envelope.testCaseStarted.timestamp] : [],
+    );
+
+    expect(runStart?.timestamp).toEqual({ seconds: pin.getTime() / 1000, nanos: 0 });
+    expect(starts).toEqual([
+      { seconds: pin.getTime() / 1000, nanos: 0 },
+      { seconds: pin.getTime() / 1000 + 2, nanos: 0 },
+    ]);
+  });
+
+  it('treats an explicit epoch start as zero', () => {
+    const envelopes = parseLegacyJson(timedLegacy([1]), 'timing.json', {
+      idPrefix: 'epoch',
+      startedAt: new Date(0),
+    });
+
+    expect(
+      envelopes.find((envelope) => envelope.testRunStarted)?.testRunStarted
+        ?.timestamp,
+    ).toEqual({ seconds: 0, nanos: 0 });
+    expect(
+      envelopes.flatMap((envelope) =>
+        envelope.testCaseStarted ? [envelope.testCaseStarted.timestamp] : [],
+      ),
+    ).toEqual([{ seconds: 0, nanos: 0 }]);
+  });
+
+  it('keeps the summary date-free without a start time', async () => {
+    const { summarizeEnvelopes } = await import('../src/summary.js');
+    const envelopes = parseLegacyJson(timedLegacy([1]), 'timing.json', {
+      idPrefix: 'summary',
+    });
+    const summary = summarizeEnvelopes(envelopes);
+
+    expect(summary.schemaVersion).toBe(2);
+    expect(Object.hasOwn(summary, 'date')).toBe(false);
+    expect(Object.hasOwn(summary, 'startedAt')).toBe(false);
+    expect(JSON.stringify(summary)).not.toContain('1970');
   });
 });
