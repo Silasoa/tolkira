@@ -713,6 +713,56 @@ describe('display URI privacy', () => {
       expected: 'proj/login.feature',
     },
     {
+      name: 'percent-encoded leading separator',
+      uri: `file:%2Fhome%2F${USER}%2Fproj%2Flogin.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded leading Windows separator',
+      uri: `file:%5Chome%5C${USER}%5Cproj%5Clogin.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded home segment',
+      uri: `file:///%68ome/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded Users segment',
+      uri: `file:///%55sers/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded Documents and Settings segment',
+      uri: `file:///C:/Documents%20and%20Settings/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'dot segment before the user name',
+      uri: `file:///home/./${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'encoded dot segment before the user name',
+      uri: `file:///home/%2e/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'encoded parent segment that would expose the user name',
+      uri: `file:///home/${USER}/%2e%2e/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'parent segment that would expose the user name',
+      uri: `file:///home/${USER}/../${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'userinfo in a localhost file URL',
+      uri: `file://${USER}@localhost/home/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
       name: 'home segment below another directory',
       uri: `/srv/home/${USER}/proj/login.feature`,
       expected: 'srv/proj/login.feature',
@@ -790,6 +840,19 @@ describe('display URI privacy', () => {
     expect(display).not.toMatch(/^[a-z]:\//i);
     expect(displayUri(display)).toBe(display);
   });
+
+  it(
+    'analyzes repeated home segments in linear time',
+    () => {
+      // 64k pairs took seconds with the old rescan-and-splice loop; the
+      // single pass finishes in milliseconds.
+      const display = displayUri(`/${`home/${USER}/`.repeat(64_000)}proj/login.feature`);
+
+      expect(display).toBe('proj/login.feature');
+      expect(display).not.toContain(USER);
+    },
+    2_000,
+  );
 
   it.each([
     { name: 'a plain relative path', uri: 'features/login.feature' },

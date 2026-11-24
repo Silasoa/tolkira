@@ -240,6 +240,11 @@ const privacyUriCases = [
     uri: 'file://localhost/home/alice/proj/features/login.feature',
     expected: 'features/login.feature',
   },
+  {
+    name: 'percent-encoded leading separator',
+    uri: 'file:%2Fhome%2Falice%2Fproj%2Ffeatures%2Flogin.feature',
+    expected: 'features/login.feature',
+  },
 ];
 
 for (const { name, uri, expected } of privacyUriCases) {

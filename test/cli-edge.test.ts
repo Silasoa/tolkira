@@ -711,6 +711,16 @@ describe('CLI JSON display URI privacy', () => {
       uri: `file:///C:%5CUsers%5C${USER}%5Cproj/login.feature`,
       expected: 'proj/login.feature',
     },
+    {
+      name: 'percent-encoded leading separator',
+      uri: `file:%2Fhome%2F${USER}%2Fproj%2Flogin.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded leading Windows separator',
+      uri: `file:%5Chome%5C${USER}%5Cproj%5Clogin.feature`,
+      expected: 'proj/login.feature',
+    },
   ])(
     'keeps a featureless Messages $name URI free of the user name and the feature empty',
     async ({ uri, expected }) => {

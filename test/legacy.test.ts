@@ -191,6 +191,16 @@ describe('legacy JSON adapter', () => {
       expected: 'login.feature',
     },
     {
+      name: 'percent-encoded leading separator',
+      uri: 'file:%2Fhome%2Falice%2Fproj%2Flogin.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'percent-encoded leading Windows separator',
+      uri: 'file:%5Chome%5Calice%5Cproj%5Clogin.feature',
+      expected: 'login.feature',
+    },
+    {
       name: 'home segment below another directory',
       uri: '/srv/home/alice/proj/login.feature',
       expected: 'login.feature',

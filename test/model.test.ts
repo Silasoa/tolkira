@@ -1286,6 +1286,16 @@ describe('display URI model fallback', () => {
       expected: 'proj/login.feature',
     },
     {
+      name: 'percent-encoded leading separator',
+      uri: `file:%2Fhome%2F${USER}%2Fproj%2Ffeatures%2Flogin.feature`,
+      expected: 'features/login.feature',
+    },
+    {
+      name: 'percent-encoded leading Windows separator',
+      uri: `file:%5Chome%5C${USER}%5Cproj%5Cfeatures%5Clogin.feature`,
+      expected: 'features/login.feature',
+    },
+    {
       name: 'home segment below another directory',
       uri: `/srv/home/${USER}/proj/login.feature`,
       expected: 'srv/proj/login.feature',
