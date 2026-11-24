@@ -7,6 +7,11 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- A script-free static report. `--static` (API `static: true`) writes one
+  all-expanded report with no `<script>`, a `script-src 'none'` CSP, stacked
+  Report/Details/Trends sections, inline images and no toolbar, copy, lightbox or
+  tab bar. It needs `--out` or `--pdf`; the no-Trends default report stays
+  byte-identical.
 - A configurable history window. `--history-limit <n>` (requires `--history`)
   keeps the newest n aggregate runs, a decimal integer from 1 to 365, default
   30; the same limit bounds the runs read, appended, written and rendered in
@@ -44,8 +49,16 @@ Keep a Changelog and the project uses semantic versioning.
   neither pruned, and the report stays below the 10 MB default size-warning
   threshold. A maximal valid window can exceed the sidecar cap, and the writer
   then drops the oldest runs and keeps the newest. Reproduce with
-  `node scripts/history-window.mjs` after `npm run build`. The default report
-  bytes are unchanged.
+  `node scripts/history-window.mjs` after `npm run build`. The no-history
+  default report bytes are unchanged.
+
+### Fixed
+
+- Trends shell fixes for reports with two or more history runs: the tab strip
+  gets its own topbar row and wraps instead of clipping the third tab at 320 px
+  / 200 % text, the table is capped with a sticky header, the print header keeps
+  whole words, the `Current` tag stays on the date line and the sparkline keeps
+  its aspect ratio. The no-history default report bytes are unchanged.
 
 ## [0.5.1] - 2026-11-23
 

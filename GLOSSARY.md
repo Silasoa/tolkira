@@ -11,9 +11,10 @@ It contains no `<script>`, client-message block, tab bar or lightbox, opens
 every `<details>`, stacks Report, Details and Trends as visible sections and
 omits the search/status/tag filters and copy controls. It keeps the
 `report-view`, `analysis-view` and `trends-view` IDs and exactly one `<main>`;
-the default report is unchanged. Bookmarked `?query=`/`?hide=`/`?tag=` URLs show
-the full report because no script restores them, and it does not repair CSS or
-`data:` images blocked by a host CSP.
+the default report without a Trends section is unchanged, and a default report
+with two or more history runs gains the Trends shell CSS. Bookmarked
+`?query=`/`?hide=`/`?tag=` URLs show the full report because no script restores
+them, and it does not repair CSS or `data:` images blocked by a host CSP.
 
 **Early input warning** — the advisory CLI stderr line written before parsing
 when the resolved input files total at least 50 MiB (52,428,800 bytes). It

@@ -5,8 +5,8 @@
 `RenderReportOptions` gains `static?: boolean` (default `false`). The CLI
 validates `--static` and passes it through `generateReport`/`renderReport`; the
 stream gets the same option for parity. `renderHtml` resolves it once into a
-small render mode and passes it to the three views. No model, summary, catalog
-or input change.
+small render mode and passes it to the three views. No model, summary or input
+change; one static-only catalog key carries the skip-notice wording.
 
 The mode is a shell/DOM switch, not a second renderer:
 
@@ -26,8 +26,10 @@ The mode is a shell/DOM switch, not a second renderer:
   `<main>`. Keep the `tabPanel` class and the `analysis-view`/`trends-view` IDs
   so the panel styles and the print page-break rule still apply.
 
-The default path is untouched: every branch is `static ? ... : ...`, and the
-existing characterization hashes must stay green.
+The static branch is additive: every branch is `static ? ... : ...`; the
+no-history default path is untouched and the existing characterization hashes
+stay green. The history-only Trends shell CSS (task 3.5) is the one deliberate
+default-report change; it is appended only when a Trends section renders.
 
 ## DOM and accessibility
 
@@ -50,6 +52,18 @@ removed because it would claim a selection that no longer exists. The dead
 controls are removed instead of left inert: an inert button or filter claims an
 action the static report cannot perform.
 
+## Trends shell fixes (task 3.5)
+
+The two 365-run Trends findings and the three UXR minors deferred from
+`0.6-history-window` ship in `TRENDS_SHELL_CSS`, appended only when a Trends
+section renders. The tab strip gets its own topbar row and wraps instead of
+clipping the third tab at 320 px / 200 % text; the table is capped on screen
+with a sticky header and reset in print; the print header keeps whole words; the
+`Current` tag stays on the date line; and the sparkline keeps its 320/64 aspect
+ratio. The scroll padding uses `em` so WebKit resolves it against the zoomed
+root font size. The no-history default report never includes the string, so its
+bytes stay unchanged.
+
 Print and PDF follow the existing print CSS. The page-break rule is keyed by
 `#analysis-view, #trends-view`, not by `.tabPanel`, so keeping the three IDs is
 what keeps each view on a new page. With no `hidden` panels and no scripts, the
@@ -70,9 +84,10 @@ attachment renderer.
 The static output removes the client bundle, the print script, the client
 message block, the tab bar, the toolbar, the copy-failure button and the
 lightbox, and adds one `open` attribute per `<details>`. The net size is
-measured for the standard fixtures and recorded in the tasks; no new CSS is
-added. The client bundle artifact is still built and stays under its 16 KB
-budget because the default report still uses it.
+measured for the standard fixtures and recorded in the tasks; the static form
+adds no CSS. The separate Trends shell fix appends `TRENDS_SHELL_CSS` only when
+a Trends section renders. The client bundle artifact is still built and stays
+under its 16 KB budget because the default report still uses it.
 
 ## Failure modes
 
@@ -81,7 +96,7 @@ budget because the default report still uses it.
   usage error.
 - `--static --baseline` with a valid baseline: both apply; the baseline panel is
   server-rendered and visible without JavaScript. The baseline change lands last
-  and owns the interaction; this change pins the composition.
+  and owns the interaction; this change does not pin the composition.
 - A report with no history: no Trends section; Report and Details are visible.
 - A report with history but fewer than two runs: no Trends section, matching the
   default tab rule.
@@ -102,12 +117,13 @@ budget because the default report still uses it.
   1440 px and 320 px at 200 % text; no horizontal overflow; all sections and a
   screenshot visible; a bookmarked `?query=`/`?hide=`/`?tag=` URL shows the full
   report; print includes all sections; German labels.
-- Characterization: the default HTML hashes are unchanged, including the three
-  `<main>` elements.
+- Characterization: the no-history default HTML hashes are unchanged; a pinned
+  hash covers the default report with two history runs, including its three
+  `<main>` elements and the Trends shell CSS.
 - PDF: `--static --pdf` produces a PDF whose source has no scripts and includes
   the Details/Trends sections.
-- Combined: `--static --baseline` renders the static report with the comparison
-  panel visible and no scripts (verified after the baseline change lands).
+- Combined: the baseline change owns the `--static --baseline` case; this change
+  does not pin it.
 - Size: record the static and default bytes for the standard fixture.
 
 ## Risks
@@ -142,8 +158,9 @@ default to static mode.
 ## Out of scope
 
 - CSP repair, a server, a viewer, a print button, custom page numbers, a second
-  renderer, a new dependency, schema/catalog changes, or any change to the
-  default report bytes.
+  renderer, a new dependency, schema changes, a catalog change beyond the
+  static-only skip-notice key, or any change to the no-Trends default report
+  bytes.
 - Restoring search, filters, copy or the lightbox in the static report.
 
 ## Rollout order

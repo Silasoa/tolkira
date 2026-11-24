@@ -145,11 +145,13 @@ it. The gap is the combination.
   archive: every feature, scenario, hook group, earlier attempt, text attachment
   and the triage rest list is open; Report, Details and Trends are stacked
   visible sections with exactly one `<main>`. The tab bar, search/status/tag
-  filters, copy-failure button, lightbox and image buttons are removed instead
+  filters, copy-failure and log-copy buttons, lightbox and image buttons are removed instead
   of left inert, and images render inline. The CSP is `script-src 'none'` with
-  `connect-src 'none'`. The mode needs `--out` or `--pdf`; the default report is
-  unchanged. A bookmarked `?query=`/`?hide=`/`?tag=` URL shows the full report
-  because no script restores it. Print/PDF include every present section and
+  `connect-src 'none'`. The mode needs `--out` or `--pdf`; the default report
+  without a Trends section is unchanged, and a default report with two or more
+  history runs gains the Trends shell CSS. A bookmarked `?query=`/`?hide=`/
+  `?tag=` URL shows the full report because no script restores it. Print/PDF
+  include every present section and
   open detail. It is for hosts that block scripts and for archival copies; it
   does not repair CSS or `data:` images blocked by a host CSP and does not
   restore scripts. See [`CI.md`](CI.md#jenkins-html-publisher) for Jenkins.

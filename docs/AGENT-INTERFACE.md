@@ -508,8 +508,9 @@ The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`,
 
 `--static` (API `static: true`) renders one script-free, all-expanded form of
 the report. It needs `--out` or `--pdf`; a `--static` run with only `--json`,
-`--ci` or `--email` exits 2 and writes nothing. The default report is unchanged
-and remains the opt-in-free form.
+`--ci` or `--email` exits 2 and writes nothing. Without a Trends section the
+default report is byte-identical and remains the opt-in-free form; a default
+report with two or more history runs gains the Trends shell CSS.
 
 The static document contains no `<script>`, no client-message JSON block and no
 print script. Its CSP is `script-src 'none'` with `connect-src 'none'` and no
@@ -520,8 +521,8 @@ text attachments, the triage rest list). Report, Details and Trends are stacked
 visible sections; Trends appears only with two or more history runs.
 
 The tab bar, tab roles, lightbox dialog and image lightbox buttons, the
-copy-failure button and the search/status/tag toolbar are removed, not left
-inert. Images render inline in the open detail body. The `report-view`,
+copy-failure and log-copy buttons and the search/status/tag toolbar are removed,
+not left inert. Images render inline in the open detail body. The `report-view`,
 `analysis-view` and `trends-view` IDs stay, so the print page-break rule still
 puts each present view on a new page. The document has exactly one `<main>`:
 the Report view keeps it and Details/Trends use plain containers. The default
@@ -532,9 +533,9 @@ Print/PDF follow the existing print CSS: every present section and open detail
 prints, with no tab bar. A bookmarked `?query=`, `?hide=` or `?tag=` URL shows
 the full static report because no script restores the filter. The mode does not
 repair CSS or `data:` images blocked by a host CSP and does not restore scripts;
-for Jenkins, see [`CI.md`](CI.md#jenkins-html-publisher). `--static --baseline`
-composes once the baseline change lands; the baseline comparison panel is
-server-rendered and visible without JavaScript.
+for Jenkins, see [`CI.md`](CI.md#jenkins-html-publisher). The baseline change
+owns the `--static --baseline` composition; when it lands, the comparison panel
+is server-rendered and visible without JavaScript.
 
 ## Summary schema, version 2
 

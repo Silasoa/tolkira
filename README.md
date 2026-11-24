@@ -46,6 +46,9 @@ path. Use the global install or a folder without parentheses if that happens.
 # One file, one report
 tolkira test-results/ --out report.html --title "Checkout acceptance"
 
+# A script-free, all-expanded archive for hosts that block scripts
+tolkira test-results/ --out report.html --static
+
 # Add your own metadata and brand colour
 tolkira test-results/ --out report.html \
   --title "Checkout acceptance" \
@@ -91,7 +94,8 @@ window (1 to 365, default 30) and needs `--history`; lowering it drops older
 runs on the next successful write. Use one sidecar per suite and variant; mixing
 runs makes the trend meaningless. The Trends tab needs
 JavaScript: a copy opened without JavaScript shows the Report view and an inert
-tab. Printing works in both cases; see
+tab; use `--static` for a script-free copy with Trends stacked and visible.
+Printing works in both cases; see
 [Print or Save as PDF](#print-or-save-as-pdf).
 
 ## Print or Save as PDF
@@ -113,8 +117,9 @@ the screen is dark, and the tables are sized to the printable width.
   filtered rows and adds a visible count marker, while Details and Trends print
   in full. The concise email summary is available with `--email`.
 - **Without JavaScript:** the active Report view prints with the chrome hidden;
-  Details and Trends stay hidden and closed features stay closed. Without
-  `beforeprint` support the same fallback applies.
+  Details and Trends stay hidden and closed features stay closed. Use `--static`
+  for a script-free all-expanded print. Without `beforeprint` support the same
+  fallback applies.
 - **Wide runs:** if an unusually wide matrix still clips at the right edge,
   choose **Landscape** in the print dialog.
 - **Browser headers and footers:** the browser's own header/footer, page numbers
@@ -283,6 +288,9 @@ unredacted-message warning.
 
 - **One file that works offline.** CSS, JavaScript and attachments are inline.
   No network requests, no remote fonts, no analytics.
+- **Script-free archive.** `--static` writes one all-expanded report with no
+  JavaScript: every detail open, Report/Details/Trends stacked, images inline,
+  and no toolbar, copy or lightbox controls. It needs `--out` or `--pdf`.
 - **The failure first.** Failed scenarios are open by default, and a compact
   triage index lists non-passing features and scenarios before passed ones,
   with links that open the scenario detail.

@@ -16,6 +16,15 @@ wrong-schema baseline SHALL exit 1, writing nothing.
 - **THEN** the report contains the comparison panel
 - **AND** the baseline file's bytes and modification time are unchanged
 
+#### Scenario: Static report with a baseline
+
+- **WHEN** `--static --baseline previous.json --out report.html` is used with a
+  valid schema-2 baseline
+- **THEN** the process exits 0
+- **AND** the report is the static form
+- **AND** the baseline comparison panel is visible without JavaScript
+- **AND** the document has one `<main>` and no `<script>`
+
 #### Scenario: Missing baseline
 
 - **WHEN** `--baseline missing.json` is used

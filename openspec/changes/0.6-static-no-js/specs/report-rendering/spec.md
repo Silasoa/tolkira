@@ -6,8 +6,7 @@
 
 The CLI SHALL accept `--static` and the render API SHALL accept `static: true`.
 The mode SHALL require `--out` or `--pdf`, SHALL default off, and SHALL leave
-the default report, JSON, CI and email bytes unchanged. `--static` SHALL compose
-with `--baseline` when both are supplied.
+the default report without a Trends section, JSON, CI and email bytes unchanged.
 
 #### Scenario: Static report with HTML
 
@@ -27,14 +26,6 @@ with `--baseline` when both are supplied.
 - **WHEN** `--static --pdf report.pdf` is used
 - **THEN** the PDF is rendered from the static HTML
 - **AND** the HTML source used for the PDF contains no `<script>`
-
-#### Scenario: Static report with a baseline
-
-- **WHEN** `--static --baseline previous.json --out report.html` is used with a
-  valid schema-2 baseline
-- **THEN** the process exits 0
-- **AND** the report is the static form
-- **AND** the baseline comparison panel is visible without JavaScript
 
 #### Scenario: Help lists the option
 
@@ -108,8 +99,8 @@ rule still applies.
 ### Requirement: Remove dead controls and dangling ARIA
 
 The static report SHALL omit the lightbox dialog, the image lightbox buttons,
-the copy-failure buttons and the search/filter toolbar. It SHALL have no
-`aria-labelledby` or `aria-controls` that points at a removed element.
+the copy-failure and log-copy buttons and the search/filter toolbar. It SHALL
+have no `aria-labelledby` or `aria-controls` that points at a removed element.
 
 #### Scenario: No lightbox and no dead controls
 
@@ -117,7 +108,7 @@ the copy-failure buttons and the search/filter toolbar. It SHALL have no
 - **THEN** the image is visible inline in the open detail body
 - **AND** it is not wrapped in a lightbox button and no lightbox dialog is
   rendered
-- **AND** no copy-failure button is rendered
+- **AND** no copy-failure or log-copy button is rendered
 - **AND** no `[data-search]`, `[data-tag-filter]`, `[data-filter-status]` or
   `[data-filter-preset]` control is rendered
 
@@ -147,7 +138,9 @@ horizontally at 320 px or 200 % text.
 
 ### Requirement: Keep the default report and budgets unchanged
 
-Without the flag, the HTML SHALL be byte-identical to before, the client bundle
+Without the flag, a report without a Trends section SHALL be byte-identical to
+before. A default report with two or more history runs SHALL gain the Trends
+shell CSS (task 3.5) and otherwise keep the same content. The client bundle
 SHALL stay under 16 KB, and the current no-JS behaviour (inert tabs, closed
 details) SHALL remain. No runtime dependency SHALL be added. The default
 report's pre-existing multiple `<main>` elements SHALL stay unchanged in this
@@ -170,7 +163,17 @@ release; the defect is recorded as B-048.
 
 - **WHEN** a default report with two history runs is inspected
 - **THEN** it keeps its three `<main>` elements
-- **AND** the default bytes match the characterization hash
+
+#### Scenario: No-history default bytes
+
+- **WHEN** a default report without a Trends section is rendered
+- **THEN** its bytes match the committed characterization hash
+
+#### Scenario: History default bytes
+
+- **WHEN** a default report with two history runs is rendered
+- **THEN** it contains the Trends shell CSS
+- **AND** its bytes match the committed history characterization hash
 
 #### Scenario: Dependency surface
 
@@ -397,8 +400,8 @@ search auto-open cap does not apply because there is no search.
 Grouping SHALL change presentation only. Each executed example SHALL keep its
 own outcome, duration, steps, attachments and anchor, and SHALL remain part of
 the existing counts, triage membership, status matrix and JSON summary. In the
-static report an image attachment SHALL render inline in the open detail body
-with no lightbox dialog.
+static report every example row SHALL be open and an image attachment SHALL
+render inline in the open detail body with no lightbox dialog.
 
 #### Scenario: Failed example is visible
 
@@ -411,7 +414,7 @@ with no lightbox dialog.
 
 - **WHEN** two examples in one outline each have an image attachment
 - **THEN** each row shows only its own image and attachment count
-- **AND** in the default report, opening an image still uses the lightbox
+- **AND** opening an image still uses the lightbox
 
 #### Scenario: Counts still count every example
 
@@ -430,8 +433,7 @@ with no lightbox dialog.
 
 #### Scenario: Copy failure keeps the scenario identity
 
-- **WHEN** the user copies a failure from a grouped example in the default
-  report
+- **WHEN** the user copies a failure from a grouped example
 - **THEN** the copied text contains the substituted scenario name, the example
   number and the examples block name when present
 - **AND** it still contains the feature, URI, failed step and error message
@@ -447,6 +449,13 @@ with no lightbox dialog.
 - **WHEN** an example was retried
 - **THEN** the report shows one row with the latest attempt
 - **AND** it does not render duplicate `#1.1` headings
+
+#### Scenario: Static passed example
+
+- **WHEN** one example fails and another passes in the same examples block in
+  the static report
+- **THEN** both example rows are open
+- **AND** the passed row shows its outcome without a click
 
 #### Scenario: Static image
 
@@ -589,3 +598,340 @@ active Report view with closed details unchanged.
 - **WHEN** the report has no history
 - **THEN** printing includes Report and Details only
 - **AND** no empty Trends page is produced
+
+### Requirement: Keep the triage index offline and safe
+
+The index SHALL be rendered server-side from `ReportModel` with escaped names,
+SHALL add no network request, inline data store or new dependency, and SHALL
+keep the existing content security policy. The static report SHALL keep the
+same policy with `script-src 'none'` and no client script.
+
+#### Scenario: Untrusted names in the index
+
+- **WHEN** a feature or scenario name contains HTML or a script payload
+- **THEN** the index shows it as text and executes nothing
+
+#### Scenario: Self-contained file
+
+- **WHEN** the report is opened offline
+- **THEN** the index, its links and the reveal behaviour work without a server
+
+#### Scenario: Status without colour
+
+- **WHEN** colour is unavailable
+- **THEN** every index row still names its status as text
+
+#### Scenario: Static policy
+
+- **WHEN** the static report is inspected
+- **THEN** the index is server-rendered and escaped
+- **AND** the CSP uses `script-src 'none'` with `connect-src 'none'`
+
+### Requirement: Handle empty features and runs
+
+A feature's status SHALL be the worst status among reported results, or
+`unknown` when none was reported. Its unexecuted rows stay visible without an
+outcome unless the failed-only preset is active. The header SHALL show the
+attempted passed/total count. When results exist but none is an attempt, it
+SHALL show `No scenarios attempted` and keep the status counts. An empty run
+SHALL show `0 / 0` and `0%` and SHALL render no "Needs attention" index. In the
+static report every unexecuted row SHALL be open and show no outcome.
+
+#### Scenario: All-unexecuted feature
+
+- **WHEN** every scenario in a feature is unexecuted
+- **THEN** the feature status is `unknown`
+- **AND** the feature is visible and open by default
+- **AND** its rows are collapsed and show no outcome
+
+#### Scenario: Mixed executed and unexecuted feature
+
+- **WHEN** a feature has one passed reported scenario and one unexecuted
+  scenario
+- **THEN** the feature status is `passed`
+- **AND** its passed/attempted count and bar cover only the reported scenario
+
+#### Scenario: Empty run
+
+- **WHEN** the input contains a feature with a blank scenario and no results
+- **THEN** the header shows `0 / 0` and `0%`
+- **AND** the feature and the blank row remain visible without an outcome
+- **AND** no "Needs attention" index is rendered
+
+#### Scenario: No scenario rows at all
+
+- **WHEN** the input contains no scenario rows
+- **THEN** the header shows `0 / 0`
+- **AND** the existing "No scenarios in this report." empty state remains
+
+#### Scenario: Only skipped results
+
+- **WHEN** every reported scenario is skipped
+- **THEN** the header shows `No scenarios attempted`
+- **AND** the status counts remain visible
+
+#### Scenario: Preset active
+
+- **WHEN** the failed-only preset is active
+- **THEN** unexecuted rows are hidden
+- **AND** the feature status and header counts are unchanged
+
+#### Scenario: Static unexecuted rows
+
+- **WHEN** a static report contains an all-unexecuted feature
+- **THEN** the feature and its rows are open
+- **AND** the rows show no outcome
+
+### Requirement: Persist search and filters in the URL
+
+The report SHALL restore `?query=`, repeated lowercase `?hide=` and `?tag=` on
+load and update them with `replaceState` when the user changes search or
+filters. Restore SHALL synchronize the inputs, select and status buttons and
+preserve the hash and unrelated URL parameters. The static report SHALL ignore
+these parameters, restore no state and show the full report.
+
+#### Scenario: Share a filtered view
+
+- **WHEN** the user searches, hides a status or selects a tag
+- **THEN** the URL contains the corresponding parameters
+- **AND** opening that URL restores the same view
+
+#### Scenario: Restore controls
+
+- **WHEN** a URL contains query, hide and tag parameters
+- **THEN** the search box, status buttons and tag select reflect them
+- **AND** the search cap and empty state stay consistent
+
+#### Scenario: URL update fails
+
+- **WHEN** `replaceState` is unavailable or throws on `file://`
+- **THEN** filtering still works
+- **AND** the report does not throw
+
+#### Scenario: No JavaScript
+
+- **WHEN** the inline script does not run
+- **THEN** the full static report remains readable
+- **AND** URL state is not required
+
+#### Scenario: Static URL
+
+- **WHEN** a static report is opened with `?query=`, `?hide=` or `?tag=`
+- **THEN** the parameters are ignored
+- **AND** every row stays visible
+
+### Requirement: Provide a failed-only preset
+
+When the run has failed plus another present status or an unexecuted row, the
+Report toolbar SHALL render a `Failed only` toggle that reflects the preset
+state in `aria-pressed`. The toggle SHALL apply the failed-only chip state plus
+an `unexecuted` sentinel; the sentinel hides statusless rows. The preset SHALL
+be encoded as `hide` statuses plus `hide=unexecuted` and survive a reload only
+with the preset chip state. The static report SHALL render no Report toolbar and
+no `Failed only` toggle.
+
+#### Scenario: Toggle presence
+
+- **WHEN** the run has failed plus another present status, or failed plus an
+  unexecuted row
+- **THEN** the toolbar renders a `Failed only` toggle with
+  `aria-pressed="false"`
+- **WHEN** the run has no failures, or failed with neither another status nor an
+  unexecuted row
+- **THEN** no toggle is rendered
+
+#### Scenario: Activate
+
+- **WHEN** the user presses `Failed only`
+- **THEN** only the failed chip stays on
+- **AND** scenarios with any other present status are hidden
+- **AND** rows without a status are hidden
+- **AND** the live count reflects the visible scenarios
+- **AND** the header counts and the `N unexecuted` label are unchanged
+- **AND** the triage index and source strip are hidden
+- **AND** the URL contains the other statuses and `hide=unexecuted`
+- **AND** the toggle is `aria-pressed="true"`
+
+#### Scenario: Deactivate
+
+- **WHEN** the user presses `Failed only` while it is active
+- **THEN** every chip is on again
+- **AND** statusless rows are visible again
+- **AND** the triage index and source strip return
+- **AND** the `hide` parameters are removed
+- **AND** the live count is updated
+- **AND** a previously hidden partial state is not restored
+
+#### Scenario: Manual chip change
+
+- **WHEN** the user changes any status chip while the preset is active
+- **THEN** the `unexecuted` sentinel is removed
+- **AND** statusless rows follow the chip-only behaviour again
+- **AND** the toggle is pressed only for the exact preset state
+- **AND** hiding every other chip without the sentinel leaves statusless rows
+  visible
+
+#### Scenario: Reload
+
+- **WHEN** the report is opened with the other statuses and `unexecuted` in the
+  `hide` parameters
+- **THEN** the toggle is pressed
+- **AND** the chip states match
+- **AND** only failed and no statusless rows are visible
+- **WHEN** the URL carries `unexecuted` without the preset chip state
+- **THEN** the sentinel is dropped unless it is the exact preset state (failed
+  plus unexecuted with no other present status)
+- **AND** a pruned URL is rewritten without the stale sentinel
+- **AND** statusless rows stay visible
+
+#### Scenario: Search and tag combination
+
+- **WHEN** a search query or tag is active with the preset
+- **THEN** only failed scenarios matching both remain visible
+- **AND** a matching unexecuted row stays hidden
+- **AND** the empty state appears when nothing matches
+- **AND** the empty state names the preset when it is active
+
+#### Scenario: Keyboard and no JavaScript
+
+- **WHEN** the toggle is reached with the keyboard
+- **THEN** it shows focus and toggles with Enter or Space
+- **WHEN** JavaScript is disabled
+- **THEN** the static rows and chips remain
+- **AND** the toggle is inert like the other filters
+
+#### Scenario: Static preset
+
+- **WHEN** the static report contains failed and other statuses
+- **THEN** no `Failed only` toggle or Report toolbar is rendered
+- **AND** every row stays visible
+
+### Requirement: Restore the screen after printing
+
+`beforeprint` SHALL add a print-only `printing` state that reveals every panel
+without changing the active panel's `hidden` attribute and stores the originally
+closed details, an open lightbox and the page overflow; `afterprint` SHALL
+restore them. The reveal SHALL apply only in print media, so a missed
+`afterprint` cannot change the screen. The static report SHALL have no print
+script and no `beforeprint`/`afterprint` state; its print output is already
+fully expanded.
+
+#### Scenario: Print from an open lightbox
+
+- **WHEN** a screenshot lightbox is open and the report is printed
+- **THEN** the lightbox closes and the page overflow is reset for the print
+- **AND** the lightbox and overflow state return afterwards in browsers that fire
+  `afterprint`
+
+#### Scenario: Lazy thumbnails
+
+- **WHEN** an off-screen screenshot thumbnail is printed
+- **THEN** its `loading` attribute is switched to eager so the browser fetches it
+  for the print
+- **AND** the lazy loading state is restored afterwards
+
+#### Scenario: Static print state
+
+- **WHEN** the static report is printed
+- **THEN** no print script runs
+- **AND** every present section and open detail prints
+- **AND** the screen state is unchanged
+
+### Requirement: Show earlier attempts in the scenario detail
+
+A scenario with executed earlier attempts SHALL render a collapsed
+`Earlier attempts` block in its detail. The summary SHALL state the shown and
+total count (`3 of 5` when capped). Each item SHALL show attempt number,
+localized status, duration and, when present, the first failure message. The
+block SHALL be native `<details>`, escaped, included in print and usable without
+JavaScript. An earlier-attempt image SHALL use the existing attachment renderer,
+alt text and lightbox. In the static report the block SHALL be open and an
+earlier-attempt image SHALL render inline with no lightbox button.
+
+#### Scenario: Failed then passed
+
+- **WHEN** a scenario failed on attempt 1 and passed on attempt 2
+- **THEN** its detail shows `Earlier attempts (1)`
+- **AND** opening it shows attempt 1 as failed with the error and any image
+- **AND** the final passed attempt stays the visible scenario result
+
+#### Scenario: More than three earlier attempts
+
+- **WHEN** a scenario has five executed earlier attempts
+- **THEN** the summary says `Earlier attempts (3 of 5)`
+- **AND** the block shows the first three
+- **AND** the final attempt remains the scenario result
+
+#### Scenario: Escaping and print
+
+- **WHEN** an earlier failure message or attachment name contains HTML, ANSI or
+  bidi characters
+- **THEN** the rendered text is escaped and sanitized
+- **AND** the block is included in the print stylesheet
+
+#### Scenario: No earlier attempts
+
+- **WHEN** a scenario has one start or legacy input
+- **THEN** no earlier-attempt block is rendered
+
+#### Scenario: Static earlier attempts
+
+- **WHEN** a static report contains earlier attempts
+- **THEN** the `Earlier attempts` block is open
+- **AND** every attempt is visible without a click
+
+### Requirement: Show a skipped-attachment notice
+
+When the run skipped path attachments, the report SHALL render one static,
+escaped notice in the shared shell, visible on both the Report and Details
+tabs. The notice SHALL name the count and point to the affected scenarios. It
+SHALL NOT contain an absolute local path or claim that every skip is outside the
+roots. The footer SHALL say that attachments are embedded when available and
+SHALL NOT claim that every screenshot is embedded. The static report SHALL keep
+the same notice with wording that points into the report rather than a tab; the
+notice is visible in the stacked Report section.
+
+#### Scenario: Singular notice
+
+- **WHEN** exactly one path attachment was skipped
+- **THEN** the notice says that one path attachment was skipped
+- **AND** it points to the affected scenario
+- **AND** it does not contain an absolute path
+
+#### Scenario: Plural notice
+
+- **WHEN** two or more path attachments were skipped
+- **THEN** the notice names the count and uses the plural wording
+- **AND** it points to the affected scenarios
+
+#### Scenario: Both tabs
+
+- **WHEN** the notice is rendered
+- **THEN** it is visible on the Report tab and remains visible on Details
+- **AND** it needs no JavaScript
+
+#### Scenario: Alignment
+
+- **WHEN** the notice is rendered at 1440 or 320 px
+- **THEN** its left and right edges align with the run header
+
+#### Scenario: Clean report
+
+- **WHEN** no path attachment was skipped
+- **THEN** no notice is rendered
+- **AND** no warning markup appears in the body
+- **AND** the footer keeps the neutral sentence
+- **AND** only the shared stylesheet and the footer sentence differ from the
+  previous report bytes
+
+#### Scenario: Narrow viewport and text zoom
+
+- **WHEN** the report is viewed at 320 px or at 200 % text zoom
+- **THEN** the notice wraps without horizontal page overflow
+
+#### Scenario: Static notice
+
+- **WHEN** the static report skipped path attachments
+- **THEN** the notice names the count and points to the affected scenarios in
+  the report
+- **AND** it is visible in the stacked Report section without a tab
