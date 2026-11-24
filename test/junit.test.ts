@@ -270,6 +270,25 @@ describe('JUnit XML input', () => {
     }
   });
 
+  it.each([
+    [
+      'attribute',
+      '<testsuites><testsuite name="a &amp; b & c"><testcase name="passes"/></testsuite></testsuites>',
+    ],
+    [
+      'text',
+      '<testsuites><testsuite name="bare text"><testcase name="passes"><failure>a &amp; b & c</failure></testcase></testsuite></testsuites>',
+    ],
+  ])('rejects a bare ampersand before a later entity in %s', async (_where, xml) => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'bare-amp-before-entity.xml');
+    await writeFile(file, xml, 'utf8');
+
+    await expect(renderReport(file, { title: 'Bare ampersand' })).rejects.toThrow(
+      /Invalid JUnit XML .*invalid entity reference/,
+    );
+  });
+
   it('decodes numeric character references', async () => {
     const dir = await tempDir();
     const file = path.join(dir, 'numeric.xml');

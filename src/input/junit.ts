@@ -74,32 +74,47 @@ function isXmlChar(code: number): boolean {
   );
 }
 
+function invalidEntity(source: string, entity: string): Error {
+  const shown =
+    entity.length > MAX_ENTITY_LABEL
+      ? `${entity.slice(0, MAX_ENTITY_LABEL)}...`
+      : entity;
+  return new Error(
+    `Invalid JUnit XML in ${source}: invalid entity reference &${shown};`,
+  );
+}
+
 function checkEntityReferences(fragment: string, source: string): void {
-  // An entity cannot contain `&` or `;`, so excluding `&` keeps a long run of
-  // bare ampersands linear instead of rescanning to the next semicolon.
-  const entityPattern = /&([^;&]*);/g;
-  let match: RegExpExecArray | null;
+  // Every `&` must open a named or numeric entity. One forward scan reaches
+  // each character once, so a long bare-& run stays linear.
+  let index = 0;
+  while (index < fragment.length) {
+    const amp = fragment.indexOf('&', index);
+    if (amp === -1) return;
 
-  while ((match = entityPattern.exec(fragment)) !== null) {
-    const entity = match[1] ?? '';
-    if (XML_ENTITIES.has(entity)) continue;
-
-    let code: number | undefined;
-    if (/^#\d+$/.test(entity)) {
-      code = Number.parseInt(entity.slice(1), 10);
-    } else if (/^#x[0-9a-fA-F]+$/.test(entity)) {
-      code = Number.parseInt(entity.slice(2), 16);
+    let end = amp + 1;
+    while (
+      end < fragment.length &&
+      fragment[end] !== '&' &&
+      fragment[end] !== ';'
+    ) {
+      end += 1;
     }
-
-    if (code === undefined || !Number.isFinite(code) || !isXmlChar(code)) {
-      const shown =
-        entity.length > MAX_ENTITY_LABEL
-          ? `${entity.slice(0, MAX_ENTITY_LABEL)}...`
-          : entity;
-      throw new Error(
-        `Invalid JUnit XML in ${source}: invalid entity reference &${shown};`,
-      );
+    const entity = fragment.slice(amp + 1, end);
+    // A second `&` or the end of the fragment means this `&` is bare.
+    if (fragment[end] !== ';') throw invalidEntity(source, entity);
+    if (!XML_ENTITIES.has(entity)) {
+      let code: number | undefined;
+      if (/^#\d+$/.test(entity)) {
+        code = Number.parseInt(entity.slice(1), 10);
+      } else if (/^#x[0-9a-fA-F]+$/.test(entity)) {
+        code = Number.parseInt(entity.slice(2), 16);
+      }
+      if (code === undefined || !Number.isFinite(code) || !isXmlChar(code)) {
+        throw invalidEntity(source, entity);
+      }
     }
+    index = end + 1;
   }
 }
 
