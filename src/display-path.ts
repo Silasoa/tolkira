@@ -1,4 +1,4 @@
-export interface PathAnalysis {
+interface PathAnalysis {
   absolute: boolean;
   /** The URI with backslashes normalised and the file scheme removed. */
   path: string;
