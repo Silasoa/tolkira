@@ -557,9 +557,13 @@ asks or a locale needs them:
   `attempt: null` or boolean on a Messages start, a `--out` permission failure
   on Windows, a surrogate pair in the CI feature/URI/`--title` fields, and a
   `--title` cut beside a Markdown special character. Each runs through a shared
-  path that already has a representative test. Trigger: the next change to the
-  Messages validator, the CI formatter or the report writer; then add the case
-  rather than a separate change.
+  path that already has a representative test. The targeted SCR re-review also
+  notes two test-strength limits: the equal-attempt acceptance test puts the
+  later timestamp on the later envelope, so a regression to "always last
+  envelope" would still pass, and the explicit-empty-first dedupe test is an
+  order control, not a pre-fix falsifier. Trigger: the next change to attempt
+  selection or input dedupe, or 0.7 retry parity; then add the
+  later-timestamp-first case rather than a separate change.
 
 ## Review follow-ups (2026-11-18)
 
