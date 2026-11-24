@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { TestStepResultStatus } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
+import { loadEnvelopes } from '../src/input/load.js';
 import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
 import { worstExecutedStatus } from '../src/report/status.js';
@@ -99,6 +100,12 @@ const rulesBackgroundsFixture = fileURLToPath(
 );
 const tagsFixture = fileURLToPath(
   new URL('./fixtures/messages/tags.ndjson', import.meta.url),
+);
+const noTimingFixture = fileURLToPath(
+  new URL('./fixtures/playwright/no-timing.json', import.meta.url),
+);
+const realRunFixture = fileURLToPath(
+  new URL('./fixtures/playwright/real-run.json', import.meta.url),
 );
 
 async function modelFor(file: string) {
@@ -1149,5 +1156,43 @@ describe('empty-run model', () => {
       true,
     );
     expect(model.counts.scenarios.total).toBe(model.scenarios.length);
+  });
+
+  it('uses the Messages attempt, absent as zero and valid as given', () => {
+    const lines = (attempt: string) =>
+      [
+        '{"meta":{"protocolVersion":"27.0.2","implementation":{},"runtime":{},"os":{},"cpu":{}}}',
+        '{"pickle":{"id":"p","uri":"features/attempt.feature","language":"en","astNodeIds":["s"],"tags":[],"name":"attempt","steps":[{"id":"ps","text":"x","astNodeIds":[]}]}}',
+        '{"testCase":{"id":"tc","pickleId":"p","testSteps":[{"id":"ts","pickleStepId":"ps"}]}}',
+        `{"testCaseStarted":{"id":"tcs","testCaseId":"tc",${attempt}"timestamp":{"seconds":1,"nanos":0}}}`,
+        '{"testStepFinished":{"testCaseStartedId":"tcs","testStepId":"ts","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1}},"timestamp":{"seconds":1,"nanos":1}}}',
+      ].join('\n');
+
+    const absent = buildReportModel(
+      parseMessages(lines(''), 'absent.ndjson'),
+    );
+    const valid = buildReportModel(
+      parseMessages(lines('"attempt":2,'), 'valid.ndjson'),
+    );
+
+    expect(absent.scenarios[0]?.attempt).toBe(0);
+    expect(valid.scenarios[0]?.attempt).toBe(2);
+  });
+
+  it('treats a zero run and scenario timestamp as unknown', async () => {
+    const model = buildReportModel(await loadEnvelopes(noTimingFixture));
+
+    expect(model.startedAt).toBeUndefined();
+    expect(model.finishedAt).toBeUndefined();
+    expect(model.scenarios[0]?.startedAt).toBeUndefined();
+    expect(JSON.stringify(model)).not.toContain('1970');
+  });
+
+  it('keeps a real run and scenario timestamp', async () => {
+    const model = buildReportModel(await loadEnvelopes(realRunFixture));
+
+    expect(model.startedAt).toMatch(/^2026-11-18/);
+    expect(model.finishedAt).toBeDefined();
+    expect(model.scenarios[0]?.startedAt).toMatch(/^2026-11-18/);
   });
 });

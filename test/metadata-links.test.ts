@@ -40,8 +40,11 @@ function reportHeader(html: string): string {
 
 function analysisView(html: string): string {
   const start = html.indexOf('id="analysis-view"');
-  const end = html.indexOf('</main>', start);
-  return html.slice(start, end);
+  const ends = ['id="trends-view"', 'id="tolkira-lightbox"']
+    .map((marker) => html.indexOf(marker, start + 1))
+    .filter((index) => index > start)
+    .sort((a, b) => a - b);
+  return start < 0 ? '' : html.slice(start, ends[0] ?? html.length);
 }
 
 function renderWith(metadata: Record<string, string>): Promise<string> {

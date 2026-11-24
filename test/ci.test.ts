@@ -543,6 +543,155 @@ describe('GitHub annotations', () => {
   });
 });
 
+describe('CI identity cap', () => {
+  function githubTitle(line: string): string {
+    const match = /^::error title=(.*?)::/.exec(line);
+    if (!match) throw new Error(`missing GitHub title in ${line}`);
+    return match[1] ?? '';
+  }
+
+  it('caps a long GitHub error title at 200 code points with the marker', () => {
+    const feature = 'f'.repeat(100);
+    const name = 'n'.repeat(101);
+    const summary = makeSummary([
+      scenario({
+        feature,
+        name,
+        status: 'failed',
+        steps: [step({ status: 'failed', message: 'boom' })],
+      }),
+    ]);
+
+    const [line] = annotationLines(formatGitHubAnnotations(summary));
+    const title = githubTitle(line);
+
+    expect(title).toBe(
+      `${'f'.repeat(100)}%3A ${'n'.repeat(98)}[truncated]`,
+    );
+    expect(line).toContain('::boom');
+  });
+
+  it('keeps exactly 200 code points unchanged and cuts 201', () => {
+    const exact = makeSummary([
+      scenario({ feature: 'f'.repeat(100), name: 'n'.repeat(98), status: 'failed' }),
+    ]);
+    const over = makeSummary([
+      scenario({ feature: 'f'.repeat(100), name: 'n'.repeat(99), status: 'failed' }),
+    ]);
+
+    expect(githubTitle(annotationLines(formatGitHubAnnotations(exact))[0] ?? '')).toBe(
+      `${'f'.repeat(100)}%3A ${'n'.repeat(98)}`,
+    );
+    expect(githubTitle(annotationLines(formatGitHubAnnotations(over))[0] ?? '')).toBe(
+      `${'f'.repeat(100)}%3A ${'n'.repeat(98)}[truncated]`,
+    );
+    const under = makeSummary([
+      scenario({ feature: 'f'.repeat(99), name: 'n'.repeat(98), status: 'failed' }),
+    ]);
+    expect(githubTitle(annotationLines(formatGitHubAnnotations(under))[0] ?? '')).toBe(
+      `${'f'.repeat(99)}%3A ${'n'.repeat(98)}`,
+    );
+    expect(formatMarkdownSummary(over, { title: 'x'.repeat(200) })).toContain(
+      `## ${'x'.repeat(200)}\n`,
+    );
+    expect(formatMarkdownSummary(over, { title: 'x'.repeat(201) })).toContain(
+      `## ${'x'.repeat(200)}[truncated]\n`,
+    );
+  });
+
+  it('caps the Markdown feature, name and URI before code-span wrapping', () => {
+    const feature = 'F'.repeat(201);
+    const name = 'N'.repeat(201);
+    const uri = 'u'.repeat(201);
+    const summary = makeSummary([
+      scenario({
+        feature,
+        name,
+        uri,
+        status: 'failed',
+        steps: [step({ status: 'failed', message: 'boom' })],
+      }),
+    ]);
+
+    const markdown = formatMarkdownSummary(summary);
+
+    expect(markdown).toContain(
+      `#### \`${'F'.repeat(200)}[truncated]\` - \`${'N'.repeat(200)}[truncated]\``,
+    );
+    expect(markdown).toContain(`URI: \`${'u'.repeat(200)}[truncated]\``);
+  });
+
+  it('caps a long skipped identity with the marker', () => {
+    const name = 's'.repeat(201);
+    const summary = makeSummary([scenario({ feature: '', name, status: 'skipped' })]);
+
+    const markdown = formatMarkdownSummary(summary);
+
+    expect(markdown).toContain(`- \`${'s'.repeat(200)}[truncated]\``);
+  });
+
+  it('never splits a surrogate pair at the 200-code-point boundary', () => {
+    const name = `${'a'.repeat(199)}\u{1F600}b`;
+    const summary = makeSummary([
+      scenario({
+        feature: '',
+        name,
+        status: 'failed',
+        steps: [step({ status: 'failed', message: 'boom' })],
+      }),
+    ]);
+
+    const title = githubTitle(annotationLines(formatGitHubAnnotations(summary))[0] ?? '');
+    const markdown = formatMarkdownSummary(summary);
+
+    expect(title).toBe(`${'a'.repeat(199)}\u{1F600}[truncated]`);
+    expect(markdown).toContain(`\`${'a'.repeat(199)}\u{1F600}[truncated]\``);
+  });
+
+  it('keeps the 50/20 list limits and the complete counts', () => {
+    const failed = Array.from({ length: 55 }, (_, index) =>
+      scenario({
+        name: `${'F'.repeat(190)}${String(index).padStart(2, '0')}`,
+        status: 'failed',
+      }),
+    );
+    const skipped = Array.from({ length: 25 }, (_, index) =>
+      scenario({
+        name: `${'S'.repeat(190)}${String(index).padStart(2, '0')}`,
+        status: 'skipped',
+      }),
+    );
+    const summary = makeSummary([...failed, ...skipped]);
+
+    const lines = annotationLines(formatGitHubAnnotations(summary));
+    expect(lines.filter((line) => line.startsWith('::error '))).toHaveLength(50);
+    expect(lines).toContain('::notice title=Tolkira::10 more annotations omitted');
+    expect(lines.join('\n')).toContain('80 scenarios');
+    expect(lines.join('\n')).toContain('55 failed');
+    expect(lines.join('\n')).toContain('25 skipped');
+  });
+
+  it('leaves the Azure 4000-code-point identity and message cap unchanged', () => {
+    const name = 'a'.repeat(250);
+    const summary = makeSummary([
+      scenario({ feature: '', name, status: 'failed' }),
+    ]);
+
+    const [line] = annotationLines(formatAzureAnnotations(summary));
+
+    expect(line).toContain(`${name} — Scenario failed`);
+    expect(line).not.toContain('[truncated]');
+
+    const long = makeSummary([
+      scenario({ feature: '', name: 'b'.repeat(4100), status: 'failed' }),
+    ]);
+    const [longLine] = annotationLines(formatAzureAnnotations(long));
+    expect(longLine).toBe(
+      `##vso[task.logissue type=error]${'b'.repeat(4000)}[truncated]`,
+    );
+  });
+});
+
 describe('Azure DevOps annotations', () => {
   it('annotates a failed scenario with its identity and failure message', () => {
     const summary = makeSummary([

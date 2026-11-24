@@ -219,8 +219,9 @@ describe('CLI input edge cases', () => {
     );
     const inDirRun = await cli([whitespaceDir, '--json']);
     expect(inDirRun.code).toBe(1);
-    expect(inDirRun.stderr).toContain('Input is empty');
-    expect(inDirRun.stderr).toContain('whitespace-in-dir.ndjson');
+    expect(inDirRun.stderr).toContain('No supported report files found.');
+    expect(inDirRun.stderr).not.toContain('Input is empty');
+    expect(inDirRun.stderr).not.toContain('whitespace-in-dir.ndjson');
   });
 
   it('deduplicates a repeated file and a directory plus the same file', async () => {
@@ -466,8 +467,28 @@ describe('CLI input edge cases', () => {
     const failed = await cli([legacy, '--out', target]);
 
     expect(failed.code).toBe(1);
-    expect(failed.stderr).toContain('tolkira:');
+    expect(failed.stderr).toContain(`Cannot write report to ${target} (`);
+    expect(failed.stderr).toMatch(/\([A-Z]+\)/);
+    expect(failed.stderr).not.toContain('.tmp');
+    expect(failed.stderr).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
     expect((await readdir(dir)).sort()).toEqual(['nested', 'outdir']);
+    expect(await readdir(target)).toEqual([]);
+  });
+
+  it('writes no later output when the report write fails', async () => {
+    const dir = await tempDir();
+    const target = path.join(dir, 'outdir');
+    await mkdir(target);
+
+    const run = await cli([legacy, '--out', target, '--ci', 'markdown']);
+
+    expect(run.code).toBe(1);
+    expect(run.stdout).toBe('');
+    expect(run.stderr).toContain(`Cannot write report to ${target} (`);
+    expect(run.stderr).not.toContain('.tmp');
+    expect(await readdir(dir)).toEqual(['outdir']);
   });
 
   it('refuses to overwrite an input file', async () => {

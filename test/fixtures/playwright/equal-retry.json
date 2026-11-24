@@ -1,0 +1,61 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [{ "id": "chromium", "name": "chromium", "retries": 1 }]
+  },
+  "suites": [
+    {
+      "title": "retry.spec.ts",
+      "file": "retry.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "retried with equal retry values",
+          "ok": true,
+          "tags": [],
+          "id": "equal-retry-spec-1",
+          "file": "retry.spec.ts",
+          "line": 1,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "flaky",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1,
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:00:00.000Z",
+                  "error": { "message": "first attempt failed" }
+                },
+                {
+                  "status": "passed",
+                  "duration": 1,
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:00:01.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-22T09:00:00.000Z",
+    "duration": 2,
+    "expected": 0,
+    "unexpected": 0,
+    "flaky": 1,
+    "skipped": 0
+  }
+}

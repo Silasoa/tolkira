@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { open, type FileHandle } from 'node:fs/promises';
+import path from 'node:path';
 import { writeAtomic } from './output.js';
 import type { ReportSummary, StatusCounts, SummaryStatus } from './summary.js';
 import { oneLine } from './text.js';
@@ -58,7 +59,7 @@ function fail(file: string, reason: string): never {
 
 function cannotWrite(file: string, reason: string): never {
   throw new HistoryValidationError(
-    `Cannot write history file ${oneLine(file)}: ${reason}`,
+    `Cannot write history file ${oneLine(path.basename(file))}: ${reason}`,
   );
 }
 
@@ -329,10 +330,48 @@ async function readSidecar(
     if (info.size > HISTORY_MAX_BYTES) {
       reject(`file is larger than ${HISTORY_MAX_BYTES} bytes`);
     }
-    return await readBounded(handle, info.size);
+    const text = await readBounded(handle, info.size);
+    // Exactly one leading UTF-8 BOM, as the baseline reader does.
+    return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   } finally {
     await handle.close().catch(() => undefined);
   }
+}
+
+interface ParsedHistory {
+  schemaVersion: number;
+  runs: HistoryRun[];
+}
+
+/** The reader's full document and run rules, shared by read and write. */
+function parseHistoryText(text: string, reject: Reject): ParsedHistory {
+  let document: unknown;
+  try {
+    document = JSON.parse(text);
+  } catch {
+    return reject('not valid JSON');
+  }
+  if (
+    typeof document !== 'object' ||
+    document === null ||
+    Array.isArray(document)
+  ) {
+    return reject('expected a JSON object');
+  }
+  const data = document as Record<string, unknown>;
+  if (
+    data.schemaVersion !== HISTORY_SCHEMA_VERSION &&
+    data.schemaVersion !== HISTORY_SCHEMA_VERSION_MAX
+  ) {
+    return reject(
+      `unsupported schema version ${excerpt(data.schemaVersion)}`,
+    );
+  }
+  if (!Array.isArray(data.runs)) return reject('runs must be an array');
+  return {
+    schemaVersion: data.schemaVersion,
+    runs: data.runs.map((run, index) => parseRun(run, reject, index)),
+  };
 }
 
 /**
@@ -356,30 +395,7 @@ export async function readHistory(
   }
   if (text === undefined) return [];
 
-  let document: unknown;
-  try {
-    document = JSON.parse(text);
-  } catch {
-    return reject('not valid JSON');
-  }
-  if (
-    typeof document !== 'object' ||
-    document === null ||
-    Array.isArray(document)
-  ) {
-    reject('expected a JSON object');
-  }
-  const data = document as Record<string, unknown>;
-  if (
-    data.schemaVersion !== HISTORY_SCHEMA_VERSION &&
-    data.schemaVersion !== HISTORY_SCHEMA_VERSION_MAX
-  ) {
-    reject(`unsupported schema version ${excerpt(data.schemaVersion)}`);
-  }
-  if (!Array.isArray(data.runs)) reject('runs must be an array');
-
-  const runs = data.runs.map((run, index) => parseRun(run, reject, index));
-  return runs.slice(-window);
+  return parseHistoryText(text, reject).runs.slice(-window);
 }
 
 /**
@@ -398,23 +414,8 @@ async function storedSchema(file: string): Promise<number> {
   }
   if (text === undefined) return HISTORY_SCHEMA_VERSION;
 
-  let document: unknown;
-  try {
-    document = JSON.parse(text);
-  } catch {
-    return cannotWrite(file, 'not valid JSON');
-  }
-  if (
-    typeof document !== 'object' ||
-    document === null ||
-    Array.isArray(document)
-  ) {
-    return cannotWrite(file, 'expected a JSON object');
-  }
-  const schema = (document as Record<string, unknown>).schemaVersion;
-  if (schema === HISTORY_SCHEMA_VERSION) return HISTORY_SCHEMA_VERSION;
-  if (schema === HISTORY_SCHEMA_VERSION_MAX) return HISTORY_SCHEMA_VERSION_MAX;
-  return cannotWrite(file, `unsupported schema version ${excerpt(schema)}`);
+  return parseHistoryText(text, (reason) => cannotWrite(file, reason))
+    .schemaVersion;
 }
 
 function serialize(schemaVersion: number, runs: readonly HistoryRun[]): string {
@@ -460,7 +461,7 @@ export async function writeHistory(
     // Name the target, never the atomic temporary file.
     const code = (error as NodeJS.ErrnoException).code;
     throw new Error(
-      `Cannot write history file ${oneLine(file)}${code ? ` (${code})` : ''}`,
+      `Cannot write history file ${oneLine(path.basename(file))}${code ? ` (${code})` : ''}`,
     );
   }
 }

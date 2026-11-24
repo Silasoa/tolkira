@@ -227,6 +227,28 @@ describe('CLI history sidecar', () => {
     },
   );
 
+  it('rejects a malformed supported-schema target before rendering or writing', async () => {
+    const dir = await tempDir();
+    const history = path.join(dir, 'history.json');
+    await writeFile(
+      history,
+      JSON.stringify({ schemaVersion: 1, runs: 'not-an-array' }),
+      'utf8',
+    );
+    const before = await readFile(history, 'utf8');
+    const output = path.join(dir, 'report.html');
+
+    const run = await cli([messages, '--out', output, '--history', history]);
+
+    expect(run.code).toBe(1);
+    expect(run.stderr).toContain(`Invalid history file ${history}:`);
+    expect(run.stderr).not.toContain('Cannot write history file');
+    await expect(readFile(history, 'utf8')).resolves.toBe(before);
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
   it('exits 1 without writing when the file is oversized', async () => {
     const dir = await tempDir();
     const history = path.join(dir, 'history.json');

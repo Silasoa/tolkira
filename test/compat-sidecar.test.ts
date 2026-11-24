@@ -190,6 +190,56 @@ describe('compat merged JSON sidecar', () => {
     await expectNoSidecar(`${output}.json`);
   });
 
+  it('skips and replaces a non-feature array at the reserved sidecar path', async () => {
+    const dir = await tempDir();
+    const [happy] = await happyFeatures();
+    await writeFeature(path.join(dir, 'source.json'), {
+      ...happy,
+      uri: 'features/source.feature',
+    });
+    const output = path.join(dir, 'report.html');
+    await writeFile(`${output}.json`, '[1,2,3]', 'utf8');
+
+    const result = await generate({
+      jsonDir: dir,
+      output,
+      ignoreBadJsonFile: true,
+    });
+
+    expect(
+      result.warnings.some((line) => line.includes('report.html.json')),
+    ).toBe(true);
+    await expect(readFile(output, 'utf8')).resolves.toContain(
+      'Happy HTML reporting',
+    );
+    const merged = await readSidecar(`${output}.json`);
+    expect(merged.map((feature) => feature.uri)).toEqual([
+      'features/source.feature',
+    ]);
+  });
+
+  it('fails without the flag for a non-feature array at the reserved sidecar path', async () => {
+    const dir = await tempDir();
+    const [happy] = await happyFeatures();
+    await writeFeature(path.join(dir, 'source.json'), {
+      ...happy,
+      uri: 'features/source.feature',
+    });
+    const output = path.join(dir, 'report.html');
+    const input = `${output}.json`;
+    await writeFile(input, '[1,2,3]', 'utf8');
+    const before = await readFile(input, 'utf8');
+
+    await expect(generate({ jsonDir: dir, output })).rejects.toThrow(
+      `compat: ${input} is not a legacy feature array`,
+    );
+
+    await expect(readFile(input, 'utf8')).resolves.toBe(before);
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
   it('replaces a stale sidecar', async () => {
     const dir = await tempDir();
     const inputs = path.join(dir, 'features');

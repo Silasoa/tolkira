@@ -16,6 +16,7 @@ import type { Envelope } from '@cucumber/messages';
 import { afterEach, describe, expect, it } from 'vitest';
 import { skippedAttachmentEntriesOf } from '../src/attempt-diagnostics.js';
 import { runCli } from '../src/cli.js';
+import { buildHistoryRun } from '../src/history.js';
 import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadEnvelopes, loadInputs } from '../src/input/load.js';
 import { parsePlaywrightJson } from '../src/input/playwright.js';
@@ -1780,6 +1781,171 @@ describe('Playwright JSON input', () => {
     );
     expect(new Set(ids).size).toBe(ids.length);
     expect(JSON.stringify(again)).toBe(JSON.stringify(merged));
+  });
+
+  it('uses the last array result when retry values are missing or equal', async () => {
+    for (const name of ['no-retry.json', 'equal-retry.json']) {
+      const file = playwrightFixture(name);
+      const summary = await summarizeReport(file);
+      const model = buildReportModel(await loadEnvelopes(file));
+      const html = await renderReport(file, { title: 'Last result' });
+
+      expect(summary.scenarios[0]?.status, name).toBe('passed');
+      expect(summary.scenarios[0]?.attempt, name).toBe(0);
+      expect(model.scenarios[0]?.status, name).toBe('passed');
+      expect(html, name).toContain('data-status="passed"');
+      expect(html, name).not.toContain('first attempt failed');
+    }
+  });
+
+  it('keeps the highest retry when retry values are distinct', async () => {
+    const summary = await summarizeReport(realRun);
+    const flaky = scenario(summary, 'flaky', 'alpha');
+
+    expect(flaky.status).toBe('passed');
+    expect(flaky.attempt).toBe(1);
+    expect(flaky.steps.some((step) => step.status === 'failed')).toBe(false);
+  });
+
+  it('renders an expected skip with a failed result as failed', async () => {
+    const file = playwrightFixture('expected-skip-failed.json');
+    const summary = await summarizeReport(file);
+    const html = await renderReport(file, { title: 'Expected skip failed' });
+    const failed = summary.scenarios[0];
+
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 1,
+      failed: 1,
+      skipped: 0,
+    });
+    expect(failed?.status).toBe('failed');
+    expect(
+      failed?.steps.some(
+        (step) =>
+          step.status === 'failed' &&
+          step.message?.includes('failed despite the skip marker'),
+      ),
+    ).toBe(true);
+    expect(html).toContain('data-status="failed"');
+    expect(html).toContain('failed despite the skip marker');
+    expect(buildHistoryRun(summary, 'Expected skip failed').status).toBe(
+      'failed',
+    );
+  });
+
+  it('renders an expected skip with a passed result as an unexpected pass', async () => {
+    const file = playwrightFixture('expected-skip-passed.json');
+    const summary = await summarizeReport(file);
+    const html = await renderReport(file, { title: 'Expected skip passed' });
+    const unexpected = summary.scenarios[0];
+
+    expect(summary.counts.scenarios).toMatchObject({
+      total: 1,
+      failed: 1,
+      passed: 0,
+      skipped: 0,
+    });
+    expect(unexpected?.status).toBe('failed');
+    expect(unexpected?.tags).toContain('@unexpected-pass');
+    expect(unexpected?.steps[0]?.status).toBe('failed');
+    expect(unexpected?.steps[0]?.message).toMatch(/unexpected pass/i);
+    expect(html).toContain('data-status="failed"');
+    expect(html).toMatch(/Unexpected pass/i);
+    expect(buildHistoryRun(summary, 'Expected skip passed').status).toBe(
+      'failed',
+    );
+  });
+
+  it('uses the enclosing suite file for a spec without file', async () => {
+    const file = playwrightFixture('inherited-file.json');
+    const summary = await summarizeReport(file);
+    const model = buildReportModel(await loadEnvelopes(file));
+
+    const inherited = scenario(summary, 'inherits the suite file');
+    expect(inherited.uri).toBe('a.spec.ts');
+    expect(inherited.feature).toBe('a.spec.ts');
+    const inheritedModel = model.scenarios.find(
+      (entry) => entry.name === 'inherits the suite file',
+    );
+    const ruleText = [
+      inheritedModel?.ruleName,
+      inheritedModel?.rule?.name,
+      inheritedModel?.rule?.description,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    expect(ruleText).toContain('a.spec.ts');
+
+    const project = scenario(summary, 'keeps the project feature');
+    expect(project.feature).toBe('chromium');
+    expect(project.uri).toBe('b.spec.ts');
+
+    const explicit = scenario(summary, 'explicit spec file wins');
+    expect(explicit.uri).toBe('explicit.spec.ts');
+    expect(explicit.feature).toBe('explicit.spec.ts');
+
+    expect(JSON.stringify({ summary, model })).not.toContain(
+      'playwright.spec.ts',
+    );
+  });
+
+  it('keeps the playwright.spec.ts fallback when neither spec nor suite names a file', async () => {
+    const dir = await tempDir();
+    const file = await writeReport(dir, {
+      config: {
+        version: '1.65.0',
+        configFile: 'playwright.config.ts',
+        rootDir: 'tests',
+        projects: [{ id: 'chromium', name: 'chromium', retries: 0 }],
+      },
+      suites: [
+        {
+          title: 'no file',
+          line: 0,
+          column: 0,
+          specs: [
+            {
+              title: 'no file anywhere',
+              ok: true,
+              tags: [],
+              id: 'no-file-anywhere',
+              line: 1,
+              column: 1,
+              tests: [
+                {
+                  timeout: 30000,
+                  annotations: [],
+                  expectedStatus: 'passed',
+                  status: 'expected',
+                  results: [passedResult()],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      errors: [],
+      stats: {
+        startTime: '2026-11-22T09:00:00.000Z',
+        duration: 1,
+        expected: 1,
+        unexpected: 0,
+        flaky: 0,
+        skipped: 0,
+      },
+    });
+    const summary = await summarizeReport(file);
+
+    expect(summary.scenarios[0]?.uri).toBe('playwright.spec.ts');
+  });
+
+  it('keeps the summary date-free and passed for a report without timing', async () => {
+    const summary = await summarizeReport(playwrightFixture('no-timing.json'));
+
+    expect(summary.counts.scenarios).toMatchObject({ total: 1, passed: 1 });
+    expect(summary.scenarios[0]?.status).toBe('passed');
+    expect(summary.scenarios[0]?.attempt).toBe(0);
+    expect(JSON.stringify(summary)).not.toContain('1970');
   });
 
   it('exits non-zero and writes no output for a malformed Playwright file', async () => {

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import type { Envelope } from '@cucumber/messages';
 import { TestStepResultStatus } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
 import { summarizeReport } from '../src/index.js';
@@ -65,6 +66,58 @@ const legacyScreenshotFixture = fileURLToPath(
 const junitFixture = fileURLToPath(
   new URL('./fixtures/junit/basic.xml', import.meta.url),
 );
+const noTimingFixture = fileURLToPath(
+  new URL('./fixtures/playwright/no-timing.json', import.meta.url),
+);
+
+function tiedAttemptRun(
+  statuses: Array<'PASSED' | 'FAILED'>,
+): Envelope[] {
+  const envelopes: Array<Record<string, unknown>> = [
+    {
+      pickle: {
+        id: 'tie-pickle',
+        uri: 'features/tie.feature',
+        name: 'Tie scenario',
+        language: 'en',
+        astNodeIds: ['tie-scenario'],
+        tags: [],
+        steps: [{ id: 'tie-pickle-step', text: 'a step', astNodeIds: [] }],
+      },
+    },
+    {
+      testCase: {
+        id: 'tie-case',
+        pickleId: 'tie-pickle',
+        testSteps: [{ id: 'tie-step', pickleStepId: 'tie-pickle-step' }],
+      },
+    },
+  ];
+  statuses.forEach((status, index) => {
+    envelopes.push(
+      {
+        testCaseStarted: {
+          id: `tie-start-${index}`,
+          testCaseId: 'tie-case',
+          attempt: 0,
+          timestamp: { seconds: 0, nanos: 0 },
+        },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: `tie-start-${index}`,
+          testStepId: 'tie-step',
+          testStepResult: {
+            status,
+            duration: { seconds: 0, nanos: 1 },
+          },
+          timestamp: { seconds: 0, nanos: 0 },
+        },
+      },
+    );
+  });
+  return envelopes as unknown as Envelope[];
+}
 
 describe('machine-readable summary', () => {
   it('summarizes a Messages report', async () => {
@@ -343,6 +396,55 @@ describe('machine-readable summary', () => {
     expect(
       steps.every((step) => !step.suggestions && !step.definitions),
     ).toBe(true);
+  });
+
+  it('uses the Messages attempt, absent as zero and valid as given', () => {
+    const lines = (attempt: string) =>
+      [
+        '{"meta":{"protocolVersion":"27.0.2","implementation":{},"runtime":{},"os":{},"cpu":{}}}',
+        '{"pickle":{"id":"p","uri":"features/attempt.feature","language":"en","astNodeIds":["s"],"tags":[],"name":"attempt","steps":[{"id":"ps","text":"x","astNodeIds":[]}]}}',
+        '{"testCase":{"id":"tc","pickleId":"p","testSteps":[{"id":"ts","pickleStepId":"ps"}]}}',
+        `{"testCaseStarted":{"id":"tcs","testCaseId":"tc",${attempt}"timestamp":{"seconds":1,"nanos":0}}}`,
+        '{"testStepFinished":{"testCaseStartedId":"tcs","testStepId":"ts","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1}},"timestamp":{"seconds":1,"nanos":1}}}',
+      ].join('\n');
+
+    const absent = summarizeEnvelopes(
+      parseMessages(lines(''), 'absent.ndjson'),
+    );
+    const valid = summarizeEnvelopes(
+      parseMessages(lines('"attempt":2,'), 'valid.ndjson'),
+    );
+
+    expect(absent.scenarios[0]?.attempt).toBe(0);
+    expect(valid.scenarios[0]?.attempt).toBe(2);
+    expect(JSON.stringify(absent)).not.toContain('"attempt": null');
+    expect(JSON.stringify(valid)).not.toContain('"attempt": null');
+  });
+
+  it('uses the later start on a full attempt and timestamp tie', () => {
+    const two = summarizeEnvelopes(tiedAttemptRun(['FAILED', 'PASSED']));
+    const three = summarizeEnvelopes(
+      tiedAttemptRun(['FAILED', 'FAILED', 'PASSED']),
+    );
+
+    expect(two.scenarios[0]).toMatchObject({
+      status: 'passed',
+      attempt: 0,
+    });
+    expect(two.counts.scenarios).toMatchObject({
+      total: 1,
+      passed: 1,
+      failed: 0,
+    });
+    expect(three.scenarios[0]?.status).toBe('passed');
+  });
+
+  it('keeps a no-timing run date-free in the summary', async () => {
+    const summary = await summarizeReport(noTimingFixture);
+
+    expect(summary.scenarios[0]?.status).toBe('passed');
+    expect(JSON.stringify(summary)).not.toContain('1970');
+    expect(Object.keys(summary.scenarios[0] ?? {})).not.toContain('startedAt');
   });
 
   it('carries a per-scenario hook name in the summary', async () => {

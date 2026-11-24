@@ -156,18 +156,18 @@
 
 ## 3. Implement
 
-- [ ] 3.1 B-048: replace the default `<main class="shell analysis">` wrapper in
+- [x] 3.1 B-048: replace the default `<main class="shell analysis">` wrapper in
   `details.ts` and `trends.ts` with `<div class="shell analysis">`; keep every
   panel attribute and ID. Leave `report.ts` and the static branches alone.
-- [ ] 3.2 B-039: add the narrow `@container` rule to `report.css` after the
+- [x] 3.2 B-039: add the narrow `@container` rule to `report.css` after the
   existing `@media (max-width: 560px)` `.metaList` rule (or raise its
   specificity), add the German override after the existing `:lang(de) .metaList`
   rule in `html.ts`, run `npm run styles`, and confirm the generated string
   matches `report.css`.
-- [ ] 3.3 B-049: strip exactly one leading U+FEFF in `readSidecar` after the
+- [x] 3.3 B-049: strip exactly one leading U+FEFF in `readSidecar` after the
   bounded read, so `readHistory` and `storedSchema` share the rule; leave
   `writeHistory`'s serialisation unchanged and BOM-free.
-- [ ] 3.4 Re-pin intentionally: replace the nine default characterization
+- [x] 3.4 Re-pin intentionally: replace the nine default characterization
   hashes, the two-run history hash and the two golden HTML files
   (`test/fixtures/render-golden/minimal.html` and
   `attachments-presentation.html`). Inspect the diff: the two
@@ -187,49 +187,49 @@
 - [ ] 3.6 Changelog for the accepted items: add the B-048, B-039 and B-049
   entries under `## [0.6.1] - Unreleased` in `docs/CHANGELOG.md`, including the
   BOM-free next write. Do not change `package.json` (`version` stays 0.6.0).
-- [ ] 3.7 Audit 2: reorder `loadResolvedInputs` to per-file guard → read →
+- [x] 3.7 Audit 2: reorder `loadResolvedInputs` to per-file guard → read →
   hash/dedupe → detect/skip → total guard → parse → push group. Skip decisions,
   duplicates and empty shards create no group and no bytes; validation-only
   groups still count. Use the exact new cap text. Invariant: `inputFiles` and
   `inputBytes` describe loaded groups only, and `run.ts` needs no change.
-- [ ] 3.8 Audit 3: extract the shared history document/run parser; make
+- [x] 3.8 Audit 3: extract the shared history document/run parser; make
   `readHistory` and `storedSchema` use it with their own prefixes. Invariant:
   `writeHistory` validates the target fully before `writeAtomic`, and a rejected
   target keeps its bytes.
-- [ ] 3.9 Audit 4: map a non-explicit empty `.jsonl`/`.ndjson` file to `skip`
+- [x] 3.9 Audit 4: map a non-explicit empty `.jsonl`/`.ndjson` file to `skip`
   in `detectInput`; keep the explicit empty error and the malformed non-empty
   error. Invariant: no new option, warning or decision kind.
-- [ ] 3.10 Audit 5: add the rendered-attachment selector in
+- [x] 3.10 Audit 5: add the rendered-attachment selector in
   `src/report/index-run.ts`; use it in `buildReportModel` and `summarizeIndex`.
   Build the summary run set from rendered scenario attachments, present
   run-hook starts and run-level attachments only. Invariant: summary total
   equals model counts and Details counts, schema stays 2.
-- [ ] 3.11 Audit 6: change the Playwright final-index comparison to `>=`; in
+- [x] 3.11 Audit 6: change the Playwright final-index comparison to `>=`; in
   `latestAttempt` return the later candidate on a full attempt/seconds/nanos
   tie; guard `timestampIso` in `src/report/model.ts` so `seconds === 0` is
   unknown. Leave the adapter's zero fallback unchanged; summary/CI/email stay
   unchanged.
-- [ ] 3.12 Audit 7: tie `skipped` to the final result and add expected skip to
+- [x] 3.12 Audit 7: tie `skipped` to the final result and add expected skip to
   `unexpectedPass`; keep genuine expected-failure precedence but do not let an
   expected skip take that branch. Invariant: a failed or passed final result is
   never rendered or counted as skipped.
-- [ ] 3.13 Audit 8: pass the inherited `specFile` from `collectScenarios` into
+- [x] 3.13 Audit 8: pass the inherited `specFile` from `collectScenarios` into
   `scenarioPlan` and use it for the URI and rule name. Invariant: without a
   project the feature name follows the suite file; with a project the project
   stays the feature grouping; explicit spec file wins.
-- [ ] 3.14 Audit 9: validate optional `testCaseStarted.attempt` as a
+- [x] 3.14 Audit 9: validate optional `testCaseStarted.attempt` as a
   non-negative safe integer with the existing line-error form; keep absent as
   0 in the summary and model. Invariant: `--json` contains no `null` attempt.
-- [ ] 3.15 Audit 10: add the 200-code-point identity cap in `src/ci.ts` to the
+- [x] 3.15 Audit 10: add the 200-code-point identity cap in `src/ci.ts` to the
   GitHub title and the Markdown heading, feature, name, URI and skipped
   identity; keep the marker outside the cap and truncate before escaping or
   code-span wrapping. Invariant: Azure, counts, messages and list limits are
   unchanged.
-- [ ] 3.16 Audit 11: add the report and CI write wrappers in `src/cli.ts` and
+- [x] 3.16 Audit 11: add the report and CI write wrappers in `src/cli.ts` and
   use them at the report write and both `--ci-out` sites. Invariant: one-lined
   target, Node code when present, no temp name or UUID, exit 1, no partial
   file.
-- [ ] 3.17 Audit 12: export `isFeatureLike` from `src/input/detect.ts` and use
+- [x] 3.17 Audit 12: export `isFeatureLike` from `src/input/detect.ts` and use
   it in `src/compat/options.ts` and `readFeatures` in
   `src/compat/cucumber-html-reporter.ts`. Invariant: one predicate, warning and
   skip with the flag, compat failure without it, no second shape check.

@@ -4,6 +4,7 @@ import type {
   Background,
   Ci,
   Envelope,
+  Feature,
   FeatureChild,
   Rule,
   RuleChild,
@@ -29,6 +30,7 @@ import { stepResultMessage } from '../result-message.js';
 import { stripAnsi, stripBidiControls } from '../text.js';
 import {
   indexRun,
+  renderedCaseAttachments,
   type RunIndex,
   type RunStepDefinition,
 } from './index-run.js';
@@ -268,6 +270,8 @@ function timestampIso(
   timestamp: { seconds: number; nanos: number } | undefined,
 ): string | undefined {
   if (!timestamp) return undefined;
+  // A zero-seconds timestamp is the adapter's unknown fallback, not 1970.
+  if (timestamp.seconds === 0) return undefined;
   const milliseconds = timestamp.seconds * 1000 + timestamp.nanos / 1_000_000;
   if (!Number.isFinite(milliseconds)) return undefined;
   const date = new Date(milliseconds);
@@ -577,6 +581,26 @@ export function buildReportModel(
     (typeof featureOrder)[number],
     ReportScenario[]
   >();
+  // A pickle without a gherkin document still needs a row the report can show;
+  // it is grouped under a synthetic feature that is not a counted feature.
+  const syntheticFeatures = new Set<Feature>();
+  const syntheticByUri = new Map<string, Feature>();
+  const syntheticFeature = (uri: string): Feature => {
+    const existing = syntheticByUri.get(uri);
+    if (existing) return existing;
+    const feature: Feature = {
+      location: { line: 1, column: 1 },
+      tags: [],
+      language: 'en',
+      keyword: 'Feature',
+      name: uri || 'Report',
+      description: '',
+      children: [],
+    };
+    syntheticByUri.set(uri, feature);
+    syntheticFeatures.add(feature);
+    return feature;
+  };
 
   for (const pickle of index.pickles.values()) {
     // The latest started attempt wins, even when it reported nothing: an
@@ -594,7 +618,7 @@ export function buildReportModel(
     // An unexecuted attempt contributes no attachment, even when the runner
     // emitted an attachment envelope for it.
     const startedAttachments = executed
-      ? (index.caseAttachments.get(latest.id) ?? [])
+      ? renderedCaseAttachments(index, testCase, latest.id)
       : [];
     const resultsByStep = new Map(
       (index.results.get(latest.id) ?? []).map((entry) => [
@@ -718,7 +742,8 @@ export function buildReportModel(
     const rule = ruleOf(astEntry?.rule);
     const feature =
       index.featureByScenarioId.get(scenarioId) ??
-      index.featuresByKey.get(pickle.uri);
+      index.featuresByKey.get(pickle.uri) ??
+      syntheticFeature(pickle.uri);
     const stepAttachments = stepRows.flatMap((step) => step.attachments);
     const hookAttachments = hookRows.flatMap((hook) => hook.attachments);
     const extraAttachments = mapAttachments(
@@ -877,13 +902,18 @@ export function buildReportModel(
     ...runHooks.flatMap((hook) => hook.attachments),
     ...runAttachments,
   ];
+  const syntheticRows = orderedFeatures.filter(
+    (feature) =>
+      syntheticFeatures.has(feature) &&
+      (featureScenarios.get(feature) ?? []).length > 0,
+  ).length;
   return {
     features: featureRows,
     scenarios: scenarioRows,
     runHooks,
     runAttachments,
     counts: {
-      features: featureRows.length,
+      features: featureRows.length - syntheticRows,
       scenarios: scenarioCounts,
       steps: stepCounts,
       hooks: hookCounts,

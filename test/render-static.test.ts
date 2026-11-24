@@ -324,7 +324,7 @@ describe('static views', () => {
 });
 
 describe('default report guard', () => {
-  it('keeps scripts, controls, collapsed passed rows and three main elements', async () => {
+  it('keeps scripts, controls, collapsed passed rows and one main element', async () => {
     const html = await renderHtml(await richEnvelopes(), {
       title: 'Default guard',
       history: await history(2),
@@ -340,7 +340,7 @@ describe('default report guard', () => {
     expect(body).toContain('data-copy-log');
     expect(body).toContain('class="shotButton"');
     expect(body).toContain('<dialog');
-    expect(html.match(/<main\b/g) ?? []).toHaveLength(3);
+    expect(html.match(/<main\b/g) ?? []).toHaveLength(1);
     expect(html.match(/\brole="tab"/g) ?? []).toHaveLength(3);
     expect(html.match(/\brole="tabpanel"/g) ?? []).toHaveLength(3);
 

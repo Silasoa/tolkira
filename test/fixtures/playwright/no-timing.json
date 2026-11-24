@@ -1,0 +1,51 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [{ "id": "chromium", "name": "chromium", "retries": 0 }]
+  },
+  "suites": [
+    {
+      "title": "timing.spec.ts",
+      "file": "timing.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "passes without timing",
+          "ok": true,
+          "tags": [],
+          "id": "no-timing-spec-1",
+          "file": "timing.spec.ts",
+          "line": 1,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "duration": 1,
+    "expected": 1,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

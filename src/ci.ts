@@ -33,6 +33,7 @@ const STATUS_LABELS: Array<[SummaryStatus, string]> = [
   ['unknown', 'unknown'],
 ];
 
+const CI_IDENTITY_LIMIT = 200;
 const GITHUB_MESSAGE_LIMIT = 4000;
 const GITHUB_ERROR_LIMIT = 50;
 const GITHUB_NOTICE_LIMIT = 20;
@@ -157,7 +158,9 @@ export function formatGitHubAnnotations(summary: ReportSummary): string {
         continue;
       }
       errorCount += 1;
-      const title = escapeGitHubProperty(scenarioIdentity(scenario));
+      const title = escapeGitHubProperty(
+        truncate(scenarioIdentity(scenario), CI_IDENTITY_LIMIT),
+      );
       const message = escapeGitHubMessage(
         truncate(failureMessage(scenario), GITHUB_MESSAGE_LIMIT),
       );
@@ -312,6 +315,13 @@ function codeSpan(text: string): string {
   return `${fence}${pad}${safe}${pad}${fence}`;
 }
 
+/** Markdown identity: truncate before escaping, with a literal marker outside. */
+function markdownIdentity(text: string): string {
+  const raw = truncateCodePoints(text, CI_IDENTITY_LIMIT);
+  const marker = raw === text ? '' : '[truncated]';
+  return `${markdownText(raw)}${marker}`;
+}
+
 function fencedBlock(text: string): string[] {
   const fence = '`'.repeat(Math.max(3, longestBacktickRun(text) + 1));
   return [fence, ...text.split('\n'), fence];
@@ -357,10 +367,10 @@ function markdownFailedSection(
   lines.push('### Failed scenarios', '');
   for (const scenario of failed.slice(0, MARKDOWN_FAILED_LIMIT)) {
     lines.push(
-      `#### ${codeSpan(scenario.feature || 'Unknown feature')} - ` +
-        codeSpan(scenario.name),
+      `#### ${codeSpan(truncate(scenario.feature || 'Unknown feature', CI_IDENTITY_LIMIT))} - ` +
+        codeSpan(truncate(scenario.name, CI_IDENTITY_LIMIT)),
       '',
-      `URI: ${codeSpan(scenario.uri)}`,
+      `URI: ${codeSpan(truncate(scenario.uri, CI_IDENTITY_LIMIT))}`,
       '',
       ...fencedBlock(
         truncate(failureMessage(scenario), MARKDOWN_MESSAGE_LIMIT),
@@ -397,7 +407,9 @@ function markdownSkippedSection(
   if (shown.length > 0) {
     lines.push('');
     for (const scenario of shown) {
-      lines.push(`- ${codeSpan(scenarioIdentity(scenario))}`);
+      lines.push(
+        `- ${codeSpan(truncate(scenarioIdentity(scenario), CI_IDENTITY_LIMIT))}`,
+      );
     }
   }
   const omitted = skippedCount - shown.length;
@@ -418,7 +430,7 @@ export function formatMarkdownSummary(
 ): string {
   const unexecuted = unexecutedCount(summary);
   const lines = [
-    `## ${markdownText(options.title ?? 'Tolkira report')}`,
+    `## ${markdownIdentity(options.title ?? 'Tolkira report')}`,
     '',
     '| Metric | Value |',
     '| --- | --- |',

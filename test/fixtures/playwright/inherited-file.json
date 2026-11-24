@@ -1,0 +1,118 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [{ "id": "chromium", "name": "chromium", "retries": 0 }]
+  },
+  "suites": [
+    {
+      "title": "a.spec.ts",
+      "file": "a.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "inherits the suite file",
+          "ok": true,
+          "tags": [],
+          "id": "inherited-a-1",
+          "line": 1,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1,
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:00:00.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "b.spec.ts",
+      "file": "b.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "keeps the project feature",
+          "ok": true,
+          "tags": [],
+          "id": "inherited-b-1",
+          "line": 1,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1,
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:00:01.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "suite.spec.ts",
+      "file": "suite.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "explicit spec file wins",
+          "ok": true,
+          "tags": [],
+          "id": "inherited-c-1",
+          "file": "explicit.spec.ts",
+          "line": 1,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1,
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:00:02.000Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-22T09:00:00.000Z",
+    "duration": 3,
+    "expected": 3,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

@@ -150,6 +150,16 @@ function validatePayload(
       requireString(payload, 'id', key, source, line);
       requireString(payload, 'testCaseId', key, source, line);
       requireObject(payload, 'timestamp', key, source, line);
+      if (
+        Object.hasOwn(payload, 'attempt') &&
+        (typeof payload.attempt !== 'number' ||
+          !Number.isSafeInteger(payload.attempt) ||
+          payload.attempt < 0)
+      ) {
+        throw new Error(
+          `Invalid Cucumber Messages on line ${line} of ${source}: "${key}.attempt" must be a non-negative safe integer.`,
+        );
+      }
       break;
     case 'testStepStarted':
       requireString(payload, 'testCaseStartedId', key, source, line);

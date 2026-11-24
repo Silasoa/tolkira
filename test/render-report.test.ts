@@ -5,12 +5,81 @@ import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { buildReportModel } from '../src/report/model.js';
 import { renderHtml } from '../src/render/html.js';
-import { legacyFixture, messagesFixture } from './fixtures.js';
+import {
+  legacyFixture,
+  messagesFixture,
+  playwrightFixture,
+} from './fixtures.js';
 
 const fixture = messagesFixture('screenshot.ndjson');
 const legacyTableFixture = legacyFixture('happy.json');
 const passedOnlyFixture = legacyFixture('behave.json');
 const minimalFixture = legacyFixture('minimal.json');
+
+function tiedAttempts(): ReturnType<typeof parseMessages> {
+  const lines: unknown[] = [
+    {
+      pickle: {
+        id: 'tie-pickle',
+        uri: 'features/tie.feature',
+        name: 'Tie scenario',
+        language: 'en',
+        astNodeIds: ['tie-scenario'],
+        tags: [],
+        steps: [{ id: 'tie-pickle-step', text: 'a step', astNodeIds: [] }],
+      },
+    },
+    {
+      testCase: {
+        id: 'tie-case',
+        pickleId: 'tie-pickle',
+        testSteps: [{ id: 'tie-step', pickleStepId: 'tie-pickle-step' }],
+      },
+    },
+    {
+      testCaseStarted: {
+        id: 'tie-start-first',
+        testCaseId: 'tie-case',
+        attempt: 0,
+        timestamp: { seconds: 0, nanos: 0 },
+      },
+    },
+    {
+      testStepFinished: {
+        testCaseStartedId: 'tie-start-first',
+        testStepId: 'tie-step',
+        testStepResult: {
+          status: 'FAILED',
+          duration: { seconds: 0, nanos: 1 },
+        },
+        timestamp: { seconds: 0, nanos: 0 },
+      },
+    },
+    {
+      testCaseStarted: {
+        id: 'tie-start-second',
+        testCaseId: 'tie-case',
+        attempt: 0,
+        timestamp: { seconds: 0, nanos: 0 },
+      },
+    },
+    {
+      testStepFinished: {
+        testCaseStartedId: 'tie-start-second',
+        testStepId: 'tie-step',
+        testStepResult: {
+          status: 'PASSED',
+          duration: { seconds: 0, nanos: 1 },
+        },
+        timestamp: { seconds: 0, nanos: 0 },
+      },
+    },
+  ];
+  return parseMessages(
+    lines.map((line) => JSON.stringify(line)).join('\n'),
+    'tie.ndjson',
+  );
+}
 
 describe('messages rendering', () => {
   it('renders the simple report and analysis view', async () => {
@@ -303,6 +372,36 @@ describe('messages rendering', () => {
       true,
     );
     expect(html).not.toContain('Attempt: NaN');
+  });
+
+  it('uses the later start on a full attempt and timestamp tie', async () => {
+    const envelopes = tiedAttempts();
+    const model = buildReportModel(envelopes);
+    const html = await renderHtml(envelopes, { title: 'Attempt tie' });
+
+    expect(model.scenarios[0]?.status).toBe('passed');
+    expect(model.scenarios[0]?.attempt).toBe(0);
+    expect(html).toContain('data-status="passed"');
+    expect(html).not.toContain('data-status="failed"');
+    expect(html).not.toContain('1970');
+  });
+
+  it('omits the run date when no usable timestamp exists', async () => {
+    const html = await renderReport(playwrightFixture('no-timing.json'), {
+      title: 'No timing',
+    });
+
+    expect(html).not.toContain('1970');
+    expect(html).not.toContain('Started:');
+  });
+
+  it('renders the existing date for a real timestamp', async () => {
+    const html = await renderReport(playwrightFixture('real-run.json'), {
+      title: 'Real timing',
+    });
+
+    expect(html).toContain('2026-11-18');
+    expect(html).not.toContain('1970');
   });
 
   it('clamps negative message durations in the model', async () => {

@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import type { Stats } from 'node:fs';
 import path from 'node:path';
 import type { ReportSummary } from '../summary.js';
+import { isFeatureLike } from '../input/detect.js';
 import { collectReportFiles } from '../input/files.js';
 import { addInputBytes, MAX_TOTAL_INPUT_BYTES } from '../input/load.js';
 
@@ -179,7 +180,9 @@ export async function resolveInputs(
       const parsed: unknown = JSON.parse(
         stripBom(await readFile(file, 'utf8')),
       );
-      if (!Array.isArray(parsed)) throw new Error('not a feature array');
+      if (!Array.isArray(parsed) || !parsed.every(isFeatureLike)) {
+        throw new Error('not a feature array');
+      }
       valid.push(file);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);

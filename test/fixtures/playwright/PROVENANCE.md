@@ -31,4 +31,10 @@ JSON shape. They contain no recorded CI run, real path, token or personal data.
 | `two-files.json` | Playwright JSON shape | one project feature spanning `sample-a.spec.ts` and `sample-b.spec.ts`, for the `2 spec files` label |
 | `retry-evidence.json` | Playwright JSON shape | failed-then-passed retry with an inline PNG and an error message, for earlier-attempt evidence |
 | `empty.json` | Playwright JSON shape | no suites and no errors |
+| `no-retry.json` | Playwright JSON shape | failed-then-passed results without `retry` values, for the last-array-result rule |
+| `equal-retry.json` | Playwright JSON shape | failed-then-passed results with equal `retry` values, for the last-array-result rule |
+| `no-timing.json` | Playwright JSON shape | no `stats.startTime` and no result `startTime`, for the unknown run date |
+| `expected-skip-failed.json` | Playwright JSON shape | `expectedStatus: skipped` with a failed final result |
+| `expected-skip-passed.json` | Playwright JSON shape | `expectedStatus: skipped` with a passed final result, for an unexpected pass |
+| `inherited-file.json` | Playwright JSON shape | suite file inherited by specs without `file`, project feature grouping and an explicit spec file |
 | `malformed-*.json` | Playwright JSON shape | invalid `suites`, suite `specs`, test `results` and attachment `contentType` |

@@ -191,6 +191,24 @@ describe('Early input warning: stat-only scan', () => {
     expect(readFile).not.toHaveBeenCalled();
   });
 
+  it('rejects a file over the per-file guard before reading its content', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'oversized.json');
+    const handle = await open(file, 'w');
+    try {
+      await handle.truncate(100 * MIB + 1);
+    } finally {
+      await handle.close();
+    }
+    const resolved = await resolveInputFiles(file);
+    vi.mocked(readFile).mockClear();
+
+    await expect(loadResolvedInputs(resolved)).rejects.toThrow(
+      'Inputs exceed 100 MB in total. Split the run into smaller inputs or reduce the attachment payload.',
+    );
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
   it('overcounts identical content while the loader dedupes it', async () => {
     const dir = await tempDir();
     const first = path.join(dir, 'a.json');

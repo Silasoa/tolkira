@@ -49,6 +49,21 @@ function openingTag(html: string, marker: string): string {
   return html.slice(start, html.indexOf('>', index) + 1);
 }
 
+function cssBlocks(css: string, header: RegExp): string[] {
+  const blocks: string[] = [];
+  for (const match of css.matchAll(header)) {
+    let depth = 1;
+    let index = (match.index ?? 0) + match[0].length;
+    while (index < css.length && depth > 0) {
+      if (css[index] === '{') depth += 1;
+      else if (css[index] === '}') depth -= 1;
+      index += 1;
+    }
+    blocks.push(css.slice(match.index, index));
+  }
+  return blocks;
+}
+
 function germanPercent(value: number): string {
   return new Intl.NumberFormat('de', {
     style: 'percent',
@@ -131,6 +146,19 @@ describe('German report rendering', () => {
     expect(german).toContain('>Schließen</button>');
   });
 
+  it('stacks the German Details metadata list in a narrow shell', () => {
+    const narrow = cssBlocks(
+      german,
+      /@container\s*\(max-width:[^)]+\)\{/g,
+    ).filter((block) => block.includes(':lang(de) .metaList{'));
+
+    expect(narrow).toHaveLength(1);
+    expect(narrow[0]).toMatch(/@container\s*\(max-width:\s*[\d.]+rem\)/);
+    expect(narrow[0]).toMatch(
+      /:lang\(de\) \.metaList\{[^}]*grid-template-columns:minmax\(0,\s*1fr\)/,
+    );
+  });
+
   it('localizes every status label', async () => {
     const html = await renderFile(allStatusesFixture, 'de');
     for (const label of [
@@ -144,7 +172,10 @@ describe('German report rendering', () => {
       expect(html, label).toContain(`>${label}</span>`);
     }
     expect(html).toContain('>Versuch: ');
-    expect(html).toContain('>Gestartet: ');
+    // The zero-second fixture timestamps are unknown now, so the started label
+    // is checked on the real-timestamp German report instead of a 1970 date.
+    expect(html).not.toContain('1970');
+    expect(german).toContain('>Gestartet: ');
     expect(html).toContain('Feature: All statuses');
   });
 

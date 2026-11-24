@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { isFeatureLike } from '../input/detect.js';
 import { generateReport } from '../index.js';
 import { outputOverwritesInput, samePath, writeAtomic } from '../output.js';
 import { ATTACHMENT_HINT, attachmentWarning } from '../warnings.js';
@@ -48,10 +49,7 @@ async function readFeatures(
   } catch {
     return undefined;
   }
-  if (
-    !Array.isArray(parsed) ||
-    parsed.some((feature) => typeof feature !== 'object' || feature === null)
-  ) {
+  if (!Array.isArray(parsed) || !parsed.every(isFeatureLike)) {
     return undefined;
   }
   return parsed as Record<string, unknown>[];

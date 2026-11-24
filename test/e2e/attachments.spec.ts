@@ -69,6 +69,35 @@ test('does not execute HTML attachments', async ({ page }) => {
   }
 });
 
+test('counts the rendered screenshot once in Details', async ({ page }) => {
+  const { dir, output } = await writeReport(
+    [messagesFixture('screenshot.ndjson')],
+    'Attachment parity E2E',
+    'tolkira-attachment-parity-e2e-',
+  );
+
+  try {
+    await page.goto(reportUrl(output));
+    await expect(
+      page.locator('img[src^="data:image/png"]').first(),
+    ).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Details' }).click();
+    const count = await page
+      .locator('#analysis-view .sizeMeta dt')
+      .evaluateAll((terms) => {
+        const term = terms.find(
+          (entry) => entry.textContent?.trim() === 'Attachments',
+        );
+        return term?.nextElementSibling?.textContent?.trim();
+      });
+
+    expect(count).toBe('1');
+  } finally {
+    await removeReport(dir);
+  }
+});
+
 test('keeps each example attachment on its own row', async ({ page }) => {
   const { dir, output } = await writeReport(
     [examplesAttachmentFixture],

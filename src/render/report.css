@@ -407,6 +407,12 @@ details[open] > summary.scenarioButton { background: var(--surface-2); }
   .triageBox .triage h2, .triageBox .triage .triageLead { display: none; }
   .sources { display: none; }
 }
+/* At 320px/200% text the shell content is narrower than 10 text-sized rems;
+   stack the metadata so labels keep a readable width and long URLs wrap. */
+@container (max-width: 10rem) {
+  .metaList { grid-template-columns: minmax(0, 1fr); }
+  .metaList dd { text-align: left; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 @container (max-width: 16rem) {
   .thumb { display: none; }

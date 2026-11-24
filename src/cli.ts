@@ -227,6 +227,28 @@ async function writeEmailSummary(
   }
 }
 
+async function writeReport(file: string, html: string): Promise<void> {
+  try {
+    await writeAtomic(file, html);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    throw new Error(
+      `Cannot write report to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+    );
+  }
+}
+
+async function writeCiOutput(file: string, text: string): Promise<void> {
+  try {
+    await writeAtomic(file, text);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    throw new Error(
+      `Cannot write CI output to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+    );
+  }
+}
+
 async function writePdf(
   file: string,
   html: string,
@@ -666,7 +688,7 @@ export async function runCli(
           ? formatCiOutput(summary, ci, { title: parsed.values.title })
           : undefined;
       if (ciText !== undefined && ciOut !== undefined) {
-        await writeAtomic(ciOut, ciText);
+        await writeCiOutput(ciOut, ciText);
       }
       if (wantsJson) {
         io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
@@ -692,7 +714,7 @@ export async function runCli(
     const { html, summary, skippedAttachments } = generated;
 
     if (output) {
-      await writeAtomic(output, html);
+      await writeReport(output, html);
     }
     if (pdfPath !== undefined) {
       await writePdf(pdfPath, html, pdfTimeout);
@@ -734,7 +756,7 @@ export async function runCli(
         ? formatCiOutput(summary, ci, { title: parsed.values.title })
         : undefined;
     if (ciText !== undefined && ciOut !== undefined) {
-      await writeAtomic(ciOut, ciText);
+      await writeCiOutput(ciOut, ciText);
     }
 
     if (wantsJson) {

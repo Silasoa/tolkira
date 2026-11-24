@@ -1224,8 +1224,9 @@ async function scenarioPlan(
   spec: PlaywrightSpec,
   test: PlaywrightTest,
   describes: string[],
+  inheritedFile: string | undefined,
 ): Promise<ScenarioPlan> {
-  const file = fileUri(spec.file, context.inputDir);
+  const file = fileUri(inheritedFile, context.inputDir);
   const ruleName = [stripTrailingTags(file), ...describes]
     .filter(Boolean)
     .join(' › ');
@@ -1236,16 +1237,19 @@ async function scenarioPlan(
     results.length > 0
       ? results.reduce(
           (best, candidate, index) =>
-            candidate.retry > (results[best] as PlaywrightResult).retry ? index : best,
+            candidate.retry >= (results[best] as PlaywrightResult).retry
+              ? index
+              : best,
           0,
         )
       : -1;
   const final = finalIndex >= 0 ? results[finalIndex] : undefined;
   const finalStatus = final?.status;
+  // A skip marker never overrides a final failed or passed result.
   const skipped =
-    test.status === 'skipped' ||
-    test.expectedStatus === 'skipped' ||
-    finalStatus === 'skipped';
+    finalStatus === 'skipped' ||
+    (finalStatus === undefined &&
+      (test.status === 'skipped' || test.expectedStatus === 'skipped'));
   const failedFinal =
     finalStatus !== undefined && FAILED_STATUSES.has(finalStatus);
   const passedFinal = finalStatus === 'passed';
@@ -1253,7 +1257,10 @@ async function scenarioPlan(
   const expectedFailure =
     failedFinal && (test.status === 'expected' || expectsFailure);
   const unexpectedPass =
-    passedFinal && (test.status === 'unexpected' || expectsFailure);
+    passedFinal &&
+    (test.status === 'unexpected' ||
+      expectsFailure ||
+      test.expectedStatus === 'skipped');
   const flakyPass = passedFinal && test.status === 'flaky';
 
   const mode = expectedFailure
@@ -1361,6 +1368,9 @@ async function scenarioPlan(
   } else {
     for (const [index, result] of results.entries()) {
       const isFinal = index === finalIndex;
+      // Missing or equal retry values describe one attempt: the last array
+      // element wins, so no phantom earlier attempt is emitted for it.
+      if (!isFinal && final && result.retry === final.retry) continue;
       // Final attachments are planned first across every scenario. An earlier
       // attempt keeps only its image references; the retry probe reads at most
       // one after all final reads have spent the budget.
@@ -1388,12 +1398,17 @@ function collectScenarios(
   suite: PlaywrightSuite,
   describes: string[],
   file: string,
+  inheritedFile: string | undefined,
 ): Array<() => Promise<void>> {
   const suiteFile = stripTrailingTags(suite.file ?? file);
+  // The actual file named by the suite chain, if any; the fallback stays only
+  // for a report where neither the spec nor a suite names a file.
+  const suiteUriFile = suite.file ? stripTrailingTags(suite.file) : inheritedFile;
   const jobs: Array<() => Promise<void>> = [];
 
   for (const spec of suite.specs) {
     const specFile = stripTrailingTags(spec.file ?? suiteFile);
+    const specUriFile = spec.file ? stripTrailingTags(spec.file) : suiteUriFile;
     for (const test of spec.tests) {
       const project = test.projectName || test.projectId;
       jobs.push(() =>
@@ -1403,6 +1418,7 @@ function collectScenarios(
           spec,
           test,
           describes,
+          specUriFile,
         ).then(() => undefined),
       );
     }
@@ -1415,7 +1431,15 @@ function collectScenarios(
       title && title !== suiteFile && title !== childFile
         ? [...describes, title]
         : describes;
-    jobs.push(...collectScenarios(context, child, nextDescribes, childFile));
+    jobs.push(
+      ...collectScenarios(
+        context,
+        child,
+        nextDescribes,
+        childFile,
+        suiteUriFile,
+      ),
+    );
   }
 
   return jobs;
@@ -1598,8 +1622,11 @@ export async function parsePlaywrightJson(
 
   for (const suite of rootsSuites) {
     const file = stripTrailingTags(suite.file ?? suite.title ?? 'playwright.spec.ts');
+    const inheritedFile = suite.file ? stripTrailingTags(suite.file) : undefined;
     // Await in collection order so I/O timing cannot reorder scenarios.
-    for (const job of collectScenarios(context, suite, [], file)) await job();
+    for (const job of collectScenarios(context, suite, [], file, inheritedFile)) {
+      await job();
+    }
   }
 
   await planRetryEvidence(context);

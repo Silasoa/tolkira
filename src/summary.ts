@@ -18,6 +18,7 @@ import { stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
 import {
   indexRun,
+  renderedCaseAttachments,
   type RunIndex,
   type RunStepDefinition,
 } from './report/index-run.js';
@@ -326,9 +327,11 @@ export function summarizeIndex(
     const example = exampleCoordinate(index, pickle);
     const change = comparison?.changes.get(pickle.id);
     const scenarioDuration = steps.reduce((sum, step) => sum + step.durationMs, 0);
-    const scenarioAttachments = executed
-      ? (index.attachmentsByStarted.get(started.id) ?? [])
-      : [];
+    const selectedCase = index.testCases.get(started.testCaseId);
+    const scenarioAttachments =
+      executed && selectedCase
+        ? renderedCaseAttachments(index, selectedCase, started.id)
+        : [];
     for (const attachment of scenarioAttachments) countedAttachments.add(attachment);
 
     if (executed) {
@@ -379,10 +382,17 @@ export function summarizeIndex(
         ? runHookStatus
         : scenarioOverall;
 
-  const orphanAttachments = index.attachments.filter(
-    (attachment) =>
-      !attachment.testCaseStartedId || countedAttachments.has(attachment),
-  );
+  // The run total is the union of rendered scenario attachments, attachments
+  // on run-hook starts present in the stream, and run-level attachments.
+  for (const start of index.runHookStarts.keys()) {
+    for (const attachment of index.runHookAttachments.get(start) ?? []) {
+      countedAttachments.add(attachment);
+    }
+  }
+  for (const attachment of index.runAttachments) {
+    countedAttachments.add(attachment);
+  }
+  const renderedAttachments = [...countedAttachments];
 
   return {
     schemaVersion: SUMMARY_SCHEMA_VERSION,
@@ -394,8 +404,8 @@ export function summarizeIndex(
       steps: stepCounts,
     },
     attachments: {
-      total: orphanAttachments.length,
-      bytes: orphanAttachments.reduce(
+      total: renderedAttachments.length,
+      bytes: renderedAttachments.reduce(
         (sum, attachment) => sum + attachmentBytes(attachment),
         0,
       ),

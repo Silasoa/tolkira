@@ -1,0 +1,55 @@
+{
+  "config": {
+    "version": "1.65.0",
+    "configFile": "playwright.config.ts",
+    "rootDir": "tests",
+    "projects": [{ "id": "chromium", "name": "chromium", "retries": 0 }]
+  },
+  "suites": [
+    {
+      "title": "skip.spec.ts",
+      "file": "skip.spec.ts",
+      "line": 0,
+      "column": 0,
+      "specs": [
+        {
+          "title": "expected skip with a failed result",
+          "ok": false,
+          "tags": [],
+          "id": "expected-skip-failed-1",
+          "file": "skip.spec.ts",
+          "line": 1,
+          "column": 1,
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "skipped",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "skipped",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1,
+                  "retry": 0,
+                  "startTime": "2026-11-22T09:00:00.000Z",
+                  "error": { "message": "failed despite the skip marker" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-22T09:00:00.000Z",
+    "duration": 1,
+    "expected": 1,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0
+  }
+}

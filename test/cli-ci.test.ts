@@ -1,4 +1,5 @@
 import {
+  chmod,
   copyFile,
   mkdir,
   mkdtemp,
@@ -129,6 +130,80 @@ describe('CLI CI output', () => {
     expect(run.code).toBe(0);
     expect(run.stdout.startsWith('## Nightly\n')).toBe(true);
     expect(run.stdout).not.toContain('## Tolkira report');
+  });
+
+  it('names the requested CI target and keeps the report on a failed write', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+    const ciTarget = path.join(dir, 'ci-target');
+    await mkdir(ciTarget);
+
+    const run = await cli([
+      failed,
+      '--out',
+      output,
+      '--ci',
+      'markdown',
+      '--ci-out',
+      ciTarget,
+    ]);
+
+    expect(run.code).toBe(1);
+    expect(run.stdout).toBe('');
+    expect(run.stderr).toContain(`Cannot write CI output to ${ciTarget} (`);
+    expect(run.stderr).toMatch(/\([A-Z]+\)/);
+    expect(run.stderr).not.toContain('.tmp');
+    expect(run.stderr).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
+    await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+    expect(await readdir(ciTarget)).toEqual([]);
+    expect((await readdir(dir)).sort()).toEqual(['ci-target', 'report.html']);
+  });
+
+  it('caps a long --title heading at 200 code points', async () => {
+    const run = await cli([failed, '--ci', 'markdown', '--title', 'x'.repeat(201)]);
+
+    expect(run.code).toBe(0);
+    expect(run.stdout.startsWith(`## ${'x'.repeat(200)}[truncated]\n`)).toBe(
+      true,
+    );
+
+    const exact = await cli([failed, '--ci', 'markdown', '--title', 'y'.repeat(200)]);
+    expect(exact.stdout.startsWith(`## ${'y'.repeat(200)}\n`)).toBe(true);
+  });
+
+  it.skipIf(
+    process.platform === 'win32' || process.getuid?.() === 0,
+  )('reports a permission failure for --ci-out and keeps the report', async () => {
+    const dir = await tempDir();
+    const output = path.join(dir, 'report.html');
+    const ciDir = path.join(dir, 'locked');
+    await mkdir(ciDir);
+    const ciTarget = path.join(ciDir, 'summary.md');
+    await chmod(ciDir, 0o555);
+
+    try {
+      const run = await cli([
+        failed,
+        '--out',
+        output,
+        '--ci',
+        'markdown',
+        '--ci-out',
+        ciTarget,
+      ]);
+
+      expect(run.code).toBe(1);
+      expect(run.stderr).toContain(`Cannot write CI output to ${ciTarget} (`);
+      expect(run.stderr).not.toContain('.tmp');
+      await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+      await expect(readFile(ciTarget, 'utf8')).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    } finally {
+      await chmod(ciDir, 0o755);
+    }
   });
 
   it('rejects GitHub annotations bound to --ci-out before writing anything', async () => {

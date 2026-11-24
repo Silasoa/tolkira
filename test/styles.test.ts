@@ -11,6 +11,46 @@ async function sourceCss(): Promise<string> {
   ).replace(/\r\n/g, '\n');
 }
 
+/** Balanced-brace blocks whose header matches the pattern. */
+function cssBlocks(css: string, header: RegExp): string[] {
+  const blocks: string[] = [];
+  for (const match of css.matchAll(header)) {
+    let depth = 1;
+    let index = (match.index ?? 0) + match[0].length;
+    while (index < css.length && depth > 0) {
+      if (css[index] === '{') depth += 1;
+      else if (css[index] === '}') depth -= 1;
+      index += 1;
+    }
+    blocks.push(css.slice(match.index, index));
+  }
+  return blocks;
+}
+
+describe('Details metadata container rule', () => {
+  it('stacks the metadata list in one start-aligned column in a narrow shell', () => {
+    const narrow = cssBlocks(
+      REPORT_CSS,
+      /@container\s*\(max-width:[^)]+\)\{/g,
+    ).filter((block) => block.includes('.metaList'));
+
+    expect(narrow).toHaveLength(1);
+    expect(narrow[0]).toMatch(/@container\s*\(max-width:\s*[\d.]+rem\)/);
+    expect(narrow[0]).toMatch(
+      /\.metaList\{[^}]*grid-template-columns:minmax\(0,\s*1fr\)/,
+    );
+    expect(narrow[0]).toMatch(
+      /\.metaList dd\{[^}]*text-align:\s*(?:left|start)/,
+    );
+  });
+
+  it('keeps the two-column layout for normal text widths', () => {
+    expect(REPORT_CSS).toContain(
+      '@media(max-width:560px){html{scroll-padding-top:5.5rem}.metaList{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}',
+    );
+  });
+});
+
 describe('embedded report stylesheet', () => {
   it('is the minified source stylesheet', async () => {
     const source = await sourceCss();

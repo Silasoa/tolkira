@@ -26,7 +26,7 @@ function isObject(value: unknown): value is JsonObject {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function isFeatureLike(value: unknown): boolean {
+export function isFeatureLike(value: unknown): boolean {
   return (
     isObject(value) &&
     (Array.isArray(value.elements) ||
@@ -113,7 +113,11 @@ export function detectInput(
     return { kind: 'json-validation' };
   }
 
-  return MESSAGES_EXTENSIONS.has(extension)
-    ? { kind: 'messages-validation' }
-    : { kind: 'skip' };
+  if (!MESSAGES_EXTENSIONS.has(extension)) return { kind: 'skip' };
+  // A scanned shard with no non-empty line is empty, not a report: skip it
+  // without a group or warning. An explicitly named empty file still fails.
+  if (content.replace(/^\uFEFF/, '').trim().length === 0) {
+    return { kind: 'skip' };
+  }
+  return { kind: 'messages-validation' };
 }

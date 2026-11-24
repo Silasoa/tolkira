@@ -10,12 +10,12 @@ import { parseMessages } from './messages.js';
 import { parsePlaywrightJson } from './playwright.js';
 
 export const MAX_TOTAL_INPUT_BYTES = 100 * 1024 * 1024;
+const INPUT_CAP_ERROR =
+  'Inputs exceed 100 MB in total. Split the run into smaller inputs or reduce the attachment payload.';
 
 export function addInputBytes(totalBytes: number, size: number): number {
   if (totalBytes + size > MAX_TOTAL_INPUT_BYTES) {
-    throw new Error(
-      'Inputs exceed 100 MB in total. Split the report or use external attachments.',
-    );
+    throw new Error(INPUT_CAP_ERROR);
   }
   return totalBytes + size;
 }
@@ -149,7 +149,11 @@ export async function loadResolvedInputs(
     if (!info.isFile()) {
       throw new Error(`Unsupported input: ${input.file}`);
     }
-    const nextTotal = addInputBytes(totalBytes, info.size);
+    // Per-file DoS guard before the read; the total cap applies later to
+    // unique loaded content only.
+    if (info.size > MAX_TOTAL_INPUT_BYTES) {
+      throw new Error(INPUT_CAP_ERROR);
+    }
     const content = await readFile(input.file, 'utf8');
     const hash = createHash('sha256').update(content).digest('hex');
     if (seenContent.has(hash)) {
@@ -165,9 +169,11 @@ export async function loadResolvedInputs(
     }
     seenContent.add(hash);
 
-    totalBytes = nextTotal;
-
     const decision = detectInput(content, input);
+    // A skip creates no group, so a skipped or empty-shard file counts in
+    // neither inputFiles nor the total cap.
+    if (decision.kind === 'skip') continue;
+    totalBytes = addInputBytes(totalBytes, info.size);
     let parsed: Envelope[] = [];
     let skippedAttachments = 0;
 
@@ -212,8 +218,6 @@ export async function loadResolvedInputs(
         break;
       case 'json-validation':
         invalidJson(content, input.file);
-        break;
-      case 'skip':
         break;
     }
 

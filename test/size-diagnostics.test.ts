@@ -50,8 +50,11 @@ async function tempDir(): Promise<string> {
 
 function analysisView(html: string): string {
   const start = html.indexOf('id="analysis-view"');
-  const end = html.indexOf('</main>', start);
-  return start < 0 ? '' : html.slice(start, end < 0 ? html.length : end);
+  const ends = ['id="trends-view"', 'id="tolkira-lightbox"']
+    .map((marker) => html.indexOf(marker, start + 1))
+    .filter((index) => index > start)
+    .sort((a, b) => a - b);
+  return start < 0 ? '' : html.slice(start, ends[0] ?? html.length);
 }
 
 function escapeRegExp(value: string): string {

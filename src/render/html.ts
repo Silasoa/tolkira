@@ -17,7 +17,6 @@ import { renderTrendsView, TRENDS_SHELL_CSS } from './trends.js';
 import type { RenderOptions } from './types.js';
 
 export type { RenderOptions } from './types.js';
-
 function inlineScriptHashes(html: string): string[] {
   const hashes = new Set<string>();
   for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
@@ -78,6 +77,7 @@ export async function renderHtml(
         ':lang(de) .trendsPanel{overflow-wrap:anywhere}' +
         ':lang(de) .metaList{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}' +
         ':lang(de) .metaList dt{min-width:0;overflow-wrap:anywhere}' +
+        '@container (max-width:10rem){:lang(de) .metaList{grid-template-columns:minmax(0,1fr)}}' +
         '@media (max-width:560px){:lang(de) .sizeMeta{grid-template-columns:minmax(0,1fr)}}' +
         '@container (min-width:260px){:lang(de) .feature > summary{grid-template-columns:minmax(6.25rem,max-content) minmax(0,1fr) 1.25rem}:lang(de) .feature > summary .statusText{white-space:nowrap}}' +
         '@media (max-width:560px){.expand{flex-wrap:wrap}html:lang(de){scroll-padding-top:8em}}' +

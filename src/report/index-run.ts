@@ -103,8 +103,38 @@ function latestAttempt(
     if (cSeconds !== currentSeconds) return cSeconds > currentSeconds ? candidate : current;
     const cNanos = candidate.timestamp?.nanos ?? 0;
     const currentNanos = current.timestamp?.nanos ?? 0;
-    return cNanos > currentNanos ? candidate : current;
+    // A full attempt and timestamp tie selects the later envelope in input
+    // order, so the adapter, model and summary agree on the final start.
+    return cNanos >= currentNanos ? candidate : current;
   }, undefined);
+}
+
+/**
+ * The attachments the report renders for one executed start: those without a
+ * test step id, plus those on a pickle or hook step that has a result. The
+ * summary counts the same set.
+ */
+export function renderedCaseAttachments(
+  index: RunIndex,
+  testCase: TestCase,
+  startedId: string,
+): Attachment[] {
+  const results = index.results.get(startedId);
+  if (!results || results.length === 0) return [];
+  const resultStepIds = new Set(results.map((entry) => entry.testStepId));
+  const renderedStepIds = new Set<string>();
+  for (const testStep of testCase.testSteps) {
+    if (
+      (testStep.pickleStepId || testStep.hookId) &&
+      resultStepIds.has(testStep.id)
+    ) {
+      renderedStepIds.add(testStep.id);
+    }
+  }
+  return (index.caseAttachments.get(startedId) ?? []).filter(
+    (attachment) =>
+      !attachment.testStepId || renderedStepIds.has(attachment.testStepId),
+  );
 }
 
 function indexFeature(

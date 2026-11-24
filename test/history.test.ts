@@ -1,5 +1,12 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -485,6 +492,99 @@ describe('reading the history sidecar', () => {
   });
 });
 
+describe('reading a BOM-prefixed history sidecar', () => {
+  async function writeBom(name: string, raw: string): Promise<string> {
+    return writeRaw(name, `\uFEFF${raw}`);
+  }
+
+  it('reads a valid BOM-prefixed file exactly like the file without a BOM', async () => {
+    const runs = [makeRun(0), makeRun(1)];
+    const plain = await writeRaw('plain.json', sidecar(runs));
+    const bom = await writeBom('bom.json', sidecar(runs));
+    const before = await readFile(bom, 'utf8');
+    const beforeStat = await stat(bom);
+
+    await expect(readHistory(bom)).resolves.toStrictEqual(runs);
+    await expect(readHistory(plain)).resolves.toStrictEqual(runs);
+    await expect(readFile(bom, 'utf8')).resolves.toBe(before);
+    expect((await stat(bom)).mtimeMs).toBe(beforeStat.mtimeMs);
+  });
+
+  it('rejects a BOM-only file with the existing not-valid-JSON error', async () => {
+    const file = await writeRaw('bom-only.json', '\uFEFF');
+    const before = await readFile(file, 'utf8');
+
+    await expect(readHistory(file)).rejects.toThrow(
+      `Invalid history file ${file}: not valid JSON`,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('rejects a BOM followed by invalid JSON without rewriting the file', async () => {
+    const file = await writeBom('bom-invalid.json', '{not json');
+    const before = await readFile(file, 'utf8');
+
+    await expect(readHistory(file)).rejects.toThrow(
+      `Invalid history file ${file}: not valid JSON`,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('strips exactly one BOM so a second one stays invalid JSON', async () => {
+    const file = await writeRaw(
+      'double-bom.json',
+      `\uFEFF\uFEFF${sidecar([makeRun(0)])}`,
+    );
+    const before = await readFile(file, 'utf8');
+
+    await expect(readHistory(file)).rejects.toThrow(
+      `Invalid history file ${file}: not valid JSON`,
+    );
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it('accepts a BOM-prefixed target in the schema peek and writes BOM-free bytes', async () => {
+    const runs = [makeRun(0), makeRun(1)];
+    const plain = await writeRaw(
+      'plain-target.json',
+      JSON.stringify({ schemaVersion: 2, runs }),
+    );
+    const bom = await writeBom(
+      'bom-target.json',
+      JSON.stringify({ schemaVersion: 2, runs }),
+    );
+    const next = makeRun(9);
+    const appended = appendHistory(runs, next);
+
+    await writeHistory(plain, appended);
+    await writeHistory(bom, appended);
+
+    const plainBytes = await readFile(plain, 'utf8');
+    const bomBytes = await readFile(bom, 'utf8');
+    expect(bomBytes).toBe(plainBytes);
+    expect(bomBytes.charCodeAt(0)).toBe('{'.charCodeAt(0));
+    expect(bomBytes).not.toContain('\uFEFF');
+    expect(JSON.parse(bomBytes)).toMatchObject({ schemaVersion: 2 });
+    const written = JSON.parse(bomBytes) as { runs: HistoryRun[] };
+    expect(written.runs.map((run) => run.id)).toEqual([
+      ...runs.map((run) => run.id),
+      next.id,
+    ]);
+  });
+
+  it('writes a schema-1 sidecar without a BOM', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'history.json');
+
+    await writeHistory(file, [makeRun(0)]);
+
+    const bytes = await readFile(file, 'utf8');
+    expect(bytes.startsWith('{')).toBe(true);
+    expect(bytes.includes('\uFEFF')).toBe(false);
+    expect(JSON.parse(bytes)).toMatchObject({ schemaVersion: 1 });
+  });
+});
+
 describe('building history runs', () => {
   it('keeps the aggregate id across recorded times and stores the aggregate only', async () => {
     const summary = await summarizeReport(messages);
@@ -638,6 +738,105 @@ describe('writing the history sidecar', () => {
     expect(Array.from(written.runs[0]?.title ?? '')).toHaveLength(
       HISTORY_MAX_TITLE,
     );
+  });
+});
+
+describe('validating the history target before writing', () => {
+  async function expectRejectedTarget(
+    file: string,
+    prefix: string,
+  ): Promise<void> {
+    const dir = path.dirname(file);
+    const before = await readFile(file, 'utf8');
+    const beforeStat = await stat(file);
+
+    await expect(writeHistory(file, [makeRun(9)])).rejects.toThrow(prefix);
+
+    await expect(readFile(file, 'utf8')).resolves.toBe(before);
+    expect((await stat(file)).mtimeMs).toBe(beforeStat.mtimeMs);
+    expect((await readdir(dir)).filter((name) => name.endsWith('.tmp'))).toEqual(
+      [],
+    );
+  }
+
+  it('rejects a schema-1 target whose runs are not an array', async () => {
+    const file = await writeRaw(
+      'runs-not-array.json',
+      JSON.stringify({ schemaVersion: 1, runs: 'not-an-array' }),
+    );
+
+    await expectRejectedTarget(
+      file,
+      `Cannot write history file ${path.basename(file)}:`,
+    );
+  });
+
+  it('rejects a schema-2 target with one bad run entry', async () => {
+    const file = await writeRaw(
+      'bad-entry.json',
+      JSON.stringify({
+        schemaVersion: 2,
+        runs: [makeRun(0), { ...makeRun(1), recordedAt: '2026' }],
+      }),
+    );
+
+    await expectRejectedTarget(
+      file,
+      `Cannot write history file ${path.basename(file)}:`,
+    );
+    await expect(writeHistory(file, [makeRun(9)])).rejects.toThrow(/runs\[1\]/);
+  });
+
+  it('still writes a missing target with schema 1', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'missing.json');
+
+    await writeHistory(file, [makeRun(0)]);
+
+    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({
+      schemaVersion: 1,
+      runs: [makeRun(0)],
+    });
+  });
+
+  it('appends to a valid target and keeps its stored schema', async () => {
+    const existing = makeRun(0);
+    const file = await writeRaw(
+      'schema-two.json',
+      JSON.stringify({ schemaVersion: 2, runs: [existing] }),
+    );
+
+    await writeHistory(file, [existing, makeRun(1)]);
+
+    const written = JSON.parse(await readFile(file, 'utf8')) as {
+      schemaVersion: number;
+      runs: HistoryRun[];
+    };
+    expect(written.schemaVersion).toBe(2);
+    expect(written.runs.map((run) => run.id)).toEqual([
+      existing.id,
+      makeRun(1).id,
+    ]);
+  });
+
+  it('moves from a rejected target to a valid write once the bytes are repaired', async () => {
+    const file = await writeRaw(
+      'repair.json',
+      JSON.stringify({ schemaVersion: 1, runs: 'not-an-array' }),
+    );
+    await expect(writeHistory(file, [makeRun(0)])).rejects.toThrow(
+      'Cannot write history file',
+    );
+
+    const repaired = sidecar([makeRun(0)]);
+    await writeFile(file, repaired, 'utf8');
+    await writeHistory(file, [makeRun(0), makeRun(1)]);
+
+    const written = await readHistory(file);
+    expect(written.map((run) => run.id)).toEqual([
+      makeRun(0).id,
+      makeRun(1).id,
+    ]);
   });
 });
 

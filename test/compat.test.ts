@@ -94,6 +94,108 @@ describe('cucumber-html-reporter compat', () => {
     expect(result.warnings.some((line) => line.includes('bad.json'))).toBe(true);
   });
 
+  it('skips a non-feature JSON array in a directory on request', async () => {
+    const dir = await tempDir();
+    await copyFile(legacy, path.join(dir, 'happy.json'));
+    await writeFile(path.join(dir, 'numbers.json'), '[1,2,3]', 'utf8');
+    const output = path.join(dir, 'report.html');
+
+    const result = await generate({
+      jsonDir: dir,
+      output,
+      ignoreBadJsonFile: true,
+    });
+
+    expect(result.warnings.some((line) => line.includes('numbers.json'))).toBe(
+      true,
+    );
+    await expect(readFile(output, 'utf8')).resolves.toContain(
+      'Happy HTML reporting',
+    );
+    const sidecar = JSON.parse(await readFile(`${output}.json`, 'utf8')) as unknown[];
+    expect(JSON.stringify(sidecar)).not.toContain('numbers.json');
+  });
+
+  it('skips an array of non-feature objects on request and fails without it', async () => {
+    const dir = await tempDir();
+    await copyFile(legacy, path.join(dir, 'happy.json'));
+    const bad = path.join(dir, 'objects.json');
+    await writeFile(
+      bad,
+      JSON.stringify([{ name: 'not a legacy feature', elements: 'no' }]),
+      'utf8',
+    );
+    const output = path.join(dir, 'report.html');
+
+    await expect(generate({ jsonDir: dir, output })).rejects.toThrow(
+      `compat: ${bad} is not a legacy feature array`,
+    );
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+
+    const result = await generate({
+      jsonDir: dir,
+      output,
+      ignoreBadJsonFile: true,
+    });
+
+    expect(result.warnings.some((line) => line.includes('objects.json'))).toBe(
+      true,
+    );
+    await expect(readFile(output, 'utf8')).resolves.toContain(
+      'Happy HTML reporting',
+    );
+    const sidecar = JSON.parse(await readFile(`${output}.json`, 'utf8')) as unknown[];
+    expect(JSON.stringify(sidecar)).not.toContain('not a legacy feature');
+  });
+
+  it('moves from a skipped bad file to a valid merged report', async () => {
+    const dir = await tempDir();
+    await copyFile(legacy, path.join(dir, 'happy.json'));
+    const bad = path.join(dir, 'bad.json');
+    await writeFile(bad, '[1,2,3]', 'utf8');
+    const output = path.join(dir, 'report.html');
+
+    const first = await generate({
+      jsonDir: dir,
+      output,
+      ignoreBadJsonFile: true,
+    });
+    expect(first.warnings.some((line) => line.includes('bad.json'))).toBe(true);
+    expect(
+      (JSON.parse(await readFile(`${output}.json`, 'utf8')) as unknown[]).length,
+    ).toBe(1);
+
+    await writeFile(
+      bad,
+      JSON.stringify([
+        {
+          uri: 'features/repaired.feature',
+          name: 'Repaired',
+          elements: [],
+        },
+      ]),
+      'utf8',
+    );
+
+    const second = await generate({
+      jsonDir: dir,
+      output,
+      ignoreBadJsonFile: true,
+    });
+    expect(second.warnings.some((line) => line.includes('bad.json'))).toBe(
+      false,
+    );
+    const merged = JSON.parse(
+      await readFile(`${output}.json`, 'utf8'),
+    ) as Array<{ uri: string }>;
+    expect(merged.map((feature) => feature.uri).sort()).toEqual([
+      'features/happy.feature',
+      'features/repaired.feature',
+    ]);
+  });
+
   it('uses jsonFile when jsonDir is also set', async () => {
     const dir = await tempDir();
     const output = path.join(dir, 'report.html');
