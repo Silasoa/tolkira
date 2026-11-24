@@ -4,7 +4,6 @@ import type {
   Background,
   Ci,
   Envelope,
-  Feature,
   FeatureChild,
   Rule,
   RuleChild,
@@ -581,26 +580,6 @@ export function buildReportModel(
     (typeof featureOrder)[number],
     ReportScenario[]
   >();
-  // A pickle without a gherkin document still needs a row the report can show;
-  // it is grouped under a synthetic feature that is not a counted feature.
-  const syntheticFeatures = new Set<Feature>();
-  const syntheticByUri = new Map<string, Feature>();
-  const syntheticFeature = (uri: string): Feature => {
-    const existing = syntheticByUri.get(uri);
-    if (existing) return existing;
-    const feature: Feature = {
-      location: { line: 1, column: 1 },
-      tags: [],
-      language: 'en',
-      keyword: 'Feature',
-      name: uri || 'Report',
-      description: '',
-      children: [],
-    };
-    syntheticByUri.set(uri, feature);
-    syntheticFeatures.add(feature);
-    return feature;
-  };
 
   for (const pickle of index.pickles.values()) {
     // The latest started attempt wins, even when it reported nothing: an
@@ -742,8 +721,7 @@ export function buildReportModel(
     const rule = ruleOf(astEntry?.rule);
     const feature =
       index.featureByScenarioId.get(scenarioId) ??
-      index.featuresByKey.get(pickle.uri) ??
-      syntheticFeature(pickle.uri);
+      index.featuresByKey.get(pickle.uri);
     const stepAttachments = stepRows.flatMap((step) => step.attachments);
     const hookAttachments = hookRows.flatMap((hook) => hook.attachments);
     const extraAttachments = mapAttachments(
@@ -902,18 +880,13 @@ export function buildReportModel(
     ...runHooks.flatMap((hook) => hook.attachments),
     ...runAttachments,
   ];
-  const syntheticRows = orderedFeatures.filter(
-    (feature) =>
-      syntheticFeatures.has(feature) &&
-      (featureScenarios.get(feature) ?? []).length > 0,
-  ).length;
   return {
     features: featureRows,
     scenarios: scenarioRows,
     runHooks,
     runAttachments,
     counts: {
-      features: featureRows.length - syntheticRows,
+      features: featureRows.length,
       scenarios: scenarioCounts,
       steps: stepCounts,
       hooks: hookCounts,

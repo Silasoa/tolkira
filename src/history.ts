@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { open, type FileHandle } from 'node:fs/promises';
-import path from 'node:path';
 import { writeAtomic } from './output.js';
 import type { ReportSummary, StatusCounts, SummaryStatus } from './summary.js';
 import { oneLine } from './text.js';
@@ -59,7 +58,7 @@ function fail(file: string, reason: string): never {
 
 function cannotWrite(file: string, reason: string): never {
   throw new HistoryValidationError(
-    `Cannot write history file ${oneLine(path.basename(file))}: ${reason}`,
+    `Cannot write history file ${oneLine(file)}: ${reason}`,
   );
 }
 
@@ -461,7 +460,7 @@ export async function writeHistory(
     // Name the target, never the atomic temporary file.
     const code = (error as NodeJS.ErrnoException).code;
     throw new Error(
-      `Cannot write history file ${oneLine(path.basename(file))}${code ? ` (${code})` : ''}`,
+      `Cannot write history file ${oneLine(file)}${code ? ` (${code})` : ''}`,
     );
   }
 }

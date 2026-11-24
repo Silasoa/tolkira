@@ -90,13 +90,13 @@ describe('default report main landmark', () => {
     expect(main).toBeGreaterThan(report);
     expect(main).toBeLessThan(analysis);
     expect(analysis).toBeLessThan(trends);
+    expect(html.indexOf('</main>', main)).toBeLessThan(analysis);
 
     const reportHeading = html.indexOf('<h1>', report);
     const analysisHeading = html.indexOf('<h1>', analysis);
     const trendsHeading = html.indexOf('<h1>', trends);
     expect(reportHeading).toBeLessThan(analysisHeading);
     expect(analysisHeading).toBeLessThan(trendsHeading);
-    expect(html.slice(report, analysis)).not.toContain('<main');
   });
 
   it('keeps one main and no tab roles in the static report', async () => {

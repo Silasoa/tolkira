@@ -19,6 +19,42 @@ const minimalFixture = legacyFixture('minimal.json');
 function tiedAttempts(): ReturnType<typeof parseMessages> {
   const lines: unknown[] = [
     {
+      gherkinDocument: {
+        uri: 'features/tie.feature',
+        comments: [],
+        feature: {
+          location: { line: 1, column: 1 },
+          tags: [],
+          language: 'en',
+          keyword: 'Feature',
+          name: 'Tie',
+          description: '',
+          children: [
+            {
+              scenario: {
+                id: 'tie-scenario',
+                location: { line: 3, column: 3 },
+                tags: [],
+                keyword: 'Scenario',
+                name: 'Tie scenario',
+                description: '',
+                steps: [
+                  {
+                    id: 'tie-step-def',
+                    location: { line: 4, column: 5 },
+                    keyword: 'Given ',
+                    keywordType: 'Context',
+                    text: 'a step',
+                  },
+                ],
+                examples: [],
+              },
+            },
+          ],
+        },
+      },
+    },
+    {
       pickle: {
         id: 'tie-pickle',
         uri: 'features/tie.feature',
@@ -26,7 +62,9 @@ function tiedAttempts(): ReturnType<typeof parseMessages> {
         language: 'en',
         astNodeIds: ['tie-scenario'],
         tags: [],
-        steps: [{ id: 'tie-pickle-step', text: 'a step', astNodeIds: [] }],
+        steps: [
+          { id: 'tie-pickle-step', text: 'a step', astNodeIds: ['tie-step-def'] },
+        ],
       },
     },
     {

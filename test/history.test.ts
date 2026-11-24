@@ -767,7 +767,7 @@ describe('validating the history target before writing', () => {
 
     await expectRejectedTarget(
       file,
-      `Cannot write history file ${path.basename(file)}:`,
+      `Cannot write history file ${file}:`,
     );
   });
 
@@ -782,7 +782,7 @@ describe('validating the history target before writing', () => {
 
     await expectRejectedTarget(
       file,
-      `Cannot write history file ${path.basename(file)}:`,
+      `Cannot write history file ${file}:`,
     );
     await expect(writeHistory(file, [makeRun(9)])).rejects.toThrow(/runs\[1\]/);
   });
