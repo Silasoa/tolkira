@@ -135,10 +135,12 @@ and is covered by real producer fixtures.
   once and passes it to the three views. It omits both inline scripts, the
   client-message block, the tab bar, the lightbox and the toolbar/copy/image
   buttons; sets `script-src 'none'` while keeping `connect-src 'none'`; opens
-  every `<details>`; and renders Details/Trends as plain containers inside the
-  same `tabPanel` class and view IDs, so the document has one `<main>` and the
-  print page-break rule still applies. The default path is untouched and the
-  mode is opt-in.
+  every `<details>`; and renders Report, Details and Trends as stacked visible
+  sections, with Details and Trends as plain containers inside panels that keep
+  the same `tabPanel` class and view IDs. Both forms render exactly one `<main>`,
+  on the Report view, and the print page-break rule still applies. The flag
+  controls scripts, controls, `open`, `hidden` and ARIA, not the landmark, and
+  the mode stays opt-in.
 - The history-only Trends shell fixes (wrapped tab strip, capped table with a
   sticky header, whole-word print headers, the `Current` tag on the date line
   and a ratio-correct sparkline) ship in `TRENDS_SHELL_CSS`, appended only when

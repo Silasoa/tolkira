@@ -3,6 +3,84 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
+## [0.6.1] - Unreleased
+
+### Fixed
+
+- The default report now has exactly one `<main>`, on the Report view. Details
+  and Trends are plain containers in both report forms; their panels keep the
+  `tabPanel` class, `role="tabpanel"`, the `analysis-view`/`trends-view` IDs and
+  the `#analysis-view, #trends-view` print page break. The static report keeps
+  its one `<main>`; the default form was the last three-`<main>` document
+  (B-048).
+- The Details metadata list stacks each label above a start-aligned value at
+  320 px with 200 % text, and a long unbroken URL wraps instead of forming a
+  narrow ragged column. At 100 % text and at 768 px and wider at the gate zoom
+  the two-column, right-aligned layout is unchanged (B-039).
+- `readHistory` and the schema peek used by `writeHistory` strip exactly one
+  leading UTF-8 BOM before parsing, so a BOM-prefixed sidecar reads and appends
+  instead of failing with `not valid JSON`; a read never rewrites the file. A
+  BOM-only file and a BOM followed by invalid JSON keep that error. The writer
+  emits no BOM, so its next successful write replaces a BOM-prefixed file with
+  BOM-free bytes and keeps every run the append would keep (B-049).
+- Input accounting counts only files that produce a loader group, so skipped
+  files, empty Messages shards and duplicate content do not count toward
+  `inputFiles`, `inputBytes` or the 100 MB total cap. The per-file 100 MB guard
+  still runs before the read; the total cap applies to unique loaded content
+  after dedupe and skip and reports `Inputs exceed 100 MB in total. Split the
+  run into smaller inputs or reduce the attachment payload.`
+- A directory scan skips an empty `.jsonl`/`.ndjson` shard (zero non-empty
+  lines after an optional BOM and whitespace) without a group, count or
+  warning, so one empty shard no longer aborts the scan. An explicitly named
+  empty file still fails with `Input is empty`, and a directory with only empty
+  shards fails with `No supported report files found.`
+- `writeHistory` validates an existing target with the reader's full document
+  and run rules before writing. A supported schema with a malformed `runs`
+  value or entry is rejected with the existing `Cannot write history file`
+  prefix and the target stays byte-identical; a missing target is written and a
+  valid target is appended with its schema kept.
+- The summary per-scenario attachment count now equals the attachments the
+  report renders: those on a pickle or hook step with a result, plus those with
+  no `testStepId`. Attachments on a resultless step, an absent test step or a
+  missing run-hook start no longer count; the run total adds attachments on
+  present run-hook starts and run-level attachments. `attachments.total`,
+  `model.counts.attachments` and the Details count agree, and the schema stays
+  version 2.
+- Playwright results without a `retry` value or with equal values use the last
+  array element as the final result; distinct retries still pick the highest.
+  On a full attempt and timestamp tie the later start wins, so the report and
+  summary agree, and a zero-seconds run or scenario timestamp renders no date
+  instead of 1970-01-01.
+- A Playwright expected skip no longer hides a result: a failed final result
+  renders failed with its error, and a passed final result under an expected
+  skip renders as an unexpected pass (failed). A test is skipped only when its
+  final result is skipped or it is marked skipped with no result.
+- A Playwright spec without `file` uses its enclosing suite's file for the
+  scenario URI and rule name. Without a project the feature name follows that
+  file; with a project the project stays the feature grouping, and an explicit
+  spec `file` still wins.
+- A Messages `testCaseStarted.attempt` must be a non-negative safe integer when
+  present; a non-finite, string, negative or fractional value fails with the
+  existing line error naming the file, line and field. An absent attempt is 0,
+  and `--json` never contains `null` for it.
+- The GitHub annotation title (feature + scenario identity) and the Markdown
+  heading, feature name, scenario name, URI and skipped identity cap at 200
+  Unicode code points and add the existing `[truncated]` marker when cut, before
+  escaping or code-span wrapping. A surrogate pair is never split; counts,
+  failure-message limits, the 50/20 list limits and Azure's 4,000-code-point
+  message cap are unchanged.
+- A failed `--out` write reports `Cannot write report to <target> (<code>)` and
+  a failed `--ci-out` write reports `Cannot write CI output to <target>
+  (<code>)`, with the target one-lined and the Node error code when present. No
+  `.tmp` name or UUID appears, the exit code stays 1, no partial file remains,
+  and a failed report write writes no later output while a failed CI write
+  keeps the report.
+- With `ignoreBadJsonFile: true`, a `jsonDir` file whose JSON is not an array of
+  legacy feature objects (`[1,2,3]` or an array of non-feature objects) is
+  skipped with the existing warning and is not merged. Without the flag the
+  same file fails with the compat legacy-array error. Both compat checks use the
+  same feature-shape predicate as `detectInput`.
+
 ## [0.6.0] - 2026-11-24
 
 ### Added

@@ -81,6 +81,10 @@ The summary URI is report-relative, not a CI workspace path, so annotations
 carry no `file=` property. The feature, scenario name and first failure message
 provide the identity. Scenarios that share a feature and name are therefore
 indistinguishable in annotations; the final count notice still includes them.
+The feature + scenario identity in an annotation title is capped at 200 Unicode
+code points and followed by `[truncated]` when cut, before GitHub escaping. The
+exact counts and the failure-message limit are unchanged; a surrogate pair is
+never split.
 
 ## Azure DevOps
 
@@ -165,7 +169,11 @@ Markdown mode writes a heading, a complete counts table including the overall
 status, the failed scenarios and the skipped scenario names. Dynamic names,
 URIs and messages are rendered as inert code spans or fenced blocks, never as
 links, images or raw HTML; line breaks in a name, URI or feature collapse to a
-space so they cannot start a new Markdown block. The failed list is capped at
+space so they cannot start a new Markdown block. The heading (`--title`
+included), each failed feature name, scenario name and URI, and each skipped
+identity are capped at 200 Unicode code points, followed by the literal
+`[truncated]` marker when cut; the cap applies before escaping or code-span
+wrapping, and a surrogate pair is never split. The failed list is capped at
 50 scenarios, each failure message at 500 raw characters before formatting, and
 the skipped name list at 20 names. The counts stay complete and every omitted
 count is stated.

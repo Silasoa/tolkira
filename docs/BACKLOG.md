@@ -53,13 +53,9 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-029 | Report | P3 | Chromium OS sandbox for PDF renders | A CI runner or container supports the Chromium OS sandbox and the PDF path processes untrusted attachments; until then the accepted `--no-sandbox` risk is documented in PDF.md. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
-| B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column, and the label column is squeezed too, at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
-| B-048 | Report | P3 | Default report renders three `<main>` elements (Report, Details, Trends), which is invalid HTML; pre-existing and unchanged by the static mode | An HTML-validity or accessibility audit flags the default document, or another change needs one `<main>` in the default report; then make Details/Trends plain containers and keep the `#analysis-view`/`#trends-view` page-break rule. | — |
-| B-049 | History | P3 | A UTF-8 BOM before the sidecar JSON is not stripped, so `readHistory` rejects a BOM-prefixed file; pre-existing and unchanged by the window | A user or producer writes a BOM-prefixed sidecar, or the sidecar encoding is next touched; then strip a leading U+FEFF before `JSON.parse` and cover it in `test/history.test.ts`. | - |
 | B-050 | Report | P3 | Add a new-failure/fixed list or a local `change` filter for large runs; the panel only counts and lists absent rows | A user asks for the names of new failures or fixed scenarios in a large run; then extend the panel and pin the focus/filter behaviour. | — |
 | B-051 | Report | P3 | Extract the shared outline-coordinate helper duplicated in `src/summary.ts` and `src/report/model.ts` | The next change touches `src/summary.ts` or `src/report/model.ts`; then move the helper to one leaf module and keep both labels equal. | — |
 | B-053 | Test | P3 | No container smoke: CI covers Linux, Windows and macOS runners, but not `node:22-alpine` (musl) or a slim/distroless image | Before claiming container support, or when a user reports an install or run failure in Docker, Alpine or a distroless CI image; then add install-plus-report smokes for `node:22-alpine` and `node:22-slim` and record the host. | - |
-| B-054 | Test | P3 | A green e2e run leaves no visual evidence: Playwright captures a screenshot only when a test fails, and there is no visual baseline | When the next report-shell change lands or a review needs visual evidence; then add one e2e test that renders the default and the static report at the gate viewports and writes the PNGs under `test-results/visual/`, picked up by the existing `playwright-visual-*` artifacts. No pixel assertions. | - |
 | B-055 | Quality | P3 | Lint runs oxlint defaults only (`correctness`, with unicorn/oxc/typescript) and `strict` omits `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noUnused*` and `noImplicitReturns`; a probe finds 86 type errors in 21 files (9 src, 12 test) and about 60 real lint findings after excluding the `no-await-in-loop` and `no-array-sort` noise; `passWithNoTests` can hide a broken glob, and there is no formatter or coverage | User approved the full package on 2026-11-24. Next quality change after 0.6.1; then add the six strict flags and a client/server tsconfig split, a curated oxlint config (`correctness` + `suspicious` + `perf`, import/promise/node/vitest plugins, `valid-expect` maxArgs 2, documented exceptions), `oxlint --max-warnings=0`, remove `passWithNoTests`, add a conservative coverage threshold, add Prettier as a formatting check with one isolated formatting-only commit, and evaluate `oxlint --type-aware` (`oxlint-tsgolint`) before considering ESLint. Re-measure the error count in the change. | - |
 | B-056 | Performance | P3 | At 5,000 scenarios the single-string renderer peaks at 310 MiB RSS and the report needs 1.80 s to finish loading (241,785 DOM nodes), while the official formatter peaks at 77 MiB and loads in 0.67 s; generation (604 ms) and output (10.8 MB, the smallest of the four) are competitive | Planned in the 0.7 performance pass: profile the 5,000 and 10,000 scenario render, prototype a chunked or streaming writer, and decide whether the single-string renderer stays; re-run `scripts/bench-compare.mjs` with the recorded host. A CI host or user hitting the memory or load limit moves it earlier. | - |
 | B-057 | Quality | P3 | The architecture review (`docs/research/architecture-2026-11.md`) rates 7 of 14 areas weak: status vocabulary in 8 modules, diverging sidecar readers, a 779-line CLI with a 461-line `runCli` and 38 `return 2` sites, a 14-field `RenderOptions` with double sanitising, path containment in 4 places and 12 files over 400 lines; the ponytail audit adds dead model fields and the `phase` export, copied `excerpt`/`readBounded` helpers, and unused `testRunFinished.success`; a second architecture pass (`docs/research/architecture-session-2026-11.md`) adds the server/browser filter-decision seam and the one ICU message parser, and refines the attachment ledger | After 0.6.1, one change at a time in the reviewed order: status vocabulary (S), durable sidecar reader (M), CLI plan/execute (M), report pipeline seam (M), input pipeline (L); never bundle a refactor with a behaviour or markup change. Fold the small cleanups into the sidecar and package steps; add the filter seam and message-format leaf after the input pipeline. | - |
@@ -133,6 +129,36 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-054 Visual evidence for green e2e runs** — resolved on 2026-11-24 in the
+  `0.6.1-quality-pass` change, commit `1fea073`: one e2e test renders the default
+  and `--static` report from `test/fixtures/messages/screenshot.ndjson` at
+  1440 px, 390 px and 320 px with 200 % text, writing six PNGs per engine under
+  `test-results/visual/<engine>/`; the existing `playwright-visual-*` CI
+  artifacts pick them up. There are no pixel assertions, no committed image and
+  no new dependency, and each form asserts its title before capture.
+- **B-049 BOM before the history sidecar** — resolved on 2026-11-24 in the
+  `0.6.1-quality-pass` change, commit `1fea073`: the shared bounded sidecar read
+  strips exactly one leading U+FEFF, so `readHistory` and the schema peek behind
+  `writeHistory` accept a BOM-prefixed file, and a read never rewrites it. A
+  BOM-only file and a BOM followed by invalid JSON keep the existing
+  `not valid JSON` error. The writer emits no BOM, so its next successful write
+  replaces a BOM-prefixed file with BOM-free bytes and keeps every run the append
+  would keep.
+- **B-048 One main landmark in the default report** — resolved on 2026-11-24 in
+  the `0.6.1-quality-pass` change, commit `1fea073`: the default report has
+  exactly one `<main>`, on the Report view. Details and Trends are plain
+  containers in both report forms; their panels keep the `tabPanel` class,
+  `role="tabpanel"`, the `analysis-view`/`trends-view` IDs and the
+  `#analysis-view, #trends-view` print page break. The static report keeps its
+  one `<main>`; heading order and tab roles are unchanged, and apart from the
+  B-039 metadata rule the gate-viewport layout is unchanged.
+- **B-039 Details metadata at 320 px and 200 % text** — resolved on 2026-11-24
+  in the `0.6.1-quality-pass` change, commit `1fea073`: a narrow container query
+  stacks each Details metadata label above a start-aligned value when the shell
+  is 10 rem or narrower, with a German override because its selector outranks
+  the generic rule. A long unbroken URL wraps inside the stacked value column
+  and the page does not scroll horizontally. At 100 % text from 320 px and at
+  768 px and wider the two-column, right-aligned layout is unchanged.
 - **B-052 README report preview** — resolved on 2026-11-24: `README.md` now
   shows `docs/comparison/tolkira-0.6.0-report.png` (1440×900, 47,441 bytes),
   captured from the default English report of
@@ -156,8 +182,9 @@ asks or a locale needs them:
   expanded, script-free report: no `<script>`, `script-src 'none'`, every
   `<details>` open, the tab bar, lightbox, copy controls and search/filter
   toolbar removed, exactly one `<main>`, and server-rendered Details and Trends.
-  It is a report form, not a CSP fix; the default report without Trends keeps
-  its bytes and its pre-existing three `<main>` elements (B-048).
+  It is a report form, not a CSP fix; in 0.6.0 the default report without
+  Trends kept its bytes and its pre-existing three `<main>` elements (B-048),
+  which 0.6.1 replaced with one.
 - **B-044 Configurable history window** — resolved on 2026-11-23 in the
   `0.6-history-window` change: `--history-limit <n>` (needs `--history`) keeps
   the newest 1 to 365 aggregate runs, default 30, and bounds read, append, write

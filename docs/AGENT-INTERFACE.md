@@ -40,6 +40,13 @@ stderr. Exit codes are about report generation, not test status:
 Always read `status` from the JSON summary for the test outcome. A failed test
 suite is exit code 0 by design.
 
+A failed `--out` write exits 1 and reports
+`Cannot write report to <target> (<code>)`; a failed `--ci-out` write reports
+`Cannot write CI output to <target> (<code>)`. The target is one-lined, the Node
+error code appears when present, no `.tmp` name or UUID appears, and no partial
+file remains. A failed report write writes no later output; a failed CI write
+keeps an already written report and skips later stdout.
+
 ## CI output
 
 Format the same summary for CI instead of, or alongside, HTML and JSON:
@@ -85,7 +92,13 @@ mode caps error commands at 50 and warnings at 20, truncates each complete
 message at 4,000 code points and escapes `%`, `]`, CR, LF and Unicode line
 separators into one inert command line. Markdown caps the failed list at 50
 scenarios, each message at 500 raw characters and the skipped name list at 20,
-while the counts and the overall `Status` row stay complete.
+while the counts and the overall `Status` row stay complete. The GitHub
+annotation title (feature + scenario identity) and the Markdown heading
+(`--title` included), feature name, scenario name, URI and skipped identity cap
+at 200 Unicode code points, with the existing `[truncated]` marker appended when
+cut before escaping or code-span wrapping; a surrogate pair is never split. The
+counts, the full report, the failure-message limits, the 50/20 list limits and
+the Azure 4,000-code-point message cap are unchanged.
 
 ## Baseline comparison
 
@@ -348,8 +361,14 @@ unique report files that formed loader groups (including validation-only files
 that produced no envelopes) and their total size on disk. Inline media inside a
 report file counts toward that file's bytes; Playwright path attachments are
 external and are not added, so the attachment row covers their decoded payloads.
-Duplicate-content files are not counted, so `inputBytes` describes the files
-behind the report rather than every path on the command line. The Details Run
+Duplicate-content files are not counted, and a `skip` decision or an empty
+`.jsonl`/`.ndjson` shard skipped by a directory scan creates no group, so
+`inputBytes` describes the files behind the report rather than every path on the
+command line. A single resolved file above 100 MB fails the per-file guard
+before it is read; the 100 MB total cap applies to the unique loaded content
+after dedupe and skip and reports
+`Inputs exceed 100 MB in total. Split the run into smaller inputs or reduce the attachment payload.`
+The Details Run
 panel shows the input row only when both values are present; direct `renderHtml`
 callers and `CucumberHtmlStream` omit them, so their panel omits that row. The
 same panel shows the exact final report HTML bytes and the three largest
@@ -499,11 +518,23 @@ Contract:
   `writeHistory` reads the target once through the same bounded, regular-file
   and 1 MiB checks as `readHistory` at every limit, both to preserve that schema
   and to reject a malformed, oversized or unreadable target instead of
-  overwriting it with version 1. A 0.5 reader rejects version 2 with
+  overwriting it with version 1. It validates an existing target with the
+  reader's full document and run rules: a supported schema with a malformed
+  `runs` value or entry is rejected with the existing
+  `Cannot write history file <file>: ...` prefix and the target stays
+  byte-identical, while a missing target is written and a valid target is
+  appended with its schema kept. A 0.5 reader rejects version 2 with
   `unsupported schema version "2"`, exits 1 and leaves the file untouched; a
   default run on a version-1 file keeps that rollback path open, while a run
   above 30 or on a version-2 file does not. The 0.5.0 and 0.5.1 packages share
   the reader.
+- `readHistory` and the schema peek behind `writeHistory` strip exactly one
+  leading UTF-8 BOM (U+FEFF) from the bounded sidecar text before `JSON.parse`,
+  and a read never rewrites the file. A BOM-only file and a BOM followed by
+  invalid JSON keep the existing `not valid JSON` error; two leading BOMs leave
+  one and still fail that way. The writer emits no BOM, so its next successful
+  write replaces a BOM-prefixed file with BOM-free bytes and keeps every run the
+  append would keep.
 - `id` is the SHA-256 of the aggregates and the resolved title, excluding
   `recordedAt`. When the last entry has the same id, the new run is not
   appended and the old `recordedAt` stays.
@@ -607,10 +638,9 @@ The tab bar, tab roles, lightbox dialog and image lightbox buttons, the
 copy-failure and log-copy buttons and the search/status/tag toolbar are removed,
 not left inert. Images render inline in the open detail body. The `report-view`,
 `analysis-view` and `trends-view` IDs stay, so the print page-break rule still
-puts each present view on a new page. The document has exactly one `<main>`:
-the Report view keeps it and Details/Trends use plain containers. The default
-report's three `<main>` elements are a recorded pre-existing defect (B-048) and
-are not changed by this mode.
+puts each present view on a new page. Both report forms have exactly one
+`<main>`, on the Report view; Details and Trends are plain containers in both,
+and their panels keep the `tabPanel` class, `role="tabpanel"` and IDs.
 
 Print/PDF follow the existing print CSS: every present section and open detail
 prints, with no tab bar. A bookmarked `?query=`, `?hide=` or `?tag=` URL shows
@@ -841,9 +871,15 @@ Field contract:
   the summary, CI or email or changes a status. The history sidecar's optional
   `flaky` count is a separate per-run field; see Run history.
 - `attempt` is the latest started Cucumber attempt for that scenario, even when
-  that attempt reported no result. An earlier retried attempt is ignored. For a
-  Playwright JSON input it is the Playwright retry index of the final result;
-  earlier attempts are not exposed as scenario rows.
+  that attempt reported no result. An earlier retried attempt is ignored. Two
+  starts with the same attempt number and timestamp resolve to the later
+  envelope in input order, which supplies the status, timestamps, attachments
+  and summary row. For a Playwright JSON input `attempt` is the Playwright retry
+  index of the final result; earlier attempts are not exposed as scenario rows.
+  A Messages `testCaseStarted.attempt` is optional; when present it must be a
+  non-negative safe integer, otherwise the input fails with the existing line
+  error naming the file, line and `testCaseStarted.attempt`. An absent attempt
+  is 0 in the model and the summary, and `--json` never contains `null` for it.
 - `attachments.bytes` is the decoded size, not the base64 length.
 - `steps[].message` is present only when the step result has a message. For
   hooks, `keyword` is `"Hook"`, `text` is the hook type and `name` is present
@@ -859,7 +895,13 @@ Field contract:
   a passed step never carries them.
 - Attachment file names are not part of the summary. `scenarios[].attachments`
   is a count and is 0 for an unexecuted scenario; open the HTML report to see
-  the image or file. Unnamed attachments use a deterministic
+  the image or file. The count is the rendered set: attachments with no
+  `testStepId`, plus attachments on a pickle or hook step that has a result. An
+  attachment on a resultless step, on a test step absent from the case or on a
+  run-hook start missing from the stream is not counted. `attachments.total` is
+  the union of the rendered scenario sets, attachments on present run-hook
+  starts and run-level attachments, so it matches `model.counts.attachments`
+  and the Details count. Unnamed attachments use a deterministic
   `attachment.<ext>` fallback in HTML; unknown media types normalise to
   `application/octet-stream` and `attachment.bin`.
 - CI metadata from Messages `meta.ci` renders in the HTML report (and the

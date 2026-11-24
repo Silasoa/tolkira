@@ -45,7 +45,7 @@ unsupported input and never with a partial report.
 | file + describe path | rule, for example `checkout.spec.ts › cart › payment` |
 | spec title (minus trailing `@tags`) | scenario name |
 | one spec test in one project | one scenario |
-| each result | one attempt; the final result is the visible one |
+| each result | one attempt; the last result in array order wins when `retry` is missing or equal, otherwise the highest `retry` wins |
 | `result.retry` | attempt index (the HTML shows `Attempt: retry + 1`) |
 | nested result steps | flat steps in order, deeper levels prefixed with `›` |
 | `result.error` / `errors` | failed step message, snippet and relative location |
@@ -65,12 +65,19 @@ source label appends the line only when the feature has one file and every
 scenario agrees on one positive line; otherwise it keeps the file, the file
 count or nothing, and never a trailing colon. A missing or zero `spec.line` and
 a run-level error pseudo-pickle have no line, and the line is not part of the
-JSON summary, CI text or email.
+JSON summary, CI text or email. When a spec omits `file`, its scenario URI and
+rule name use the enclosing suite's file; an explicit spec `file` still wins.
+Without a project the feature name follows that inherited file; with a project
+the project stays the feature grouping.
 
 ### Status
 
 The final result, together with `test.status` and `test.expectedStatus`, drives
-the scenario:
+the scenario. When `retry` values are missing or equal, the last result in array
+order is the final one; with distinct retry values the highest retry is final.
+A full attempt and timestamp tie between two starts for one scenario selects the
+later start, so the report and summary use the same final attempt. A skip marker
+never overrides a failed or passed final result.
 
 - passed -> passed;
 - failed, `timedOut` or `interrupted` -> failed; the status is never treated as
@@ -85,12 +92,22 @@ the scenario:
   timed-out or interrupted final result -> an expected failure: all step results
   are passed, the error text sits in the scenario description, and the scenario
   carries `@expected-failure`;
-- an unexpected pass -> one synthetic failed step and `@unexpected-pass`;
-- `skipped` with no results -> one synthetic skipped step, so the scenario stays
+- an unexpected pass -> one synthetic failed step and `@unexpected-pass`; a
+  passed final result under `expectedStatus: "skipped"` also takes this branch;
+- an expected skip does not take the expected-failure branch; a failed final
+  result wins over the skip marker and renders failed with its error;
+- a skipped final result -> one synthetic skipped step, so the scenario stays
   visible and counts as skipped; its summary entry has `executed: true` and
   `status: "skipped"`;
+- a test marked `skipped` (in `test.status` or `test.expectedStatus`) with no
+  result -> the same synthetic skipped step;
 - a non-skipped test with no results -> an empty started attempt, visible as
   unexecuted, not passed and not skipped.
+
+A zero `testRunStarted`, `testRunFinished` or per-scenario `startedAt` timestamp
+is unknown; the report omits that date instead of showing 1970-01-01, and a real
+non-zero timestamp keeps the existing localized date. The JSON summary, CI text
+and email carry no run date and are unchanged.
 
 A failed result with steps but no step error keeps the ordinary steps and appends
 one synthetic failed `Error` step. A test with no steps gets one synthetic step
@@ -151,9 +168,13 @@ Playwright attachments have `name`, `contentType` and either a base64 `body` or 
 
 The process working directory root supports the common CI layout where
 `reports/results.json` and `test-results/` are siblings. It is taken from the
-process, never from report data. A layout where the JSON and the referenced
-files live in unrelated trees is unsupported; those path attachments are
-skipped, while inline attachments still work. The one-file decision and its
+process, never from report data. The report input controls the attachment path,
+though, so any regular file under either root can be embedded: keep the input and
+its attachment tree trusted, or run generation in a container that limits what
+those roots contain. An opt-in attachment root or allowlist is tracked as B-058
+and is not part of the current behaviour. A layout where the JSON and the
+referenced files live in unrelated trees is unsupported; those path attachments
+are skipped, while inline attachments still work. The one-file decision and its
 revisit trigger are in [ADR 0006](adr/0006-inline-attachments.md).
 
 ### Skipped attachment count, names and reasons
@@ -196,8 +217,10 @@ counted once. The JSON summary, CI text and exit codes are unchanged.
 
 ### Earlier attempts
 
-Every `testCaseStarted` stays in the index, but the final attempt remains the
-scenario, summary and history result. A retried scenario renders a collapsed
+Every `testCaseStarted` stays in the index, but the final result remains the
+scenario, summary and history result. Results that share the final result's
+`retry` value describe the same attempt and are not listed as earlier attempts.
+A retried scenario renders a collapsed
 `Earlier attempts` block with up to three executed earlier starts in input
 order, each with status, duration and its first failure message. The summary
 reads `3 of 5` when more exist. The block is native `<details>`, escaped,
@@ -235,6 +258,7 @@ and renders zero scenarios.
 - An embedded video attachment uses the existing inline video element only.
 - The final attempt is the visible scenario result; earlier attempts supply the
   attempt count and a report-only evidence block, not separate scenario rows.
+  When `retry` values are missing or equal, the last result is final.
 - The usual Tolkira limits apply: 100 MB total input, 50 MB per attachment and
   100 MB total attachments, plus the 10 MB retry-evidence budget described
   above.

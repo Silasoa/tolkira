@@ -178,13 +178,13 @@
   expected value; the current fixtures do not change. The two legacy fixtures
   are re-pinned here for the shell with their 2026 date, and again in the
   hardening change for the removed date.
-- [ ] 3.5 Docs for the accepted items: update `docs/ARCHITECTURE.md` (default
+- [x] 3.5 Docs for the accepted items: update `docs/ARCHITECTURE.md` (default
   and static both render one `<main>`), `docs/AGENT-INTERFACE.md` (remove the
   default three-`<main>` defect note; add the one-BOM sidecar sentence),
   `docs/LIMITATIONS.md` (static row no longer claims the default keeps three
   `<main>`), and `docs/BACKLOG.md` (move B-039, B-048, B-049 and B-054 to
   Resolved at archive time).
-- [ ] 3.6 Changelog for the accepted items: add the B-048, B-039 and B-049
+- [x] 3.6 Changelog for the accepted items: add the B-048, B-039 and B-049
   entries under `## [0.6.1] - Unreleased` in `docs/CHANGELOG.md`, including the
   BOM-free next write. Do not change `package.json` (`version` stays 0.6.0).
 - [x] 3.7 Audit 2: reorder `loadResolvedInputs` to per-file guard → read →
@@ -233,7 +233,7 @@
   it in `src/compat/options.ts` and `readFeatures` in
   `src/compat/cucumber-html-reporter.ts`. Invariant: one predicate, warning and
   skip with the flag, compat failure without it, no second shape check.
-- [ ] 3.18 Audit docs and changelog: update `docs/AGENT-INTERFACE.md` (input
+- [x] 3.18 Audit docs and changelog: update `docs/AGENT-INTERFACE.md` (input
   accounting/cap, history target validation, attachment parity, attempt,
   CI identity cap, write-error prefixes), `SECURITY.md` and
   `docs/PLAYWRIGHT-JSON.md` (path trust model, final-result/skip/file rules),
