@@ -4,15 +4,12 @@
 
 ### Requirement: Render one main landmark around the report views
 
-The default report SHALL contain exactly one `<main>`. It SHALL start before
-`#report-view` and close after the last present panel, so Report, Details and
-(when present) Trends are all inside it. The static report SHALL use the same
-one-main wrapper. No panel SHALL contain a `<main>`. The site
-`<header class="topbar">` SHALL remain the only banner landmark, and every
-view's `<header class="runHead">` SHALL sit inside the one `<main>`. The change
-SHALL preserve tab roles, heading order and content. Apart from the Details
-metadata rule owned by this change, it SHALL NOT change the layout at the gate
-viewports or at 320 px with 200 % text.
+The default report SHALL contain exactly one `<main>` around `#report-view`,
+`#analysis-view` and (when present) `#trends-view`; the static report SHALL use
+the same wrapper. No panel SHALL contain a `<main>`, and the site
+`<header class="topbar">` SHALL remain the only banner. Tab roles, heading
+order, content and the gate-viewport layout SHALL stay unchanged, apart from
+the Details metadata rule owned by this change.
 
 #### Scenario: Default report without Trends
 
@@ -71,13 +68,11 @@ viewports or at 320 px with 200 % text.
 
 ### Requirement: Keep the panel contract inside the one main
 
-In both report forms, Report, Details and Trends SHALL use plain containers
-inside their existing panels, and those panels SHALL sit inside the one
-`<main>`. Each default panel SHALL keep the `tabPanel` class,
-`role="tabpanel"`, `aria-labelledby`, `tabindex`, `hidden` and its `report-view`,
-`analysis-view` or `trends-view` ID. The static report SHALL keep the `tabPanel`
-class and the same IDs without tab roles or the tab attributes. Both forms SHALL
-keep the `#analysis-view, #trends-view` print page-break rule.
+In both forms the panels SHALL sit inside the one `<main>` and SHALL keep their
+`tabPanel` class and view IDs. Each default panel SHALL also keep
+`role="tabpanel"`, `aria-labelledby`, `tabindex` and `hidden`; the static panels
+SHALL have no tab roles or attributes. Both forms SHALL keep the
+`#analysis-view, #trends-view` print page-break rule.
 
 #### Scenario: Panel contract
 
