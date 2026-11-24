@@ -268,9 +268,11 @@ has not been announced anywhere.
   want a single thread for early users. Do not enable Discussions for this.
 - No external comment yet. Let the release exist for a few days.
 
-### Step 2 — the one maintenance-thread comment (day 3–7)
+### Step 2 — the one maintenance-thread comment (after 0.6.1)
 
 - Post **once** in #296, not #265.
+- Re-check the three dates, and that the thread is still open and unlocked,
+  immediately before posting.
 - Use the #296 draft below. Disclosure first. State the dates, not a verdict.
 - Do not bump, do not reply to yourself, do not post the same text in #303,
   #254, #167 or #259.
@@ -388,9 +390,10 @@ attach. No reply is needed here.
 
 ### B. Comment for #296 "Is this project still alive?"
 
-**Status: the only defensible GitHub comment.** Post once, after 0.5.1 and the
-own-channel release, with no bump. If the thread is locked or the maintainer
-objects, do not post.
+**Status: the only defensible GitHub comment.** Text final for 0.6.x. Post
+once, after 0.6.1 is on npm, with no bump, and only after re-checking the
+three dates in the text. If the thread is locked, the thread has gone
+off-topic, or the maintainer objects, do not post.
 
 ```text
 **Disclosure:** I maintain Tolkira, an open-source alternative to this
@@ -400,13 +403,14 @@ before posting. I am not a maintainer of this project.
 
 To answer the question factually: the last npm publish is 7.2.0 (October 2024),
 the last GitHub release is 6.0.0 (March 2023), and the last push to the
-repository was in November 2024; the last commit on `develop` is a dependency
-bump from November 2024. I cannot speak for the maintainer.
+repository was in November 2024. I cannot speak for the maintainer.
 
 I built Tolkira for the gap this thread describes. It reads the same legacy
 Cucumber JSON, plus Messages, JUnit XML and Playwright JSON, and writes one
 self-contained HTML file with inline CSS, JavaScript and attachments: no CDN,
-no server, no telemetry. There is a compatibility subpath,
+no server, no telemetry. It also has a static no-JS report form for email and
+print, opt-in history trends, and a baseline comparison against a previous
+`--json` summary. There is a compatibility subpath,
 `tolkira/compat/cucumber-html-reporter`, with an async `generate()`. It is a
 shim, not a drop-in replacement: `theme` is ignored with a warning, every call
 returns a promise, and Node.js 22+ is required.
