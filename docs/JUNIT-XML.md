@@ -75,10 +75,12 @@ one.
 ## Entities
 
 Only the five XML named entities (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`)
-and numeric character references such as `&#160;` or `&#xA0;` are accepted. Any
-other named entity, including `&nbsp;`, fails with the existing
-`invalid entity reference` error naming the file, and no partial report is
-written; the same text inside CDATA stays data.
+and numeric character references such as `&#160;` or `&#xA0;` are accepted, and
+a numeric reference must denote an XML character. Every other `&` in text or an
+attribute value fails with the existing `invalid entity reference` error naming
+the file: an unknown name such as `&nbsp;`, a bare `&` even when a later
+`&amp;` is valid, and a numeric code outside the XML character ranges. No partial
+report is written, and the same text inside CDATA stays data.
 
 ## Limits
 

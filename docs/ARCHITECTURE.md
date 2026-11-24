@@ -73,7 +73,9 @@ and is covered by real producer fixtures.
 - `<testsuite>` -> feature, `<testcase>` -> scenario with one synthetic step,
   `failure`/`error`/`skipped` -> status, `time` -> duration,
   `system-out`/`system-err` -> text attachments.
-- Uses `fast-xml-parser`, loaded on demand only for XML input.
+- Uses `fast-xml-parser`, loaded on demand only for XML input. A pre-parse XML
+  entity check accepts only the five named entities and numeric character
+  references; a bare `&`, an unknown name and a non-XML numeric code fail.
 - No Gherkin steps or screenshots; this is breadth, not Cucumber depth.
 
 ### `src/input/load`
@@ -242,16 +244,22 @@ and is covered by real producer fixtures.
   the `baseline` block and a per-scenario `change`; Messages outline rows carry
   an unconditional `example` coordinate.
 - `displayUri` shares `analyzePath` from `src/display-path.ts` with the legacy
-  adapter. For an absolute path or file URL it removes the `file:` scheme, an
-  empty/localhost authority, a remote authority (as the first path segment), an
-  optional drive and a `/mnt/<drive>` mount, and treats `%2F`/`%5C` as
-  separators for that analysis; it then drops every `Users`, `home` or
-  `Documents and Settings` segment plus the next segment anywhere in the path,
-  repeatedly. The result uses the `/features/` marker or the last three
-  remaining segments, never a drive prefix, and is empty when nothing remains.
-  Relative paths stay unchanged. The report model keeps raw URIs for provenance
-  and uses the display URI for an unnamed feature's heading; the renderer uses
-  it for display URIs and copied failure text.
+  adapter. For an absolute path or file URL it removes the `file:` scheme and
+  authority (including userinfo), an optional drive and a `/mnt/<drive>` mount,
+  turns a remote authority into the first path segment, treats `%2F`/`%5C` as
+  separators including a leading one, decodes each segment once for the home
+  comparison, and resolves `.`/`..` (also percent-encoded) for the analysis
+  only. It then drops every `Users`, `home` or `Documents and Settings` segment
+  plus the next segment anywhere in the path, repeatedly, including a trailing
+  home segment. `displayUri` uses the `/features/` marker or the last three
+  remaining segments, never a drive prefix, and is empty when nothing remains;
+  the legacy adapter uses the marker or the last segment and
+  `features/legacy-N.feature` when no URI or segment remains. Display text keeps
+  its original encoding apart from `%2F`/`%5C`, which are separators, the home
+  comparison decodes once, and relative paths stay unchanged. The report model
+  keeps raw URIs for provenance and uses the display URI for an unnamed
+  feature's heading; the renderer uses it for display URIs, the per-feature
+  source label and copied failure text.
 - One comparator in `src/text` orders every deterministic text sort by UTF-16
   code units: summary scenarios, resolved input files, baseline not-in-run rows
   and report tags. No `Intl`, `localeCompare`, host locale or ICU collation

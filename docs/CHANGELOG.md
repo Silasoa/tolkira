@@ -85,17 +85,23 @@ Keep a Changelog and the project uses semantic versioning.
   same file fails with the compat legacy-array error. Both compat checks use the
   same feature-shape predicate as `detectInput`.
 - Display URIs share one `analyzePath` rule between `displayUri` and the legacy
-  adapter. For an absolute path or file URL it removes the `file:` scheme, an
-  empty or `localhost` authority, a remote authority (whose host becomes the
-  first path segment), an optional drive and a `/mnt/<drive>` mount, treats
-  `%2F`/`%5C` as separators for that analysis, and drops every `Users`, `home` or
-  `Documents and Settings` segment plus the next segment **wherever they occur**
-  in the path, repeatedly. The result uses the `/features/` marker or the last
-  three remaining segments, never a drive prefix, and is empty when nothing
-  remains instead of falling back to the raw path. Relative paths stay
-  unchanged. The report model keeps raw URIs for provenance and uses the display
-  URI for an unnamed feature's heading; the summary `feature` field keeps its
-  empty fallback.
+  adapter. For an absolute path or file URL it removes the `file:` scheme and
+  authority (including userinfo), an optional drive and a `/mnt/<drive>` mount,
+  turns a remote authority into the first path segment, treats `%2F`/`%5C` as
+  separators including a leading one, decodes each segment once for the home
+  comparison, and resolves `.`/`..` and their percent-encoded forms for the
+  analysis only. It then drops every `Users`, `home` or `Documents and Settings`
+  segment plus the next segment **wherever they occur** in the path, repeatedly,
+  including a trailing home segment. `displayUri` uses the `/features/` marker
+  or the last three remaining segments, never a drive prefix, and is empty when
+  nothing remains instead of falling back to the raw path; the legacy adapter
+  uses the marker or the last segment and `features/legacy-N.feature` when no
+  URI or segment remains. Display text keeps its original encoding apart from
+  `%2F`/`%5C`, which are treated as separators. The home comparison decodes
+  once, so a double-encoded segment is not treated as home; relative paths stay
+  unchanged. The report model keeps raw URIs for provenance and uses the
+  display URI for an unnamed feature's heading; the summary `feature` field
+  keeps its empty fallback.
 - A non-base64 image or video body with an unpaired UTF-16 surrogate falls back
   to a base64 data URI built from its UTF-8 bytes instead of aborting with
   `URI malformed`. A normal UTF-8 body keeps its readable data URI, a BASE64
@@ -111,7 +117,7 @@ Keep a Changelog and the project uses semantic versioning.
   trimmed first key against the envelope keys before parsing and leaves a
   non-envelope document to the Playwright sniffer. An escaped first key such as
   `{"\u006deta":...}` is decoded before the check, so it is still Messages.
-  Messages, legacy JSON, JUnit and malformed JSON classification is unchanged.
+  No other classification changes.
 - Legacy JSON uses `options.startedAt` as its only date source. Without it the
   adapter emits zero timestamps and never reads the clock, so the report shows
   no run date and no scenario shows a 1970 date; an explicit non-zero pin still
@@ -121,15 +127,20 @@ Keep a Changelog and the project uses semantic versioning.
   `±HH:MM`), optional seconds and optional fraction digits, and keep the
   original string. A zone-less or free-text value still fails with the
   malformed-entry error, and the CLI's newly recorded run keeps
-  `YYYY-MM-DDTHH:mm:ss.sssZ`. Calendar-day and offset-range validity follow
-  `Date.parse`: `2026-02-30` and `+23:59` are accepted.
+  `YYYY-MM-DDTHH:mm:ss.sssZ`. Calendar-day validity follows `Date.parse`: a
+  nonexistent day such as `2026-02-30` is accepted; `Date.parse` rolls it
+  forward, while the stored string is unchanged. The pattern allows an offset up
+  to `+23:59`.
 - JUnit XML accepts only the five XML named entities and numeric character
   references. `htmlEntities: true` is replaced by an internal
   `xmlEntityDecoder`, because fast-xml-parser v5 gates numeric references
-  behind that option; the five names come from one shared map. The checker scans
-  `&([^;&]*);` linearly, rejects an unknown name of any length (including 33
-  characters) and caps the echoed entity at 64 characters. `&nbsp;` stays an
-  invalid-entity error and no partial report is written.
+  behind that option; the five names come from one shared `XML_ENTITIES` map.
+  One forward scan checks every text and quoted-attribute fragment: it rejects
+  a bare `&` before a later entity as well as an unknown name of any length
+  (including 33 characters), and a decimal or hex numeric reference must denote
+  an XML character. The error echoes at most the first 64 characters of the
+  entity **name** plus `...`. `&nbsp;` stays an invalid-entity error and no
+  partial report is written.
 - The release workflow contract is covered by `test/release-workflow.test.ts`:
   the Linux gate runs hygiene, check and the browser suite, the macOS gate runs
   the browser suite, publish needs both, and the tag/version and

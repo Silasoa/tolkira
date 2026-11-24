@@ -541,15 +541,16 @@ Contract:
   appended and the old `recordedAt` stays.
 - `recordedAt` accepts an ISO 8601-shaped timestamp with a zone (`Z` or
   `±HH:MM`), optional seconds and optional fraction digits
-  (`YYYY-MM-DDTHH:mm[:ss[.fff]]`), and a finite `Date.parse`. Calendar-day and
-  offset-range validity follow `Date.parse`, not a calendar check:
-  `2026-02-30` and `+23:59` are accepted, and the stored string is never
-  normalised. The tests pin 1, 3 and 9 fraction digits. The pattern rejects
-  `+25:00` and an offset without a colon. The original string is kept on read
-  and on write; a `+02:00` value is not rewritten to `Z`. A zone-less value such
-  as `2026-11-19T08:00:00` and free text such as `yesterday` fail with the
-  existing `runs[i].recordedAt must be an ISO timestamp` error. The CLI's newly
-  recorded run keeps the `YYYY-MM-DDTHH:mm:ss.sssZ` writer form.
+  (`YYYY-MM-DDTHH:mm[:ss[.fraction]]`), and a finite `Date.parse`. Calendar-day
+  validity follows `Date.parse`, not a calendar check: a nonexistent day such
+  as `2026-02-30` is accepted; `Date.parse` rolls it forward, while the stored
+  string is never normalised. The pattern allows an offset up to `+23:59` and
+  rejects `+25:00` or an offset without a colon. The tests pin 1, 3 and 9
+  fraction digits. The original string is kept on read and on write; a
+  `+02:00` value is not rewritten to `Z`. A zone-less value such as
+  `2026-11-19T08:00:00` and free text such as `yesterday` fail with the existing
+  `runs[i].recordedAt must be an ISO timestamp` error. The CLI's newly recorded
+  run keeps the `YYYY-MM-DDTHH:mm:ss.sssZ` writer form.
 - `flaky` is optional and new entries always carry it: the number of executed,
   non-skipped scenarios tagged `@flaky` (any final status) or whose final status
   is passed after at least one retry (`attempt > 0`). It is a flagged share
@@ -956,30 +957,46 @@ cover executed scenarios only:
   compared with version 1.
 - Never-started pickles remain absent from `scenarios` and the counts.
 
-The summary does not expose absolute input paths: absolute `uri` values are
-reduced to a relative form (`features/...`, or the last three remaining path
-segments for files outside `features/`). For an absolute path or file URL, the
-analysis removes a `file:` scheme, an empty or `localhost` authority, a remote
-authority (whose host becomes the first path segment), an optional drive token
-and a `/mnt/<drive>` mount; `%2F` and `%5C` count as separators for that
+The summary does not expose absolute input paths. For Messages input, an
+absolute `uri` is reduced by `displayUri`: it removes a `file:` scheme, an empty
+or `localhost` authority (authority userinfo is stripped), a remote authority
+(whose host becomes the first path segment), an optional drive token and a
+`/mnt/<drive>` mount. `%2F` and `%5C` count as separators for this analysis,
+including a leading one. Each remaining segment is decoded once for the home
+comparison only, so `%68ome`, `%55sers` and `Documents%20and%20Settings` are
+home segments; `.` and `..` (also `%2e` and `%2e%2e`) are resolved for the
 analysis only. A `Users`, `home` or `Documents and Settings` segment and the
 segment after it are then dropped **wherever they occur** in the absolute path,
-repeatedly. The display URI joins the remaining segments with `/` and never
-shows a drive prefix; when no segment remains it is empty instead of the raw
-path. For example, `file:///C:/Users/<user>/proj/login.feature`,
+repeatedly, including a trailing home segment. Display text keeps its original
+encoding apart from `%2F`/`%5C`, which are treated as separators. The display
+URI joins the remaining segments with `/` and never shows a drive prefix; when
+no segment remains it is empty instead of the raw path. For example,
+`file:///C:/Users/<user>/proj/login.feature`,
 `file:/home/<user>/proj/login.feature` and
 `file://localhost/home/<user>/proj/login.feature` display as
 `proj/login.feature`; `file://server/share/home/<user>/proj/login.feature` and
 `//server/share/Users/<user>/proj/login.feature` as `share/proj/login.feature`;
 `/srv/home/<user>/proj/login.feature` as `srv/proj/login.feature`; and a path
 that is only a home directory (`/home/<user>`, `/mnt/c/Users/<user>`) shows an
-empty display URI. A local user name therefore does not appear in the HTML
-display URI, the summary `uri` or copied failure text. Relative URIs are
-unchanged and keep the existing `/features/` marker and last-three fallback; a
-relative path that starts with a home segment is outside this rule. The report
-model keeps raw URIs for provenance and uses the same display URI for an
-unnamed feature's heading; the summary `feature` field stays `""` for a
-featureless scenario.
+empty display URI. For these plain and single-encoded forms, a local user name
+does not appear in the HTML display URI, the summary `uri` or copied failure
+text. The home comparison decodes once: a double-encoded segment such as
+`%2568ome` is not treated as home, so that form is outside the no-user-name
+guarantee. Relative URIs are unchanged and keep the existing `/features/`
+marker and last-three fallback; a relative path that starts with a home segment
+is outside this rule.
+
+The legacy adapter normalises a URI before the summary sees it. For an absolute
+path or file URL it applies the same analysis and `/features/` marker, but an
+absolute path without a `features` segment becomes its last segment
+(`file:///home/<user>/proj/login.feature` becomes `login.feature`), and a
+missing URI or a path with no remaining segment becomes
+`features/legacy-N.feature` (N is the zero-based feature index). A relative URI
+keeps the adapter's `./` removal and is otherwise unchanged. The examples above
+therefore describe Messages input and `displayUri`; legacy output is the display
+form of that normalised value. The report model keeps raw URIs for provenance
+and uses the same display URI for an unnamed feature's heading; the summary
+`feature` field stays `""` for a featureless scenario.
 
 ## Recommended agent workflow
 
