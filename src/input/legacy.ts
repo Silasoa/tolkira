@@ -3,6 +3,7 @@ import {
   HookType,
   TestStepResultStatus,
 } from '@cucumber/messages';
+import { analyzePath } from '../display-path.js';
 import { markSyntheticBackground } from './background.js';
 import type {
   Attachment,
@@ -330,33 +331,13 @@ function createIdFactory(prefix: string): (kind: string) => string {
 }
 
 function normalizeUri(uri: string | undefined, index: number): string {
-  if (!uri) return `features/legacy-${index}.feature`;
-  const slashed = uri
-    .replace(/\\/g, '/')
-    .replace(/^file:\/\//i, '')
-    .replace(/^\/([a-z]:\/)/i, '$1');
-  const normalized = slashed.replace(/^\.\//, '');
-  if (/^[a-z]:\//i.test(slashed) || slashed.startsWith('/')) {
-    const marker = slashed.lastIndexOf('/features/');
-    if (marker >= 0) return slashed.slice(marker + 1);
-    const parts = slashed.replace(/^[a-z]:/i, '').split('/').filter(Boolean);
-    // /mnt/<drive> is the WSL mount form of a Windows path.
-    if (
-      parts.length > 2 &&
-      /^mnt$/i.test(parts[0] ?? '') &&
-      /^[a-z]$/i.test(parts[1] ?? '')
-    ) {
-      parts.splice(0, 2);
-    }
-    if (
-      parts.length > 1 &&
-      /^(Users|home|Documents and Settings)$/i.test(parts[0] ?? '')
-    ) {
-      parts.splice(0, 2);
-    }
-    return parts[parts.length - 1] ?? `features/legacy-${index}.feature`;
-  }
-  return normalized || `features/legacy-${index}.feature`;
+  const fallback = `features/legacy-${index}.feature`;
+  if (!uri) return fallback;
+  const { absolute, path, parts } = analyzePath(uri);
+  if (!absolute) return path.replace(/^\.\//, '') || fallback;
+  const marker = parts.lastIndexOf('features');
+  if (marker >= 0) return parts.slice(marker).join('/');
+  return parts[parts.length - 1] ?? fallback;
 }
 
 function normalizeText(value: string | string[] | null | undefined): string {

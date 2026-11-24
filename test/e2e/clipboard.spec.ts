@@ -229,43 +229,59 @@ test('copies a grouped failure with example context', async ({ page }) => {
   }
 });
 
-test('copies a failure without a local user name in the URI', async ({ page }) => {
-  await stubClipboard(page);
-  const lines = (await readFile(fixture, 'utf8'))
-    .trim()
-    .split(/\r?\n/)
-    .map((line) => JSON.parse(line) as Record<string, any>);
-  const uri = 'file:///home/alice/proj/features/login.feature';
-  for (const line of lines) {
-    if (line.gherkinDocument) line.gherkinDocument.uri = uri;
-    if (line.pickle) line.pickle.uri = uri;
-  }
-  const input = await writeInput(
-    'home-uri.ndjson',
-    `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
-    'tolkira-copy-uri-input-',
-  );
-  const { dir, output } = await writeReport(
-    [input.file],
-    'Home URI copy',
-    'tolkira-copy-uri-e2e-',
-  );
+const privacyUriCases = [
+  {
+    name: 'file URL',
+    uri: 'file:///home/alice/proj/features/login.feature',
+    expected: 'features/login.feature',
+  },
+  {
+    name: 'localhost file URL',
+    uri: 'file://localhost/home/alice/proj/features/login.feature',
+    expected: 'features/login.feature',
+  },
+];
 
-  try {
-    await page.goto(reportUrl(output));
-    const copy = page.locator(
-      'details[data-scenario][data-status="failed"] [data-copy-failure]',
+for (const { name, uri, expected } of privacyUriCases) {
+  test(`copies a failure without a local user name in the URI (${name})`, async ({
+    page,
+  }) => {
+    await stubClipboard(page);
+    const lines = (await readFile(fixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as Record<string, any>);
+    for (const line of lines) {
+      if (line.gherkinDocument) line.gherkinDocument.uri = uri;
+      if (line.pickle) line.pickle.uri = uri;
+    }
+    const input = await writeInput(
+      'home-uri.ndjson',
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+      'tolkira-copy-uri-input-',
     );
-    await expect(copy).toBeVisible();
-    await copy.click();
-    await expect(copy).toHaveText('Copied');
+    const { dir, output } = await writeReport(
+      [input.file],
+      'Home URI copy',
+      'tolkira-copy-uri-e2e-',
+    );
 
-    const copied = await readClipboard(page);
-    expect(copied).toContain('URI: features/login.feature');
-    expect(copied).not.toContain('alice');
-    expect(copied).not.toContain('/home/');
-  } finally {
-    await removeReport(dir);
-    await removeReport(input.dir);
-  }
-});
+    try {
+      await page.goto(reportUrl(output));
+      const copy = page.locator(
+        'details[data-scenario][data-status="failed"] [data-copy-failure]',
+      );
+      await expect(copy).toBeVisible();
+      await copy.click();
+      await expect(copy).toHaveText('Copied');
+
+      const copied = await readClipboard(page);
+      expect(copied).toContain(`URI: ${expected}`);
+      expect(copied).not.toContain('alice');
+      expect(copied).not.toContain('/home/');
+    } finally {
+      await removeReport(dir);
+      await removeReport(input.dir);
+    }
+  });
+}

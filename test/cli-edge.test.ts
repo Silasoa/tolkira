@@ -695,25 +695,44 @@ describe('CLI JSON display URI privacy', () => {
   const stepFinished =
     '{"testStepFinished":{"testCaseStartedId":"tcs","testStepId":"ts","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1}},"timestamp":{"seconds":1,"nanos":1}}}';
 
-  it('keeps a featureless Messages URI free of the user name and the feature empty', async () => {
-    const dir = await tempDir();
-    const uri = `file:///home/${USER}/proj/login.feature`;
-    const file = path.join(dir, 'privacy.ndjson');
-    await writeFile(
-      file,
-      minimalMessages(stepFinished).replace('features/x.feature', uri),
-      'utf8',
-    );
+  it.each([
+    {
+      name: 'POSIX file URL',
+      uri: `file:///home/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'localhost file URL',
+      uri: `file://localhost/home/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded Windows separators',
+      uri: `file:///C:%5CUsers%5C${USER}%5Cproj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+  ])(
+    'keeps a featureless Messages $name URI free of the user name and the feature empty',
+    async ({ uri, expected }) => {
+      const dir = await tempDir();
+      const file = path.join(dir, 'privacy.ndjson');
+      await writeFile(
+        file,
+        minimalMessages(stepFinished).replace('features/x.feature', uri),
+        'utf8',
+      );
 
-    const run = await cli([file, '--json']);
+      const run = await cli([file, '--json']);
 
-    expect(run.code, run.stderr).toBe(0);
-    const summary = parseSummary(run.stdout);
-    expect(summary.scenarios[0]?.uri).toBe('proj/login.feature');
-    expect(summary.scenarios[0]?.feature).toBe('');
-    expect(run.stdout).not.toContain(USER);
-    expect(run.stdout).not.toContain('/home/');
-  });
+      expect(run.code, run.stderr).toBe(0);
+      const summary = parseSummary(run.stdout);
+      expect(summary.scenarios[0]?.uri).toBe(expected);
+      expect(summary.scenarios[0]?.feature).toBe('');
+      expect(run.stdout).not.toContain(USER);
+      expect(run.stdout).not.toContain('/home/');
+      expect(run.stdout).not.toContain('/Users/');
+    },
+  );
 
   it('normalises a legacy file URL in the JSON uri field', async () => {
     const dir = await tempDir();

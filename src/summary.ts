@@ -13,6 +13,7 @@ import type {
   BaselineComparison,
 } from './baseline.js';
 import { attachmentBytes } from './attachment.js';
+import { analyzePath } from './display-path.js';
 import { sanitizeEnvelopes } from './input/sanitize.js';
 import { compareText, stripAnsi } from './text.js';
 import { stepResultMessage } from './result-message.js';
@@ -176,35 +177,11 @@ function scenarioStatus(results: TestStepResult[]): SummaryStatus {
 }
 
 export function displayUri(uri: string): string {
-  const slashed = uri.replace(/\\/g, '/');
-  const normalized = slashed
-    .replace(/^file:\/\//i, '')
-    .replace(/^\/([a-z]:\/)/i, '$1');
-  if (!/^[a-z]:\//i.test(normalized) && !normalized.startsWith('/')) {
-    return normalized;
-  }
-  const marker = normalized.lastIndexOf('/features/');
-  if (marker >= 0) return normalized.slice(marker + 1);
-  const parts = normalized
-    .replace(/^[a-z]:/i, '')
-    .split('/')
-    .filter(Boolean);
-  // /mnt/<drive> is the WSL mount form of a Windows path.
-  if (
-    parts.length > 2 &&
-    /^mnt$/i.test(parts[0] ?? '') &&
-    /^[a-z]$/i.test(parts[1] ?? '')
-  ) {
-    parts.splice(0, 2);
-  }
-  // Drop a home directory so a user name never reaches the report.
-  if (
-    parts.length > 1 &&
-    /^(Users|home|Documents and Settings)$/i.test(parts[0] ?? '')
-  ) {
-    parts.splice(0, 2);
-  }
-  return parts.slice(-3).join('/') || uri;
+  const { absolute, path, parts } = analyzePath(uri);
+  if (!absolute) return path;
+  const marker = parts.lastIndexOf('features');
+  if (marker >= 0) return parts.slice(marker).join('/');
+  return parts.slice(-3).join('/');
 }
 
 function featureFor(index: RunIndex, pickle: Pickle): Feature | undefined {

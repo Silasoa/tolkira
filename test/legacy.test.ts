@@ -159,6 +159,95 @@ describe('legacy JSON adapter', () => {
     expect(html).toContain('login.feature');
   });
 
+  it.each([
+    {
+      name: 'one-slash file URL',
+      uri: 'file:/home/alice/proj/login.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'localhost file URL',
+      uri: 'file://localhost/home/alice/proj/login.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'remote file URL',
+      uri: 'file://server/share/home/alice/proj/login.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'UNC path',
+      uri: '//server/share/Users/alice/proj/login.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'percent-encoded separators',
+      uri: 'file:///home/alice%2Fproj%2Flogin.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'percent-encoded Windows separators',
+      uri: 'file:///C:%5CUsers%5Calice%5Cproj/login.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'home segment below another directory',
+      uri: '/srv/home/alice/proj/login.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'drive segment before Users',
+      uri: 'D:/data/Users/alice/proj/login.feature',
+      expected: 'login.feature',
+    },
+    {
+      name: 'home-only two-segment path',
+      uri: '/home/alice',
+      expected: 'features/legacy-0.feature',
+    },
+    {
+      name: 'WSL mount path to the home directory',
+      uri: '/mnt/c/Users/alice',
+      expected: 'features/legacy-0.feature',
+    },
+    {
+      name: 'features marker above the home segment',
+      uri: '/srv/features/home/alice/proj/login.feature',
+      expected: 'features/proj/login.feature',
+    },
+  ])('normalises a $name without the user name', ({ uri, expected }) => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          uri,
+          name: 'Privacy feature',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'One',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a step',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'privacy.json',
+    );
+    const normalized =
+      envelopes.find((envelope) => envelope.gherkinDocument)?.gherkinDocument
+        ?.uri ?? '';
+
+    expect(normalized).toBe(expected);
+    expect(normalized).not.toContain('alice');
+    expect(normalized).not.toContain('/home/');
+    expect(normalized).not.toContain('/Users/');
+  });
+
   it('does not present the generator runtime as the test environment', async () => {
     const html = await renderReport(happy, { title: 'Legacy environment' });
 
