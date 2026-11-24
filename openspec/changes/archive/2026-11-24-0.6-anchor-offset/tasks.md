@@ -30,5 +30,8 @@
   present in every default report. The documentation-only repack (631,909 B,
   SHA-256 `97B5D2CF...1085`) passed the install smoke; the host rows ran on the
   same code. (2026-11-24)
-- [ ] 2.2 Final release review and the user's approval of 0.6.0, including this
-  correction.
+- [x] 2.2 Final release review and the user's approval of 0.6.0, including this
+  correction. The review-driven final repack `632,712 B`, SHA-256
+  `C016225E...9587B7`, passed the install smoke (`--version` `0.6.0`, default
+  report 70,428 B with the scroll script, static report 51,229 B with no
+  script); CI green on `f9deae2`; approved 2026-11-24.

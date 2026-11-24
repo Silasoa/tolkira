@@ -950,10 +950,11 @@ ENOENT message and exit 1.
 
 The scan SHALL read no file content, SHALL use the one resolved file list that
 the loader also receives, and SHALL count each resolved path once. It SHALL add
-no option, dependency or network request. The 100 MB input cap and the post-render
-report-size warning SHALL stay, and both warnings MAY appear in one run. The
-early total and the report-size warning's `input` value measure different sets
-(resolved file sizes versus content-deduped loader bytes) and MAY differ.
+no option, dependency or network request. The 100 MB input cap and the
+post-render report-size warning SHALL stay, and both warnings MAY appear in one
+run. The early total and the report-size warning's `input` value measure
+different sets (resolved file sizes versus content-deduped loader bytes) and MAY
+differ.
 
 #### Scenario: Stat-only scan
 
@@ -984,7 +985,7 @@ early total and the report-size warning's `input` value measure different sets
 
 - **WHEN** the change is complete
 - **THEN** no new CLI option or dependency exists
-- **AND** the report, JSON, CI, email and history bytes are unchanged
+- **AND** the scan changes no report, JSON, CI, email or history byte
 
 ### Requirement: Document the early input warning
 
@@ -1035,10 +1036,13 @@ options. Without the flag the 30-run behaviour SHALL be unchanged.
 
 - **WHEN** `--history` is used without `--history-limit`
 - **THEN** the window is 30
-- **AND** the report and CI bytes match the previous release
+- **AND** the CI bytes match the previous release
+- **AND** the report differs from the previous release only by the 170 B
+  measured scroll-offset script and, with two or more history runs, the
+  documented Trends shell CSS
 - **AND** the email matches except its generated timestamp
-- **AND** the JSON is byte-identical today; the additive outline `example` field
-  is the only final 0.6.0 delta and is owned by the baseline change
+- **AND** the JSON matches apart from the additive outline `example` field,
+  which is owned by the baseline change
 
 #### Scenario: Invalid value
 
@@ -1459,7 +1463,8 @@ added. Without the flag there SHALL be no `baseline` or `change` key.
 - **WHEN** the same run is summarized without `--baseline`
 - **THEN** no `baseline` or `change` key appears
 - **AND** the Markdown CI bytes are identical to before the change
-- **AND** the HTML is byte-identical to before the change
+- **AND** the HTML is byte-identical to before the change apart from the
+  measured scroll-offset script
 - **AND** the only JSON delta is the additive outline `example`
 
 #### Scenario: Nested baseline block

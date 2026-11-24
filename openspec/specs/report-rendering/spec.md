@@ -2822,7 +2822,10 @@ earlier-attempt image SHALL render inline with no lightbox button.
 
 The CLI SHALL accept `--static` and the render API SHALL accept `static: true`.
 The mode SHALL require `--out` or `--pdf`, SHALL default off, and SHALL leave
-the default report without a Trends section, JSON, CI and email bytes unchanged.
+the default report's content, markup and CSS unchanged apart from the
+release-wide measured scroll-offset script; a default report with two or more
+history runs also carries the documented Trends shell CSS. JSON, CI and email
+bytes SHALL stay unchanged.
 
 #### Scenario: Static report with HTML
 
@@ -2954,18 +2957,22 @@ horizontally at 320 px or 200 % text.
 
 ### Requirement: Keep the default report and budgets unchanged
 
-Without the flag, a report without a Trends section SHALL be byte-identical to
-before. A default report with two or more history runs SHALL gain the Trends
-shell CSS (task 3.5) and otherwise keep the same content. The client bundle
-SHALL stay under 16 KB, and the current no-JS behaviour (inert tabs, closed
-details) SHALL remain. No runtime dependency SHALL be added. The default
-report's pre-existing multiple `<main>` elements SHALL stay unchanged in this
-release; the defect is recorded as B-048.
+Without the flag, a report without a Trends section SHALL keep its content,
+markup and CSS unchanged from before the 0.6.0 changes. The release's only
+default-document delta SHALL be the measured scroll-offset script described by
+the anchor requirement: the client bundle grows from 15,268 B to 15,438 B, so
+the document grows by 170 B. A default report with two or more history runs
+SHALL gain the Trends shell CSS (task 3.5) and otherwise keep the same content.
+The client bundle SHALL stay under 16 KB, and the current no-JS behaviour (inert
+tabs, closed details) SHALL remain. No runtime dependency SHALL be added. The
+default report's pre-existing multiple `<main>` elements SHALL stay unchanged in
+this release; the defect is recorded as B-048.
 
 #### Scenario: Default characterization
 
 - **WHEN** the standard fixtures are rendered without `--static`
-- **THEN** the committed characterization hashes and golden HTML are unchanged
+- **THEN** the committed characterization hashes and golden HTML match the
+  document with the measured scroll-offset script
 - **AND** the client bundle stays under 16 KB
 
 #### Scenario: Default no-JS
@@ -3067,7 +3074,8 @@ conditional CSS string.
 
 - **WHEN** a report is rendered without a baseline
 - **THEN** no baseline panel, badge or baseline CSS rule is present
-- **AND** the HTML is byte-identical to before the change
+- **AND** the HTML is byte-identical to before the change apart from the
+  measured scroll-offset script
 
 #### Scenario: Baseline CSS
 
@@ -3092,3 +3100,36 @@ model's pickle id.
 - **WHEN** a row is still failing or added
 - **THEN** it carries no change badge
 - **AND** its existing status chrome stays unchanged
+
+### Requirement: Keep anchored targets clear of the sticky topbar
+
+The report client SHALL measure the rendered `.topbar` height on load and on
+every hash change and SHALL set the root `scroll-padding-top` to that height
+plus 8 px before it scrolls an anchored target into view. The static CSS
+`scroll-padding-top` values SHALL stay as the no-JS fallback. The measured
+offset SHALL hold at every gate viewport and at 200 % text zoom, including a
+three-row bar with wider fallback fonts, and SHALL keep the client bundle under
+its 16 KB budget.
+
+#### Scenario: Wrapped three-row bar
+
+- **WHEN** the Trends report is opened at 320 px and 200 % text zoom and the tab
+  strip wraps the topbar onto three rows
+- **THEN** an anchored scenario's top edge sits at least 8 px below the bar's
+  bottom edge
+
+#### Scenario: Hash change
+
+- **WHEN** the hash changes while the report is open
+- **THEN** the offset is re-measured before the target scrolls into view
+
+#### Scenario: No JavaScript
+
+- **WHEN** the report is opened with JavaScript disabled
+- **THEN** the static CSS `scroll-padding-top` values still apply
+- **AND** the report remains readable without the measurement
+
+#### Scenario: Budget
+
+- **WHEN** the client bundle is built
+- **THEN** it stays under 16,000 B
