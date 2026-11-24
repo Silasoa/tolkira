@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-24
+goal: Close three accepted quality defects in the 0.6.1 patch: one main
+  landmark in the default report, a readable Details metadata list at 320 px
+  and 200 % text, and a BOM-tolerant history sidecar read with a BOM-free next
+  write. No version bump.
