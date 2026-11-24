@@ -10,18 +10,29 @@ report and their error and exit-code behaviour.
 
 The CLI SHALL accept one or more input files or directories and either an
 output path or `--json`, and SHALL produce one HTML report and/or one summary.
+With `--static`, the CLI SHALL require `--out` or `--pdf`; `--json` alone SHALL
+NOT be a report surface.
 
 #### Scenario: Single input
+
 - **WHEN** the user runs the CLI with one supported input and an output path
 - **THEN** the CLI writes the HTML report to that path
 
 #### Scenario: Multiple inputs
+
 - **WHEN** the user runs the CLI with multiple supported inputs
 - **THEN** the CLI writes one report containing all results
 
 #### Scenario: Directory input
+
 - **WHEN** the user runs the CLI with a directory
 - **THEN** the CLI includes every supported report file in that directory
+
+#### Scenario: Static report surface
+
+- **WHEN** `--static` is used with `--json` and without `--out` or `--pdf`
+- **THEN** the CLI exits 2 and names `--out` or `--pdf`
+- **AND** nothing is written
 
 ### Requirement: Use stable exit codes
 
@@ -58,42 +69,68 @@ and returns the generated HTML or summary. The API SHALL NOT write files.
 The CLI SHALL support `--json` and print exactly one stable JSON document to
 stdout. The summary SHALL contain the overall status, status counts, duration,
 attachments and per-scenario results. The programmatic API SHALL expose the
-same summary without writing HTML.
+same summary without writing HTML. With `--static`, the JSON summary SHALL still
+print when `--out` or `--pdf` is present; `--static --json` without either SHALL
+be a usage error (2).
 
 #### Scenario: JSON summary without HTML
+
 - **WHEN** the user runs the CLI with one or more supported inputs and `--json`
   without `--out`
 - **THEN** the CLI prints the JSON summary and writes no HTML file
 
 #### Scenario: JSON summary with HTML
+
 - **WHEN** the user runs the CLI with `--out` and `--json`
 - **THEN** the CLI writes the HTML report and prints only the JSON summary to
   stdout
 
 #### Scenario: Failing tests in the summary
+
 - **WHEN** the input contains failed scenarios
 - **THEN** the summary reports `status: "failed"`, the failing scenario and its
   step messages, and the CLI still exits with code 0
 
 #### Scenario: Stable schema
+
 - **WHEN** the input is summarized more than once
 - **THEN** scenarios are ordered deterministically and every status key is
   present with a numeric value, including zero counts
+
+#### Scenario: Static JSON
+
+- **WHEN** `--static --out report.html --json` is used
+- **THEN** the JSON stdout is unchanged
+- **AND** the report is the static form
+
+#### Scenario: Static JSON without a report surface
+
+- **WHEN** `--static --json` is used without `--out` or `--pdf`
+- **THEN** the CLI exits 2 and names `--out` or `--pdf`
+- **AND** nothing is written
 
 ### Requirement: Support title, metadata and output options
 
 The CLI SHALL support a report title, repeated metadata entries, a logo, an
 accent colour, a size warning threshold, help and version output. The API SHALL
 support title, metadata, logo and accent. The CLI SHALL require at least one of
-`--out` or `--json`.
+`--out` or `--json`. With `--static`, the CLI SHALL require `--out` or `--pdf`
+instead of accepting `--json` alone.
 
 #### Scenario: Title and metadata
+
 - **WHEN** the user supplies a title and metadata entries
 - **THEN** the generated report contains the escaped title and metadata
 
 #### Scenario: Help
+
 - **WHEN** the user requests help
 - **THEN** the CLI prints usage and exits successfully
+
+#### Scenario: Static output surface
+
+- **WHEN** `--static` is used with only `--json`
+- **THEN** the CLI exits 2 and names `--out` or `--pdf`
 
 ### Requirement: Do not leave partial output
 
@@ -323,16 +360,20 @@ stdout annotations and `$GITHUB_STEP_SUMMARY`/`--ci-out` usage.
 
 ### Requirement: Keep an opt-in run history
 
-The CLI SHALL accept `--history <file>` (requires `--out`) and keep an
-aggregate run history in that sidecar. It SHALL read, append and write the file
-atomically, keep the last 30 runs, and reject corrupt, oversized or unsupported
-files before writing. A missing file starts empty. An identical last run SHALL
-NOT be duplicated, where identity ignores the recorded time. Without the flag no
-history is read or written and no history data enters the report.
+The CLI SHALL accept `--history <file>` and `--history-limit <n>` and keep an
+aggregate run history in that sidecar. It SHALL read, append and write
+atomically, keep the newest configured number of runs (default 30, range 1 to
+365), and reject corrupt, oversized or unsupported files before writing. The
+reader SHALL accept schema version 1 and 2; the writer SHALL write schema 1 for a
+default run on a schema-1 file and schema 2 when the limit is above 30 or the
+file already uses schema 2. A missing file starts empty. An identical last run
+SHALL NOT be duplicated. Without the flag no history is read or written and no
+history data enters the report.
 
 #### Scenario: First run creates the sidecar
 
-- **WHEN** `--history` points to a missing file and `--out` is set
+- **WHEN** `--history` points to a missing file, `--out` is set and the limit is
+  the default 30
 - **THEN** the file is created with schema version 1 and one run entry
 - **AND** the report is written normally
 - **AND** the first run has no Trends tab
@@ -353,17 +394,28 @@ history is read or written and no history data enters the report.
 
 #### Scenario: Retention
 
-- **WHEN** the file already has 30 entries, or more from an older version
-- **THEN** the oldest entries are dropped and the newest kept
-- **AND** the file never grows past 30 entries
+- **WHEN** the file already has more entries than the configured window, or 30
+  entries with the default
+- **THEN** the newest configured number of runs is read
+- **AND** the current run is appended unless it dedupes
+- **AND** the newest configured number of runs is kept, so 31 entries with a
+  limit of 40 store 32 and 40 entries with a limit of 40 store 40
+- **AND** the file never grows past the configured window
+
+#### Scenario: Configured window
+
+- **WHEN** `--history-limit 5` is used with seven existing entries
+- **THEN** the newest five are read
+- **AND** the current run is appended unless it dedupes
+- **AND** the report renders five Trends rows and the file stores five
 
 #### Scenario: Missing and invalid files
 
 - **WHEN** the file is missing
 - **THEN** generation succeeds with an empty history
-- **WHEN** the file is not valid JSON, has a wrong schema version, exceeds the
-  sidecar size cap, or has a malformed entry (bad ISO time, non-finite or
-  negative count)
+- **WHEN** the file is not valid JSON, has a schema version other than 1 or 2,
+  exceeds the sidecar size cap, or has a malformed entry (bad ISO time,
+  non-finite or negative count)
 - **THEN** the CLI exits with code 1 and a message naming the file
 - **AND** the file is not overwritten
 
@@ -375,10 +427,15 @@ history is read or written and no history data enters the report.
 
 #### Scenario: Path safety
 
-- **WHEN** `--history` resolves to an input, the logo, `--out`, `--ci-out`, or
-  a path inside an input directory (even when the file does not exist yet)
+- **WHEN** `--history` resolves to an input, the logo, `--out`, `--pdf`,
+  `--email`, `--ci-out`, `--baseline`, or a path inside an input directory
+  (even when the file does not exist yet)
 - **THEN** the CLI exits with a usage error
 - **AND** nothing is written
+
+`--baseline` is owned by the `0.6-baseline-comparison` change. Until that flag
+lands the CLI cannot receive it; the row names the final 0.6.0 state, and the
+same note is kept in both changes' tasks.
 
 #### Scenario: History write failure
 
@@ -397,11 +454,19 @@ history is read or written and no history data enters the report.
 
 ### Requirement: Document the history schema
 
-The sidecar SHALL use `schemaVersion: 1` and entries with `id`, `recordedAt`
-(ISO), `title` (the resolved report title), `status`, `counts` (features,
-scenarios, steps), `durationMs`, `attachments` (total, bytes) and an optional
-`flaky` count. It SHALL NOT contain scenario names, step text, paths, tags or
-attachment content. Unknown fields SHALL be ignored within schema version 1.
+The sidecar SHALL use `schemaVersion: 1` for a default write on a schema-1 or
+missing file and `schemaVersion: 2` when the limit is above 30 or the target file
+already uses version 2. Readers SHALL accept version 1 and 2 and reject any other
+version. Entries SHALL use `id`, `recordedAt` (ISO), `title` (the resolved report
+title, capped at 200 code points), `status`, `counts` (features, scenarios,
+steps), `durationMs`, `attachments` (total, bytes) and an optional `flaky`
+count. It SHALL NOT contain scenario names, step text, paths, tags or attachment
+content. Unknown fields SHALL be ignored within a supported version. The writer
+SHALL validate every stored run with the reader's field rules, SHALL reject an
+`id` longer than 128 UTF-16 code units (the reader keeps accepting longer ids
+from older files) and SHALL never write a file above 1,048,576 bytes. A 0.5
+reader SHALL reject version 2 with its visible unsupported-version error and
+leave the file untouched.
 
 #### Scenario: Aggregate-only entry
 
@@ -410,6 +475,22 @@ attachment content. Unknown fields SHALL be ignored within schema version 1.
 - **AND** old entries may omit `flaky`
 - **AND** the documentation shows the schema, the retention and dedupe rules,
   and that a shared report embeds the prior-run aggregates it was generated with
+
+#### Scenario: Writer matches the reader
+
+- **WHEN** `writeHistory` receives a run with a field the reader rejects, an id
+  longer than 128 UTF-16 code units, or a serialized result above 1,048,576
+  bytes
+- **THEN** it throws `Cannot write history file <file>: ...` and writes nothing
+- **AND** the target file, if any, keeps its bytes
+
+#### Scenario: Schema 2 is readable by 0.6 and rejected by 0.5
+
+- **WHEN** a schema-2 sidecar is read by 0.6
+- **THEN** it is accepted and the run fields are unchanged
+- **WHEN** a 0.5 reader opens the same file
+- **THEN** it exits 1 with `unsupported schema version "2"` and the file is not
+  rewritten
 
 ### Requirement: Add a report locale option
 
@@ -811,3 +892,732 @@ against mixing Cucumber and Playwright files in one directory.
 - **THEN** the documentation shows downloading their artifacts into separate
   producer directories and one Tolkira run over them
 - **AND** it distinguishes native Playwright JSON from blob `merge-reports`
+
+### Requirement: Warn before parsing about large inputs
+
+The CLI SHALL, after option and path validation and before parsing or rendering,
+resolve the input file list once, stat the resolved files, and write one stderr
+warning when their total is at least 50 MiB (52,428,800 bytes). The same
+resolved list SHALL go to the scan and the loader. The warning SHALL name the
+total at one decimal and the 50 MB threshold, name no path, and change no exit
+code or output byte.
+
+#### Scenario: At the threshold
+
+- **WHEN** a valid run resolves 50 MiB of input
+- **THEN** stderr contains exactly one line
+  `tolkira: warning: input files total 50.0 MB, at or above the 50 MB early-warning threshold; parsing and rendering may take a while.`
+- **AND** the report or summary is produced normally
+- **AND** the process exits 0
+
+#### Scenario: Below the threshold
+
+- **WHEN** the resolved inputs total 50 MiB minus one byte
+- **THEN** no early-warning line is written
+
+#### Scenario: Directory total
+
+- **WHEN** a directory resolves several files whose sizes sum to at least
+  50 MiB
+- **THEN** the warning names the summed total at one decimal
+- **AND** the scan and the loader receive the same resolved file list
+
+#### Scenario: Malformed large input
+
+- **WHEN** a 50 MiB input cannot be parsed
+- **THEN** the early input warning is written before the parse error
+- **AND** the CLI exits 1 with the parse error
+- **AND** no partial output remains
+
+#### Scenario: JSON-only run
+
+- **WHEN** `--json` is used with a large input and no report
+- **THEN** stdout contains only the JSON summary
+- **AND** the warning is on stderr
+
+#### Scenario: Usage error
+
+- **WHEN** an invalid option or a path rejected by option/path validation
+  (for example an invalid `--max-size` or an output that would overwrite an
+  input)
+- **THEN** no early-warning line is written
+- **AND** the CLI exits 2 with its usage error
+
+A missing input is not a usage error: the loader reports it with its existing
+ENOENT message and exit 1.
+
+### Requirement: Keep the scan cheap and the limits unchanged
+
+The scan SHALL read no file content, SHALL use the one resolved file list that
+the loader also receives, and SHALL count each resolved path once. It SHALL add
+no option, dependency or network request. The 100 MB input cap and the post-render
+report-size warning SHALL stay, and both warnings MAY appear in one run. The
+early total and the report-size warning's `input` value measure different sets
+(resolved file sizes versus content-deduped loader bytes) and MAY differ.
+
+#### Scenario: Stat-only scan
+
+- **WHEN** the scan reads a large file whose content cannot be read
+- **THEN** it reports the file size without a content read
+- **AND** no parse or render is started by the scan
+
+#### Scenario: Repeated path
+
+- **WHEN** the same input path is passed twice
+- **THEN** the scan counts it once
+- **AND** the loader still reads it once
+
+#### Scenario: Hard cap
+
+- **WHEN** the resolved inputs exceed 100 MB
+- **THEN** the existing input-cap error exits 1
+- **AND** the early input warning does not replace that message
+
+#### Scenario: Both warnings
+
+- **WHEN** a large input also produces a report above `--max-size`
+- **THEN** the early input warning and the report-size warning both appear
+- **AND** the two totals may differ because they measure different sets
+- **AND** the report is still written
+
+#### Scenario: No new surface
+
+- **WHEN** the change is complete
+- **THEN** no new CLI option or dependency exists
+- **AND** the report, JSON, CI, email and history bytes are unchanged
+
+### Requirement: Document the early input warning
+
+The documentation SHALL state the 50 MiB threshold, the exact warning line and
+its MB unit, that the warning is advisory, that it names no path, and that it
+does not change the exit code or any output byte. It SHALL also state that the
+early total and the report-size warning's `input` value can differ.
+
+#### Scenario: Agent guide
+
+- **WHEN** a reader opens the CLI or limits documentation
+- **THEN** the early input warning, its threshold, its exact line and its
+  advisory nature are stated
+- **AND** the two-number difference from the report-size warning is stated
+- **AND** the existing 100 MB input cap and report-size warning are still
+  documented separately
+
+### Requirement: Make the history window configurable
+
+The CLI SHALL accept `--history-limit <n>` only with `--history`. `n` SHALL be a
+decimal integer from 1 to 365; the default SHALL be 30. The limit SHALL bound
+the runs read, appended, written and rendered in Trends. An invalid value SHALL
+exit 2 naming the range; without `--history` it SHALL exit 2 naming both
+options. Without the flag the 30-run behaviour SHALL be unchanged.
+
+#### Scenario: Smaller window
+
+- **WHEN** `--history-limit 5` is used with a sidecar that holds seven runs
+- **THEN** the newest five runs are read, written and rendered in Trends
+- **AND** the report is generated normally
+- **AND** the process exits 0
+
+#### Scenario: Larger window
+
+- **WHEN** `--history-limit 40` is used with a sidecar that holds 40 runs and a
+  new current run
+- **THEN** the current run is appended and the newest 40 of the 41 runs are kept
+- **AND** all 40 kept runs are rendered in Trends
+- **AND** the file does not grow past 40 runs
+
+#### Scenario: One run
+
+- **WHEN** `--history-limit 1` is used
+- **THEN** the sidecar keeps one run
+- **AND** no Trends tab is rendered
+
+#### Scenario: Default
+
+- **WHEN** `--history` is used without `--history-limit`
+- **THEN** the window is 30
+- **AND** the report and CI bytes match the previous release
+- **AND** the email matches except its generated timestamp
+- **AND** the JSON is byte-identical today; the additive outline `example` field
+  is the only final 0.6.0 delta and is owned by the baseline change
+
+#### Scenario: Invalid value
+
+- **WHEN** `--history-limit` is `0`, `366`, `1.5`, `abc`, `05` or empty
+- **THEN** the CLI exits 2 and names the range 1 to 365
+- **AND** no report or sidecar is written
+
+#### Scenario: Missing history option
+
+- **WHEN** `--history-limit 10` is used without `--history`
+- **THEN** the CLI exits 2 and names both options
+- **AND** nothing is written
+
+#### Scenario: Missing HTML
+
+- **WHEN** `--history --history-limit 10` is used without `--out`
+- **THEN** the existing `--history` requires `--out` error exits 2
+- **AND** nothing is written
+
+#### Scenario: Help lists the option
+
+- **WHEN** `--help` is requested
+- **THEN** the usage text lists `--history-limit <n>`
+
+### Requirement: Keep the sidecar schema and cap
+
+The reader SHALL accept schema version 1 and 2. The writer SHALL write schema 1
+unless the limit is above 30 or the file is already schema 2, then schema 2. The
+writer SHALL prune the oldest entries until the serialized file is at or below
+1,048,576 bytes and SHALL never write a file the reader would reject. A file
+above 1 MiB or with an invalid entry SHALL be rejected without a rewrite.
+
+#### Scenario: Default schema
+
+- **WHEN** a schema-1 file is written with the default limit
+- **THEN** the file stays schema version 1
+
+#### Scenario: Extended schema
+
+- **WHEN** a file is written with `--history-limit 40`, or the read file was
+  already schema 2
+- **THEN** the file is schema version 2
+- **AND** no run field changes
+
+#### Scenario: Writer stays under the cap
+
+- **WHEN** a schema-2 file's serialized form would exceed 1,048,576 bytes
+- **THEN** the writer drops the oldest entries until the bytes are at or below
+  the cap
+- **AND** the newest entry remains
+- **AND** the written file re-reads successfully
+
+#### Scenario: Oversized or invalid file
+
+- **WHEN** the sidecar is above 1 MiB or has an invalid entry
+- **THEN** the CLI exits 1 and names the file
+- **AND** the file is not rewritten
+
+### Requirement: Prune to the configured window
+
+A lower limit SHALL prune on the next successful write; a higher limit SHALL NOT
+recover dropped runs. A 0.5 reader SHALL reject a schema-2 file with its visible
+unsupported-version error and leave it untouched.
+
+#### Scenario: Prune on write
+
+- **WHEN** a 31-entry sidecar is read with `--history-limit 10` and a new current
+  run is generated
+- **THEN** the newest 10 runs are read and the report shows 10
+- **AND** the current run is appended unless it dedupes
+- **AND** the next successful write stores the newest 10 runs
+- **AND** the 21 runs older than the read window are gone
+
+#### Scenario: Raise within the file
+
+- **WHEN** a 31-entry sidecar is read with `--history-limit 40` and a new current
+  run is generated
+- **THEN** all 31 runs are read
+- **AND** the current run is appended unless it dedupes
+- **AND** the next write stores 32 runs, not 40
+
+#### Scenario: Dedupe
+
+- **WHEN** the last run is identical to the current run
+- **THEN** it is not appended
+- **AND** the old timestamp stays
+- **AND** the window still bounds the list
+
+#### Scenario: Dropped runs stay dropped
+
+- **WHEN** a window was lowered and the file was written
+- **THEN** raising the limit later does not restore the dropped runs
+- **AND** the report renders the runs that remain
+
+#### Scenario: Older reader
+
+- **WHEN** a 0.5 reader opens a schema-2 sidecar
+- **THEN** it exits 1 with its unsupported-version error
+- **AND** the file is not rewritten or truncated
+
+### Requirement: Expose the limit on the API
+
+`readHistory`, `appendHistory` and `writeHistory` SHALL accept an optional
+limit and SHALL default an omitted limit to 30; `generateReport` SHALL accept
+`historyLimit` with the same default; an invalid limit SHALL throw a clear error.
+`renderReport` and `CucumberHtmlStream` SHALL render the list they are given and
+SHALL NOT prune it.
+
+#### Scenario: History functions
+
+- **WHEN** `readHistory`, `appendHistory` or `writeHistory` receives a limit of
+  5
+- **THEN** it keeps the newest five runs
+- **AND** the same validation range applies
+
+#### Scenario: Default limit
+
+- **WHEN** an API function is called without a limit
+- **THEN** it uses exactly 30
+- **AND** `generateReport` returns at most 30 runs
+
+#### Scenario: generateReport
+
+- **WHEN** `generateReport` receives `historyLimit: 5`
+- **THEN** the returned history has at most five runs
+- **AND** the report's Trends view renders those five
+
+#### Scenario: renderReport as given
+
+- **WHEN** `renderReport` receives a 40-entry history list
+- **THEN** it renders all 40 runs
+- **AND** it does not prune the list
+
+#### Scenario: Invalid API limit
+
+- **WHEN** an API function receives `0`, `366`, `1.5` or a non-number
+- **THEN** it throws an error naming the range 1 to 365
+- **AND** it writes no file
+
+### Requirement: Read an explicit baseline summary
+
+The CLI SHALL accept `--baseline <file>` as a read-only schema-2 summary and
+SHALL require `--out`, `--pdf`, `--json` or `--ci markdown`. A colliding path
+SHALL exit 2; a missing, unreadable, non-regular, oversized, invalid or
+wrong-schema baseline SHALL exit 1, writing nothing.
+
+#### Scenario: Baseline with a report
+
+- **WHEN** `--out report.html --baseline previous.json` is used with a valid
+  schema-2 baseline
+- **THEN** the report contains the comparison panel
+- **AND** the baseline file's bytes and modification time are unchanged
+
+#### Scenario: Static report with a baseline
+
+- **WHEN** `--static --baseline previous.json --out report.html` is used with a
+  valid schema-2 baseline
+- **THEN** the process exits 0
+- **AND** the report is the static form
+- **AND** the baseline comparison panel is visible without JavaScript
+- **AND** the document has one `<main>` and no `<script>`
+
+#### Scenario: Missing baseline
+
+- **WHEN** `--baseline missing.json` is used
+- **THEN** the CLI exits 1 and names the file
+- **AND** no report, JSON, CI text or email is written
+
+#### Scenario: Wrong schema
+
+- **WHEN** the baseline is a history sidecar (any schema version) or any version
+  other than 2
+- **THEN** the CLI exits 1 and names the supported version
+- **AND** no output is written
+
+#### Scenario: Baseline surface required
+
+- **WHEN** `--baseline previous.json` is used with only `--email`, or with only
+  `--ci github` or `--ci azure`
+- **THEN** the CLI exits 2 and names the surfaces that show the comparison
+- **AND** nothing is written
+
+#### Scenario: Baseline path collision
+
+- **WHEN** `--baseline` names an input, the logo, `--out`, `--pdf`, `--email`,
+  `--history`, `--ci-out`, or a path inside an input directory, even when the
+  baseline file does not exist
+- **THEN** the CLI exits 2 and writes nothing
+
+#### Scenario: Oversized or non-regular baseline
+
+- **WHEN** the baseline is larger than 10,485,760 bytes, a directory, a symlink
+  to a directory or another non-regular file
+- **THEN** the CLI exits 1 and names the file and the limit
+- **AND** a summary larger than 10 MiB cannot be a baseline
+- **AND** no output is written
+
+#### Scenario: BOM and `..` URI
+
+- **WHEN** the baseline starts with a UTF-8 BOM or carries a `..` segment in a
+  scenario URI
+- **THEN** the BOM is stripped before parsing
+- **AND** the `..` segment is passed through the display-URI rule, never
+  resolved against the file system
+
+#### Scenario: Help lists the option
+
+- **WHEN** `--help` is requested
+- **THEN** the usage text lists `--baseline <file>`
+
+### Requirement: Reject hostile baseline shapes
+
+The reader SHALL reject a non-object scenario entry, a missing required field, a
+missing `executed`, a wrong field type, an unknown status, a value nested deeper
+than 64 levels and a `__proto__`, `constructor` or `prototype` own key on the
+document or a scenario entry with exit 1 and no write.
+
+#### Scenario: Hostile invalid shapes
+
+- **WHEN** the baseline has a non-object scenario entry, a missing required
+  field, a missing `executed`, a wrong field type, an unknown status or a value
+  nested deeper than 64 levels
+- **THEN** the CLI exits 1 and names the file and the reason
+- **AND** nothing is written
+
+#### Scenario: Prototype keys
+
+- **WHEN** the baseline has a `__proto__`, `constructor` or `prototype` own key
+  on the document or a scenario entry
+- **THEN** the CLI exits 1 and names the file
+- **AND** nothing is written
+- **AND** `Object.prototype` is unchanged
+
+#### Scenario: Symlink to a regular file
+
+- **WHEN** the baseline path is a symlink to a regular file
+- **THEN** the reader reads the target file
+- **AND** the comparison succeeds
+
+### Requirement: Match baseline scenarios by stable identity
+
+The comparison SHALL group by feature name + scenario name, match a unique base
+key, then pair a repeated group in two passes: by the example coordinate when
+every row on both sides carries it, then by display URI when exactly one
+genuinely unmatched row on each side carries it. Any remaining unpaired row
+SHALL make the whole group ambiguous and count it once. No pickle id, position,
+line, tags, step text, status or order SHALL be used.
+
+#### Scenario: Reordered run
+
+- **WHEN** the current run has the same scenarios in a different order
+- **THEN** every scenario matches its baseline row
+- **AND** the new-failure, fixed and still-failing counts are all zero
+
+#### Scenario: Renamed feature file
+
+- **WHEN** a `*.feature` file is renamed but the feature and scenario names are
+  unchanged and the base key is unique
+- **THEN** its scenarios match their baseline rows
+- **AND** none is reported as new or not in this run
+
+#### Scenario: Renamed scenario
+
+- **WHEN** a scenario name changes
+- **THEN** the baseline row is reported as not in this run
+- **AND** the current row is reported as a new failure or added
+- **AND** no row is reported as modified
+
+#### Scenario: Repeated name in a renamed file
+
+- **WHEN** a repeated non-outline name appears in a renamed `*.feature` file
+- **THEN** the URI no longer matches and the group is ambiguous
+- **AND** no row in it is reported as new, fixed or not in this run
+
+#### Scenario: Outline examples
+
+- **WHEN** two outline rows share a feature and scenario name but carry
+  different example coordinates
+- **THEN** each current row matches its baseline row by coordinate
+- **AND** no row is ambiguous
+
+#### Scenario: 0.5 baseline with repeated names
+
+- **WHEN** a 0.5 baseline without `example` has repeated names in different
+  display URIs
+- **THEN** each row pairs by URI
+- **AND** repeated names in the same URI make the group ambiguous instead of
+  pairing by order
+
+#### Scenario: Ambiguous duplicate names
+
+- **WHEN** a base-key group has repeated names without usable coordinates or
+  unique URIs on both sides
+- **THEN** the whole group is excluded from the tracked counts
+- **AND** none of its baseline rows is listed as not in this run
+- **AND** `ambiguous` counts the group once
+- **AND** no row is paired by order or status
+
+### Requirement: Classify matched pairs
+
+The comparison SHALL classify each matched pair by the table, with F = failing
+(`failed`, `undefined`, `ambiguous`), P = passing (`passed`), O = other
+(`skipped`, `pending`, `unknown`) and U = unexecuted:
+
+| Baseline | Current | Class |
+| --- | --- | --- |
+| F | F | still failing |
+| F | P | fixed |
+| F | O, U | `other` |
+| P | F | new failure |
+| P | P, O, U | `other` |
+| O | F | new failure |
+| O | P, O, U | `other` |
+| U | F | new failure |
+| U | P, O, U | `other` |
+
+#### Scenario: Status classes
+
+- **WHEN** a matched pair is classified
+- **THEN** `failed`, `undefined` and `ambiguous` are failing
+- **AND** `passed` is passing
+- **AND** `skipped`, `pending` and `unknown` are other
+- **AND** an unexecuted current row is unexecuted
+
+#### Scenario: New failure
+
+- **WHEN** a scenario passed, was unexecuted, or was another status in the
+  baseline and fails now, or is absent from the baseline and fails now
+- **THEN** it is counted once as a new failure
+- **AND** it is not counted as added
+
+#### Scenario: Fixed
+
+- **WHEN** a scenario failed in the baseline and passes now
+- **THEN** it is counted once as fixed
+
+#### Scenario: Still failing
+
+- **WHEN** a scenario failed in the baseline and still fails now
+- **THEN** it is counted once as still failing
+
+#### Scenario: No claim
+
+- **WHEN** a scenario failed in the baseline and is skipped, pending, unknown or
+  unexecuted now
+- **THEN** it is counted once as `other`
+- **AND** it is not counted as fixed, still failing or not in this run
+- **AND** it has no per-scenario change
+
+#### Scenario: Added
+
+- **WHEN** an executed scenario is absent from the baseline and does not fail
+- **THEN** it is counted as added
+- **AND** it has no new-failure claim
+
+#### Scenario: Not in this run
+
+- **WHEN** a baseline scenario has no current match
+- **THEN** it is counted as not in this run
+- **AND** the report uses the wording "Not in this run"
+
+#### Scenario: Unexecuted current row
+
+- **WHEN** a baseline scenario has a current row that is present but unexecuted
+- **THEN** it is not reported as not in this run
+- **AND** it makes no status claim
+
+### Requirement: Reconcile baseline counts
+
+The comparison SHALL have one count set: `newFailures`, `fixed`,
+`stillFailing`, `other`, `notInThisRun`, `added` and `ambiguous`. Every baseline
+row outside an ambiguous group SHALL fall into exactly one of new failure, fixed,
+still failing, `other` or not in this run; `added` counts current rows and
+`ambiguous` counts groups.
+
+#### Scenario: Unmatched current row
+
+- **WHEN** a current row has no baseline match because its feature + name group
+  has no baseline row at all
+- **THEN** an executed failing row is a new failure
+- **AND** an executed non-failing row is added
+- **AND** an unexecuted row makes no claim and is not a baseline row
+- **AND** a row in a repeated group that gains an extra current row is not
+  unmatched; the whole group is ambiguous instead
+
+#### Scenario: Count reconciliation
+
+- **WHEN** the baseline has 10 rows outside ambiguous groups, with two new
+  failures, one fixed, three still failing and one not in this run
+- **THEN** `other` is 3
+- **AND** `2 + 1 + 3 + 3 + 1` equals 10
+- **AND** `added` and `ambiguous` are not part of that sum
+
+### Requirement: Add the comparison to the JSON summary
+
+With `--baseline`, the summary SHALL add a `baseline` object after `attachments`
+and before `scenarios`, and a `change` field to each classified scenario. The
+block SHALL carry the baseline status, seven counts and a capped `notInThisRun`
+list; the counts stay complete. The schema stays 2 and no summary `id` field is
+added. Without the flag there SHALL be no `baseline` or `change` key.
+
+#### Scenario: Baseline block
+
+- **WHEN** a run with a baseline is summarized
+- **THEN** `schemaVersion` is 2
+- **AND** `baseline.status` is the baseline overall status
+- **AND** `baseline.counts` carries `newFailures`, `fixed`, `stillFailing`,
+  `other`, `notInThisRun`, `added` and `ambiguous`
+- **AND** every `notInThisRun` entry carries `feature`, `name`, `uri`, `status`,
+  `executed` and optional `example`
+- **AND** every classified scenario carries `change` after `executed`, with the
+  value `new-failure`, `fixed`, `still-failing` or `added`
+- **AND** unchanged, unexecuted and ambiguous rows carry no `change`
+- **AND** no scenario or baseline entry carries an `id` field
+
+#### Scenario: No baseline
+
+- **WHEN** the same run is summarized without `--baseline`
+- **THEN** no `baseline` or `change` key appears
+- **AND** the Markdown CI bytes are identical to before the change
+- **AND** the HTML is byte-identical to before the change
+- **AND** the only JSON delta is the additive outline `example`
+
+#### Scenario: Nested baseline block
+
+- **WHEN** the baseline file contains its own `baseline` block
+- **THEN** the run succeeds
+- **AND** the nested block is ignored
+
+### Requirement: Cap and sort the not-in-this-run list
+
+The `notInThisRun` array SHALL be capped at 50 entries and sorted by feature,
+then name, then the example coordinate (examples then example, numeric, rows
+without `example` last), then URI. `counts.notInThisRun` SHALL stay complete.
+
+#### Scenario: Not-in-this-run order
+
+- **WHEN** the capped list contains `#1.2`, `#1.10`, a row without `example`,
+  and rows from two features
+- **THEN** rows are grouped by feature, then name
+- **AND** within one feature and name, `#1.2` sorts before `#1.10`
+- **AND** the row without `example` sorts after every row with an `example` in
+  the same feature and name
+- **AND** ties use URI
+
+#### Scenario: Capped not-in-this-run list
+
+- **WHEN** the baseline has 60 scenarios not in this run
+- **THEN** `counts.notInThisRun` is 60
+- **AND** the `notInThisRun` array has 50 entries
+- **AND** the entries are sorted deterministically
+
+### Requirement: Expose the outline example coordinate in the summary
+
+Every summary row for a Messages scenario-outline example SHALL carry `example`
+as `#<examples>.<example>` with 1-based numbers, matching the report label,
+whether or not a baseline is supplied. A plain, legacy JSON or JUnit scenario
+SHALL NOT carry it. The field is additive, stays schema 2 and appears after
+`attempt`.
+
+#### Scenario: Outline rows
+
+- **WHEN** a Messages outline with two examples blocks is summarized
+- **THEN** each example row carries its `example` coordinate
+- **AND** the report and summary labels agree
+
+#### Scenario: Non-outline row
+
+- **WHEN** a plain scenario, a legacy JSON scenario or a JUnit scenario is
+  summarized
+- **THEN** it has no `example` key
+
+#### Scenario: Old baseline
+
+- **WHEN** a 0.5 baseline without `example` is compared
+- **THEN** unique scenario names still match
+- **AND** repeated names in different URIs pair by URI
+- **AND** repeated names in the same URI become ambiguous instead of pairing by
+  order
+
+### Requirement: Expose the baseline comparison on the API
+
+The package SHALL export the `BaselineSummary` type and a
+`BaselineRenderOptions` type that extends `RenderReportOptions` with
+`baseline?: BaselineSummary`. `generateReport`, `renderReport` and
+`summarizeReport` SHALL accept `options.baseline` as that projection.
+`renderHtml` and `CucumberHtmlStream` SHALL NOT accept a baseline in 0.6.0 and
+SHALL keep `RenderReportOptions`/`RenderOptions`; the stream's
+same-input-same-HTML contract is unchanged. The API SHALL accept the projection,
+never a path.
+
+#### Scenario: API projection
+
+- **WHEN** `generateReport`, `renderReport` or `summarizeReport` receives a
+  `BaselineSummary`
+- **THEN** the output contains the comparison
+- **AND** no file is read by the API
+
+#### Scenario: Stream limit
+
+- **WHEN** a caller passes a `baseline` to `CucumberHtmlStream` or the internal
+  `renderHtml`
+- **THEN** the option is not part of the accepted type
+- **AND** the stream output stays the same for the same envelopes and options
+
+#### Scenario: Type export
+
+- **WHEN** a TypeScript caller imports from `tolkira`
+- **THEN** `BaselineSummary` and `BaselineRenderOptions` are exported
+
+### Requirement: Emit one Markdown baseline line
+
+With `--baseline` and `--ci markdown`, the summary SHALL include one line after
+the counts table's trailing blank line and before the empty-run and
+zero-executed returns, followed by one blank line:
+`Baseline: <n> new failure(s) · <n> fixed · <n> still failing · <n> not in this run`,
+with all four counts including zeros, plus ` · <n> ambiguous group(s)` only when
+positive. `added` SHALL NOT appear. Without the flag there SHALL be no line.
+
+#### Scenario: Mixed counts
+
+- **WHEN** the comparison has two new failures, one fixed, three still failing
+  and one not in this run
+- **THEN** the Markdown contains exactly
+  `Baseline: 2 new failures · 1 fixed · 3 still failing · 1 not in this run`
+- **AND** one blank line separates it from the next block
+
+#### Scenario: Zero counts
+
+- **WHEN** the comparison has no tracked changes
+- **THEN** the line reads
+  `Baseline: 0 new failures · 0 fixed · 0 still failing · 0 not in this run`
+
+#### Scenario: Singular new failure
+
+- **WHEN** the comparison has one new failure and no other tracked change
+- **THEN** the line reads
+  `Baseline: 1 new failure · 0 fixed · 0 still failing · 0 not in this run`
+
+#### Scenario: Ambiguous groups
+
+- **WHEN** the comparison has one ambiguous group
+- **THEN** the line ends with ` · 1 ambiguous group`
+
+#### Scenario: Empty or all-unexecuted run
+
+- **WHEN** the current run is empty or has zero executed scenarios and a
+  baseline is supplied
+- **THEN** the baseline line appears before `No scenarios in this report.` or
+  `0 executed scenarios; ...`
+
+#### Scenario: No baseline
+
+- **WHEN** `--ci markdown` runs without `--baseline`
+- **THEN** no baseline line appears
+- **AND** the Markdown bytes are unchanged
+
+#### Scenario: Other CI formats
+
+- **WHEN** `--ci github` or `--ci azure` runs with a baseline and another
+  comparison surface
+- **THEN** the annotation bytes are unchanged
+
+### Requirement: Keep the baseline read-only and offline
+
+The baseline SHALL be read once, never written, and SHALL add no network
+request, telemetry or runtime dependency. The report and summary SHALL NOT embed
+the baseline file path. The comparison SHALL be deterministic: the same inputs,
+baseline and options SHALL produce byte-identical report, summary and CI text.
+
+#### Scenario: Read-only
+
+- **WHEN** a run reads a baseline
+- **THEN** the file's bytes and modification time are unchanged
+- **AND** no temporary or rewritten baseline file remains
+
+#### Scenario: Offline and deterministic
+
+- **WHEN** the same run is repeated
+- **THEN** the report, JSON and CI text are byte-identical
+- **AND** no network request is made
+- **AND** no dependency is added

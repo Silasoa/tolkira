@@ -54,8 +54,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
 | B-039 | Report | P3 | Long metadata links in Details wrap into a narrow, ragged value column, and the label column is squeezed too, at 320 px and 200 % text zoom (UXR) | A user reports it or a mobile layout pass happens; then stack the metaList or start-align links. | — |
-| B-040 | Report | P3 | Early input warning before report rendering (the size warning runs after the report is rendered) | A large input spends the full render before warning; add a cheap input-size scan seam and warn before render. | — |
-| B-042 | Report | P3 | Static all-expanded no-JS mode; the triage box already renders open and it would not fix CSS or `data:` images blocked by a host CSP | Scripts remain blocked after a CSP relaxation, or a reader needs an expanded static view. | — |
 | B-048 | Report | P3 | Default report renders three `<main>` elements (Report, Details, Trends), which is invalid HTML; pre-existing and unchanged by the static mode | An HTML-validity or accessibility audit flags the default document, or another change needs one `<main>` in the default report; then make Details/Trends plain containers and keep the `#analysis-view`/`#trends-view` page-break rule. | — |
 | B-049 | History | P3 | A UTF-8 BOM before the sidecar JSON is not stripped, so `readHistory` rejects a BOM-prefixed file; pre-existing and unchanged by the window | A user or producer writes a BOM-prefixed sidecar, or the sidecar encoding is next touched; then strip a leading U+FEFF before `JSON.parse` and cover it in `test/history.test.ts`. | - |
 | B-050 | Report | P3 | Add a new-failure/fixed list or a local `change` filter for large runs; the panel only counts and lists absent rows | A user asks for the names of new failures or fixed scenarios in a large run; then extend the panel and pin the focus/filter behaviour. | — |
@@ -121,6 +119,21 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-040 Early input warning** — resolved on 2026-11-24 in the
+  `0.6-early-size-warning` change: after path validation and before parsing, the
+  CLI resolves and stats the inputs once and warns on stderr when they total at
+  least 50 MiB (52,428,800 bytes); the same resolved list feeds the scan and the
+  loader. Advisory only: no exit code, cap or output byte changes; the 100 MiB
+  input cap and the post-render `--max-size` warning stay. The scan counts paths
+  at scan time (identical content under two paths counts twice), while the
+  post-render `input` value is content-deduped.
+- **B-042 Static no-JS mode** — resolved on 2026-11-24 in the
+  `0.6-static-no-js` change: `--static` (with `--out` or `--pdf`) renders one
+  expanded, script-free report: no `<script>`, `script-src 'none'`, every
+  `<details>` open, the tab bar, lightbox, copy controls and search/filter
+  toolbar removed, exactly one `<main>`, and server-rendered Details and Trends.
+  It is a report form, not a CSP fix; the default report without Trends keeps
+  its bytes and its pre-existing three `<main>` elements (B-048).
 - **B-044 Configurable history window** — resolved on 2026-11-23 in the
   `0.6-history-window` change: `--history-limit <n>` (needs `--history`) keeps
   the newest 1 to 365 aggregate runs, default 30, and bounds read, append, write
