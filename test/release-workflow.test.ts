@@ -34,20 +34,74 @@ function job(jobs: Map<string, string>, name: string): string {
   return text;
 }
 
+// Collects every command actually run by the job. Comments and inactive keys
+// never count, so a commented-out gate cannot satisfy the contract.
+function runCommands(jobText: string): string[] {
+  const lines = jobText.split(/\r?\n/);
+  const commands: string[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? '';
+    if (line.trim().startsWith('#')) continue;
+    const match = /^\s*(?:-\s*)?run:\s*(.*)$/.exec(line);
+    if (!match) continue;
+    const value = match[1]?.trim() ?? '';
+    if (value === '|' || value === '|-' || value === '>' || value === '>-') {
+      const baseIndent = line.length - line.trimStart().length;
+      const block: string[] = [];
+      let cursor = index + 1;
+      while (cursor < lines.length) {
+        const next = lines[cursor] ?? '';
+        const indent = next.length - next.trimStart().length;
+        if (next.trim() !== '' && indent <= baseIndent) break;
+        if (!next.trim().startsWith('#')) block.push(next.trim());
+        cursor += 1;
+      }
+      index = cursor - 1;
+      commands.push(block.filter(Boolean).join('\n'));
+    } else if (value) {
+      commands.push(value);
+    }
+  }
+  return commands;
+}
+
+function activeCommands(jobText: string): string {
+  return runCommands(jobText).join('\n');
+}
+
 function expectStep(jobText: string, command: string): void {
-  expect(jobText).toContain(command);
+  expect(runCommands(jobText)).toContain(command);
 }
 
 describe('release workflow gate', () => {
+  it('reads only active run lines', () => {
+    const sample = [
+      '    steps:',
+      '      # - run: npm run hygiene',
+      '      - run: npm run check',
+      '      - name: Commented gate',
+      '        run: |',
+      '          git fetch origin main',
+      '          # git merge-base --is-ancestor HEAD FETCH_HEAD',
+      '          git merge-base --is-ancestor HEAD FETCH_HEAD',
+    ].join('\n');
+
+    expect(runCommands(sample)).toEqual([
+      'npm run check',
+      'git fetch origin main\ngit merge-base --is-ancestor HEAD FETCH_HEAD',
+    ]);
+  });
+
   it('runs the Linux gate with hygiene, check and the browser suite', async () => {
     const linux = job(await workflowJobs(), 'gate-linux');
 
     expect(linux).toContain('runs-on: ubuntu-latest');
     expectStep(linux, 'npm run hygiene');
     expectStep(linux, 'npm run check');
-    expect(linux).toContain('npx playwright install --with-deps chromium firefox webkit');
+    expectStep(linux, 'npx playwright install --with-deps chromium firefox webkit');
     expectStep(linux, 'npm run test:e2e');
     expect(linux).not.toContain('continue-on-error');
+    expect(activeCommands(linux)).not.toContain('|| true');
   });
 
   it('runs the macOS browser gate', async () => {
@@ -56,6 +110,7 @@ describe('release workflow gate', () => {
     expect(macos).toContain('runs-on: macos-latest');
     expectStep(macos, 'npm run test:e2e');
     expect(macos).not.toContain('continue-on-error');
+    expect(activeCommands(macos)).not.toContain('|| true');
   });
 
   it('starts publish only after both gates', async () => {
@@ -63,6 +118,7 @@ describe('release workflow gate', () => {
 
     expect(publish).toMatch(/needs:\s*\[gate-linux,\s*gate-macos\]/);
     expect(publish).not.toContain('continue-on-error');
+    expect(activeCommands(publish)).not.toContain('|| true');
   });
 
   it('fails the decision table on a tag/version mismatch', async () => {
@@ -88,21 +144,30 @@ describe('release workflow gate', () => {
   });
 
   it('reaches the package smoke and stage step on a green tag', async () => {
-    const publish = job(await workflowJobs(), 'publish');
-    const order = [
-      'npm pack --pack-destination /tmp',
-      'npm install -g --prefix /tmp/global',
-      'test -x /tmp/global/bin/tolkira',
-      'tolkira --help | grep -q "Usage: tolkira"',
-      '$TOLKIRA_ROOT/tolkira/dist/cli.js" --help',
-      'test/fixtures/legacy/minimal.json --out /tmp/report.html',
-      'test -s /tmp/report.html && grep -q "Minimal feature" /tmp/report.html',
-      'npm stage publish . --provenance --access public',
+    const commands = runCommands(job(await workflowJobs(), 'publish'));
+    const order: Array<[string, RegExp]> = [
+      ['pack', /^npm pack --pack-destination \S+$/],
+      [
+        'install',
+        /^npm install -g --prefix \S+ \S*tolkira-.*\.tgz$/,
+      ],
+      ['binary', /^test -x \S+\/bin\/tolkira$/],
+      ['global help', /^\/\S+\/bin\/tolkira --help \| grep -q "Usage: tolkira"$/],
+      ['package help', /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" --help$/],
+      [
+        'smoke report',
+        /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" test\/fixtures\/legacy\/minimal\.json --out \S+report\.html --title "Package smoke test"$/,
+      ],
+      [
+        'smoke output',
+        /^test -s \S+report\.html && grep -q "Minimal feature" \S+report\.html$/,
+      ],
+      ['stage', /^npm stage publish \. --provenance --access public$/],
     ];
     let previous = -1;
-    for (const step of order) {
-      const index = publish.indexOf(step);
-      expect(index, step).toBeGreaterThan(previous);
+    for (const [label, pattern] of order) {
+      const index = commands.findIndex((command) => pattern.test(command));
+      expect(index, label).toBeGreaterThan(previous);
       previous = index;
     }
   });

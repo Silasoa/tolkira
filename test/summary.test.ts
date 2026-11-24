@@ -683,6 +683,61 @@ describe('display URI privacy', () => {
       expected: 'features/login.feature',
     },
     {
+      name: 'file URL with one slash',
+      uri: `file:/home/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'localhost file URL',
+      uri: `file://localhost/home/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'remote file URL',
+      uri: `file://server/share/home/${USER}/proj/login.feature`,
+      expected: 'share/proj/login.feature',
+    },
+    {
+      name: 'UNC path',
+      uri: `//server/share/Users/${USER}/proj/login.feature`,
+      expected: 'share/proj/login.feature',
+    },
+    {
+      name: 'percent-encoded separators',
+      uri: `file:///home/${USER}%2Fproj%2Flogin.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded Windows separators',
+      uri: `file:///C:%5CUsers%5C${USER}%5Cproj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'home segment below another directory',
+      uri: `/srv/home/${USER}/proj/login.feature`,
+      expected: 'srv/proj/login.feature',
+    },
+    {
+      name: 'drive segment before Users',
+      uri: `D:/data/Users/${USER}/proj/login.feature`,
+      expected: 'data/proj/login.feature',
+    },
+    {
+      name: 'home-only two-segment path',
+      uri: `/home/${USER}`,
+      expected: '',
+    },
+    {
+      name: 'WSL mount path to the home directory',
+      uri: `/mnt/c/Users/${USER}`,
+      expected: '',
+    },
+    {
+      name: 'features marker above the home segment',
+      uri: `/srv/features/home/${USER}/proj/login.feature`,
+      expected: 'features/proj/login.feature',
+    },
+    {
       name: 'WSL mount path',
       uri: `/mnt/c/Users/${USER}/proj/login.feature`,
       expected: 'proj/login.feature',
@@ -722,13 +777,18 @@ describe('display URI privacy', () => {
       uri: `/home/${USER}/proj/features/login.feature`,
       expected: 'features/login.feature',
     },
-  ])('drops the local user name for a $name', ({ uri, expected }) => {
+  ])('drops the local user name and is idempotent for a $name', ({
+    uri,
+    expected,
+  }) => {
     const display = displayUri(uri);
 
     expect(display).toBe(expected);
     expect(display).not.toContain(USER);
     expect(display).not.toContain('/home/');
+    expect(display).not.toContain('/Users/');
     expect(display).not.toMatch(/^[a-z]:\//i);
+    expect(displayUri(display)).toBe(display);
   });
 
   it.each([
@@ -865,36 +925,41 @@ describe('host-locale-independent order', () => {
 
   it('orders summary scenarios by URI before name', () => {
     const envelopes = parseLegacyJson(
-      JSON.stringify([
-        'Zebra',
-        'apple',
-        'Äpfel',
-      ].map((name) => ({
-        uri: `features/${name}.feature`,
-        name,
-        elements: [
-          {
-            keyword: 'Scenario',
-            name: `${name} scenario`,
-            steps: [
-              {
-                keyword: 'Given ',
-                name: 'a step',
-                result: { status: 'passed', duration: 1 },
-              },
-            ],
-          },
-        ],
-      }))),
+      JSON.stringify(
+        // The URIs sort opposite the names, so a name-first sort would show.
+        [
+          { uri: 'features/a.feature', name: 'Zulu' },
+          { uri: 'features/b.feature', name: 'Alpha' },
+        ].map(({ uri, name }) => ({
+          uri,
+          name,
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: `${name} scenario`,
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a step',
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        })),
+      ),
       'uri-order.json',
     );
 
     const summary = summarizeEnvelopes(envelopes);
 
     expect(summary.scenarios.map((scenario) => scenario.uri)).toEqual([
-      'features/Zebra.feature',
-      'features/apple.feature',
-      'features/Äpfel.feature',
+      'features/a.feature',
+      'features/b.feature',
+    ]);
+    expect(summary.scenarios.map((scenario) => scenario.name)).toEqual([
+      'Zulu scenario',
+      'Alpha scenario',
     ]);
   });
 });
