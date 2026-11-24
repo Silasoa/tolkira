@@ -58,7 +58,7 @@ jobs:
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - name: Require the tag to be on main
         run: |
-          git fetch origin main --depth=1
+          git fetch origin main
           git merge-base --is-ancestor HEAD FETCH_HEAD
       - run: npm ci
       - run: npm pack --pack-destination /tmp
