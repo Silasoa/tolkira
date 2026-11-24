@@ -26,7 +26,7 @@ export const TRENDS_SHELL_CSS =
   '#trends-view .tableWrap{max-height:70vh;overflow-y:auto}' +
   '#trends-view .trendsTable thead th{position:sticky;top:0;background:var(--surface-2);z-index:1}' +
   '}' +
-  '@media screen and (max-width:560px){html{scroll-padding-top:9rem}}' +
+  '@media screen and (max-width:560px){.views{flex-basis:100%}.view{padding-inline:0.5rem}html{scroll-padding-top:9em}}' +
   '#trends-view .trendsTable th:first-child,#trends-view .trendsTable td:first-child{width:18%;white-space:nowrap}' +
   '#trends-view .trendsTable th:nth-child(2),#trends-view .trendsTable td:nth-child(2){width:16%}' +
   '#trends-view .spark{height:auto;aspect-ratio:320/64}' +

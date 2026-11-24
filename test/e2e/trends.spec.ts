@@ -132,6 +132,7 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
 }) => {
   let first: ReportFile | undefined;
   let second: ReportFile | undefined;
+  let german: ReportFile | undefined;
   let historyDir = '';
   try {
     ({ historyDir, first, second } = await twoRunHistory());
@@ -184,6 +185,28 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
         .toBeGreaterThanOrEqual(-1);
     }
 
+    async function expectTwoTabsInside(label: string): Promise<void> {
+      const tabs = page.getByRole('tab');
+      await expect(tabs, label).toHaveCount(2);
+      const boxes = await tabs.evaluateAll((elements) =>
+        elements.map((element) => {
+          const box = element.getBoundingClientRect();
+          return { left: box.left, right: box.right };
+        }),
+      );
+      const viewportWidth = await page.evaluate(() => window.innerWidth);
+      for (const box of boxes) {
+        expect(box.left, `${label} tab left edge`).toBeGreaterThanOrEqual(-0.5);
+        expect(box.right, `${label} tab right edge`).toBeLessThanOrEqual(
+          viewportWidth + 1,
+        );
+      }
+      expect(
+        await pageOverflow(page),
+        `${label} overflow`,
+      ).toBeLessThanOrEqual(1);
+    }
+
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(url);
     await expect(page.locator('#scenario-1-1')).toBeVisible();
@@ -196,14 +219,64 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
 
     // Set the zoom after navigation: an init script runs before the document
     // element exists and would leave the page at 100%.
+    await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(url);
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
     });
+    expect(
+      await page.evaluate(
+        () => getComputedStyle(document.documentElement).fontSize,
+      ),
+    ).toBe('32px');
+    await page.evaluate(() => {
+      location.hash = '';
+      location.hash = '#scenario-1-1';
+    });
     await expect(page.locator('#scenario-1-1')).toBeVisible();
     await expectTabsVisibleAndAnchor('320 at 200%');
+
+    // The German rule is the narrower one, so it must clear the wrapped strip
+    // on its own rather than relying on the English 9rem.
+    german = await writeReportWithHistory(
+      [secondInput],
+      path.join(historyDir, 'history.json'),
+      'Trends German',
+      'tolkira-trends-de-',
+      'de',
+    );
+    await page.goto(reportUrl(german.output, '#scenario-1-1'));
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await page.evaluate(
+        () => getComputedStyle(document.documentElement).fontSize,
+      ),
+    ).toBe('32px');
+    await page.evaluate(() => {
+      location.hash = '';
+      location.hash = '#scenario-1-1';
+    });
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+    await expect(page.locator('#scenario-1-1')).toBeVisible();
+    await expectTabsVisibleAndAnchor('320 at 200% (de)');
+
+    // One history run keeps the two-tab default; both tabs stay inside 320 at
+    // 200% text, so only the third tab needs the wrapped strip.
+    await page.goto(reportUrl(first.output, '#scenario-1-1'));
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    expect(
+      await page.evaluate(
+        () => getComputedStyle(document.documentElement).fontSize,
+      ),
+    ).toBe('32px');
+    await expect(page.locator('#scenario-1-1')).toBeVisible();
+    await expectTwoTabsInside('320 at 200% (two tabs)');
   } finally {
-    await removeAll(historyDir, [first, second]);
+    await removeAll(historyDir, [first, second, german]);
   }
 });
 

@@ -104,6 +104,7 @@ export type MessageKey =
   | "report.attachmentSkipOutside"
   | "report.attachmentSkipUnreadable"
   | "report.attachmentSkipWhere"
+  | "report.attachmentSkipWhereStatic"
   | "report.attachments"
   | "report.attemptMeta"
   | "report.collapseAll"
@@ -297,6 +298,7 @@ export const en: Record<MessageKey, string> = {
   "report.attachmentSkipOutside": "outside the allowed roots",
   "report.attachmentSkipUnreadable": "unreadable",
   "report.attachmentSkipWhere": "See the affected scenarios on the Report tab.",
+  "report.attachmentSkipWhereStatic": "See the affected scenarios in the report.",
   "report.attachments": "Attachments",
   "report.attemptMeta": "Attempt: {count}",
   "report.collapseAll": "Collapse all",
@@ -491,6 +493,7 @@ export const de: Record<MessageKey, string> = {
   "report.attachmentSkipOutside": "außerhalb der erlaubten Basisverzeichnisse",
   "report.attachmentSkipUnreadable": "nicht lesbar",
   "report.attachmentSkipWhere": "Siehe die betroffenen Szenarien im Tab „Bericht“.",
+  "report.attachmentSkipWhereStatic": "Siehe die betroffenen Szenarien im Bericht.",
   "report.attachments": "Anhänge",
   "report.attemptMeta": "Versuch: {count}",
   "report.collapseAll": "Alle einklappen",

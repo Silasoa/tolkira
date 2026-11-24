@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readHistory } from '../src/history.js';
 import { renderReport } from '../src/index.js';
 
 // The legacy parser falls back to `new Date()` for a missing start time, so the
@@ -71,6 +72,25 @@ describe('render characterization', () => {
 
     expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
       sha256,
+    );
+  });
+
+  it('keeps the default two-run Trends HTML byte-identical', async () => {
+    const file = fileURLToPath(
+      new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
+    );
+    const historyFile = fileURLToPath(
+      new URL('./fixtures/history/two-runs.json', import.meta.url),
+    );
+    const history = await readHistory(historyFile);
+    const html = await renderReport(file, {
+      title: 'Characterization',
+      history,
+    });
+
+    expect(html.match(/<main\b/g) ?? []).toHaveLength(3);
+    expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
+      '8038a4d90d474fb3d3b79e34d1f9fe7d68b004d9d8f8f5bf03950a348dc1d9cd',
     );
   });
 });

@@ -415,6 +415,10 @@
     "message": "See the affected scenarios on the Report tab.",
     "description": "Run notice pointer to the scenarios on the Report tab that list the skipped attachment names"
   },
+  "report.attachmentSkipWhereStatic": {
+    "message": "See the affected scenarios in the report.",
+    "description": "Static report run notice pointer to the affected scenarios"
+  },
   "report.attachments": {
     "message": "Attachments",
     "description": "Label and accessible group name for scenario attachments"

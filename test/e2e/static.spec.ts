@@ -130,6 +130,11 @@ test.describe('static report without scripting', () => {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
     });
+    expect(
+      await page.evaluate(
+        () => getComputedStyle(document.documentElement).fontSize,
+      ),
+    ).toBe('32px');
 
     await expectStackedViews(page, true);
     await expect(

@@ -20,10 +20,6 @@ vi.mock('../src/pdf.js', () => ({ renderPdf: pdf.renderPdf }));
 import { runCli } from '../src/cli.js';
 import { generateReport, renderReport } from '../src/index.js';
 
-// The option lands with the implementation; the local shape keeps the Red
-// suite typecheckable before then.
-type StaticReportOptions = RenderReportOptions & { static?: boolean };
-
 const fixture = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
 );
@@ -126,7 +122,9 @@ describe('CLI --static', () => {
 
       expect(result.code, extra.join(' ')).toBe(2);
       expect(result.stdout, extra.join(' ')).toBe('');
-      expect(firstLine, extra.join(' ')).toMatch(/--out|--pdf/);
+      expect(firstLine, extra.join(' ')).toBe(
+        'tolkira: --static requires --out or --pdf',
+      );
       expect(firstLine, extra.join(' ')).not.toMatch(/Unknown option/i);
     }
 
@@ -269,7 +267,7 @@ describe('CLI --static', () => {
   });
 
   it('accepts static: true through the render API', async () => {
-    const options: StaticReportOptions = { title: 'Static API', static: true };
+    const options: RenderReportOptions = { title: 'Static API', static: true };
 
     const rendered = await renderReport(fixture, options);
     expect(hasScript(rendered), 'no <script>').toBe(false);

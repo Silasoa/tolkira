@@ -10,11 +10,6 @@ import type { RenderReportOptions } from '../src/options.js';
 import { fixturePath, messagesFixture, playwrightFixture } from './fixtures.js';
 import { scenarioOpeningTag, syntheticRun } from './render-helpers.js';
 
-// The option lands with the implementation; the local shape keeps the Red
-// suite typecheckable before then (the same pattern as retry-reports.ts).
-type StaticRenderOptions = RenderOptions & { static?: boolean };
-type StaticReportOptions = RenderReportOptions & { static?: boolean };
-
 const standardFixture = messagesFixture('screenshot.ndjson');
 const historyFile = fixturePath('history', 'two-runs.json');
 const longHistoryFile = fixturePath('history', 'thirty-runs.json');
@@ -42,8 +37,8 @@ async function history(count: number): Promise<HistoryRun[]> {
 
 /** One run carrying every disclosure kind the static form must open. */
 async function richEnvelopes() {
-  // The checked-in Messages fixtures reuse pickle ids (all-statuses and tags
-  // both use "27"), so the tagged and unexecuted cases render on their own.
+  // Shell coverage, not a valid CLI input: all-statuses and hooks reuse gherkin
+  // id "3", and the tagged case renders on its own.
   const retryFile = playwrightFixture('retry-evidence.json');
   const retry = await parsePlaywrightJson(
     JSON.parse(await readFile(retryFile, 'utf8')),
@@ -122,7 +117,7 @@ function cspDirectives(html: string): Map<string, string[]> {
 
 describe('static report shell', () => {
   it('renders without scripts, tabs, dead controls or dangling ARIA', async () => {
-    const options: StaticRenderOptions = {
+    const options: RenderOptions = {
       title: 'Static shell',
       static: true,
       history: await history(2),
@@ -163,6 +158,8 @@ describe('static report shell', () => {
     const body = markup(html);
     expect(body).not.toContain('data-copy-failure');
     expect(body).not.toContain('class="copyFailure"');
+    expect(body).not.toContain('data-copy-log');
+    expect(body).toContain('whoops');
 
     expect(
       /<input\b[^>]*\bdata-search/.test(body),
@@ -185,7 +182,7 @@ describe('static report shell', () => {
   });
 
   it('opens every disclosure kind without a click', async () => {
-    const options: StaticRenderOptions = {
+    const options: RenderOptions = {
       title: 'Static details',
       static: true,
       history: await history(2),
@@ -217,7 +214,7 @@ describe('static report shell', () => {
   });
 
   it('renders tagged rows without a tag filter', async () => {
-    const options: StaticRenderOptions = { title: 'Static tags', static: true };
+    const options: RenderOptions = { title: 'Static tags', static: true };
     const html = await renderHtml(await messages('tags.ndjson'), options);
     const body = markup(html);
 
@@ -229,8 +226,27 @@ describe('static report shell', () => {
     expect(html.match(/data-scenario-name="/g) ?? []).toHaveLength(3);
   });
 
+  it('points the skip notice at the report instead of a tab', async () => {
+    const envelopes = await messages('empty.ndjson');
+    const staticHtml = await renderHtml(envelopes, {
+      title: 'Static skip',
+      static: true,
+      skippedAttachments: 1,
+    });
+    const defaultHtml = await renderHtml(envelopes, {
+      title: 'Default skip',
+      skippedAttachments: 1,
+    });
+
+    expect(staticHtml).toContain('See the affected scenarios in the report.');
+    expect(staticHtml).not.toContain('on the Report tab');
+    expect(defaultHtml).toContain(
+      'See the affected scenarios on the Report tab.',
+    );
+  });
+
   it('escapes hostile text without a script or markup executing', async () => {
-    const options: StaticRenderOptions = { title: 'Hostile static', static: true };
+    const options: RenderOptions = { title: 'Hostile static', static: true };
     const html = await renderHtml(
       syntheticRun([
         {
@@ -256,7 +272,7 @@ describe('static report shell', () => {
 
 describe('static views', () => {
   it('stacks Report, Details and Trends with two history runs', async () => {
-    const options: StaticRenderOptions = {
+    const options: RenderOptions = {
       title: 'Static stack',
       static: true,
       history: await history(2),
@@ -278,7 +294,7 @@ describe('static views', () => {
   it.each([0, 1])(
     'omits Trends with %i history runs and keeps Report and Details',
     async (count) => {
-      const options: StaticRenderOptions = {
+      const options: RenderOptions = {
         title: `Static ${count}`,
         static: true,
         history: await history(count),
@@ -294,7 +310,7 @@ describe('static views', () => {
   );
 
   it('keeps the Trends table and sparkline with many runs', async () => {
-    const options: StaticRenderOptions = {
+    const options: RenderOptions = {
       title: 'Static many',
       static: true,
       history: await history(30),
@@ -321,6 +337,7 @@ describe('default report guard', () => {
     expect(body).toMatch(/<input\b[^>]*\bdata-search/);
     expect(body).toContain('data-filter-status=');
     expect(body).toContain('data-copy-failure');
+    expect(body).toContain('data-copy-log');
     expect(body).toContain('class="shotButton"');
     expect(body).toContain('<dialog');
     expect(html.match(/<main\b/g) ?? []).toHaveLength(3);
@@ -351,7 +368,7 @@ describe('default report guard', () => {
 describe('static size seam', () => {
   it('measures the static and default bytes for the standard fixture', async () => {
     const defaults = { title: 'Static size' } satisfies RenderReportOptions;
-    const staticOptions: StaticReportOptions = { title: 'Static size', static: true };
+    const staticOptions: RenderReportOptions = { title: 'Static size', static: true };
     const defaultHtml = await renderReport(standardFixture, defaults);
     const staticHtml = await renderReport(standardFixture, staticOptions);
     const defaultBytes = Buffer.byteLength(defaultHtml, 'utf8');

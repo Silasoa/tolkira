@@ -110,6 +110,7 @@ function uriListBody(text: string): string {
 function textAttachmentBody(
   attachment: ReportAttachment,
   t: Translator,
+  staticMode: boolean,
 ): string {
   const text = attachment.text ?? '';
   if (attachment.textFormat === 'json') {
@@ -124,7 +125,10 @@ function textAttachmentBody(
   }
   if (attachment.textFormat === 'log') {
     const name = escapeHtml(attachment.fileName);
-    return `<div class="logTools"><button class="copyLog" type="button" data-copy-log aria-label="${t.t('attachment.copyLogLabel', { name })}" hidden>${t.t('attachment.copyLog')}</button></div><pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
+    const tools = staticMode
+      ? ''
+      : `<div class="logTools"><button class="copyLog" type="button" data-copy-log aria-label="${t.t('attachment.copyLogLabel', { name })}" hidden>${t.t('attachment.copyLog')}</button></div>`;
+    return `${tools}<pre class="ansiLog">${renderAnsiLog(text)}</pre>`;
   }
   return `<pre>${escapeHtml(text)}</pre>`;
 }
@@ -154,7 +158,7 @@ export function renderAttachment(
     return `<figure class="attachment"><audio controls src="${escapeHtml(attachment.dataUri)}"></audio><figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'text' && attachment.text !== undefined) {
-    return `<details class="attachmentText"${staticMode ? ' open' : ''}><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t)}</details>`;
+    return `<details class="attachmentText"${staticMode ? ' open' : ''}><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t, staticMode)}</details>`;
   }
   const bytes = t.t('format.bytes', { count: attachment.bytes });
   if (attachment.dataUri) {
