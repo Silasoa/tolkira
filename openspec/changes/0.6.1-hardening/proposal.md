@@ -50,9 +50,11 @@ public API or schema change.
   `Documents and Settings` segment plus the next segment on an absolute path or
   file URL. The report model uses `displayUri` for its feature-name fallback.
   Relative URIs stay unchanged and the existing `/features/` marker and
-  last-three-segments fallback stay where they apply. No local user name appears
-  in a display URI in the HTML, the `--json` `uri` field or copied failure text;
-  the summary `feature` field keeps its current empty fallback.
+  last-three-segments fallback stay where they apply. For an absolute path or
+  file URL, no local user name appears in a display URI in the HTML, the
+  `--json` `uri` field or copied failure text; a relative path that starts with
+  a home segment stays unchanged and is outside this rule. The summary `feature`
+  field keeps its current empty fallback.
 - **Surrogate media:** a non-base64 image, video or audio body that cannot be
   percent-encoded falls back to a base64 data URI built from its UTF-8 bytes.
   A normal UTF-8 body keeps its readable data URI, a BASE64 body stays

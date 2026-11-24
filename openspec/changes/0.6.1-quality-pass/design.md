@@ -505,8 +505,8 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   and the two golden HTML files are re-pinned only for the recorded diffs. All
   nine hashes change for the B-048/B-039 shell; the three Messages fixtures with
   a zero run timestamp (`all-statuses`, `empty-statuses`, `examples-tables`)
-  also lose their 1970 run date. The two legacy fixtures keep their fake-clock
-  pin in this change and are re-pinned only in `0.6.1-hardening`, when the
+  also lose their 1970 run date. The two legacy fixtures are re-pinned here for
+  the shell with their pinned 2026 date, and again in `0.6.1-hardening` when the
   invented legacy date disappears. No Playwright fixture output changes. Any
   other changed expected value is a defect, not a re-pin.
 - **Compat report write.** Audit 11 covers the CLI `--out` and `--ci-out` writes
@@ -625,8 +625,9 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   fixtures with a zero run timestamp also lose their 1970 run date. The client
   bundle budget stays under 16 KB. No existing Playwright fixture is re-pinned:
   every current fixture has `stats.startTime`, distinct retry values and a spec
-  `file`, so the audit rules do not change their output. The legacy fixtures
-  change later, in `0.6.1-hardening`.
+  `file`, so the audit rules do not change their output. The two legacy
+  fixtures are re-pinned here for the shell with their pinned 2026 date, and
+  again in `0.6.1-hardening` for the removed date.
 
 **Visual evidence (B-054, test-only).** One e2e test renders the default and the
 `--static` report from `test/fixtures/messages/screenshot.ndjson` and writes

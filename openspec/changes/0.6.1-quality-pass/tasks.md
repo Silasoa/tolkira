@@ -176,7 +176,8 @@
   allowed. Record the byte delta and the per-fixture reason. Do not re-pin a
   Playwright fixture unless the gate record names a legitimately changed
   expected value; the current fixtures do not change. The two legacy fixtures
-  keep their hash here; they change in the hardening change.
+  are re-pinned here for the shell with their 2026 date, and again in the
+  hardening change for the removed date.
 - [ ] 3.5 Docs for the accepted items: update `docs/ARCHITECTURE.md` (default
   and static both render one `<main>`), `docs/AGENT-INTERFACE.md` (remove the
   default three-`<main>` defect note; add the one-BOM sidecar sentence),
@@ -213,8 +214,9 @@
   expected skip take that branch. Invariant: a failed or passed final result is
   never rendered or counted as skipped.
 - [ ] 3.13 Audit 8: pass the inherited `specFile` from `collectScenarios` into
-  `scenarioPlan` and use it for the URI and rule name. Invariant: scenario URI,
-  rule name and feature name agree; explicit spec file wins.
+  `scenarioPlan` and use it for the URI and rule name. Invariant: without a
+  project the feature name follows the suite file; with a project the project
+  stays the feature grouping; explicit spec file wins.
 - [ ] 3.14 Audit 9: validate optional `testCaseStarted.attempt` as a
   non-negative safe integer with the existing line-error form; keep absent as
   0 in the summary and model. Invariant: `--json` contains no `null` attempt.

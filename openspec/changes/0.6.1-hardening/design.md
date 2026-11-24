@@ -41,8 +41,9 @@ Change:
   `file:///home/<user>/...` becomes `/home/<user>/...`, and
   `file:///C:/Users/<user>/...` becomes `/C:/Users/<user>/...`, then `C:/Users/...`.
   A `file://` URL without a leading slash keeps one.
-- After removing a drive (`C:`) or an `/mnt/<drive>` mount, drop a leading
-  `Users`, `home` or `Documents and Settings` segment plus the next segment.
+- On an absolute path or file URL, including after removing a drive (`C:`) or
+  an `/mnt/<drive>` mount, drop a leading `Users`, `home` or
+  `Documents and Settings` segment plus the next segment.
   This covers `/home/<user>/...`, `/mnt/c/Users/<user>/...` and
   `file:///C:/Users/<user>/...`. A path whose home segment is not leading is not
   the target of this fix; the last-three fallback still applies.

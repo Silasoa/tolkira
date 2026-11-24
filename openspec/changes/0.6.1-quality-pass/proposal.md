@@ -115,8 +115,9 @@ becomes explicit.
   failed final result wins over an expected skip, and a passed final result
   under an expected skip is an unexpected pass (failed).
 - **Audit 8 — Playwright inherited file:** when a spec omits `file`, the
-  scenario URI and rule name use the enclosing suite's file, so the scenario
-  URI, rule name and feature name agree.
+  scenario URI and rule name use the enclosing suite's file. Without a project,
+  the feature name follows that file; with a project, the project stays the
+  feature grouping.
 - **Audit 9 — Messages attempt:** `testCaseStarted.attempt` is optional; when
   present it must be a non-negative safe integer. `1e309`, a string, a
   negative value and a non-integer are rejected with the existing line-error
@@ -148,7 +149,8 @@ becomes explicit.
 - Code: `src/input/load.ts` (accounting and cap order), `src/input/detect.ts`
   (exported feature predicate and empty-shard skip), `src/input/messages.ts`
   (attempt validation), `src/input/playwright.ts` (final result, skip rule and
-  inherited file), `src/report/index-run.ts` (rendered-attachment selector),
+  inherited file), `src/report/index-run.ts` (rendered-attachment selector and
+  later-start tie),
   `src/report/model.ts` (zero-timestamp guard and selector use),
   `src/summary.ts` (per-scenario and run attachment counts),
   `src/history.ts` (shared target validation), `src/ci.ts` (identity cap),
@@ -176,15 +178,15 @@ becomes explicit.
   `docs/PLAYWRIGHT-JSON.md`, `docs/CI.md`, `docs/LIMITATIONS.md`,
   `docs/BACKLOG.md` and `docs/CHANGELOG.md`.
 - B-048 and B-039 plus the audit 6 zero-date rule re-pin committed report
-  bytes: the nine default characterization hashes (all nine for the shell, three
-  of them also for a removed 1970 run date on the Messages fixtures), the two-run
-  history hash and the two golden HTML files
-  (`test/fixtures/render-golden/minimal.html` and
+  bytes: the nine default characterization hashes (all nine for the shell,
+  including the two legacy fixtures, whose 2026 date stays pinned here; three
+  Messages fixtures also lose a 1970 run date), the two-run history hash and the
+  two golden HTML files (`test/fixtures/render-golden/minimal.html` and
   `attachments-presentation.html`). Allowed diffs: the two `<main>`→`<div>`
   replacements, their closing tags, the narrow CSS string and the removed epoch
-  dates. No other golden or characterization hash is re-pinned; the legacy
-  fixtures keep their pinned clock until the hardening change removes the
-  invented legacy date.
+  dates. No other golden or characterization hash is re-pinned. The two legacy
+  fixtures are re-pinned again in the hardening change, when the invented legacy
+  run date is removed.
 - The JSON summary changes only where the audit fixes correct an attachment
   count or a Playwright final status; `attempt` stays a number and the schema
   stays version 2. CI text changes only for identities above 200 code points. CLI

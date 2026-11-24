@@ -4,12 +4,12 @@
 
 ### Requirement: Keep local user paths out of display URIs
 
-The display URI shown in the report, JSON summary and copied failure text SHALL
-NOT contain a local user name. A `file://` URL and the Windows `/C:/...` form
-SHALL keep their path root. On an absolute path or file URL, including after a
-`/mnt/<drive>` mount, a leading `Users`, `home` or `Documents and Settings`
-segment and the next segment SHALL be dropped. Relative URIs, the `/features/`
-marker and the last-three fallback SHALL stay.
+For an absolute path or file URL, the display URI shown in the report, JSON
+summary and copied failure text SHALL NOT contain a local user name. A
+`file://` URL and the Windows `/C:/...` form SHALL keep their path root. On an
+absolute path or file URL, including after a `/mnt/<drive>` mount, a leading
+`Users`, `home` or `Documents and Settings` segment and the next segment SHALL
+be dropped.
 
 #### Scenario: POSIX file URL
 
@@ -49,12 +49,23 @@ marker and the last-three fallback SHALL stay.
 - **THEN** it renders as escaped text
 - **AND** the report makes no network request
 
+### Requirement: Keep relative paths and the features marker stable
+
+A relative URI SHALL stay unchanged, and the `/features/` marker and the
+last-three fallback SHALL stay where they already apply. A relative path that
+starts with a home segment is outside the no-user-name rule.
+
 #### Scenario: Relative path is unchanged
 
 - **WHEN** a scenario URI is `features/login.feature`
 - **THEN** the display URI is `features/login.feature`
 - **AND** the legacy normalised URI is `features/login.feature`
-- **AND** a relative path that does not start with a home segment is unchanged
+
+#### Scenario: Relative home-segment path stays out of scope
+
+- **WHEN** a scenario URI is `home/<user>/proj/login.feature`
+- **THEN** the display URI is unchanged
+- **AND** the no-user-name rule does not apply to it
 
 ### Requirement: Use the display URI for the model feature name
 

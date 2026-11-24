@@ -297,10 +297,11 @@ The mode SHALL require `--out` or `--pdf`, SHALL default off, and SHALL NOT
 itself change the default report's content, markup or CSS. The default form of
 the same release MAY carry the changes of another change in that release (0.6.1
 changes the tab containers and the narrow Details metadata rule), so byte
-identity with an earlier release is not part of this mode. The static form SHALL
-carry the documented scroll-offset script, and a default report with two or more
-history runs also carries the documented Trends shell CSS. JSON, CI and email
-bytes SHALL stay unchanged.
+identity with an earlier release is not part of this mode. The default form
+SHALL carry the release-wide measured scroll-offset script; a default report
+with two or more history runs also carries the documented Trends shell CSS. The
+static form SHALL contain no script. JSON, CI and email bytes SHALL stay
+unchanged.
 
 #### Scenario: Static report with HTML
 
