@@ -2,45 +2,62 @@
 
 ## ADDED Requirements
 
-### Requirement: Render one main landmark in the default report
+### Requirement: Render one main landmark around the report views
 
-The default report SHALL contain exactly one `<main>`, on the Report view. The
-static report SHALL also contain exactly one `<main>`. The change SHALL preserve
-tab roles, heading order and content. Apart from the Details metadata rule owned
-by this change, it SHALL NOT change the layout at the gate viewports or at
-320 px with 200 % text.
+The default report SHALL contain exactly one `<main>`. It SHALL start before
+`#report-view` and close after the last present panel, so Report, Details and
+(when present) Trends are all inside it. The static report SHALL use the same
+one-main wrapper. No panel SHALL contain a `<main>`. The site
+`<header class="topbar">` SHALL remain the only banner landmark, and every
+view's `<header class="runHead">` SHALL sit inside the one `<main>`. The change
+SHALL preserve tab roles, heading order and content. Apart from the Details
+metadata rule owned by this change, it SHALL NOT change the layout at the gate
+viewports or at 320 px with 200 % text.
 
 #### Scenario: Default report without Trends
 
 - **WHEN** a default report with no history is inspected
-- **THEN** it contains exactly one `<main>` and that element is inside
-  `#report-view`
+- **THEN** it contains exactly one `<main>`
+- **AND** the `<main>` starts before `#report-view` and closes after
+  `#analysis-view`
+- **AND** the Report and Details panels are inside it
 - **AND** `#analysis-view` exists and has no `<main>`
 - **AND** no `#trends-view` is rendered
+- **AND** the site header is the only banner and each present view's runHead is
+  inside the one `<main>`
 - **AND** the tab list still renders Report and Details
 
 #### Scenario: Default report with Trends
 
 - **WHEN** a default report with two history runs is inspected
-- **THEN** it contains exactly one `<main>` and that element is inside
-  `#report-view`
+- **THEN** it contains exactly one `<main>`
+- **AND** the `<main>` starts before `#report-view` and closes after
+  `#trends-view`
+- **AND** the Report, Details and Trends panels are inside it
 - **AND** `#analysis-view` and `#trends-view` each exist once, without a
   `<main>`
+- **AND** the site header is the only banner and every view's runHead is inside
+  the one `<main>`
 - **AND** the three tabpanels keep their roles, labels and document order
 
 #### Scenario: Static report keeps one main
 
 - **WHEN** a static report with two history runs is inspected
-- **THEN** it contains exactly one `<main>`
+- **THEN** it contains exactly one `<main>` with the same wrapper as the
+  default report
 - **AND** Report, Details and Trends stay visible with no tab bar or tab roles
 - **AND** the `report-view`, `analysis-view` and `trends-view` IDs are present
+- **AND** the site header is the only banner and every view's runHead is inside
+  the one `<main>`
 
 #### Scenario: Landmarks and headings stay ordered
 
 - **WHEN** a default report with two history runs is inspected in document
   order
-- **THEN** the one `<main>` is the first main landmark and precedes the Details
-  and Trends panels
+- **THEN** the one `<main>` precedes the Details and Trends panels and starts
+  before the Report panel
+- **AND** the site header is the only banner and each view's runHead sits inside
+  the one `<main>`
 - **AND** the heading levels and their order inside each view are unchanged
 - **AND** no new landmark is introduced and no existing tabpanel role is lost
 
@@ -52,11 +69,12 @@ by this change, it SHALL NOT change the layout at the gate viewports or at
   feature rows, matrix and Trends table are unchanged
 - **AND** no viewport scrolls horizontally
 
-### Requirement: Keep the Details and Trends panel contract without a main
+### Requirement: Keep the panel contract inside the one main
 
-In the default report, Details and Trends SHALL use plain containers inside
-their existing panels. Each default panel SHALL keep the `tabPanel` class,
-`role="tabpanel"`, `aria-labelledby`, `tabindex`, `hidden` and its
+In both report forms, Report, Details and Trends SHALL use plain containers
+inside their existing panels, and those panels SHALL sit inside the one
+`<main>`. Each default panel SHALL keep the `tabPanel` class,
+`role="tabpanel"`, `aria-labelledby`, `tabindex`, `hidden` and its `report-view`,
 `analysis-view` or `trends-view` ID. The static report SHALL keep the `tabPanel`
 class and the same IDs without tab roles or the tab attributes. Both forms SHALL
 keep the `#analysis-view, #trends-view` print page-break rule.
@@ -65,14 +83,16 @@ keep the `#analysis-view, #trends-view` print page-break rule.
 
 - **WHEN** a default report is inspected
 - **THEN** each panel keeps its role, label, tabindex, `hidden` state and ID
-- **AND** neither panel contains a `<main>`
+- **AND** each panel sits inside the one `<main>`
+- **AND** no panel contains a `<main>`
 
 #### Scenario: Print page breaks still apply
 
 - **WHEN** the complete report is printed
 - **THEN** the `#analysis-view, #trends-view` rule still starts each present
   view on a new page
-- **AND** the rule still resolves without a `<main>` wrapper
+- **AND** the rule stays keyed by the view IDs and is unaffected by the one-main
+  wrapper
 
 ### Requirement: Keep the Details metadata list readable at 320 px and 200 % text
 
@@ -118,16 +138,16 @@ viewports the existing two-column, right-aligned layout SHALL remain unchanged.
 ### Requirement: Keep the default report budgets and no-JS behaviour
 
 Without the flag, a default report SHALL keep its no-JS behaviour, its client
-bundle under 16 KB and its no-network baseline, except for the single-main
-wrapper and the narrow metadata rule owned by this change. The committed
-characterization hashes and golden HTML SHALL be re-pinned to the single-main
+bundle under 16 KB and its no-network baseline, except for the one-main wrapper
+and the narrow metadata rule owned by this change. The committed
+characterization hashes and golden HTML SHALL be re-pinned to the one-main
 document. No runtime dependency SHALL be added.
 
 #### Scenario: Default characterization
 
 - **WHEN** the standard fixtures are rendered without `--static`
 - **THEN** the committed characterization hashes and golden HTML match the
-  single-main document
+  one-main document
 - **AND** the client bundle stays under 16 KB
 
 #### Scenario: Default no-JS
@@ -141,15 +161,16 @@ document. No runtime dependency SHALL be added.
 
 - **WHEN** a default report without a Trends section is rendered
 - **THEN** its bytes match the re-pinned characterization hash
-- **AND** the only diff from the previous hash is the single-main wrapper, the
-  narrow metadata CSS and the matched closing tags
+- **AND** the only diff from the previous hash is the wrapper move (the one
+  `<main>` around the present panels and the `<div class="shell">` inside
+  `#report-view`), the narrow metadata CSS and the matched closing tags
 
 #### Scenario: History default bytes
 
 - **WHEN** a default report with two history runs is rendered
 - **THEN** it contains the Trends shell CSS
 - **AND** its bytes match the re-pinned history characterization hash
-- **AND** it contains exactly one `<main>`
+- **AND** it contains exactly one `<main>` around the three panels
 
 #### Scenario: Dependency surface
 
@@ -337,8 +358,8 @@ unchanged.
 markup and the 0.6.0 byte hashes. B-048 now requires exactly one `<main>`, so
 the frozen contract cannot stand.
 
-**Migration**: “Render one main landmark in the default report”,
-“Keep the Details and Trends panel contract without a main”, “Keep the Details
+**Migration**: “Render one main landmark around the report views”,
+“Keep the panel contract inside the one main”, “Keep the Details
 metadata list readable at 320 px and 200 % text” and “Keep the default report
 budgets and no-JS behaviour” carry the replacement guarantees, including the
 re-pinned hashes and goldens.

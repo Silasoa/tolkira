@@ -51,11 +51,13 @@ becomes explicit.
 
 ## What Changes
 
-- **B-048:** the default report has exactly one `<main>`, on the Report view.
-  Details and Trends become plain containers and keep the `tabPanel` class,
-  `role="tabpanel"`, the `analysis-view`/`trends-view` IDs and the
-  `#analysis-view, #trends-view` print page-break rule. The static report keeps
-  its one `<main>`.
+- **B-048:** the default report has exactly one `<main>` that wraps the Report,
+  Details and (when present) Trends panels; it starts before `#report-view` and
+  closes after the last present panel. The site header stays the only banner.
+  Report, Details and Trends become plain containers and keep the `tabPanel`
+  class, `role="tabpanel"`, the `report-view`/`analysis-view`/`trends-view` IDs
+  and the `#analysis-view, #trends-view` print page-break rule. The static
+  report uses the same wrapper.
 - **B-039:** the Details metadata list stacks label over value at 320 px and
   200 % text, with start-aligned values; long unbroken URLs wrap and the page
   does not scroll horizontally. At 320 px and 390 px and wider at 100 % text,

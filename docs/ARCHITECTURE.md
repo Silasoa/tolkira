@@ -136,11 +136,12 @@ and is covered by real producer fixtures.
   client-message block, the tab bar, the lightbox and the toolbar/copy/image
   buttons; sets `script-src 'none'` while keeping `connect-src 'none'`; opens
   every `<details>`; and renders Report, Details and Trends as stacked visible
-  sections, with Details and Trends as plain containers inside panels that keep
-  the same `tabPanel` class and view IDs. Both forms render exactly one `<main>`,
-  on the Report view, and the print page-break rule still applies. The flag
-  controls scripts, controls, `open`, `hidden` and ARIA, not the landmark, and
-  the mode stays opt-in.
+  sections, each a plain container inside a panel that keeps the same `tabPanel`
+  class and view IDs. Both forms render exactly one `<main>` around all three
+  views; it starts before `#report-view` and closes after the last present panel,
+  the site header is the only banner and each view's run header sits inside main.
+  The print page-break rule still applies. The flag controls scripts, controls,
+  `open`, `hidden` and ARIA, not the landmark, and the mode stays opt-in.
 - The history-only Trends shell fixes (wrapped tab strip, capped table with a
   sticky header, whole-word print headers, the `Current` tag on the date line
   and a ratio-correct sparkline) ship in `TRENDS_SHELL_CSS`, appended only when

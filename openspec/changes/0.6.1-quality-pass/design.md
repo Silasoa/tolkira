@@ -20,26 +20,30 @@ new dependency.
 
 ## Seams
 
-### B-048: one `<main>` in both report forms
+### B-048: one `<main>` around the three report views
 
-- `src/render/report.ts` keeps `<main class="shell">` for the Report view.
-- `src/render/details.ts` (`renderAnalysisView`) and `src/render/trends.ts`
-  (`renderTrendsView`) already use `<div class="shell analysis">` in static
-  mode. The default branch changes from
-  `<main class="shell analysis">...</main>` to
-  `<div class="shell analysis">...</div>`.
-- The panel wrapper, `tabPanel` class, `analysis-view`/`trends-view` IDs,
-  `role="tabpanel"`, `aria-labelledby`, `tabindex` and `hidden` stay exactly as
-  today. Only the landmark element changes.
+- `src/render/html.ts` wraps the `renderReportView`, `renderAnalysisView` and
+  `renderTrendsView` output in one plain `<main>`. The site header, the live
+  region, the optional notice, the lightbox, the messages JSON and the scripts
+  stay outside it.
+- `src/render/report.ts` drops its inner `<main class="shell">` in both
+  branches and emits `<div class="shell">` inside the Report `tabPanel`, like
+  the Details and Trends panels already do.
+- The panel wrapper, `tabPanel` class, the `report-view`/`analysis-view`/
+  `trends-view` IDs, `role="tabpanel"`, `aria-labelledby`, `tabindex` and
+  `hidden` stay exactly as today.
+- The site `<header class="topbar">` stays outside `<main>` and is therefore the
+  only banner landmark. Each view's `<header class="runHead">` sits inside the
+  one `<main>` and is not a banner.
 - The print rule `#analysis-view, #trends-view { break-before: page; }` is keyed
   by ID, not by `.tabPanel` or `<main>`, so it is unaffected.
-- The static and default branches now share the same inner markup; the mode
+- The static and default branches now share the same shell markup; the mode
   still controls only scripts, controls, `open`, `hidden` and ARIA.
 
-The Report view is first in document order, so the one `<main>` remains the
-first main landmark. Heading order and levels do not move. The only landmark
-change is the removal of the two duplicate `main` landmarks, which is the
-defect being fixed.
+The one `<main>` starts before `#report-view` and closes after the last present
+panel. Heading order and levels do not move. The only landmark change is the
+wrapper move, which removes the duplicate `main` landmarks and the stray
+`banner` landmarks from the run headers.
 
 No CSS changes for B-048; `.shell` keeps its layout, max-width, padding and
 container type.
@@ -506,12 +510,13 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   root can be embedded.
 - **Re-pin scope.** The nine characterization hashes, the two-run history hash
   and the two golden HTML files are re-pinned only for the recorded diffs. All
-  nine hashes change for the B-048/B-039 shell; the three Messages fixtures with
-  a zero run timestamp (`all-statuses`, `empty-statuses`, `examples-tables`)
-  also lose their 1970 run date. The two legacy fixtures are re-pinned here for
-  the shell with their pinned 2026 date, and again in `0.6.1-hardening` when the
-  invented legacy date disappears. No Playwright fixture output changes. Any
-  other changed expected value is a defect, not a re-pin.
+  nine hashes change for the B-048/B-039 shell, including the one-main wrapper
+  move around the three panels; the three Messages fixtures with a zero run
+  timestamp (`all-statuses`, `empty-statuses`, `examples-tables`) also lose
+  their 1970 run date. The two legacy fixtures are re-pinned here for the shell
+  with their pinned 2026 date, and again in `0.6.1-hardening` when the invented
+  legacy date disappears. No Playwright fixture output changes. Any other
+  changed expected value is a defect, not a re-pin.
 - **Compat report write.** Audit 11 covers the CLI `--out` and `--ci-out` writes
   only. The compat shim's own `writeAtomic` report write keeps its current error
   path; no wrapper is added there in this patch.
@@ -523,14 +528,18 @@ attachment selector in `src/report/index-run.ts` and the history parser in
 ## Tests
 
 - **B-048 unit**: a default report with no history has exactly one `<main>`
-  inside `#report-view`; `#analysis-view` has no `<main>` and keeps its class,
-  role, label, ID and `hidden`; no `#trends-view`; two tabs. A default report
-  with two history runs has one `<main>`, three tabpanels and the three IDs. A
-  static report still has one `<main>` and no tab roles. Assert heading order
-  and the `#analysis-view, #trends-view` print rule.
-- **B-048 browser**: one `main` role at 320, 390, 768, 1024 and 1440 px and at
-  320 px / 200 % text; no horizontal overflow; Details and Trends panels keep
-  their bounding boxes; save visual captures for CMP.
+  that starts before `#report-view` and closes after the last present panel;
+  Report and Details are inside it; each panel keeps its class, role, label, ID
+  and `hidden`; no `#trends-view`; two tabs; every runHead sits inside main and
+  the site header is the only banner. A default report with two history runs
+  has one `<main>` around all three panels, three tabpanels and the three IDs.
+  A static report has the same wrapper, no tab roles and the same banner rule.
+  Assert heading order and the `#analysis-view, #trends-view` print rule.
+- **B-048 browser**: one `main` role and exactly one `banner` role at 320, 390,
+  768, 1024 and 1440 px and at 320 px / 200 % text; after the initial load and
+  after each tab click the active panel is inside `main`; no horizontal
+  overflow; Details and Trends panels keep their bounding boxes; save visual
+  captures for CMP.
 - **B-039 unit**: the narrow container rule is present in `REPORT_CSS` with one
   column and start-aligned values; the German override is present in the locale
   string; the base 2fr/3fr rule at 100 % is untouched; `styles.ts` is
@@ -622,15 +631,17 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   feature array still merges.
 - **Characterization/goldens**: re-pin the nine default characterization
   hashes, the two-run history hash and the two golden HTML files
-  (`minimal.html`, `attachments-presentation.html`). Inspect the diff for the
-  two `<main>` → `<div>` replacements, their closing tags, the narrow CSS string
-  and removed epoch dates only; no other change is allowed. The three Messages
-  fixtures with a zero run timestamp also lose their 1970 run date. The client
-  bundle budget stays under 16 KB. No existing Playwright fixture is re-pinned:
-  every current fixture has `stats.startTime`, distinct retry values and a spec
-  `file`, so the audit rules do not change their output. The two legacy
-  fixtures are re-pinned here for the shell with their pinned 2026 date, and
-  again in `0.6.1-hardening` for the removed date.
+  (`minimal.html`, `attachments-presentation.html`). Inspect the diff for the one
+  `<main>` wrapper around the three panels, the `<main class="shell">` →
+  `<div class="shell">` replacement in the Report panel, the
+  `<div class="shell analysis">` replacements in Details/Trends, their closing
+  tags, the narrow CSS string and removed epoch dates only; no other change is
+  allowed. The three Messages fixtures with a zero run timestamp also lose their
+  1970 run date. The client bundle budget stays under 16 KB. No existing
+  Playwright fixture is re-pinned: every current fixture has `stats.startTime`,
+  distinct retry values and a spec `file`, so the audit rules do not change
+  their output. The two legacy fixtures are re-pinned here for the shell with
+  their pinned 2026 date, and again in `0.6.1-hardening` for the removed date.
 
 **Visual evidence (B-054, test-only).** One e2e test renders the default and the
 `--static` report from `test/fixtures/messages/screenshot.ndjson` and writes

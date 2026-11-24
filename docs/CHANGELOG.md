@@ -7,13 +7,15 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Fixed
 
-- The default report now has exactly one `<main>`, on the Report view. Details
-  and Trends are plain containers in both report forms. The default panels keep
-  the `tabPanel` class, `role="tabpanel"`, `aria-labelledby`, `tabindex`,
-  `hidden` and the `analysis-view`/`trends-view` IDs; the static panels keep the
+- Both report forms render exactly one `<main>` that wraps Report, Details and
+  (when present) Trends; it starts before `#report-view` and closes after the
+  last present panel. The site header is the only banner and each view's run
+  header sits inside main. Report, Details and Trends are plain containers. The
+  default panels keep the `tabPanel` class, `role="tabpanel"`,
+  `aria-labelledby`, `tabindex`, `hidden` and the
+  `report-view`/`analysis-view`/`trends-view` IDs; the static panels keep the
   class, IDs and the `#analysis-view, #trends-view` print page break without tab
-  roles. The static report keeps its one `<main>`; the default form was the last
-  three-`<main>` document (B-048).
+  roles. The default form was the last three-`<main>` document (B-048).
 - The Details metadata list stacks each label above a start-aligned value at
   320 px with 200 % text, and a long unbroken URL wraps instead of forming a
   narrow ragged column. At 100 % text from 320 px, and at 768 px and wider at

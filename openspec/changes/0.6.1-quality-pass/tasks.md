@@ -34,14 +34,19 @@
 ## 2. TDD-Red
 
 - [x] 2.1 B-048 unit: a default report with no history has exactly one `<main>`
-  inside `#report-view`; `#analysis-view` has no `<main>` and keeps its class,
-  role, label, ID and `hidden`; no `#trends-view`; two tabs. A default report
-  with two history runs has one `<main>`, three tabpanels and the three IDs. A
-  static report still has one `<main>` and no tab roles. Assert heading order
-  and the `#analysis-view, #trends-view` print rule.
-- [x] 2.2 B-048 browser: one `main` role at 320, 390, 768, 1024 and 1440 px and
-  at 320 px / 200 % text; no horizontal overflow; Details and Trends panels
-  keep their bounding boxes; save before/after visual captures for CMP.
+  that starts before `#report-view` and closes after the last present panel;
+  the Report and Details panels are inside it; `#analysis-view` has no
+  `<main>` and keeps its class, role, label, ID and `hidden`; no `#trends-view`;
+  two tabs; every runHead sits inside main and the site header is the only
+  banner. A default report with two history runs has one `<main>` around all
+  three panels, three tabpanels and the three IDs. A static report has the same
+  wrapper and no tab roles. Assert heading order and the
+  `#analysis-view, #trends-view` print rule.
+- [x] 2.2 B-048 browser: one `main` role and exactly one `banner` role at 320,
+  390, 768, 1024 and 1440 px and at 320 px / 200 % text; after the initial load
+  and after each tab click the active panel is inside `main`; no horizontal
+  overflow; Details and Trends panels keep their bounding boxes; save
+  before/after visual captures for CMP.
 - [x] 2.3 B-039 unit: the narrow container rule is present in `REPORT_CSS`
   with one column and start-aligned values; the German override is present in
   the locale string; the base 2fr/3fr rule at 100 % is untouched; `styles.ts`
@@ -156,9 +161,10 @@
 
 ## 3. Implement
 
-- [x] 3.1 B-048: replace the default `<main class="shell analysis">` wrapper in
-  `details.ts` and `trends.ts` with `<div class="shell analysis">`; keep every
-  panel attribute and ID. Leave `report.ts` and the static branches alone.
+- [x] 3.1 B-048: drop the `<main class="shell">` from both `report.ts` branches
+  in favour of `<div class="shell">` inside the Report `tabPanel`, and wrap the
+  three view renders in one plain `<main>` in `html.ts`; keep every panel
+  attribute and ID. Leave `details.ts`, `trends.ts` and `styles.ts` alone.
 - [x] 3.2 B-039: add the narrow `@container` rule to `report.css` after the
   existing `@media (max-width: 560px)` `.metaList` rule (or raise its
   specificity), add the German override after the existing `:lang(de) .metaList`
@@ -170,13 +176,28 @@
 - [x] 3.4 Re-pin intentionally: replace the nine default characterization
   hashes, the two-run history hash and the two golden HTML files
   (`test/fixtures/render-golden/minimal.html` and
-  `attachments-presentation.html`). Inspect the diff: the two
-  `<main>`→`<div>` replacements, their closing tags, the narrow CSS string and
+  `attachments-presentation.html`). Inspect the diff: the one `<main>` wrapper
+  around the three panels, the `<main class="shell">`→`<div class="shell">`
+  replacement in the Report panel, the `<div class="shell analysis">`
+  replacements in Details/Trends, their closing tags, the narrow CSS string and
   the removed 1970 run dates on the three zero-timestamp Messages fixtures are
-  allowed. Record the byte delta and the per-fixture reason. Measured:
-  `minimal.html` and `attachments-presentation.html` each +104 bytes (CSS
-  insertion +106, `<main>`→`<div>` open/close −2, self-referential size row
-  follows). Do not re-pin a Playwright fixture unless the gate record names a
+  allowed. Record the byte delta and the per-fixture reason. Measured: the
+  B-039 CSS insertion and the Details/Trends `<main>`→`<div>` replacements
+  moved each golden +104 bytes; the wrapper re-pin moved `minimal.html`
+  66,447→66,458 and `attachments-presentation.html` 70,623→70,634, +11 bytes
+  each (`<main>`/`</main>` add 13, `<main class="shell">`→`<div class="shell">`
+  and `</main>`→`</div>` remove 2, the self-referential size row follows). New
+  hashes: screenshot `5eee7f129a439eb9f93cc881ffff5317d0d8cfeca46bd81966e057c82804a2fa`,
+  all-statuses `266529052466a6a334cc283b8e1eaab4d2872e108e009b4042f99c59ef298225`,
+  empty-statuses `2658a0f983ef4a6d0461ce95deff71c4799e8ceb798897b910e3dbe70c0f302f`,
+  examples-tables `cd64046de63c9930be29f73837160fe234e357e5695443a6990b9d96ad78e725`,
+  legacy-happy `af93978b48b5a0b24655230907f9f17db7837e8c8cc84ba594ae781e9180b320`,
+  legacy-failed `da1109990012f16891a0dacea34699b161688361dcb255b3b7cbdcba96f1eeed`,
+  playwright-real `bdc438cc7fccddd1738445ef6a3b1dee2ea17b27f782c249413a07dd6e217bc6`,
+  playwright-two-files `084947a250043d9b6de5c87ccfbc93f1ddc5234137768262534fb20f59ae8243`,
+  playwright-skipped `aab9fb019fa78109d00560a1c26f29721ef9ec6a336676a0a14f863f144de6c7`,
+  two-run Trends `e372bc13936bad44e5bd7d5e6d96741aca35c2deae52449eae662613df0aa6a3`.
+  Do not re-pin a Playwright fixture unless the gate record names a
   legitimately changed expected value; the current fixtures do not change. The
   two legacy fixtures are re-pinned here for the shell with their 2026 date, and
   again in the hardening change for the removed date.

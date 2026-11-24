@@ -834,6 +834,6 @@ export function renderReportView(
   const runHooks = renderRunHooks(model, t, staticMode);
   const shell = `${reportHeader(model, options, t)}${staticMode ? '' : toolbar(model, t)}<p class="live sr" id="${DOM_IDS.live}" role="status" aria-live="polite" data-total="${total}"></p><p class="searchNote" id="${DOM_IDS.searchNote}" hidden></p>${baselinePanel}${triage}${sources}<div id="feature-list">${features || `<div class="empty">${t.t('report.noScenarios')}</div>`}</div>${runHooks}${staticMode ? '' : `<div class="empty" id="${DOM_IDS.emptyResults}" hidden>${t.t('report.noMatches')}</div>`}<p class="foot">${t.t('report.footer')}</p>`;
   return staticMode
-    ? `<div class="tabPanel" id="${DOM_IDS.reportView}"><main class="shell">${shell}</main></div>`
-    : `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><main class="shell">${shell}</main></div>`;
+    ? `<div class="tabPanel" id="${DOM_IDS.reportView}"><div class="shell">${shell}</div></div>`
+    : `<div class="tabPanel" id="${DOM_IDS.reportView}" role="tabpanel" aria-labelledby="view-report" tabindex="0"><div class="shell">${shell}</div></div>`;
 }

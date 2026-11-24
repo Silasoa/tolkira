@@ -144,16 +144,17 @@ asks or a locale needs them:
   the existing `not valid JSON` error. The writer emits no BOM, so its next
   successful write replaces a BOM-prefixed file with BOM-free bytes and keeps
   every run the append would keep.
-- **B-048 One main landmark in the default report** — resolved on 2026-11-24 in
-  the `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073`: the
-  default report has exactly one `<main>`, on the Report view. Details and
-  Trends are plain containers in both report forms. The default panels keep the
-  `tabPanel` class, `role="tabpanel"`, `aria-labelledby`, `tabindex`, `hidden`
-  and the `analysis-view`/`trends-view` IDs; the static panels keep the class,
-  IDs and the `#analysis-view, #trends-view` print page break without tab roles.
-  The static report keeps its one `<main>`; default heading order and tab roles
-  are unchanged, and apart from the B-039 metadata rule the gate-viewport layout
-  is unchanged.
+- **B-048 One main landmark around the report views** — resolved on 2026-11-24 in
+  the `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073` and the
+  landmark-wrapper follow-up: both report forms render exactly one `<main>` that
+  starts before `#report-view` and closes after the last present panel, wrapping
+  Report, Details and (when present) Trends. The site header is the only banner
+  and each view's run header sits inside main. All panels keep the `tabPanel`
+  class, `role="tabpanel"`, `aria-labelledby`, `tabindex`, `hidden` and the
+  `report-view`/`analysis-view`/`trends-view` IDs; the static panels keep the
+  class, IDs and the `#analysis-view, #trends-view` print page break without tab
+  roles. Heading order and tab roles are unchanged, and apart from the B-039
+  metadata rule the gate-viewport layout is unchanged.
 - **B-039 Details metadata at 320 px and 200 % text** — resolved on 2026-11-24
   in the `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073`: a
   narrow container query stacks each Details metadata label above a start-aligned

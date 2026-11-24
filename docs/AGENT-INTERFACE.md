@@ -639,11 +639,13 @@ The tab bar, tab roles, lightbox dialog and image lightbox buttons, the
 copy-failure and log-copy buttons and the search/status/tag toolbar are removed,
 not left inert. Images render inline in the open detail body. The `report-view`,
 `analysis-view` and `trends-view` IDs stay, so the print page-break rule still
-puts each present view on a new page. Both report forms have exactly one
-`<main>`, on the Report view; Details and Trends are plain containers in both.
-The default panels keep the `tabPanel` class, `role="tabpanel"`,
-`aria-labelledby`, `tabindex` and `hidden`; the static panels keep the
-`tabPanel` class and IDs without tab roles or tab attributes.
+puts each present view on a new page. Both report forms render exactly one
+`<main>` that wraps Report, Details and (when present) Trends; it starts before
+`#report-view` and closes after the last present panel. The site header is the
+only banner and each view's run header sits inside main. The panels keep the
+`tabPanel` class, `role="tabpanel"`, `aria-labelledby`, `tabindex` and `hidden`
+in the default form and the class and IDs without tab roles or tab attributes in
+the static form.
 
 Print/PDF follow the existing print CSS: every present section and open detail
 prints, with no tab bar. A bookmarked `?query=`, `?hide=` or `?tag=` URL shows

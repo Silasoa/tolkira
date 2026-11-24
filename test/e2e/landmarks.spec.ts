@@ -52,6 +52,32 @@ async function panelBoxes(
   };
 }
 
+async function landmarkState(
+  page: Page,
+  label: string,
+  panelId: string,
+): Promise<void> {
+  await expect(page.getByRole('main'), `${label} main role`).toHaveCount(1);
+  await expect(page.getByRole('banner'), `${label} banner role`).toHaveCount(1);
+  await expect(page.getByRole('banner'), `${label} banner element`).toHaveClass(
+    /topbar/,
+  );
+  expect(await page.locator('main').count(), `${label} main`).toBe(1);
+  const state = await page.evaluate((id) => {
+    const main = document.querySelector('main');
+    const panel = document.getElementById(id);
+    const active = document.querySelector('[role="tabpanel"]:not([hidden])');
+    return {
+      panelInMain: Boolean(main && panel && main.contains(panel)),
+      activeInMain: Boolean(main && active && main.contains(active)),
+      panelIsActive: panel !== null && panel === active,
+    };
+  }, panelId);
+  expect(state.panelInMain, `${label} ${panelId} in main`).toBe(true);
+  expect(state.activeInMain, `${label} active panel in main`).toBe(true);
+  expect(state.panelIsActive, `${label} ${panelId} active`).toBe(true);
+}
+
 test('keeps one main landmark and the panel boxes at every gate viewport', async ({
   page,
 }, testInfo) => {
@@ -91,8 +117,7 @@ test('keeps one main landmark and the panel boxes at every gate viewport', async
         `landmarks-${label}${zoomed ? '-text-zoom' : ''}`,
       );
 
-      await expect(page.getByRole('main'), `${label} main role`).toHaveCount(1);
-      expect(await page.locator('main').count(), `${label} main`).toBe(1);
+      await landmarkState(page, label, 'report-view');
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth - window.innerWidth,
@@ -101,10 +126,12 @@ test('keeps one main landmark and the panel boxes at every gate viewport', async
       ).toBeLessThanOrEqual(1);
 
       await page.getByRole('tab', { name: 'Details' }).click();
+      await landmarkState(page, `${label} details`, 'analysis-view');
       const details = await panelBoxes(page, 'analysis-view');
       await capture(page, engine, `landmarks-${label}-details`);
 
       await page.getByRole('tab', { name: 'Trends' }).click();
+      await landmarkState(page, `${label} trends`, 'trends-view');
       const trends = await panelBoxes(page, 'trends-view');
       await capture(page, engine, `landmarks-${label}-trends`);
 
