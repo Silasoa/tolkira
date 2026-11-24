@@ -745,6 +745,45 @@ describe('repeated groups and pairing cost', () => {
     expect(comparison.changes.size).toBe(0);
   });
 
+  it('keeps a repeated outline group ambiguous when one coordinate is missing', () => {
+    const comparison = compareBaseline(
+      {
+        schemaVersion: 2,
+        status: 'failed',
+        scenarios: [
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'failed',
+            executed: true,
+            example: '#1.1',
+          },
+          {
+            feature: 'Outline',
+            name: 'row',
+            uri: 'features/a.feature',
+            status: 'failed',
+            executed: true,
+            example: '#1.2',
+          },
+        ],
+      },
+      [identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row')],
+    );
+
+    expect(comparison.block.counts).toMatchObject({
+      newFailures: 0,
+      fixed: 0,
+      stillFailing: 0,
+      other: 0,
+      notInThisRun: 0,
+      added: 0,
+      ambiguous: 1,
+    });
+    expect(comparison.changes.size).toBe(0);
+  });
+
   it('keeps a repeated group ambiguous when only the current side gains a row', () => {
     const comparison = compareBaseline(
       {

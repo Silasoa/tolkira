@@ -281,11 +281,16 @@ describe('baseline report panel', () => {
     const html = await render(file, baseline, { locale: 'de' });
     const slice = panelRegion(html);
 
-    expect(slice).toContain('Baseline');
+    expect(slice).toContain('Vergleich mit Baseline');
+    expect(slice).toContain('Baseline-Status: Fehlgeschlagen');
     expect(slice).toContain('Neue Fehler');
     expect(slice).toContain('Behoben');
     expect(slice).toContain('Weiterhin fehlgeschlagen');
     expect(slice).toContain('Nicht in diesem Lauf');
+    expect(slice).not.toContain('Compared with baseline');
+    expect(slice).not.toContain('Baseline status:');
+    expect(slice).not.toContain('New failures');
+    expect(slice).not.toContain('Not in this run');
     const text = slice.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
     for (const count of ['2', '1', '3', '1']) {
       expect(text, `panel count ${count}`).toContain(count);
@@ -301,6 +306,34 @@ describe('baseline report panel', () => {
     expect(
       scenarioSummaryFor(badgeHtml, 'features/badges.feature', 'turns green'),
     ).toContain('Behoben');
+  });
+
+  it('renders the German capped JSON pointer after 50 absent rows', async () => {
+    const dir = await makeTempDir();
+    const file = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
+    const absent: BaselineScenario[] = Array.from({ length: 60 }, (_, index) => ({
+      feature: 'Checkout',
+      name: `entry ${String(index).padStart(2, '0')}`,
+      uri: MIXED_URI,
+      status: 'failed',
+      executed: true,
+    }));
+
+    const html = await render(
+      file,
+      { schemaVersion: 2, status: 'failed', scenarios: absent },
+      { locale: 'de' },
+    );
+    const slice = panelRegion(html);
+
+    expect(slice).toContain('Vergleich mit Baseline');
+    expect(slice).toContain('Baseline-Status: Fehlgeschlagen');
+    expect(slice).toContain(
+      '40 weitere Szenarien stehen in der JSON-Zusammenfassung von 60 (bis zu 50); 10 werden nur gezählt. Siehe --json.',
+    );
+    expect(slice).not.toContain('Compared with baseline');
+    expect(slice).not.toContain('Baseline status:');
+    expect(slice).not.toContain('New failures');
   });
 
   it('shows the German ambiguous group label only when a group is ambiguous', async () => {

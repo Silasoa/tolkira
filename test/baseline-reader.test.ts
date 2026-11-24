@@ -3,7 +3,9 @@ import { chmod, mkdir, readFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { legacyFixture } from './fixtures.js';
+import { readBaseline } from '../src/baseline.js';
+import { summarizeReport } from '../src/index.js';
+import { legacyFixture, messagesFixture } from './fixtures.js';
 import {
   BASELINE_MAX_BYTES,
   baselineBlock,
@@ -500,6 +502,59 @@ describe('hostile baseline shapes', () => {
 });
 
 describe('accepted baseline shapes', () => {
+  it('keeps example coordinates from a baseline file through the matcher', async () => {
+    const file = messagesFixture('examples-tables-attachment.ndjson');
+    const dir = await makeTempDir();
+    const baselineFile = await writeText(
+      dir,
+      'examples-baseline.json',
+      JSON.stringify(
+        {
+          schemaVersion: 2,
+          status: 'failed',
+          scenarios: [
+            {
+              feature: 'Examples Tables - With attachments',
+              name: 'Attaching images in an examples table',
+              uri: 'samples/examples-tables-attachment/examples-tables-attachment.feature',
+              status: 'failed',
+              executed: true,
+              example: '#1.1',
+            },
+            {
+              feature: 'Examples Tables - With attachments',
+              name: 'Attaching images in an examples table',
+              uri: 'samples/examples-tables-attachment/examples-tables-attachment.feature',
+              status: 'passed',
+              executed: true,
+              example: '#1.2',
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    const baseline = await readBaseline(baselineFile);
+    expect(baseline.scenarios.map((row) => row.example)).toEqual(['#1.1', '#1.2']);
+
+    const summary = await summarizeReport(file, { baseline });
+    const block = baselineBlock(summary);
+
+    expect(block.counts).toMatchObject({
+      newFailures: 0,
+      fixed: 1,
+      stillFailing: 0,
+      other: 1,
+      notInThisRun: 0,
+      added: 0,
+      ambiguous: 0,
+    });
+    const rows = summary.scenarios;
+    expect(rows.find((row) => row.example === '#1.1')?.change).toBe('fixed');
+    expect(rows.find((row) => row.example === '#1.2')?.change).toBeUndefined();
+  });
+
   it('strips a UTF-8 BOM before parsing', async () => {
     const dir = await makeTempDir();
     const file = await writeText(

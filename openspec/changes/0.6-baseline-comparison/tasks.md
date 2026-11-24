@@ -99,8 +99,18 @@ algorithm, one count set with the `other` residual, `executed` on
 Messages-only `example`, the 10 MiB limit, the pinned CI insertion point, the
 full collision matrix, a separate conditional `baseline.css`, the numeric sort
 and the hostile-shape reader cases. The docs list gains `docs/PRODUCT.md`,
-`GLOSSARY.md` and `docs/I18N.md` (D20). Implementation tasks 3.1-3.6 and the
-Red tasks are done; reviews (4.2) and the fix round (4.6) stay open.
+`GLOSSARY.md` and `docs/I18N.md` (D20). Implementation tasks 3.1-3.6, the Red
+tasks, the reviews (4.2) and the fix round (4.6) are complete.
+
+### Accepted no-action (2026-11-24)
+
+- SEC: grow-after-stat and POSIX FIFO/device fixtures stay untested; the pre-open
+  and descriptor regular-file checks plus the size cap cover the code path, and
+  no portable fixture exists on this host.
+- CMP: panel placement at 320 px with a long list has no separate pixel case; the
+  e2e covers one entry and the search-filter case is pinned.
+- CR: `exampleCoordinate` exists in both `src/summary.ts` and
+  `src/report/model.ts`; extracting one helper is B-051.
 
 ## Gate record
 
@@ -109,11 +119,11 @@ Red tasks are done; reviews (4.2) and the fix round (4.6) stay open.
   test/baseline-matcher.test.ts test/baseline-summary.test.ts
   test/ci-baseline.test.ts test/cli-baseline.test.ts test/render-baseline.test.ts
   test/render-characterization.test.ts test/cli-size-warning.test.ts
-  test/compat.test.ts test/styles.test.ts` — 171 passed, 3 skipped (Windows
+  test/compat.test.ts test/styles.test.ts` — 174 passed, 3 skipped (Windows
   symlink/unreadable capability guards).
-- `npm run hygiene`: ok (808 tracked files, 350 commits on the final tree).
+- `npm run hygiene`: ok (808 tracked files, 351 commits on the final tree).
 - `npm run check`: green — i18n 24/24, typecheck, lint, build, unit 90 files /
-  1491 passed / 8 skipped.
+  1494 passed / 8 skipped.
 - `npm run test:e2e`: green — 424 passed, 8 skipped (PDF rows on Firefox and
   WebKit), Chromium/Firefox/WebKit. The focused `test/e2e/baseline.spec.ts` run
   is 15/15 across the three engines.
@@ -133,7 +143,10 @@ Red tasks are done; reviews (4.2) and the fix round (4.6) stay open.
   examples HTML 86,251 B identical (sha 9ed79ca8593b40c9), baseline +1,426 B,
   static baseline +1,426 B, summary 6,327 B (+175 B), stripped `example`
   6,152 B and sha 88c7fb2528ac1647267ab8cc141ab5ad8427797aab87418480c7916a21d1c6b4;
-  legacy-failed HTML 87,683 B identical (sha 6424c35df77b6d84), baseline
+  legacy-failed HTML 87,683 B identical on the 2026-11-24 run; its sha
+  6424c35df77b6d84 is date-dependent because the report embeds the generation
+  date, so a later re-run has a different hash while the byte delta stays
+  reproducible through `scripts/baseline-bytes.mjs`; baseline
   +1,393 B, static baseline +1,393 B, summary 8,112 B identical; Markdown CI
   671/534 B identical; email 5,275/4,950 B identical. The earlier 1,690 B and
   1,723 B deltas are superseded; the content-dependent standard deltas are
@@ -142,8 +155,8 @@ Red tasks are done; reviews (4.2) and the fix round (4.6) stay open.
   in 20.98 ms on the reference host (first call, JIT included); the regression
   test asserts under 100 ms.
 - Review round: eight blind reviews; six FAIL. All blockers and important
-  findings are fixed in this round. No blocker, important finding or cheap
-  minor was deferred.
+  findings are fixed in this round. No blocker or important finding was
+  deferred; the accepted no-action minors are recorded above.
 
 ### Fix round (2026-11-24)
 
@@ -165,6 +178,9 @@ Red tasks are done; reviews (4.2) and the fix round (4.6) stay open.
 - Panel: plural count labels (0/1/2 in both locales), honest JSON-cap pointer
   above 50 rows, no empty heading/list, escaped and control-stripped baseline
   text, visible feature/name separator, and no badge for still-failing/added.
+  German copy uses the impersonal `siehe --json`/`Siehe --json`; the German
+  render test pins the heading, status line, capped sentence and the absence of
+  English chrome.
 - Accent + baseline keeps one `<style>` block: `REPORT_CSS +
   :root{--accent:…} + BASELINE_CSS`; the accent golden is regenerated.
 - One summary seam: the CLI always calls `summarizeReportFromResolved`;
@@ -206,4 +222,7 @@ Red tasks are done; reviews (4.2) and the fix round (4.6) stay open.
   "writes a Markdown CI file beside a baseline report", "keeps the email bytes
   unchanged when a baseline is supplied", "rejects a baseline at the type level
   and ignores it at runtime"; characterization "keeps the outline summary minus
-  example at the pre-change bytes".
+  example at the pre-change bytes"; follow-up matcher "keeps a repeated outline
+  group ambiguous when one coordinate is missing"; reader "keeps example
+  coordinates from a baseline file through the matcher"; render "renders the
+  German capped JSON pointer after 50 absent rows".
