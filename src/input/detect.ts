@@ -3,7 +3,7 @@ import { looksLikeJUnit } from './junit.js';
 import { ENVELOPE_KEYS, isEnvelopeLike } from './messages.js';
 
 const MESSAGES_EXTENSIONS = new Set(['.jsonl', '.ndjson']);
-const FIRST_KEY = /^\{\s*"([^"]+)"\s*:/;
+const FIRST_KEY = /^\{\s*"((?:\\.|[^"\\])*)"\s*:/;
 
 export interface InputIdentity {
   file: string;
@@ -64,13 +64,24 @@ function looksLikeMessages(content: string): boolean {
 
   // Only parse a first line that names an envelope key; the Playwright sniffer
   // parses every other one-line document, so a report is read once.
-  const key = FIRST_KEY.exec(firstLine)?.[1];
-  if (!key || !ENVELOPE_KEYS.has(key)) return false;
+  const rawKey = FIRST_KEY.exec(firstLine)?.[1];
+  if (!rawKey) return false;
+  const key = rawKey.includes('\\') ? decodeKey(rawKey) : rawKey;
+  if (key === undefined || !ENVELOPE_KEYS.has(key)) return false;
 
   try {
     return isEnvelopeLike(JSON.parse(firstLine));
   } catch {
     return false;
+  }
+}
+
+function decodeKey(raw: string): string | undefined {
+  try {
+    const key: unknown = JSON.parse(`"${raw}"`);
+    return typeof key === 'string' ? key : undefined;
+  } catch {
+    return undefined;
   }
 }
 

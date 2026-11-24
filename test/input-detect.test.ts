@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detectInput } from '../src/input/detect.js';
 import type { InputDecision } from '../src/input/detect.js';
+import { parseMessages } from '../src/input/messages.js';
 
 const LEGACY = '[{"uri":"features/a.feature","name":"A","elements":[]}]';
 const JUNIT =
@@ -73,6 +74,14 @@ describe('input detection decision table', () => {
       {
         case: 'selects Messages for the first envelope',
         content: MESSAGES,
+        file: 'report.ndjson',
+        explicit: true,
+        kind: 'messages',
+      },
+      {
+        case: 'decodes an escaped first envelope key',
+        content:
+          '{"\\u006deta":{"protocolVersion":"1","implementation":{},"runtime":{},"os":{},"cpu":{}}}',
         file: 'report.ndjson',
         explicit: true,
         kind: 'messages',
@@ -511,12 +520,12 @@ describe('first-line parse count', () => {
     },
   );
 
-  it('parses an envelope-key line once before failing validation', () => {
+  it('parses an envelope-key line once as a candidate and once as Playwright', () => {
     const content = '{"meta":';
 
     expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
       .toBe('json-validation');
-    expect(parseCount(content)).toBeGreaterThanOrEqual(1);
+    expect(parseCount(content)).toBe(2);
   });
 
   it('reads the first key after a BOM and blank lines', () => {
@@ -538,5 +547,14 @@ describe('first-line parse count', () => {
     expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
       .toBe('playwright');
     expect(parseCount(content)).toBe(1);
+  });
+
+  it('classifies and parses an escaped envelope key', () => {
+    const content =
+      '{"\\u006deta":{"protocolVersion":"1","implementation":{},"runtime":{},"os":{},"cpu":{}}}';
+
+    expect(detectInput(content, { file: 'report.ndjson', explicit: true }).kind)
+      .toBe('messages');
+    expect(parseMessages(content, 'escaped.ndjson')[0]?.meta).toBeDefined();
   });
 });
