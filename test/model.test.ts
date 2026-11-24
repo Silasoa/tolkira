@@ -1261,6 +1261,51 @@ describe('display URI model fallback', () => {
       expected: 'proj/login.feature',
     },
     {
+      name: 'localhost file URL',
+      uri: `file://localhost/home/${USER}/proj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'remote file URL',
+      uri: `file://server/share/home/${USER}/proj/login.feature`,
+      expected: 'share/proj/login.feature',
+    },
+    {
+      name: 'UNC path',
+      uri: `//server/share/Users/${USER}/proj/login.feature`,
+      expected: 'share/proj/login.feature',
+    },
+    {
+      name: 'percent-encoded separators',
+      uri: `file:///home/${USER}%2Fproj%2Flogin.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'percent-encoded Windows separators',
+      uri: `file:///C:%5CUsers%5C${USER}%5Cproj/login.feature`,
+      expected: 'proj/login.feature',
+    },
+    {
+      name: 'home segment below another directory',
+      uri: `/srv/home/${USER}/proj/login.feature`,
+      expected: 'srv/proj/login.feature',
+    },
+    {
+      name: 'drive segment before Users',
+      uri: `D:/data/Users/${USER}/proj/login.feature`,
+      expected: 'data/proj/login.feature',
+    },
+    {
+      name: 'home-only two-segment path',
+      uri: `/home/${USER}`,
+      expected: '',
+    },
+    {
+      name: 'features marker above the home segment',
+      uri: `/srv/features/home/${USER}/proj/login.feature`,
+      expected: 'features/proj/login.feature',
+    },
+    {
       name: 'WSL mount path',
       uri: `/mnt/c/Users/${USER}/proj/login.feature`,
       expected: 'proj/login.feature',
@@ -1278,7 +1323,11 @@ describe('display URI model fallback', () => {
 
     expect(model.scenarios[0]?.featureName).toBe(expected);
     expect(model.scenarios[0]?.featureName).not.toContain(USER);
-    expect(JSON.stringify(model)).not.toContain(USER);
+    expect(model.scenarios[0]?.featureName).not.toContain('/Users/');
+    expect(model.scenarios[0]?.featureName).not.toMatch(/^[a-z]:\//i);
+    // The model keeps the raw URI for provenance lookup; the report, JSON
+    // summary and copied text apply displayUri and are asserted separately.
+    expect(model.scenarios[0]?.uri).toBe(uri);
   });
 
   it('keeps a relative feature fallback unchanged', () => {
@@ -1516,12 +1565,23 @@ describe('media attachment data URIs', () => {
     },
   );
 
-  it('does not abort the report for a lone surrogate in an audio body', () => {
+  it('treats an audio media type as a binary attachment without throwing', () => {
+    const body = 'audio \uD800 body';
     let model: ReturnType<typeof buildReportModel> | undefined;
     expect(() => {
-      model = mediaModel('\uD800', 'audio/mpeg');
+      model = mediaModel(body, 'audio/mpeg');
     }).not.toThrow();
 
+    const attachment = model?.scenarios[0]?.extraAttachments[0];
+    expect(attachment).toMatchObject({
+      fileName: 'media',
+      mediaType: 'application/octet-stream',
+      kind: 'binary',
+    });
+    expect(attachment?.dataUri).toBeUndefined();
+    // The model keeps the body for the text presentation; the binary report
+    // row shows the file, not an inline media source.
+    expect(attachment?.text).toBe(body);
     expect(model?.scenarios).toHaveLength(1);
   });
 

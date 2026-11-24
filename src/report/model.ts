@@ -769,7 +769,9 @@ export function buildReportModel(
       name: pickle.name,
       keyword: tree?.scenario.keyword ?? 'Scenario',
       description: normalizeText(tree?.scenario.description),
-      uri: displayUri(pickle.uri ?? ''),
+      // Raw URI: provenance keys by the raw URI. Every render site applies
+      // displayUri before output.
+      uri: pickle.uri ?? '',
       ...(pickleLine ? { line: pickleLine } : {}),
       featureName: feature?.name ?? displayUri(pickle.uri ?? ''),
       ...(rule ? { rule } : {}),
@@ -837,7 +839,9 @@ export function buildReportModel(
         : undefined;
     featureRows.push({
       id: `feature-${featureRows.length + 1}`,
-      name: feature.name,
+      name: feature.name?.trim()
+        ? feature.name
+        : displayUri(scenarios[0]?.uri ?? ''),
       keyword: feature.keyword,
       uri: scenarios[0]?.uri ?? '',
       description: normalizeText(feature.description),

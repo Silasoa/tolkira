@@ -448,6 +448,39 @@ describe('messages rendering', () => {
     expect(html).toContain('features/screenshot.feature');
   });
 
+  it('uses the display URI as the heading for an unnamed feature', async () => {
+    const lines = (await readFile(fixture, 'utf8'))
+      .trim()
+      .split(/\r?\n/)
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            gherkinDocument?: { uri?: string; feature?: { name?: string } };
+            pickle?: { uri?: string };
+          },
+      );
+    const uri = 'file:///home/alice/proj/login.feature';
+    for (const line of lines) {
+      if (line.gherkinDocument) {
+        line.gherkinDocument.uri = uri;
+        if (line.gherkinDocument.feature) line.gherkinDocument.feature.name = '';
+      }
+      if (line.pickle) line.pickle.uri = uri;
+    }
+
+    const envelopes = parseMessages(
+      lines.map((line) => JSON.stringify(line)).join('\n'),
+      'unnamed.ndjson',
+    );
+    const html = await renderHtml(envelopes, { title: 'Unnamed feature' });
+
+    // The client copies the feature heading text, so the heading is the
+    // copied `Feature:` line as well.
+    expect(html).toContain('<h2>proj/login.feature</h2>');
+    expect(html).not.toContain('alice');
+    expect(html).not.toContain('/home/');
+  });
+
   it('defaults a missing Messages attempt to zero', async () => {
     const lines = (await readFile(fixture, 'utf8'))
       .trim()
