@@ -541,14 +541,24 @@ asks or a locale needs them:
   is exposed in any output; then guard it like `startedAt`.
 - **`Attempt: 1` label.** The report prints `Attempt: 1` for single-attempt
   Messages runs while the summary stores 0 and the official formatter prints no
-  attempt. Trigger: the 0.7 parity bundle or a user reports the label; then
-  hide it for one attempt.
+  attempt. Because the final result is the last array element on a missing or
+  equal `retry`, a synthetic Playwright input that repeats `retry` 0 shows the
+  earlier row and the scenario meta as `Attempt 1` / `Attempt: 1`. Trigger: the
+  0.7 parity bundle, a user reports the label, or a real report with duplicate
+  retry values appears; then hide the label for a single attempt.
 - **RTL `text-align`.** The new one-column `.metaList` rule uses
   `text-align:left`; switch to `start` when an RTL locale is added (fits
   B-066's locale trigger).
 - **Test-helper duplication.** Shared test-helper work (view slices,
   attempt/tie streams, `cssBlocks`, the two CLI write wrappers) belongs to
   B-057; fold it into that refactor rather than opening a 0.6.1 finding.
+- **Residual test nits from the 0.6.1 review.** Small uncovered edge classes:
+  `attempt: null` or boolean on a Messages start, a `--out` permission failure
+  on Windows, a surrogate pair in the CI feature/URI/`--title` fields, and a
+  `--title` cut beside a Markdown special character. Each runs through a shared
+  path that already has a representative test. Trigger: the next change to the
+  Messages validator, the CI formatter or the report writer; then add the case
+  rather than a separate change.
 
 ## Review follow-ups (2026-11-18)
 
