@@ -3,7 +3,7 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
-## [Unreleased]
+## [0.6.0] - 2026-11-24
 
 ### Added
 
@@ -74,6 +74,10 @@ Keep a Changelog and the project uses semantic versioning.
   / 200 % text, the table is capped with a sticky header, the print header keeps
   whole words, the `Current` tag stays on the date line and the sparkline keeps
   its aspect ratio. The no-history default report bytes are unchanged.
+- An anchored scenario link now clears the sticky topbar at any wrapped height
+  and text zoom. The offset is measured from the rendered bar instead of a fixed
+  CSS reserve, which fell short when the three-tab strip wrapped onto a third
+  row with wider fallback fonts; the CSS values stay as the no-JS fallback.
 
 ## [0.5.1] - 2026-11-23
 

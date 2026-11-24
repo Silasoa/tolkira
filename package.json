@@ -1,6 +1,6 @@
 {
   "name": "tolkira",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Self-contained offline HTML reports for Cucumber legacy JSON, Messages, JUnit XML and Playwright JSON, with a stable JSON summary for CI and AI agents.",
   "type": "module",
   "license": "MIT",
