@@ -792,6 +792,43 @@ describe('JUnit XML entities', () => {
       .toThrow(/Invalid JUnit XML in .*rejected\.xml: invalid entity reference &nbsp;/);
   });
 
+  it(
+    'scans a long bare-& run in linear time',
+    async () => {
+      const dir = await tempDir();
+      const file = path.join(dir, 'bare-amp.xml');
+      await writeFile(
+        file,
+        `<testsuites><testsuite name="bare"><testcase name="long"><failure>${'&'.repeat(200_000)}</failure></testcase></testsuite></testsuites>`,
+        'utf8',
+      );
+
+      await expect(renderReport(file, { title: 'Bare ampersands' })).rejects
+        .toThrow(/Invalid JUnit XML/);
+    },
+    5_000,
+  );
+
+  it('caps an over-long entity name in the error text', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'huge-entity.xml');
+    const entity = 'a'.repeat(100);
+    await writeFile(
+      file,
+      `<testsuites><testsuite name="huge"><testcase name="bad &${entity};"><failure/></testcase></testsuite></testsuites>`,
+      'utf8',
+    );
+
+    const error = await renderReport(file, { title: 'Huge entity' }).then(
+      () => undefined,
+      (cause: unknown) => cause,
+    );
+    const message = error instanceof Error ? error.message : '';
+
+    expect(message).toContain(`invalid entity reference &${'a'.repeat(64)}...;`);
+    expect(message).not.toContain(entity);
+  });
+
   it('writes no partial report when a long named entity is rejected', async () => {
     const dir = await tempDir();
     const input = path.join(dir, 'long-entity.xml');

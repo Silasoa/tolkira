@@ -3,6 +3,21 @@ import { parseLegacyValue } from './legacy.js';
 
 type XmlNode = Record<string, unknown>;
 
+const XML_ENTITIES = new Map([
+  ['amp', '&'],
+  ['lt', '<'],
+  ['gt', '>'],
+  ['quot', '"'],
+  ['apos', "'"],
+]);
+
+const MAX_ENTITY_LABEL = 64;
+
+const XML_ENTITY_REFERENCE = new RegExp(
+  `&(${[...XML_ENTITIES.keys()].join('|')}|#\\d+|#x[0-9a-fA-F]+);`,
+  'g',
+);
+
 const ARRAY_TAGS = new Set([
   'testsuite',
   'testcase',
@@ -60,20 +75,14 @@ function isXmlChar(code: number): boolean {
 }
 
 function checkEntityReferences(fragment: string, source: string): void {
-  const entityPattern = /&([^;]*);/g;
+  // An entity cannot contain `&` or `;`, so excluding `&` keeps a long run of
+  // bare ampersands linear instead of rescanning to the next semicolon.
+  const entityPattern = /&([^;&]*);/g;
   let match: RegExpExecArray | null;
 
   while ((match = entityPattern.exec(fragment)) !== null) {
-    const entity = match[1];
-    if (
-      entity === 'amp' ||
-      entity === 'lt' ||
-      entity === 'gt' ||
-      entity === 'quot' ||
-      entity === 'apos'
-    ) {
-      continue;
-    }
+    const entity = match[1] ?? '';
+    if (XML_ENTITIES.has(entity)) continue;
 
     let code: number | undefined;
     if (/^#\d+$/.test(entity)) {
@@ -83,8 +92,12 @@ function checkEntityReferences(fragment: string, source: string): void {
     }
 
     if (code === undefined || !Number.isFinite(code) || !isXmlChar(code)) {
+      const shown =
+        entity.length > MAX_ENTITY_LABEL
+          ? `${entity.slice(0, MAX_ENTITY_LABEL)}...`
+          : entity;
       throw new Error(
-        `Invalid JUnit XML in ${source}: invalid entity reference &${entity};`,
+        `Invalid JUnit XML in ${source}: invalid entity reference &${shown};`,
       );
     }
   }
@@ -352,14 +365,6 @@ function featuresFromSuite(
   return features;
 }
 
-const XML_ENTITIES: Record<string, string> = {
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  apos: "'",
-};
-
 // fast-xml-parser v5 gates numeric references behind its deprecated boolean
 // htmlEntities option, which would also expose every HTML name. This decoder
 // keeps the XML-only rule the checker enforces and decodes no other name.
@@ -369,19 +374,16 @@ const xmlEntityDecoder = {
   addInputEntities: () => {},
   reset: () => {},
   decode(value: string): string {
-    return value.replace(
-      /&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/g,
-      (whole, name: string) => {
-        const code = name.startsWith('#x')
-          ? Number.parseInt(name.slice(2), 16)
-          : name.startsWith('#')
-            ? Number.parseInt(name.slice(1), 10)
-            : undefined;
-        return code === undefined
-          ? (XML_ENTITIES[name] ?? whole)
-          : String.fromCodePoint(code);
-      },
-    );
+    return value.replace(XML_ENTITY_REFERENCE, (whole, name: string) => {
+      const code = name.startsWith('#x')
+        ? Number.parseInt(name.slice(2), 16)
+        : name.startsWith('#')
+          ? Number.parseInt(name.slice(1), 10)
+          : undefined;
+      return code === undefined
+        ? (XML_ENTITIES.get(name) ?? whole)
+        : String.fromCodePoint(code);
+    });
   },
 };
 
