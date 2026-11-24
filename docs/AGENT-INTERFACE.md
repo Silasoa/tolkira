@@ -539,6 +539,13 @@ Contract:
 - `id` is the SHA-256 of the aggregates and the resolved title, excluding
   `recordedAt`. When the last entry has the same id, the new run is not
   appended and the old `recordedAt` stays.
+- `recordedAt` accepts a strict ISO 8601 timestamp with a zone (`Z` or
+  `±HH:MM`), optional seconds and optional fractional seconds, and a finite
+  `Date.parse`. The original string is kept on read and on write; a
+  `+02:00` value is not rewritten to `Z`. A zone-less value such as
+  `2026-11-19T08:00:00` and free text such as `yesterday` fail with the existing
+  `runs[i].recordedAt must be an ISO timestamp` error. The CLI's newly recorded
+  run keeps the `YYYY-MM-DDTHH:mm:ss.sssZ` writer form.
 - `flaky` is optional and new entries always carry it: the number of executed,
   non-skipped scenarios tagged `@flaky` (any final status) or whose final status
   is passed after at least one retry (`attempt > 0`). It is a flagged share
@@ -844,14 +851,18 @@ Field contract:
   failure, so `newFailures` can exceed the matched baseline rows.
 - `baseline.notInThisRun` is capped at 50 entries while `counts.notInThisRun`
   stays complete. It is sorted by feature, then name, then the example
-  coordinate (numeric; rows without `example` last), then URI. Each entry has
-  `feature`, `name`, `uri`, `status`, `executed` and optional `example`. Baseline
-  URIs pass the same display-URI rule as current rows and are never links or
-  file paths.
+  coordinate (numeric; rows without `example` last), then URI; every text
+  comparison uses the same fixed UTF-16 code-unit order, not the host locale.
+  Each entry has `feature`, `name`, `uri`, `status`, `executed` and optional
+  `example`. Baseline URIs pass the same display-URI rule as current rows and
+  are never links or file paths.
 - `durationMs` is a number of milliseconds and sums the final attempt per
   scenario plus test-run hooks. It is not wall-clock time.
   `steps[].durationMs` is rounded to three decimals.
-- `scenarios` is sorted by `uri`, then `name`, so output is stable across runs.
+- `scenarios` is sorted by `uri`, then `name`, in fixed UTF-16 code-unit order,
+  so output is stable across runs and independent of the host locale or ICU
+  collation. The visible order for non-ASCII names can differ from earlier
+  releases.
 - `scenarios[].name` is the Cucumber pickle name. Examples of one scenario
   outline can share the same name. A Messages outline row carries `example` as
   `#<examples>.<example>` with 1-based numbers, matching the HTML label and
@@ -943,7 +954,14 @@ cover executed scenarios only:
 
 The summary does not expose absolute input paths: absolute `uri` values are
 reduced to a relative form (`features/...`, or the last path segments for files
-outside `features/`).
+outside `features/`). A `file://` URL keeps its path root, a Windows `/C:/...`
+path is shown in drive form, and an absolute path or file URL (including a
+`/mnt/<drive>` mount) drops a leading `Users`, `home` or `Documents and
+Settings` segment plus the next segment, so a local user name does not appear
+in the HTML display URI, the summary `uri` or copied failure text. Relative
+URIs are unchanged. The report model uses the same display URI as its
+feature-name fallback when the AST has no feature name; the summary `feature`
+field stays `""` for a featureless scenario.
 
 ## Recommended agent workflow
 

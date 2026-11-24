@@ -81,7 +81,9 @@ and is covered by real producer fixtures.
 - Resolves explicit files and directory scans once into one ordered,
   deduplicated file list (`resolveInputFiles`). The CLI hands that same list to
   the advisory stat-only size scan (`scanInputBytes`) and the loader, so a
-  directory scan or `realpath` cannot see two different trees.
+  directory scan or `realpath` cannot see two different trees. The list is
+  ordered by the shared UTF-16 code-unit comparator in `src/text`, not by the
+  host locale, and that order becomes the report feature order.
 - The scan reads no content and returns the summed `stat` sizes; the loader
   keeps its own per-file stat guard before reading, its content dedupe and the
   100 MB total-input cap over unique loaded content after dedupe and skip.
@@ -237,6 +239,18 @@ and is covered by real producer fixtures.
   and per-scenario step results with failure messages. With a comparison it adds
   the `baseline` block and a per-scenario `change`; Messages outline rows carry
   an unconditional `example` coordinate.
+- `displayUri` strips a `file://` scheme without losing the path root, maps
+  `/C:/...` to drive form, and drops a leading `Users`, `home` or
+  `Documents and Settings` segment plus the next segment on an absolute path or
+  file URL (including `/mnt/<drive>`); relative paths and the `/features/`
+  marker stay unchanged. The report model uses it for the feature-name fallback
+  and the renderer uses it for display URIs and copied failure text.
+- One comparator in `src/text` orders every deterministic sort by UTF-16 code
+  units: summary scenarios, resolved input files, baseline not-in-run rows and
+  report tags. No `Intl`, `localeCompare`, host locale or ICU collation
+  participates, so the same input gives byte-identical `--json`, CI Markdown and
+  report order across hosts. The visible order for non-ASCII names differs from
+  locale-aware order.
 - Pure: it builds from an index or envelope list and owns no file reading. The
   CLI always drives `summarizeReportFromResolved` in `src/run.ts`, the single
   summary seam, even without a baseline.

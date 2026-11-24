@@ -72,6 +72,14 @@ The report shows two scenarios, one failed, with the failure text and the
 `system-out` attachment. There is no screenshot because JUnit XML does not carry
 one.
 
+## Entities
+
+Only the five XML named entities (`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`)
+and numeric character references such as `&#160;` or `&#xA0;` are accepted. Any
+other named entity, including `&nbsp;`, fails with the existing
+`invalid entity reference` error naming the file, and no partial report is
+written; the same text inside CDATA stays data.
+
 ## Limits
 
 - No screenshots, videos, traces or arbitrary attachments.

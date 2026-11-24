@@ -53,7 +53,8 @@ Keep a Changelog and the project uses semantic versioning.
   array element as the final result; distinct retries still pick the highest.
   On a full attempt and timestamp tie the later start wins, so the report and
   summary agree, and a zero-seconds run or scenario timestamp renders no date
-  instead of 1970-01-01.
+  instead of 1970-01-01. The later-start tie rule is inherited from the 0.6.1
+  quality pass.
 - A Playwright expected skip no longer hides a result: a failed final result
   renders failed with its error, and a passed final result under an expected
   skip renders as an unexpected pass (failed). A test is skipped only when its
@@ -83,6 +84,55 @@ Keep a Changelog and the project uses semantic versioning.
   skipped with the existing warning and is not merged. Without the flag the
   same file fails with the compat legacy-array error. Both compat checks use the
   same feature-shape predicate as `detectInput`.
+- Display URIs keep the path root when removing `file://`, map `/C:/...` to
+  drive form and drop a leading `Users`, `home` or `Documents and Settings`
+  segment plus the user name on an absolute path or file URL, including a
+  `/mnt/<drive>` mount. The report model uses the display URI for its
+  feature-name fallback; the summary `feature` field keeps its empty fallback.
+  Relative paths, the `/features/` marker and the last-three fallback are
+  unchanged.
+- A non-base64 image, video or audio body with an unpaired UTF-16 surrogate
+  falls back to a base64 data URI built from its UTF-8 bytes instead of
+  aborting with `URI malformed`. A normal UTF-8 body keeps its readable data
+  URI, a BASE64 body stays byte-identical, and an empty body renders no data
+  URI.
+- The compat merge appends duplicate features' elements one at a time instead
+  of using a spread, so a merge of about 130,000 elements no longer throws
+  `RangeError` and keeps input order and `retried: 0`.
+- A one-line Playwright report is parsed once: the Messages detector checks the
+  trimmed first key against the envelope keys before parsing and leaves a
+  non-envelope document to the Playwright sniffer. Messages, legacy JSON, JUnit
+  and malformed JSON classification is unchanged.
+- Legacy JSON uses `options.startedAt` as its only date source. Without it the
+  adapter emits zero timestamps and never reads the clock, so the report shows
+  no run date and no scenario shows a 1970 date; an explicit non-zero pin still
+  shows its date. The two legacy characterization hashes and `minimal.html` are
+  re-pinned for the removed date.
+- History reads accept a strict ISO 8601 timestamp with a zone (`Z` or
+  `±HH:MM`), optional seconds and optional fractional seconds, and keep the
+  original string. A zone-less or free-text value still fails with the
+  malformed-entry error, and the CLI's newly recorded run keeps
+  `YYYY-MM-DDTHH:mm:ss.sssZ`.
+- JUnit XML accepts only the five XML named entities and numeric character
+  references. The unreachable `htmlEntities: true` parser option is removed,
+  `&nbsp;` stays an invalid-entity error, and no partial report is written.
+- The release workflow contract is covered by `test/release-workflow.test.ts`:
+  the Linux gate runs hygiene, check and the browser suite, the macOS gate runs
+  the browser suite, publish needs both, and the tag/version and
+  main-ancestor checks stay in place. No workflow code changed in this change.
+
+### Changed
+
+- Deterministic sorts for summary scenarios, resolved input files, baseline
+  not-in-run rows and report tags use one shared UTF-16 code-unit comparator.
+  Host locale and ICU collation no longer participate, so the same input gives
+  byte-identical `--json`, CI Markdown and report order; the visible order for
+  non-ASCII names changes. No runtime dependency was added.
+- Tolkira-written reports, emails, PDFs, history sidecars and compat sidecars
+  stay owner-only (`0600`) on POSIX; Windows ignores the mode and inherits the
+  destination ACL. Reports can contain secrets, so this is the safe default; a
+  shared artifact, service account or another user needs an explicit `chmod` or
+  ACL change, and there is no mode option.
 
 ## [0.6.0] - 2026-11-24
 

@@ -29,6 +29,19 @@ Tolkira processes untrusted test output. Security-relevant areas include:
 HTML attachments are always escaped text, and SVG attachments are only used as
 `<img>` data-URI sources; neither is injected as markup or a document.
 
+## Owner-only output files
+
+Tolkira creates its report, email, PDF, history sidecar and compat sidecar
+through an atomic temporary-file rename with mode `0600`. On POSIX the final
+file is readable and writable only by the account that ran Tolkira. Windows
+ignores the POSIX mode; there the file inherits the destination folder's ACL.
+
+Reports can contain tokens, private paths and screenshots, so owner-only is the
+safe default. The trade-off is that a shared CI artifact, a service account or
+another user cannot read the file until the permissions or ACLs are changed
+explicitly. There is no option to select another mode: copy the file or run
+`chmod` after generation when a broader reader is intended.
+
 ### Playwright attachment paths
 
 The report input controls a path attachment, while the allowed roots come from
