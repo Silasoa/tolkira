@@ -313,4 +313,16 @@ describe('media data URIs in the report', () => {
     expect(html).not.toContain('data:image/png');
     expect(html).toContain('</html>');
   });
+
+  it('renders an audio media type as a binary download, not an inline player', async () => {
+    const envelopes = mediaEnvelopes('YXVkaW8=', 'audio/mpeg', 'BASE64');
+    const html = await renderHtml(envelopes, { title: 'Audio attachment' });
+
+    expect(html).toContain(
+      '<a class="fileLink" href="data:application/octet-stream;base64,YXVkaW8=" download="media">media (application/octet-stream, 5 bytes)</a>',
+    );
+    expect(html).not.toContain('<audio');
+    expect(html).not.toContain('data:audio/');
+    expect(html).toContain('</html>');
+  });
 });
