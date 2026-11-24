@@ -5,9 +5,10 @@
 0.6.0 shipped the second audit's defects on top of the first audit's fixes. The
 first patch change, `0.6.1-quality-pass`, owns B-048/B-039/B-049/B-054 and audit
 findings 1-12, including the model rule that a zero timestamp is unknown. This
-change is the second patch, `0.6.1-hardening`: ten hardening fixes and one
-documentation decision for the owner-only output mode. It adds no feature,
-option, dependency or public API.
+change is the second patch, `0.6.1-hardening`: nine hardening fixes, one
+attempt-tie rule inherited from the quality pass, and one documentation decision
+for the owner-only output mode. It adds no feature, option, dependency or public
+API.
 
 The fixes share no new module. One tiny comparator helper lives in the existing
 `src/text.ts`; every other seam changes an existing function or one call site.
@@ -22,13 +23,13 @@ Current behaviour:
 
 - `displayUri` (`src/summary.ts`) does
   `uri.replace(/\\/g, '/').replace(/^file:\/\/+/i, '')`. For
-  `file:///home/alice/proj/login.feature` the prefix removal consumes all three
-  slashes, yielding `home/alice/proj/login.feature`; the relative early return
+  `file:///home/<user>/proj/login.feature` the prefix removal consumes all three
+  slashes, yielding `home/<user>/proj/login.feature`; the relative early return
   then returns it unchanged. The home-directory drop below is unreachable.
-  `/mnt/c/Users/alice/proj/login.feature` is absolute, but its first segment is
-  `mnt`, so the last-three fallback returns `alice/proj/login.feature`.
+  `/mnt/c/Users/<user>/proj/login.feature` is absolute, but its first segment is
+  `mnt`, so the last-three fallback returns `<user>/proj/login.feature`.
 - `normalizeUri` (`src/input/legacy.ts`) has the same prefix removal and returns
-  `home/alice/...` for a POSIX file URL. For an absolute path without
+  `home/<user>/...` for a POSIX file URL. For an absolute path without
   `/features/` it returns the last segment only.
 - `buildReportModel` (`src/report/model.ts`) sets
   `featureName: feature?.name ?? pickle.uri`, so a feature without an AST name
@@ -37,13 +38,13 @@ Current behaviour:
 Change:
 
 - Strip `file://` as scheme plus empty authority, not as three slashes:
-  `file:///home/alice/...` becomes `/home/alice/...`, and
-  `file:///C:/Users/alice/...` becomes `/C:/Users/alice/...`, then `C:/Users/...`.
+  `file:///home/<user>/...` becomes `/home/<user>/...`, and
+  `file:///C:/Users/<user>/...` becomes `/C:/Users/<user>/...`, then `C:/Users/...`.
   A `file://` URL without a leading slash keeps one.
 - After removing a drive (`C:`) or an `/mnt/<drive>` mount, drop a leading
   `Users`, `home` or `Documents and Settings` segment plus the next segment.
-  This covers `/home/alice/...`, `/mnt/c/Users/alice/...` and
-  `file:///C:/Users/alice/...`. A path whose home segment is not leading is not
+  This covers `/home/<user>/...`, `/mnt/c/Users/<user>/...` and
+  `file:///C:/Users/<user>/...`. A path whose home segment is not leading is not
   the target of this fix; the last-three fallback still applies.
 - `displayUri` keeps its `/features/` marker and last-three fallback. Relative
   URIs stay unchanged.
@@ -51,12 +52,15 @@ Change:
   fallback; relative URIs stay unchanged. It gets the same prefix and
   home-segment handling.
 - The model fallback becomes `featureName: feature?.name ?? displayUri(pickle.uri)`
-  (including the empty-URI case). The report and summary already call
-  `displayUri` for their `uri` fields; the model fallback and the copied failure
-  text use the same function. No second path-shortening rule is added.
+  (including the empty-URI case). The summary already uses `displayUri` for its
+  `uri` field; its `feature` field stays `feature?.name ?? ''`, so a featureless
+  scenario has an empty `feature` and no user name. The model fallback and the
+  copied failure text use the same function. No second path-shortening rule is
+  added.
 
-The contract is the absence of a local user name on every surface, not one
-particular shortened string. Existing `/features/`-based outputs stay stable.
+The contract is the absence of a local user name from a display URI on the named
+surfaces, not one particular shortened string. Existing `/features/`-based
+outputs stay stable.
 
 ### 2. Media attachment with a lone surrogate
 
@@ -119,9 +123,9 @@ export function compareText(a: string, b: string): number {
 
 Use it at every site above. No `Intl`, no `localeCompare`, no dependency. The
 order for non-ASCII names changes visibly; `docs/CHANGELOG.md` records it and
-`docs/AGENT-INTERFACE.md` keeps the URI-then-name contract. Characterization
-hashes and goldens are re-pinned only if an existing fixture's order actually
-changes; the diff is inspected and recorded, not blindly re-recorded.
+`docs/AGENT-INTERFACE.md` keeps the URI-then-name contract. A characterization
+change is re-pinned only when it is the named legacy-date removal; any other
+hash or golden diff is inspected as a defect, not blindly re-recorded.
 
 ### 4. One-line Playwright report parsed twice
 
@@ -155,18 +159,14 @@ Change:
 The key set is the existing `ENVELOPE_KEYS` in `src/input/messages.ts`; it is
 exported or shared rather than duplicated.
 
-### 5. Full attempt tie
+### 5. Full attempt tie (moved to the quality pass)
 
-Current behaviour (`latestAttempt`, `src/report/index-run.ts`): the reducer
-compares attempt, seconds and nanos; on equal values the final expression
-returns `current`, so the first start in candidate order wins. Candidates come
-from per-test-case start arrays built in envelope order.
-
-Change: on a full attempt, seconds and nanos tie, return `candidate`, the later
-start in envelope order. Distinct attempt numbers and distinct timestamps keep
-the existing higher/later rule. The selected start feeds the model status,
-attempt, timestamps, attachments and the summary row; no separate summary rule
-is added.
+`0.6.1-quality-pass` now owns this rule: its missing/equal-retry acceptance test
+needs `latestAttempt` to select the later start, not only the adapter's final
+index. That change updates `src/report/index-run.ts` and states the requirement
+under report rendering. This change does not edit `latestAttempt` and does not
+restate the requirement; the pre-flight task confirms the quality-pass rule is
+present before Red.
 
 ### 6. Legacy run time
 
@@ -302,7 +302,7 @@ inputs
   -> detectInput (single-parse first-line check)
   -> adapters (legacy URI/home and run time, JUnit entities, compat merge)
   -> normalised Cucumber Messages
-  -> indexRun (attempt tie)
+  -> indexRun (attempt selection; the full tie is fixed by the quality pass)
   -> ReportModel / summarizeIndex (display URI, media data URI, comparator)
   -> renderHtml (tag order, feature order from resolved input order)
   -> writeAtomic (0600 on POSIX)
@@ -317,10 +317,11 @@ checks → package smoke → `npm stage publish`.
 
 - **URI prefix and home segment.** Removing `file://` must keep the third slash;
   Windows `file:///C:/...` becomes `/C:/...`, not `C:/...` with a lost drive.
-  `/mnt/c/Users/...` needs the mount removed before the home segment. A path
-  with only `home/alice` or a home segment in the middle is not covered; the
-  privacy promise is about the common home-directory forms, and the last-three
-  fallback still applies. Preserve relative paths and the `/features/` marker.
+  `/mnt/c/Users/...` needs the mount removed before the home segment. A relative
+  path that begins with `home/...` or a path whose home segment is not leading is
+  not covered; the privacy promise is about absolute paths and file URLs, and the
+  last-three fallback still applies. Preserve relative paths and the
+  `/features/` marker.
 - **Surrogate fallback.** `Buffer.from(body, 'utf8')` substitutes U+FFFD for an
   unpaired surrogate; the original code unit cannot be represented in UTF-8.
   The test asserts a valid base64 data URI and no throw, not byte identity.
@@ -332,13 +333,18 @@ checks → package smoke → `npm stage publish`.
   child-process locale test must set both `LANG` and `LC_ALL` on POSIX; if the
   host ignores them, the test substitutes a locale-sensitive
   `localeCompare` to prove the comparator is not called.
+- **Legacy date re-pin.** The removed invented date changes the two legacy
+  characterization hashes and the `minimal.html` golden. The diff is a removed
+  date only; the test comments that pin the clock must be updated, and the fake
+  timer stays only if an unrelated output still depends on it. No other hash or
+  golden is re-pinned.
 - **Double-parse false negative.** A Messages envelope whose first key is not
   in `ENVELOPE_KEYS` would not be parsed as Messages. Messages envelopes are
   single-key objects, so the first key is the envelope key; the existing set is
   reused, not narrowed. `isEnvelopeLike` still confirms the parsed shape.
-- **Tie order.** The candidate list must be in envelope order; the test covers
-  two starts with equal attempt and empty timestamps, and three starts. A
-  distinct attempt or timestamp keeps the old result.
+- **Tie order is inherited.** The quality pass owns the later-start rule and its
+  tests; this change only asserts that the rule is present before Red. Do not
+  duplicate it in `latestAttempt`.
 - **Zero-date dependency.** Until `0.6.1-quality-pass` lands the zero-is-unknown
   model rule, a zero timestamp would render 1970. The pre-flight task confirms
   the rule; this change is sequenced after the quality pass and rebases on its
@@ -365,12 +371,12 @@ checks → package smoke → `npm stage publish`.
 ## Tests
 
 - **URI privacy:** `test/summary.test.ts` and `test/model.test.ts` cover POSIX
-  `file:///home/alice/...`, WSL `/mnt/c/Users/alice/...`, Windows
-  `file:///C:/Users/alice/...`, an absolute path without `/features/`, a deeper
+  `file:///home/<user>/...`, WSL `/mnt/c/Users/<user>/...`, Windows
+  `file:///C:/Users/<user>/...`, an absolute path without `/features/`, a deeper
   path, a relative path, a missing URI and the model feature-name fallback.
   `test/cli-edge.test.ts` checks the `--json` `uri` and `feature` fields;
   `test/e2e/clipboard.spec.ts` checks copied failure text. Every assertion names
-  `alice` as forbidden.
+  `<user>` as forbidden.
 - **Surrogate media:** `test/render-attachments.test.ts` and
   `test/model.test.ts` cover an unpaired high and low surrogate in an image,
   video and audio body, a normal UTF-8 body, a BASE64 body, an empty body and a
@@ -385,15 +391,12 @@ checks → package smoke → `npm stage publish`.
   one call for a one-line Playwright report, one for a one-line Messages
   envelope, and correct classification for multi-line Playwright, legacy,
   JUnit, malformed JSON, BOM/blank-line and non-envelope first-key inputs.
-- **Attempt tie:** `test/model.test.ts`, `test/summary.test.ts`,
-  `test/model-summary-cross-check.test.ts` and `test/render-report.test.ts` cover
-  equal attempt and empty timestamps (first failed, second passed), distinct
-  attempt, distinct timestamp, missing timestamp and three starts. Assert passed
-  in model, summary and HTML.
 - **Legacy date:** `test/legacy.test.ts`, `test/model.test.ts` and
   `test/render-report.test.ts` cover no `options.startedAt`, an explicit pin, a
   real Messages run and zero/non-zero durations. Assert no date, no `1970`, the
-  pinned date and an unchanged summary shape.
+  pinned date and an unchanged summary shape. The two legacy characterization
+  hashes and `test/fixtures/render-golden/minimal.html` are re-pinned for the
+  removed date, with the diff recorded; no other hash changes.
 - **ISO 8601:** `test/history.test.ts` and `test/cli-history.test.ts` cover the
   writer form, `Z` without milliseconds, `+02:00`, a negative offset, optional
   seconds, 1/3/9 fraction digits, no zone, free text, an invalid offset and a
@@ -428,7 +431,7 @@ checks → package smoke → `npm stage publish`.
 ## Open questions
 
 1. **User spec approval.** This contract requires the user's explicit approval
-   before Red. The ten fixes and the `0600` decision are fixed by the
-   coordinator; no product question is open. If the quality-pass zero-date rule
-   changes while that change is being edited, this change rebases and re-checks
-   the dependency before Red.
+   before Red. The nine fixes, the inherited tie rule and the `0600` decision are
+   fixed by the coordinator; no product question is open. If the quality-pass
+   zero-date or tie rule changes while that change is being edited, this change
+   rebases and re-checks the dependency before Red.

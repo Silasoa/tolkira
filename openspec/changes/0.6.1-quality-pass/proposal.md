@@ -29,8 +29,9 @@ B-058 holds the one follow-up that is not part of this patch:
 - `writeHistory` overwrites a malformed supported-schema target (audit #3);
 - an empty `.jsonl`/`.ndjson` shard aborts a directory scan (audit #4);
 - the HTML and JSON summary disagree on some attachment counts (audit #5);
-- Playwright reports without timing or retry fields pick the wrong attempt and
-  can render a 1970 date (audit #6);
+- Playwright reports without timing or retry fields pick the wrong attempt,
+  including a full attempt and timestamp tie, and can render a 1970 date
+  (audit #6);
 - an expected Playwright skip hides a failed or unexpectedly passed result
   (audit #7);
 - a Playwright spec without `file` loses the suite file in its URI and rule
@@ -103,9 +104,12 @@ becomes explicit.
   stays version 2.
 - **Audit 6 — Playwright final result and run date:** when `retry` values are
   missing or equal, the last result in array order wins; with distinct retry
-  values the highest wins. When no usable run start time exists, the report
-  omits the run date instead of showing 1970-01-01; a zero-seconds
-  `testRunStarted`/`testRunFinished` timestamp is unknown to the model.
+  values the highest wins. The later start also wins a full attempt and
+  timestamp tie for one pickle, so the report and summary agree on the final
+  start. When no usable run start time exists, the report omits the run date
+  instead of showing 1970-01-01; a zero-seconds
+  `testRunStarted`/`testRunFinished`/`startedAt` timestamp is unknown to the
+  model.
 - **Audit 7 — Playwright expected skip:** a test is skipped only when its
   final result is skipped, or when it is marked skipped and has no result. A
   failed final result wins over an expected skip, and a passed final result
@@ -139,8 +143,8 @@ becomes explicit.
 
 ## Impact
 
-- Capabilities: `report-rendering`, `cli-api`, `input-formats` and
-  `compatibility`.
+- Capabilities: `report-rendering`, `cli-api`, `input-formats`,
+  `compatibility` and `test-infrastructure`.
 - Code: `src/input/load.ts` (accounting and cap order), `src/input/detect.ts`
   (exported feature predicate and empty-shard skip), `src/input/messages.ts`
   (attempt validation), `src/input/playwright.ts` (final result, skip rule and
@@ -171,11 +175,16 @@ becomes explicit.
 - Docs: `docs/ARCHITECTURE.md`, `docs/AGENT-INTERFACE.md`, `SECURITY.md`,
   `docs/PLAYWRIGHT-JSON.md`, `docs/CI.md`, `docs/LIMITATIONS.md`,
   `docs/BACKLOG.md` and `docs/CHANGELOG.md`.
-- Only B-048 and B-039 re-pin committed report bytes: the nine default
-  characterization hashes, the two-run history hash and the two golden HTML
-  files (`test/fixtures/render-golden/minimal.html` and
-  `attachments-presentation.html`). No other golden or characterization hash
-  is re-pinned.
+- B-048 and B-039 plus the audit 6 zero-date rule re-pin committed report
+  bytes: the nine default characterization hashes (all nine for the shell, three
+  of them also for a removed 1970 run date on the Messages fixtures), the two-run
+  history hash and the two golden HTML files
+  (`test/fixtures/render-golden/minimal.html` and
+  `attachments-presentation.html`). Allowed diffs: the two `<main>`→`<div>`
+  replacements, their closing tags, the narrow CSS string and the removed epoch
+  dates. No other golden or characterization hash is re-pinned; the legacy
+  fixtures keep their pinned clock until the hardening change removes the
+  invented legacy date.
 - The JSON summary changes only where the audit fixes correct an attachment
   count or a Playwright final status; `attempt` stays a number and the schema
   stays version 2. CI text changes only for identities above 200 code points. CLI
@@ -215,7 +224,10 @@ becomes explicit.
   A `skip` decision, a skipped empty shard and duplicate content create no
   group and do not count. The per-file 100 MB guard runs before the read; the
   total cap applies to unique loaded content after dedupe and skip. The 50 MiB
-  early warning stays stat-only over all resolved paths and may differ.
+  early warning stays stat-only over all resolved paths and may differ. Files
+  are read before a content-based skip, so a directory of many large skipped
+  files spends read time and has no aggregate cap beyond the per-file guard; the
+  compat shim keeps its own pre-read byte accounting, out of scope here.
 - **Reader-shared history validation.** The writer validates an existing
   target with the same document and run parser as the reader, but keeps the
   `Cannot write history file` prefix. A missing target writes; a valid target
@@ -243,5 +255,18 @@ becomes explicit.
 - **Path trust model.** The input file's folder and `process.cwd()` remain the
   allowed roots, and the report input controls the path. The docs state the
   consequence; an allowlist is B-058, not a silent 0.6.1 change.
+- **Attempt tie.** A full attempt and timestamp tie returns the later candidate
+  in envelope order, so the quality pass's missing/equal-retry rule selects the
+  same start in the adapter, the model and the summary. Distinct attempts and
+  timestamps keep their existing precedence. The hardening change inherits this
+  rule instead of fixing it a second time.
+- **Re-pin scope.** The nine characterization hashes, the two-run history hash
+  and the two goldens are re-pinned only for the recorded shell, narrow-metadata
+  and epoch-date diffs. A legacy hash changes only in the hardening change, when
+  the invented legacy run date disappears.
+- **Outline helper stays.** The duplicated outline-coordinate helper in
+  `src/summary.ts` and `src/report/model.ts` is B-051 structure work; this patch
+  touches both files but does not extract it, so no refactor is bundled with a
+  behaviour change.
 - **No version bump.** The package stays 0.6.0 until the user approves a
   separate release.

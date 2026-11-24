@@ -218,9 +218,10 @@ Details count. The schema SHALL stay version 2.
 
 When no usable run start time exists, the report SHALL omit the run date
 instead of rendering a 1970-01-01 date. The model SHALL treat a zero-seconds
-`testRunStarted` or `testRunFinished` timestamp as unknown. A real non-zero
-timestamp SHALL render the existing localized date. The JSON summary, CI text
-and email SHALL be unchanged.
+`testRunStarted`, `testRunFinished` or per-scenario `startedAt` timestamp as
+unknown, so no scenario renders an epoch date. A real non-zero timestamp SHALL
+render the existing localized date. The JSON summary, CI text and email SHALL be
+unchanged.
 
 #### Scenario: Zero run timestamp
 
@@ -241,11 +242,89 @@ and email SHALL be unchanged.
 - **THEN** the model treats it as unknown
 - **AND** the report does not render an epoch finish date
 
+#### Scenario: Zero scenario start
+
+- **WHEN** a scenario's selected start carries a zero-seconds timestamp
+- **THEN** the scenario shows no start time or `1970` date
+- **AND** a real scenario timestamp still renders the existing value
+
 #### Scenario: Machine outputs unchanged
 
 - **WHEN** a run has no usable start time
 - **THEN** the JSON summary, CI text and email are unchanged
 - **AND** they gain no date field or placeholder
+
+### Requirement: Use the later start on a full attempt tie
+
+When two `testCaseStarted` envelopes for one pickle have the same attempt number
+and the same timestamp, the report and the JSON summary SHALL use the later
+envelope in input order. A higher attempt number or a later timestamp SHALL keep
+the existing precedence. The selected start SHALL supply the rendered status,
+attempt, timestamps, attachments and summary row.
+
+#### Scenario: Equal attempt and empty timestamps
+
+- **WHEN** a pickle has two starts with attempt 0 and empty timestamps, the
+  first failed and the second passed
+- **THEN** the report shows the scenario as passed
+- **AND** the summary entry is passed
+- **AND** the selected start is the second one
+
+#### Scenario: Distinct attempt
+
+- **WHEN** two starts have different attempt numbers
+- **THEN** the higher attempt wins as before
+- **AND** the tie rule does not apply
+
+#### Scenario: Distinct timestamp
+
+- **WHEN** two starts have the same attempt and different timestamps
+- **THEN** the later timestamp wins as before
+- **AND** the tie rule does not apply
+
+#### Scenario: Three starts on a tie
+
+- **WHEN** three starts share the same attempt and timestamp
+- **THEN** the last start in input order is selected
+- **AND** the report and summary agree
+
+## MODIFIED Requirements
+
+### Requirement: Add an opt-in static report mode
+
+The CLI SHALL accept `--static` and the render API SHALL accept `static: true`.
+The mode SHALL require `--out` or `--pdf`, SHALL default off, and SHALL NOT
+itself change the default report's content, markup or CSS. The default form of
+the same release MAY carry the changes of another change in that release (0.6.1
+changes the tab containers and the narrow Details metadata rule), so byte
+identity with an earlier release is not part of this mode. The static form SHALL
+carry the documented scroll-offset script, and a default report with two or more
+history runs also carries the documented Trends shell CSS. JSON, CI and email
+bytes SHALL stay unchanged.
+
+#### Scenario: Static report with HTML
+
+- **WHEN** `--static --out report.html` is used
+- **THEN** the report is written and the process exits 0
+- **AND** the report is the static form
+
+#### Scenario: Static mode without a report surface
+
+- **WHEN** `--static` is used with `--json`, `--ci` or `--email` and without
+  `--out` or `--pdf`
+- **THEN** the CLI exits 2 and names `--out` or `--pdf`
+- **AND** nothing is written
+
+#### Scenario: Static PDF
+
+- **WHEN** `--static --pdf report.pdf` is used
+- **THEN** the PDF is rendered from the static HTML
+- **AND** the HTML source used for the PDF contains no `<script>`
+
+#### Scenario: Help lists the option
+
+- **WHEN** `--help` is requested
+- **THEN** the usage text lists `--static`
 
 ## REMOVED Requirements
 

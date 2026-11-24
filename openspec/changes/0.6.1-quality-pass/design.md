@@ -79,6 +79,10 @@ starting value, not a contract.
 - `overflow-wrap: anywhere` already exists on `dt` and `dd`; the stacked
   full-width track lets a long URL wrap instead of forming a narrow column.
 - Values start-align because a right-aligned single column reads as ragged.
+- The generic container rule must come after the existing
+  `@media (max-width: 560px)` `.metaList` rule (`src/render/report.css:384-386`)
+  or use a higher-specificity selector; where both match at 320 px / 200 %, the
+  later 2fr/3fr rule would otherwise win.
 - German needs one extra override after the existing `:lang(de) .metaList`
   rule in `localeCss`, because that selector outranks the generic `.metaList`
   rule:
@@ -261,6 +265,14 @@ passed second result keep the first. Change the comparison to `>=`: the last
 result in array order wins when values are missing or equal, and a distinct
 higher retry still wins.
 
+The adapter index alone is not enough. `latestAttempt`
+(`src/report/index-run.ts:94-108`) selects the start that supplies status,
+timestamps and attachments, and on an equal attempt and equal nanos it keeps
+`current`, the first start. Change that final comparison to return `candidate`
+on a full tie: the later start in envelope order wins. The adapter's `>=` and
+the model's later-candidate rule land together; the model tie is what makes the
+missing/equal-retry acceptance test green.
+
 `src/report/model.ts:267-275` converts a timestamp with
 `timestampIso(timestamp)`. The Playwright adapter's zero fallback
 (`timestamp(0)`) then becomes `1970-01-01T00:00:00.000Z`. Guard the model
@@ -309,10 +321,11 @@ history instead of being flattened to skipped.
 
 Pass the inherited `specFile` into `scenarioPlan` and use it for the scenario
 URI and the rule name (`fileUri(inheritedFile, context.inputDir)`). The feature
-name, scenario URI and rule name then come from the same suite-level value. An
-explicit `spec.file` still wins because `collectScenarios` already prefers it.
-The `playwright.spec.ts` fallback remains only for the case where neither the
-spec nor any suite names a file.
+grouping does not change: `featureFor` uses `project || file`, so a project
+stays the feature name; without a project, the feature name follows the
+inherited file. An explicit `spec.file` still wins because `collectScenarios`
+already prefers it. The `playwright.spec.ts` fallback remains only for the case
+where neither the spec nor any suite names a file.
 
 ### Audit 9: validate the Messages attempt
 
@@ -448,7 +461,11 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   before the read, while the total cap moves after dedupe and skip. Do not
   reuse the old `addInputBytes(totalBytes, size)` call for both: a 101 MB
   unrelated file should fail the per-file guard, but a skipped 51 MB file
-  should not consume the total. Cover the boundary on both sides.
+  should not consume the total. Cover the boundary on both sides. A content
+  skip needs the read, so a directory of many large skipped files spends read
+  time with no aggregate cap beyond the per-file guard; the 50 MiB warning stays
+  advisory. The compat shim keeps its own pre-read byte accounting; that is a
+  separate call site, not part of this loader rule.
 - **Group and accounting order.** `inputFiles`/`inputBytes` follow groups, not
   attempts to load. A validation-only group with no envelopes still counts; a
   `skip`, a duplicate and an empty shard do not. Check the Details input row
@@ -484,12 +501,21 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   allowlist, warning or new path check in this change. The docs must state that
   the report input controls the path and that any regular file under either
   root can be embedded.
-- **No broad re-pin.** Only B-048/B-039 change the committed shell bytes. The
-  audit fixes change a Playwright or Messages report only for the corrected
-  input; no existing Playwright fixture output changes, so no Playwright golden
-  is re-pinned. If an implementation finds a changed expected value in an
-  existing fixture, it re-pins that file explicitly and names it in the gate
-  record.
+- **Re-pin scope.** The nine characterization hashes, the two-run history hash
+  and the two golden HTML files are re-pinned only for the recorded diffs. All
+  nine hashes change for the B-048/B-039 shell; the three Messages fixtures with
+  a zero run timestamp (`all-statuses`, `empty-statuses`, `examples-tables`)
+  also lose their 1970 run date. The two legacy fixtures keep their fake-clock
+  pin in this change and are re-pinned only in `0.6.1-hardening`, when the
+  invented legacy date disappears. No Playwright fixture output changes. Any
+  other changed expected value is a defect, not a re-pin.
+- **Compat report write.** Audit 11 covers the CLI `--out` and `--ci-out` writes
+  only. The compat shim's own `writeAtomic` report write keeps its current error
+  path; no wrapper is added there in this patch.
+- **Outline helper stays.** The duplicated outline-coordinate helper in
+  `src/summary.ts` and `src/report/model.ts` is B-051 structure work; this patch
+  touches both files but does not extract it, so no refactor is bundled with a
+  behaviour change.
 
 ## Tests
 
@@ -545,12 +571,15 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   once. Cross-check `model.counts.attachments`, the summary total, the summary
   scenario count and the Details count against the screenshot fixture; render
   `test/fixtures/messages/screenshot.ndjson` and assert the image is present.
-- **Audit 6, `test/playwright.test.ts` and `test/model.test.ts`**: a retried
-  report with omitted `retry` values and a report with equal `retry` values
-  render the last result; distinct retries still pick the highest; a report
-  with no `stats.startTime` and no result time omits the date; a real timestamp
-  keeps the existing date. Cross-check the summary status and the HTML date.
-  New fixtures: `test/fixtures/playwright/no-retry.json`,
+- **Audit 6, `test/playwright.test.ts`, `test/model.test.ts`,
+  `test/summary.test.ts`, `test/model-summary-cross-check.test.ts` and
+  `test/render-report.test.ts`**: a retried report with omitted `retry` values
+  and a report with equal `retry` values render the last result; distinct
+  retries still pick the highest; two starts with the same attempt and empty
+  timestamps select the later start and show its passed result in model, summary
+  and HTML; a report with no `stats.startTime` and no result time omits the
+  date; a real timestamp keeps the existing date. New fixtures:
+  `test/fixtures/playwright/no-retry.json`,
   `test/fixtures/playwright/equal-retry.json` and
   `test/fixtures/playwright/no-timing.json`.
 - **Audit 7, `test/playwright.test.ts`**: expected-skip plus a failed result
@@ -562,7 +591,8 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   `test/fixtures/playwright/expected-skip-passed.json`.
 - **Audit 8, `test/playwright.test.ts` and
   `test/playwright-source-line.test.ts`**: a suite file with a spec that omits
-  `file` produces the suite URI in the scenario, the rule name and the feature
+  `file` produces the suite URI and rule name; with no project, the feature
+  name follows the suite file; with a project, the project stays the feature
   name; an explicit spec file still wins. New fixture:
   `test/fixtures/playwright/inherited-file.json`.
 - **Audit 9, `test/inputs.test.ts` or `test/messages-producers.test.ts`**:
@@ -587,13 +617,16 @@ attachment selector in `src/report/index-run.ts` and the history parser in
   warning while a valid report renders when the flag is true; the same files
   fail with the compat legacy-array error when the flag is false; a valid
   feature array still merges.
-- **Characterization/goldens**: re-pin only the B-048/B-039 set: the nine
-  default characterization hashes, the two-run history hash and the two golden
-  HTML files (`minimal.html`, `attachments-presentation.html`). Inspect the diff
-  for the two `<main>` → `<div>` replacements and the narrow CSS string only.
-  The client bundle budget stays under 16 KB. No existing Playwright fixture is
-  re-pinned: every current fixture has `stats.startTime`, distinct retry values
-  and a spec `file`, so the audit rules do not change their output.
+- **Characterization/goldens**: re-pin the nine default characterization
+  hashes, the two-run history hash and the two golden HTML files
+  (`minimal.html`, `attachments-presentation.html`). Inspect the diff for the
+  two `<main>` → `<div>` replacements, their closing tags, the narrow CSS string
+  and removed epoch dates only; no other change is allowed. The three Messages
+  fixtures with a zero run timestamp also lose their 1970 run date. The client
+  bundle budget stays under 16 KB. No existing Playwright fixture is re-pinned:
+  every current fixture has `stats.startTime`, distinct retry values and a spec
+  `file`, so the audit rules do not change their output. The legacy fixtures
+  change later, in `0.6.1-hardening`.
 
 **Visual evidence (B-054, test-only).** One e2e test renders the default and the
 `--static` report from `test/fixtures/messages/screenshot.ndjson` and writes
@@ -618,7 +651,7 @@ no report behaviour, so it adds no requirement delta.
 
 ## Open questions
 
-1. **Final contract approval.** The user approves this proposal, the four spec
-   deltas and this design, including the B-048/B-039 characterization and golden
-   re-pin and the docs-only path trust-model wording. No new product question is
-   opened by the audit fixes.
+1. **Final contract approval.** The user approves this proposal, the five spec
+   deltas and this design, including the characterization and golden re-pin
+   (shell, narrow metadata rule and removed epoch dates) and the docs-only path
+   trust-model wording. No new product question is opened by the audit fixes.

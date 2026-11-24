@@ -225,9 +225,9 @@ The adapter SHALL preserve the Playwright project, file and describe context.
 A project SHALL become the feature grouping; the file and describe path SHALL
 become the rule; a spec SHALL become a scenario. A spec run in several
 projects SHALL produce one scenario per project. When a spec omits `file`, the
-scenario URI and rule name SHALL use the enclosing suite's file, so the
-scenario URI, rule name and feature name agree. An explicit spec `file` SHALL
-win.
+scenario URI and rule name SHALL use the enclosing suite's file. The feature
+name SHALL use that file only when no project is present; with a project, the
+project stays the feature grouping. An explicit spec `file` SHALL win.
 
 #### Scenario: Projects are distinct
 
@@ -262,9 +262,16 @@ win.
 
 #### Scenario: Spec without a file inherits the suite file
 
-- **WHEN** a suite carries `file: "a.spec.ts"` and one of its specs omits
-  `file`
+- **WHEN** a suite carries `file: "a.spec.ts"`, no project is present and one of
+  its specs omits `file`
 - **THEN** the scenario URI is `a.spec.ts`
 - **AND** the rule name contains `a.spec.ts`
 - **AND** the feature name is `a.spec.ts`
 - **AND** `playwright.spec.ts` does not appear
+
+#### Scenario: Project stays the feature grouping
+
+- **WHEN** a spec without `file` runs in project `chromium` under a suite with
+  `file: "a.spec.ts"`
+- **THEN** the feature name remains `chromium`
+- **AND** the scenario URI and rule name use `a.spec.ts`

@@ -196,7 +196,10 @@ asks or a locale needs them:
   longer splits mid-number at 320 px and 200 % text. Above 560 px and in A4
   print (the CLI `--pdf` path) the German two-column layout is unchanged;
   narrower print page boxes follow the stacked layout, as English already does.
-  The other metaLists (metadata, custom metadata, environment) are untouched.
+  The other metaLists (metadata, custom metadata, environment) were untouched at
+  100 % text. 0.6.1 (B-039) adds a container-query stack for the metadata list
+  at 320 px and 200 % text, so for that viewport the "other metaLists" sentence
+  no longer applies.
   The E2E test pins one used track at 560 px with no horizontal overflow, the
   2fr/3fr share at 561 px, 1440 px and A4 print, two tracks on another metaList
   at 560 px, and an unbroken grouped count with no horizontal overflow at

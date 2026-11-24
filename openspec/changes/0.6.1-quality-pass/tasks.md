@@ -2,7 +2,7 @@
 
 ## 1. Gate
 
-- [ ] 1.1 PIR + DXR over this proposal, the four spec deltas and the design;
+- [ ] 1.1 PIR + DXR over this proposal, the five spec deltas and the design;
   check every base requirement that mentions the default shell, print, static
   mode, input loading, history reading/writing, summary counts, Playwright
   mapping, Messages validation, CI formatting, CLI writes or compat scanning
@@ -20,8 +20,10 @@
 - [ ] 1.3 Record the BOM scope decision (strip in `readSidecar`, so
   `readHistory` and `storedSchema` accept a BOM; `writeHistory` stays BOM-free
   and normalises on the next successful write) and the intentional
-  characterization/golden re-pin limited to B-048/B-039 (design open question
-  1) before Red.
+  characterization/golden re-pin (design decisions: all nine for the shell,
+  three Messages fixtures also for the removed 1970 date; legacy fixtures stay
+  pinned here). Record that B-051 stays open (no refactor in this patch) and
+  that the compat shim keeps its own write and byte accounting, before Red.
 - [ ] 1.4 Record the audit evidence and the B-058 doc decision: findings 2-12
   from `docs/research/audit-2026-11.md`, their exact acceptance scenarios in
   `specs/input-formats`, `specs/report-rendering`, `specs/cli-api` and
@@ -100,12 +102,15 @@
   summary-to-Details state transition.
 - [ ] 2.12 Audit 6, Playwright final result and date: failing tests in
   `test/playwright.test.ts` for missing and equal retry values (last array
-  element wins) and distinct retries (highest wins), and in `test/model.test.ts`
-  or `test/render-report.test.ts` for a zero `testRunStarted`/`testRunFinished`
-  (no date, no `1970`) and a real timestamp (existing date). Add the new
-  fixtures `no-retry.json`, `equal-retry.json` and `no-timing.json`. ISTQB:
-  equivalence classes for missing/equal/distinct retry, the zero/real timestamp
-  boundary and the final-result decision table.
+  element wins) and distinct retries (highest wins), and in `test/model.test.ts`,
+  `test/summary.test.ts`, `test/model-summary-cross-check.test.ts` and
+  `test/render-report.test.ts` for a zero `testRunStarted`/`testRunFinished`
+  (no date, no `1970`), a zero per-scenario `startedAt`, a real timestamp
+  (existing date) and two starts with a full attempt/timestamp tie (the later
+  passed start wins in model, summary and HTML). Add the new fixtures
+  `no-retry.json`, `equal-retry.json` and `no-timing.json`. ISTQB: equivalence
+  classes for missing/equal/distinct retry, the zero/real timestamp boundary and
+  the final-result and attempt-tie decision tables.
 - [ ] 2.13 Audit 7, expected skip: failing tests in `test/playwright.test.ts`
   for expected skip plus a failed result (failed with error) and expected skip
   plus a passed result (unexpected pass, failed), keeping the existing skipped
@@ -116,11 +121,12 @@
   pass.
 - [ ] 2.14 Audit 8, inherited file: failing test in `test/playwright.test.ts`
   for a suite `file: "a.spec.ts"` and a spec without `file`, asserting the
-  scenario URI, rule name and feature name all use `a.spec.ts` and
-  `playwright.spec.ts` is absent. Add `inherited-file.json`; keep the
-  explicit-spec-file case as the control. ISTQB: equivalence classes for
-  spec-file present/absent and suite-file present/absent; the no-file fallback
-  is the invalid class.
+  scenario URI and rule name use `a.spec.ts` and `playwright.spec.ts` is absent;
+  with no project the feature name is `a.spec.ts`, with a project it stays the
+  project name. Add `inherited-file.json`; keep the explicit-spec-file case as
+  the control. ISTQB: equivalence classes for spec-file present/absent,
+  suite-file present/absent and project present/absent; the no-file fallback is
+  the invalid class.
 - [ ] 2.15 Audit 9, Messages attempt: failing tests for `1e309`, a string, a
   negative value and a non-integer in `test/inputs.test.ts` or
   `test/messages-producers.test.ts`, and an absent/valid attempt in
@@ -153,18 +159,24 @@
 - [ ] 3.1 B-048: replace the default `<main class="shell analysis">` wrapper in
   `details.ts` and `trends.ts` with `<div class="shell analysis">`; keep every
   panel attribute and ID. Leave `report.ts` and the static branches alone.
-- [ ] 3.2 B-039: add the narrow `@container` rule to `report.css`, add the
-  German override after the existing `:lang(de) .metaList` rule in `html.ts`,
-  run `npm run styles`, and confirm the generated string matches `report.css`.
+- [ ] 3.2 B-039: add the narrow `@container` rule to `report.css` after the
+  existing `@media (max-width: 560px)` `.metaList` rule (or raise its
+  specificity), add the German override after the existing `:lang(de) .metaList`
+  rule in `html.ts`, run `npm run styles`, and confirm the generated string
+  matches `report.css`.
 - [ ] 3.3 B-049: strip exactly one leading U+FEFF in `readSidecar` after the
   bounded read, so `readHistory` and `storedSchema` share the rule; leave
   `writeHistory`'s serialisation unchanged and BOM-free.
 - [ ] 3.4 Re-pin intentionally: replace the nine default characterization
   hashes, the two-run history hash and the two golden HTML files
   (`test/fixtures/render-golden/minimal.html` and
-  `attachments-presentation.html`). Inspect the diff: only the two
-  `<main>`→`<div>` replacements, their closing tags and the narrow CSS string
-  are allowed. Record the byte delta. Do not re-pin a Playwright fixture.
+  `attachments-presentation.html`). Inspect the diff: the two
+  `<main>`→`<div>` replacements, their closing tags, the narrow CSS string and
+  the removed 1970 run dates on the three zero-timestamp Messages fixtures are
+  allowed. Record the byte delta and the per-fixture reason. Do not re-pin a
+  Playwright fixture unless the gate record names a legitimately changed
+  expected value; the current fixtures do not change. The two legacy fixtures
+  keep their hash here; they change in the hardening change.
 - [ ] 3.5 Docs for the accepted items: update `docs/ARCHITECTURE.md` (default
   and static both render one `<main>`), `docs/AGENT-INTERFACE.md` (remove the
   default three-`<main>` defect note; add the one-BOM sidecar sentence),
@@ -191,9 +203,11 @@
   Build the summary run set from rendered scenario attachments, present
   run-hook starts and run-level attachments only. Invariant: summary total
   equals model counts and Details counts, schema stays 2.
-- [ ] 3.11 Audit 6: change the Playwright final-index comparison to `>=`; guard
-  `timestampIso` in `src/report/model.ts` so `seconds === 0` is unknown. Leave
-  the adapter's zero fallback unchanged; summary/CI/email stay unchanged.
+- [ ] 3.11 Audit 6: change the Playwright final-index comparison to `>=`; in
+  `latestAttempt` return the later candidate on a full attempt/seconds/nanos
+  tie; guard `timestampIso` in `src/report/model.ts` so `seconds === 0` is
+  unknown. Leave the adapter's zero fallback unchanged; summary/CI/email stay
+  unchanged.
 - [ ] 3.12 Audit 7: tie `skipped` to the final result and add expected skip to
   `unexpectedPass`; keep genuine expected-failure precedence but do not let an
   expected skip take that branch. Invariant: a failed or passed final result is
@@ -232,13 +246,15 @@
   (report-level change) are green; typecheck, lint, unit tests and build
   included. Record the exact counts, the client bundle size and the report byte
   delta.
-- [ ] 4.2 Independent reviewers in one batch: SCR (all four deltas), CR, DAR,
+- [ ] 4.2 Independent reviewers in one batch: SCR (all five deltas), CR, DAR,
   SEC (history input parsing, attachment roots and file handling, path
-  trust-model docs), UXR (report shell, stack breakpoint and landmarks), STR
-  (module/test health, including the shared selector and history parser) and
-  CMP (default report captures at 320, 390, 768, 1024, 1440 px and 320/200
-  against 0.6.0; only the wrapper and the narrow metadata rule may differ). A
-  failing review spawns a fixer, not the implementer of record.
+  trust-model docs), UXR (report shell, stack breakpoint and landmarks), ILA
+  (the German `localeCss` override), PCA (loader accounting/cap, final-result
+  selection and the shared predicate), STR (module/test health, including the
+  shared selector and history parser) and CMP (default report captures at 320,
+  390, 768, 1024, 1440 px and 320/200 against 0.6.0; only the wrapper, the
+  narrow metadata rule and the removed epoch dates may differ). A failing review
+  spawns a fixer, not the implementer of record.
 - [ ] 4.3 Host rows in `docs/DROP-IN-VALIDATION.md`: Seed-Test (legacy JSON and
   the `cucumber-html-reporter` shim), the official Cucumber-js host (legacy
   JSON and Messages) and the Playwright JSON host (because of the final-result,
@@ -247,12 +263,13 @@
   1440/390 and 320/200, correct final statuses and dates, summary/report
   attachment parity and no console errors. The other required release rows stay
   for the release pass.
-- [ ] 4.4 Gate record: commands, results, characterization re-pin evidence, the
-  exact CSS rule and German override, the BOM read/peek/append table, the audit
-  evidence table (finding, test, result), the write-error and CI-boundary
-  evidence, host rows and the byte delta. Confirm no existing Playwright
-  fixture was re-pinned and list any new fixture. Deferred findings get a
-  backlog trigger; nothing is dropped silently.
+- [ ] 4.4 Gate record: commands, results, characterization re-pin evidence with
+  the per-fixture reason (shell, narrow CSS, removed epoch date), the exact CSS
+  rule and German override, the BOM read/peek/append table, the audit evidence
+  table (finding, test, result), the attempt-tie table, the write-error and
+  CI-boundary evidence, host rows and the byte delta. Confirm no existing
+  Playwright fixture was re-pinned and list any new fixture. Deferred findings
+  get a backlog trigger; nothing is dropped silently.
 - [ ] 4.5 Fix every review finding or record a decision with a trigger; re-run
   the gate after fixes.
 

@@ -2,14 +2,17 @@
 
 ## Why
 
-A second external audit of the 0.6.0 code found ten findings that the first
-audit and its `0.6.1-quality-pass` change do not cover. No remote issue exists;
-this change is the tracking record. The first audit's twelve defects,
+A second external audit of the 0.6.0 code found nine findings that the first
+audit and its `0.6.1-quality-pass` change do not cover. One further finding, an
+attempt and timestamp tie that selects the first start, is fixed by
+`0.6.1-quality-pass` because its missing/equal-retry rule needs the same model
+selection; this change does not duplicate it. No remote issue exists; this
+change is the tracking record. The first audit's twelve defects,
 B-048/B-039/B-049/B-054 and the path trust-model note remain in the separate
 quality-pass change.
 
-- **Privacy:** `file:///home/alice/proj/login.feature` and
-  `/mnt/c/Users/alice/...` leak the local user name because the display-URI rule
+- **Privacy:** `file:///home/<user>/proj/login.feature` and
+  `/mnt/c/Users/<user>/...` leak the local user name because the display-URI rule
   strips `file://` by removing the slashes and returns a relative path before
   the home-directory removal. The raw `pickle.uri` also becomes the feature-name
   fallback.
@@ -20,9 +23,8 @@ quality-pass change.
   different `--json`, CI Markdown and report order on a `sv_SE` or `de_DE` host.
 - **Performance:** a 10-100 MB one-line Playwright report is parsed twice,
   once as a candidate Messages line and once as a Playwright document.
-- **Wrong output:** two starts with the same attempt and timestamp select the
-  first one, so a failed first start hides a passed second start. Legacy JSON
-  without `options.startedAt` invents the generation time as the run start.
+- **Wrong output:** legacy JSON without `options.startedAt` invents the
+  generation time as the run start.
 - **Input compatibility:** valid ISO 8601 offsets such as
   `2026-11-19T08:00:00+02:00` are rejected by the history reader. JUnit's
   `htmlEntities: true` is unreachable because the entity checker rejects every
@@ -45,11 +47,12 @@ public API or schema change.
 - **Display URIs:** `displayUri` and the legacy `normalizeUri` preserve the
   leading slash when removing a `file://` prefix, handle the Windows
   `/C:/Users/...` form, and drop a leading `Users`, `home` or
-  `Documents and Settings` segment plus the next segment. The report model uses
-  `displayUri` for its feature-name fallback. Relative URIs stay unchanged and
-  the existing `/features/` marker and last-three-segments fallback stay where
-  they apply. No local user name appears in the HTML, `--json` `uri`/`feature`
-  fields or copied failure text.
+  `Documents and Settings` segment plus the next segment on an absolute path or
+  file URL. The report model uses `displayUri` for its feature-name fallback.
+  Relative URIs stay unchanged and the existing `/features/` marker and
+  last-three-segments fallback stay where they apply. No local user name appears
+  in a display URI in the HTML, the `--json` `uri` field or copied failure text;
+  the summary `feature` field keeps its current empty fallback.
 - **Surrogate media:** a non-base64 image, video or audio body that cannot be
   percent-encoded falls back to a base64 data URI built from its UTF-8 bytes.
   A normal UTF-8 body keeps its readable data URI, a BASE64 body stays
@@ -76,16 +79,14 @@ public API or schema change.
 
 **Correctness and input compatibility**
 
-- **Attempt tie:** when two starts for one pickle have the same attempt and
-  timestamp, the later start in envelope order wins. A higher attempt or a later
-  timestamp keeps the existing precedence. The report and summary show the later
-  result.
 - **Legacy run time:** legacy JSON uses `options.startedAt` as the only date
   source. Without it, the adapter emits a zero timestamp and never calls
   `new Date()`. The zero-timestamp-is-unknown model rule added by
   `0.6.1-quality-pass` keeps the report date and scenario `1970` dates out of
   the output. The JSON summary has no date field and does not change; a real
-  Messages run is unchanged.
+  Messages run is unchanged. The two legacy characterization hashes and the
+  `minimal.html` golden are re-pinned for the removed date; that re-pin is part
+  of this change.
 - **History ISO 8601:** the reader accepts a strict timestamp with a zone (`Z`
   or `±HH:MM`), optional seconds and optional fractional seconds, and a finite
   `Date.parse`. It keeps the original string, rejects a zone-less or free-text
@@ -118,10 +119,10 @@ public API or schema change.
   name), `src/text.ts` (shared comparator), `src/input/load.ts`,
   `src/baseline.ts`, `src/render/report.ts` (comparator call sites),
   `src/input/detect.ts` (single parse), `src/input/messages.ts` (shared envelope
-  key set), `src/report/index-run.ts` (attempt tie), `src/history.ts` (ISO 8601),
-  `src/input/junit.ts` (dead option) and
-  `src/compat/cucumber-html-reporter.ts` (merge loop). `src/output.ts` and
-  `.github/workflows/release.yml` do not change.
+  key set), `src/history.ts` (ISO 8601), `src/input/junit.ts` (dead option) and
+  `src/compat/cucumber-html-reporter.ts` (merge loop). `src/report/index-run.ts`
+  is not touched; the attempt tie belongs to the quality pass. `src/output.ts`
+  and `.github/workflows/release.yml` do not change.
 - **Tests:** `test/summary.test.ts`, `test/model.test.ts`,
   `test/render-attachments.test.ts`, `test/input-resolve-scan.test.ts`,
   `test/baseline-matcher.test.ts`, `test/render-report.test.ts`,
@@ -135,10 +136,13 @@ public API or schema change.
   `docs/DROP-IN-VALIDATION.md` and `docs/CHANGELOG.md`.
 - **Output:** HTML display URIs, feature-name fallbacks, media data URIs,
   feature/tag order and legacy run dates change where the defects apply. `--json`
-  `uri`/`feature` values and scenario order change the same way. The summary
-  schema stays version 2, the history schema keeps versions 1 and 2, and no
-  field is added. The JUnit dead-option removal is byte-neutral for valid input.
-  The release workflow bytes do not change in this change.
+  `uri` values and scenario order change the same way; the `feature` field keeps
+  its empty fallback. The summary schema stays version 2, the history schema
+  keeps versions 1 and 2, and no field is added. The JUnit dead-option removal is
+  byte-neutral for valid input. The legacy date removal re-pins the two legacy
+  characterization hashes and `test/fixtures/render-golden/minimal.html`; no
+  other golden or hash is re-pinned. The release workflow bytes do not change in
+  this change.
 - **Dependency and API surface:** no runtime dependency, CLI option, public API
   signature or schema version changes.
 - **Release:** lands in 0.6.1 after `0.6.1-quality-pass`. This change does not
@@ -165,11 +169,13 @@ public API or schema change.
 
 - **URI rule.** Strip the `file://` scheme and authority without removing the
   path root, map `/C:/...` to the Windows drive form, then drop a leading home
-  segment (`Users`, `home`, `Documents and Settings`) plus the next segment
-  after a drive or `/mnt/<drive>` mount. `displayUri` supplies the model
-  feature-name fallback. Relative URIs stay unchanged; existing `/features/` and
-  last-three behaviour stay. The privacy promise is the absence of the user name
-  on every surface, not one particular shortened path.
+  segment (`Users`, `home`, `Documents and Settings`) plus the next segment on
+  an absolute path, including after a drive or `/mnt/<drive>` mount.
+  `displayUri` supplies the model feature-name fallback. Relative URIs stay
+  unchanged; existing `/features/` and last-three behaviour stay. The privacy
+  promise is the absence of the user name from a display URI on the named
+  surfaces, not one particular shortened path; a relative path that happens to
+  start with a home segment is not covered.
 - **Comparator.** One shared comparator orders by UTF-16 code units
   (`a < b ? -1 : a > b ? 1 : 0`) for every deterministic sort. Host locale and
   ICU collation do not participate. The non-ASCII visible order change is
@@ -182,13 +188,18 @@ public API or schema change.
   only after the `{` and first-key pre-check; `isEnvelopeLike` still confirms
   the parsed shape. A first key outside the set is left to the Playwright
   sniffer.
-- **Attempt tie.** A full attempt and timestamp tie returns the later candidate
-  in envelope order. The higher attempt and later timestamp rules are unchanged.
+- **Attempt tie.** Covered by `0.6.1-quality-pass`, which needs the same model
+  selection for its missing/equal-retry rule. This change does not edit
+  `latestAttempt` or restate the requirement.
 - **Legacy zero date.** `options.startedAt` is the only date pin. Without it the
   adapter emits zero timestamps and never reads the clock. An explicit non-zero
   pin still shows its date; an explicit epoch is zero and unknown. This depends
   on the `0.6.1-quality-pass` rule that a zero timestamp is unknown; the change
-  lands after that rule and rebases on it.
+  lands after that rule and rebases on it. The removed legacy date re-pins the
+  two legacy characterization hashes and `minimal.html`, and no other hash.
+- **Re-pin scope.** Only the legacy date re-pin from this change may alter
+  committed report bytes; the URI, comparator and other fixes change output only
+  for affected input. Any other changed hash or golden is a defect, not a re-pin.
 - **ISO 8601 forms.** Accept a zone (`Z` or `±HH:MM`), optional seconds and
   optional fractional seconds, with finite `Date.parse`. Preserve the original
   string; reject zone-less and free-text values; never rewrite on read.
