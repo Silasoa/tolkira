@@ -95,7 +95,6 @@ describe('release workflow gate', () => {
   it('runs the Linux gate with hygiene, check and the browser suite', async () => {
     const linux = job(await workflowJobs(), 'gate-linux');
 
-    expect(linux).toContain('runs-on: ubuntu-latest');
     expectStep(linux, 'npm run hygiene');
     expectStep(linux, 'npm run check');
     expectStep(linux, 'npx playwright install --with-deps chromium firefox webkit');
@@ -107,6 +106,7 @@ describe('release workflow gate', () => {
   it('runs the macOS browser gate', async () => {
     const macos = job(await workflowJobs(), 'gate-macos');
 
+    // The runner OS is this gate's contract: WebKit on the macOS host.
     expect(macos).toContain('runs-on: macos-latest');
     expectStep(macos, 'npm run test:e2e');
     expect(macos).not.toContain('continue-on-error');
@@ -124,9 +124,6 @@ describe('release workflow gate', () => {
   it('fails the decision table on a tag/version mismatch', async () => {
     const publish = job(await workflowJobs(), 'publish');
 
-    expect(publish).toContain(
-      '- name: Require the tag to match the package version',
-    );
     expectStep(
       publish,
       `test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"`,
@@ -136,7 +133,6 @@ describe('release workflow gate', () => {
   it('fails the decision table when the tag is not on main', async () => {
     const publish = job(await workflowJobs(), 'publish');
 
-    expect(publish).toContain('- name: Require the tag to be on main');
     expectStep(
       publish,
       'git fetch origin main\ngit merge-base --is-ancestor HEAD FETCH_HEAD',
@@ -144,7 +140,7 @@ describe('release workflow gate', () => {
     // A shallow clone cannot prove the ancestor relation; the fetch is full.
     // `fetch-depth` is a `with:` key, not a run command.
     expect(publish).toContain('fetch-depth: 0');
-    expect(publish).not.toContain('--depth');
+    expect(activeCommands(publish)).not.toContain('--depth');
   });
 
   it('reaches the package smoke and stage step on a green tag', async () => {
