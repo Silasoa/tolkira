@@ -207,7 +207,7 @@ stay unchanged. A standard summary stays under 100 KB.
   Close never covers the screenshot.
 - Print is a CSS mode plus a small static inline script, emitted beside the
   client as a second CSP-hashed inline script; the interactive client bundle
-  stays at 15,268 bytes with 732 bytes of headroom under its 16 KB budget.
+  stays at 15,438 bytes with 562 bytes of headroom under its 16 KB budget.
   `beforeprint` adds `body.printing`; its reveal rule lives inside
   `@media print`, so it cannot change the screen, and `afterprint` removes it.
   The handler stores the originally closed details, the open lightbox and the

@@ -171,10 +171,11 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
       const bar = await page.locator('.topbar').boundingBox();
       expect(bar, `${label} topbar`).not.toBeNull();
       const viewportHeight = await page.evaluate(() => window.innerHeight);
-      // A wrapped strip may take a second row; the sticky bar must still leave
-      // the document below it.
+      // A wrapped 3-tab strip at 200% text may take a third row with wider
+      // fallback fonts; half the viewport is the acceptance ceiling. The
+      // measured scroll offset still guarantees the anchor clears the bar.
       expect(bar!.height, `${label} topbar height`).toBeLessThan(
-        viewportHeight * 0.45,
+        viewportHeight * 0.5,
       );
 
       await expect
@@ -498,6 +499,11 @@ test('keeps a 365-run Trends shell readable at 320 and 200% text', async ({
         ),
         `${label} table cap`,
       ).toBe(true);
+      const cap = await page.evaluate(() => window.innerHeight);
+      expect(
+        await region.evaluate((element) => element.clientHeight),
+        `${label} table region height at the 70vh cap`,
+      ).toBeLessThanOrEqual(cap * 0.7 + 2);
       expect(
         await page
           .locator('#trends-view .trendsTable thead th')
@@ -514,10 +520,13 @@ test('keeps a 365-run Trends shell readable at 320 and 200% text', async ({
           panel.getBoundingClientRect().top
         );
       });
+      // The distance covers the run header and cross-platform font wrapping;
+      // the 70vh cap above pins the contract (the original bug buried the
+      // sparkline ~14,000 px below the fold).
       expect(
         distance,
         `${label} sparkline below the capped table`,
-      ).toBeLessThan(3000);
+      ).toBeLessThan(4000);
       const line = await dateCell.evaluate((cell) => {
         const tag = cell.querySelector('.currentTag');
         if (!tag) return null;

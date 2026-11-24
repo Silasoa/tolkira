@@ -639,6 +639,16 @@ if (lightbox) {
   dialog.addEventListener('close', restoreLightbox);
 }
 
+// The fixed CSS reserve cannot follow a wrapped sticky bar across font stacks;
+// measure the real bar so an anchored target always lands below it.
+function syncScrollPadding(): void {
+  const bar = document.querySelector<HTMLElement>('.topbar');
+  if (!bar) return;
+  document.documentElement.style.scrollPaddingTop = `${
+    Math.ceil(bar.getBoundingClientRect().height) + 8
+  }px`;
+}
+
 function revealHash(): void {
   if (!location.hash) return;
   let id = '';
@@ -667,6 +677,7 @@ function revealHash(): void {
       focusTarget.focus();
     }
   }
+  syncScrollPadding();
   target.scrollIntoView();
 }
 
@@ -679,4 +690,5 @@ syncCompact();
 window.addEventListener('hashchange', revealHash);
 restoreUrlState();
 showView('report');
+syncScrollPadding();
 revealHash();
