@@ -502,6 +502,8 @@ describe('ISO 8601 history timestamps', () => {
     ['three fraction digits', '2026-11-19T08:00:00.123Z'],
     ['nine fraction digits', '2026-11-19T08:00:00.123456789Z'],
     ['offset with seconds', '2026-11-19T08:00:30+02:00'],
+    ['calendar overflow day', '2026-02-30T08:00:00Z'],
+    ['maximum positive offset', '2026-11-19T08:00:00+23:59'],
   ] as const;
 
   it.each(accepted)(
