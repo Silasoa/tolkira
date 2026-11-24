@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli.js';
+import { parseJUnitXml } from '../src/input/junit.js';
 import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 
 const fixture = fileURLToPath(
@@ -750,6 +751,36 @@ describe('JUnit XML entities', () => {
       ),
     );
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
+  });
+
+  it.each([
+    ['a bare ampersand at the end of an element text', 'a &', ''],
+    ['an unterminated &amp at the end of an element text', 'a &amp', 'amp'],
+  ])('rejects %s and writes no report', async (_name, body, entity) => {
+    const dir = await tempDir();
+    const input = path.join(dir, 'bare-amp-tail.xml');
+    const xml =
+      '<testsuites><testsuite name="bare"><testcase name="edge">' +
+      `<failure>${body}</failure></testcase></testsuite></testsuites>`;
+    await writeFile(input, xml, 'utf8');
+    const expected = new RegExp(
+      `Invalid JUnit XML in .*bare-amp-tail\\.xml: invalid entity reference &${entity};`,
+    );
+
+    await expect(parseJUnitXml(xml, input)).rejects.toThrow(expected);
+
+    const outDir = await tempDir();
+    let stderr = '';
+    const code = await runCli([input, '--out', path.join(outDir, 'report.html')], {
+      stdout: () => {},
+      stderr: (text) => {
+        stderr += text;
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(stderr).toContain('invalid entity reference');
+    expect(await readdir(outDir)).toEqual([]);
   });
 
   it('rejects numeric references outside the XML character ranges', async () => {

@@ -778,6 +778,11 @@ describe('display URI privacy', () => {
       expected: '',
     },
     {
+      name: 'trailing bare home segment',
+      uri: '/srv/home',
+      expected: 'srv',
+    },
+    {
       name: 'WSL mount path to the home directory',
       uri: `/mnt/c/Users/${USER}`,
       expected: '',
@@ -806,6 +811,11 @@ describe('display URI privacy', () => {
       name: 'deeper absolute path keeps the last three segments',
       uri: `/home/${USER}/work/team/proj/login.feature`,
       expected: 'team/proj/login.feature',
+    },
+    {
+      name: 'filename with dots inside a segment',
+      uri: `file:///home/${USER}/proj/a..b.feature`,
+      expected: 'proj/a..b.feature',
     },
     {
       name: 'drive form one segment before the home segment',
