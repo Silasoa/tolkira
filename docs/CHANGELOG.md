@@ -8,32 +8,33 @@ Keep a Changelog and the project uses semantic versioning.
 ### Fixed
 
 - The default report now has exactly one `<main>`, on the Report view. Details
-  and Trends are plain containers in both report forms; their panels keep the
-  `tabPanel` class, `role="tabpanel"`, the `analysis-view`/`trends-view` IDs and
-  the `#analysis-view, #trends-view` print page break. The static report keeps
-  its one `<main>`; the default form was the last three-`<main>` document
-  (B-048).
+  and Trends are plain containers in both report forms. The default panels keep
+  the `tabPanel` class, `role="tabpanel"`, `aria-labelledby`, `tabindex`,
+  `hidden` and the `analysis-view`/`trends-view` IDs; the static panels keep the
+  class, IDs and the `#analysis-view, #trends-view` print page break without tab
+  roles. The static report keeps its one `<main>`; the default form was the last
+  three-`<main>` document (B-048).
 - The Details metadata list stacks each label above a start-aligned value at
   320 px with 200 % text, and a long unbroken URL wraps instead of forming a
-  narrow ragged column. At 100 % text and at 768 px and wider at the gate zoom
-  the two-column, right-aligned layout is unchanged (B-039).
+  narrow ragged column. At 100 % text from 320 px, and at 768 px and wider at
+  100 % text, the two-column, right-aligned layout is unchanged (B-039).
 - `readHistory` and the schema peek used by `writeHistory` strip exactly one
   leading UTF-8 BOM before parsing, so a BOM-prefixed sidecar reads and appends
   instead of failing with `not valid JSON`; a read never rewrites the file. A
   BOM-only file and a BOM followed by invalid JSON keep that error. The writer
   emits no BOM, so its next successful write replaces a BOM-prefixed file with
   BOM-free bytes and keeps every run the append would keep (B-049).
-- Input accounting counts only files that produce a loader group, so skipped
-  files, empty Messages shards and duplicate content do not count toward
-  `inputFiles`, `inputBytes` or the 100 MB total cap. The per-file 100 MB guard
-  still runs before the read; the total cap applies to unique loaded content
-  after dedupe and skip and reports `Inputs exceed 100 MB in total. Split the
-  run into smaller inputs or reduce the attachment payload.`
+- In the core loader, input accounting counts only files that produce a loader
+  group, so skipped files, empty Messages shards and duplicate content do not
+  count toward `inputFiles`, `inputBytes` or the 100 MB total cap. The per-file
+  100 MB guard still runs before the read; the total cap applies to unique
+  loaded content after dedupe and skip and reports `Inputs exceed 100 MB in
+  total. Split the run into smaller inputs or reduce the attachment payload.`
 - A directory scan skips an empty `.jsonl`/`.ndjson` shard (zero non-empty
   lines after an optional BOM and whitespace) without a group, count or
   warning, so one empty shard no longer aborts the scan. An explicitly named
-  empty file still fails with `Input is empty`, and a directory with only empty
-  shards fails with `No supported report files found.`
+  zero-byte or whitespace-only file still fails with `Input is empty`, and a
+  directory with only empty shards fails with `No supported report files found.`
 - `writeHistory` validates an existing target with the reader's full document
   and run rules before writing. A supported schema with a malformed `runs`
   value or entry is rejected with the existing `Cannot write history file`

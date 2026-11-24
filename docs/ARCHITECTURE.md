@@ -83,8 +83,8 @@ and is covered by real producer fixtures.
   the advisory stat-only size scan (`scanInputBytes`) and the loader, so a
   directory scan or `realpath` cannot see two different trees.
 - The scan reads no content and returns the summed `stat` sizes; the loader
-  keeps its own per-file stat before reading, its content dedupe and the 100 MB
-  total-input cap.
+  keeps its own per-file stat guard before reading, its content dedupe and the
+  100 MB total-input cap over unique loaded content after dedupe and skip.
 - The early input warning is advisory: it can overcount identical content that
   the loader later dedupes and never replaces the loader's real error.
 
@@ -188,7 +188,8 @@ and is covered by real producer fixtures.
   minifies it into `src/render/styles.ts` for the inline report. The baseline
   panel and badges live in `src/render/baseline.css`, minified into a second
   `BASELINE_CSS` constant and appended only when a comparison is supplied, so
-  the default `report.css` bytes and every default report stay unchanged.
+  adding it does not change `report.css` or a report without a baseline; the
+  0.6.1 shell rules are separate.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
   helpers; `src/render/report-client.ts` is the browser script.
   `src/render/print-script.ts` is the static print lifecycle, imported only by
@@ -502,7 +503,9 @@ Test names, metadata, file names and attachments are untrusted input.
 - Legacy JSON is parsed once; inputs above 100 MB fail with a useful message
   rather than exhausting memory.
 - The early input warning is one `stat` per resolved file and reads no content;
-  the loader's read and content dedupe are unchanged.
+  it does not alter the loader's accounting. The loader keeps its per-file stat
+  guard before reading, its content dedupe and the 100 MB total cap on unique
+  loaded content after dedupe and skip.
 - Stress baseline: 1,000 scenarios / 3,000 steps render in about 0.15–0.2 s to
   1.4 MB; 5,000 / 15,000 in about 0.4–0.5 s to 7.0 MB. Timings vary with host
   load.

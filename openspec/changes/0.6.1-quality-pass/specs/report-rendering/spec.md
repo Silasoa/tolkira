@@ -54,9 +54,11 @@ by this change, it SHALL NOT change the layout at the gate viewports or at
 
 ### Requirement: Keep the Details and Trends panel contract without a main
 
-Details and Trends SHALL use plain containers inside their existing panels.
-Each SHALL keep the `tabPanel` class, `role="tabpanel"`, `aria-labelledby`,
-`tabindex`, `hidden` and its `analysis-view` or `trends-view` ID. Both SHALL
+In the default report, Details and Trends SHALL use plain containers inside
+their existing panels. Each default panel SHALL keep the `tabPanel` class,
+`role="tabpanel"`, `aria-labelledby`, `tabindex`, `hidden` and its
+`analysis-view` or `trends-view` ID. The static report SHALL keep the `tabPanel`
+class and the same IDs without tab roles or the tab attributes. Both forms SHALL
 keep the `#analysis-view, #trends-view` print page-break rule.
 
 #### Scenario: Panel contract

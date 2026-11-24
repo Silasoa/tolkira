@@ -95,10 +95,11 @@ scenarios, each message at 500 raw characters and the skipped name list at 20,
 while the counts and the overall `Status` row stay complete. The GitHub
 annotation title (feature + scenario identity) and the Markdown heading
 (`--title` included), feature name, scenario name, URI and skipped identity cap
-at 200 Unicode code points, with the existing `[truncated]` marker appended when
-cut before escaping or code-span wrapping; a surrogate pair is never split. The
-counts, the full report, the failure-message limits, the 50/20 list limits and
-the Azure 4,000-code-point message cap are unchanged.
+at 200 Unicode code points before escaping or code-span wrapping. The
+`[truncated]` marker stays literal when appended, and a surrogate pair is never
+split. The counts, the full report, the failure-message
+limits, the 50/20 list limits and the Azure 4,000-code-point message cap are
+unchanged.
 
 ## Baseline comparison
 
@@ -639,8 +640,10 @@ copy-failure and log-copy buttons and the search/status/tag toolbar are removed,
 not left inert. Images render inline in the open detail body. The `report-view`,
 `analysis-view` and `trends-view` IDs stay, so the print page-break rule still
 puts each present view on a new page. Both report forms have exactly one
-`<main>`, on the Report view; Details and Trends are plain containers in both,
-and their panels keep the `tabPanel` class, `role="tabpanel"` and IDs.
+`<main>`, on the Report view; Details and Trends are plain containers in both.
+The default panels keep the `tabPanel` class, `role="tabpanel"`,
+`aria-labelledby`, `tabindex` and `hidden`; the static panels keep the
+`tabPanel` class and IDs without tab roles or tab attributes.
 
 Print/PDF follow the existing print CSS: every present section and open detail
 prints, with no tab bar. A bookmarked `?query=`, `?hide=` or `?tag=` URL shows

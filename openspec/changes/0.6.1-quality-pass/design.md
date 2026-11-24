@@ -54,20 +54,23 @@ Current rules (`src/render/report.css`):
 - German (`localeCss` in `src/render/html.ts`) also forces the 2fr/3fr label
   share, and `sizeMeta` already stacks at 560 px and below (B-046).
 
-At 320 px and 200 % text the shell content is 320 - 2 × 2rem = 192 px while the
-root is 32 px; a 2fr label track is about 77 px at 26 px type, so labels break
-per character and right-aligned long links fragment.
+At 320 px and 200 % text the root is 32 px and the `max-width: 560px` shell
+padding is `1rem` per side, so the shell content is 256 px; a 2fr label track is
+about 88 px at 26 px type, so labels break per character and right-aligned long
+links fragment.
 
 The fix is one narrow container query. `.shell` is already
 `container-type: inline-size` (report.css:61), so a container query can read the
 shell's content width. The condition is written in `rem`: container-query
 lengths follow the root font size, unlike a media query, whose `em` is fixed at
 the initial size. A `max-width: 10rem` condition therefore means "narrower than
-10 text-sized rems": it matches 320 px at 200 % text (192 px < 320 px) and
-390 px at 200 % text (262 px < 320 px), but not 320 px at 100 % (256 px >
-160 px), 390 px at 100 % (326 px > 160 px) or any wider gate viewport at 100 %.
-The exact threshold is verified against the five gate widths; 10rem is the
-starting value, not a contract.
+10 text-sized rems": it matches 320 px at 200 % text (256 px < 320 px), but not
+320 px at 100 % (288 px > 160 px), 390 px at 100 % (358 px > 160 px) or any
+wider gate viewport at 100 %. At 390 px with 200 % text the 560 px padding
+leaves 326 px, so the query does not match and Firefox and WebKit keep two
+columns; Chromium's stable scrollbar gutter can take the content below 320 px
+and stack there. The contract boundary is 320 px at 200 % text; 390 px at
+200 % text is not required to stack.
 
 ```css
 @container (max-width: 10rem) {

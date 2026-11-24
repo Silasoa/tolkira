@@ -45,7 +45,7 @@ unsupported input and never with a partial report.
 | file + describe path | rule, for example `checkout.spec.ts › cart › payment` |
 | spec title (minus trailing `@tags`) | scenario name |
 | one spec test in one project | one scenario |
-| each result | one attempt; the last result in array order wins when `retry` is missing or equal, otherwise the highest `retry` wins |
+| each result | one attempt, and every earlier result an earlier-attempts entry; the last result in array order is the final result when `retry` is missing or equal, otherwise the highest `retry` is final |
 | `result.retry` | attempt index (the HTML shows `Attempt: retry + 1`) |
 | nested result steps | flat steps in order, deeper levels prefixed with `›` |
 | `result.error` / `errors` | failed step message, snippet and relative location |

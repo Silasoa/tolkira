@@ -130,35 +130,38 @@ asks or a locale needs them:
 ## Resolved
 
 - **B-054 Visual evidence for green e2e runs** — resolved on 2026-11-24 in the
-  `0.6.1-quality-pass` change, commit `1fea073`: one e2e test renders the default
+  `0.6.1-quality-pass` change, commit `cd44010`: one e2e test renders the default
   and `--static` report from `test/fixtures/messages/screenshot.ndjson` at
   1440 px, 390 px and 320 px with 200 % text, writing six PNGs per engine under
   `test-results/visual/<engine>/`; the existing `playwright-visual-*` CI
   artifacts pick them up. There are no pixel assertions, no committed image and
   no new dependency, and each form asserts its title before capture.
 - **B-049 BOM before the history sidecar** — resolved on 2026-11-24 in the
-  `0.6.1-quality-pass` change, commit `1fea073`: the shared bounded sidecar read
-  strips exactly one leading U+FEFF, so `readHistory` and the schema peek behind
-  `writeHistory` accept a BOM-prefixed file, and a read never rewrites it. A
-  BOM-only file and a BOM followed by invalid JSON keep the existing
-  `not valid JSON` error. The writer emits no BOM, so its next successful write
-  replaces a BOM-prefixed file with BOM-free bytes and keeps every run the append
-  would keep.
+  `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073`: the shared
+  bounded sidecar read strips exactly one leading U+FEFF, so `readHistory` and
+  the schema peek behind `writeHistory` accept a BOM-prefixed file, and a read
+  never rewrites it. A BOM-only file and a BOM followed by invalid JSON keep
+  the existing `not valid JSON` error. The writer emits no BOM, so its next
+  successful write replaces a BOM-prefixed file with BOM-free bytes and keeps
+  every run the append would keep.
 - **B-048 One main landmark in the default report** — resolved on 2026-11-24 in
-  the `0.6.1-quality-pass` change, commit `1fea073`: the default report has
-  exactly one `<main>`, on the Report view. Details and Trends are plain
-  containers in both report forms; their panels keep the `tabPanel` class,
-  `role="tabpanel"`, the `analysis-view`/`trends-view` IDs and the
-  `#analysis-view, #trends-view` print page break. The static report keeps its
-  one `<main>`; heading order and tab roles are unchanged, and apart from the
-  B-039 metadata rule the gate-viewport layout is unchanged.
+  the `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073`: the
+  default report has exactly one `<main>`, on the Report view. Details and
+  Trends are plain containers in both report forms. The default panels keep the
+  `tabPanel` class, `role="tabpanel"`, `aria-labelledby`, `tabindex`, `hidden`
+  and the `analysis-view`/`trends-view` IDs; the static panels keep the class,
+  IDs and the `#analysis-view, #trends-view` print page break without tab roles.
+  The static report keeps its one `<main>`; default heading order and tab roles
+  are unchanged, and apart from the B-039 metadata rule the gate-viewport layout
+  is unchanged.
 - **B-039 Details metadata at 320 px and 200 % text** — resolved on 2026-11-24
-  in the `0.6.1-quality-pass` change, commit `1fea073`: a narrow container query
-  stacks each Details metadata label above a start-aligned value when the shell
-  is 10 rem or narrower, with a German override because its selector outranks
-  the generic rule. A long unbroken URL wraps inside the stacked value column
-  and the page does not scroll horizontally. At 100 % text from 320 px and at
-  768 px and wider the two-column, right-aligned layout is unchanged.
+  in the `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073`: a
+  narrow container query stacks each Details metadata label above a start-aligned
+  value when the shell is 10 rem or narrower, with a German override because its
+  selector outranks the generic rule. A long unbroken URL wraps inside the
+  stacked value column and the page does not scroll horizontally. At 100 % text
+  from 320 px and at 768 px and wider the two-column, right-aligned layout is
+  unchanged.
 - **B-052 README report preview** — resolved on 2026-11-24: `README.md` now
   shows `docs/comparison/tolkira-0.6.0-report.png` (1440×900, 47,441 bytes),
   captured from the default English report of
@@ -509,6 +512,43 @@ asks or a locale needs them:
   filters an empty body by design, and an empty attachment carries no content.
   Trigger: a user reports a missing empty attachment, or an attachment-count
   parity claim needs the raw producer count.
+- **Compat `jsonDir` read before a guard.** With `ignoreBadJsonFile: false`,
+  the compat shim reads a file in its sidecar pass before any per-file size
+  guard, so a very large `.json` can be read before the core loader's 100 MB cap
+  applies; the flag's own pre-read accounting is separate. Trigger: the compat
+  shim is next touched or a user reports a large-directory/OOM scan; then stat
+  before `readFeatures`.
+- **GitHub annotation text sanitising.** The GitHub error title/message and
+  notice text do not strip ANSI/OSC-8/bidi controls, unlike Azure, Markdown and
+  report text; the consequence is display spoofing only. Trigger: CI output
+  consumes untrusted fork/PR data or the CI surface is next touched.
+- **Directory scan read budget.** Directory scans have no aggregate read budget
+  after audit 2; skipped files are read and hashed but not counted. Trigger:
+  artifact directories with hundreds of MB of unrelated JSON; then add a
+  separate scan/read budget without changing the loaded-file accounting.
+- **Attachment selector cost.** The rendered-attachment selector runs twice per
+  HTML report, once for the model and once for the summary, about 11 ms at
+  10,000 scenarios. Trigger: the 0.7 performance pass or attachment-heavy
+  reports.
+- **Earlier-retry image input count.** Earlier-retry images use
+  `ordered.length === 1`, so one Playwright report plus a skipped empty shard
+  loses the earlier-retry image although `inputFiles` is 1. Trigger: retry
+  evidence is reported missing in a single-report directory with skipped
+  files; then base the budget on loaded groups.
+- **Synthetic 1970 finish time.** A Playwright run without timing and with a
+  duration of at least 1 s synthesizes a 1970 `testRunFinished` (`finishedAt`)
+  while `startedAt` is unknown; it is not rendered today. Trigger: `finishedAt`
+  is exposed in any output; then guard it like `startedAt`.
+- **`Attempt: 1` label.** The report prints `Attempt: 1` for single-attempt
+  Messages runs while the summary stores 0 and the official formatter prints no
+  attempt. Trigger: the 0.7 parity bundle or a user reports the label; then
+  hide it for one attempt.
+- **RTL `text-align`.** The new one-column `.metaList` rule uses
+  `text-align:left`; switch to `start` when an RTL locale is added (fits
+  B-066's locale trigger).
+- **Test-helper duplication.** Shared test-helper work (view slices,
+  attempt/tie streams, `cssBlocks`, the two CLI write wrappers) belongs to
+  B-057; fold it into that refactor rather than opening a 0.6.1 finding.
 
 ## Review follow-ups (2026-11-18)
 

@@ -33,36 +33,36 @@
 
 ## 2. TDD-Red
 
-- [ ] 2.1 B-048 unit: a default report with no history has exactly one `<main>`
+- [x] 2.1 B-048 unit: a default report with no history has exactly one `<main>`
   inside `#report-view`; `#analysis-view` has no `<main>` and keeps its class,
   role, label, ID and `hidden`; no `#trends-view`; two tabs. A default report
   with two history runs has one `<main>`, three tabpanels and the three IDs. A
   static report still has one `<main>` and no tab roles. Assert heading order
   and the `#analysis-view, #trends-view` print rule.
-- [ ] 2.2 B-048 browser: one `main` role at 320, 390, 768, 1024 and 1440 px and
+- [x] 2.2 B-048 browser: one `main` role at 320, 390, 768, 1024 and 1440 px and
   at 320 px / 200 % text; no horizontal overflow; Details and Trends panels
   keep their bounding boxes; save before/after visual captures for CMP.
-- [ ] 2.3 B-039 unit: the narrow container rule is present in `REPORT_CSS`
+- [x] 2.3 B-039 unit: the narrow container rule is present in `REPORT_CSS`
   with one column and start-aligned values; the German override is present in
   the locale string; the base 2fr/3fr rule at 100 % is untouched; `styles.ts`
   is regenerated, not hand-edited.
-- [ ] 2.4 B-039 browser: with a long metadata URL in Details, 320 px / 200 %
+- [x] 2.4 B-039 browser: with a long metadata URL in Details, 320 px / 200 %
   yields one computed track, `text-align: start`, a wrapped link and no
   horizontal overflow; 320 px / 100 % and 390 px / 100 % keep two tracks and
   `text-align: right`; 768, 1024 and 1440 px are unchanged; the German boundary
   case passes.
-- [ ] 2.5 B-049 unit in `test/history.test.ts`: valid no-BOM file (regression),
+- [x] 2.5 B-049 unit in `test/history.test.ts`: valid no-BOM file (regression),
   one BOM plus valid JSON, BOM-only, BOM plus invalid JSON, two leading BOMs,
   and byte equality after every read. The schema peek accepts a BOM-prefixed
   target. An append to a BOM-prefixed sidecar succeeds and writes the same
   bytes as the same append without the BOM, with no run lost. A writer test
   pins no BOM in the output and unchanged schema/validation. Existing error
   text is asserted, not loosened.
-- [ ] 2.6 Confirm RED for 2.1-2.5 and the audit tasks 2.8-2.18; 2.7 is
+- [x] 2.6 Confirm RED for 2.1-2.5 and the audit tasks 2.8-2.18; 2.7 is
   expected green. No existing test is deleted or weakened. Assertions that
   encoded the three-`<main>` defect or an old accounting/attachment/Playwright
   expectation are updated in place and named in the change record.
-- [ ] 2.7 B-054 visual evidence (test-only): one e2e test renders the default
+- [x] 2.7 B-054 visual evidence (test-only): one e2e test renders the default
   and the `--static` report from `test/fixtures/messages/screenshot.ndjson` and
   writes viewport captures to `test-results/visual/<engine>/`: 1440 px and
   390 px for both forms, plus 320 px at 200 % text for both forms, six PNGs
@@ -72,7 +72,7 @@
   each form asserts its title before capture. Expected green from the first
   run, not part of the RED set. B-054 changes no report behaviour, so this
   change adds no requirement delta for it.
-- [ ] 2.8 Audit 2, input accounting and cap order: failing tests in
+- [x] 2.8 Audit 2, input accounting and cap order: failing tests in
   `test/inputs.test.ts` and `test/input-resolve-scan.test.ts` for a directory
   with a report plus `package.json`/`tsconfig.json` (`inputFiles: 1`), two
   identical 51 MiB files (load once), two different files over the cap (new
@@ -80,17 +80,17 @@
   the per-file guard that fails before parse. Cover equivalence classes
   (loaded/skip/duplicate), boundaries at 100 MB and 100 MB + 1, the load-order
   decision table and the duplicate-to-loaded state transition.
-- [ ] 2.9 Audit 3, history target: failing tests in `test/history.test.ts` for
+- [x] 2.9 Audit 3, history target: failing tests in `test/history.test.ts` for
   schema-1 `runs` not an array, schema-2 one bad entry, a valid target that
   keeps its schema, a missing target that writes, and a rejected target that
   stays byte-identical with no temp file. Cover the decision table
   (missing/valid/malformed) and the state transition from rejected to valid.
-- [ ] 2.10 Audit 4, empty Messages shard: failing tests in
+- [x] 2.10 Audit 4, empty Messages shard: failing tests in
   `test/input-detect.test.ts` and `test/inputs.test.ts` for empty, BOM-only,
   whitespace-only, non-empty invalid and explicit empty, plus an empty shard
   beside a valid report and an empty-only directory. Cover the decision table
   and the explicit/scanned state boundary.
-- [ ] 2.11 Audit 5, attachment counts: failing tests in
+- [x] 2.11 Audit 5, attachment counts: failing tests in
   `test/model-summary-cross-check.test.ts` and `test/summary.test.ts` for an
   orphan `testStepId` (0/0), a step without a result (0/0), a missing run-hook
   start (0/0), a normal step attachment (1/1), an attachment without a
@@ -100,7 +100,7 @@
   ISTQB: decision table over step state (result/no result/absent) and
   equivalence classes for attachment ownership; the cross-check covers the
   summary-to-Details state transition.
-- [ ] 2.12 Audit 6, Playwright final result and date: failing tests in
+- [x] 2.12 Audit 6, Playwright final result and date: failing tests in
   `test/playwright.test.ts` for missing and equal retry values (last array
   element wins) and distinct retries (highest wins), and in `test/model.test.ts`,
   `test/summary.test.ts`, `test/model-summary-cross-check.test.ts` and
@@ -111,7 +111,7 @@
   `no-retry.json`, `equal-retry.json` and `no-timing.json`. ISTQB: equivalence
   classes for missing/equal/distinct retry, the zero/real timestamp boundary and
   the final-result and attempt-tie decision tables.
-- [ ] 2.13 Audit 7, expected skip: failing tests in `test/playwright.test.ts`
+- [x] 2.13 Audit 7, expected skip: failing tests in `test/playwright.test.ts`
   for expected skip plus a failed result (failed with error) and expected skip
   plus a passed result (unexpected pass, failed), keeping the existing skipped
   and skipped-without-results cases. Add `expected-skip-failed.json` and
@@ -119,7 +119,7 @@
   history status. ISTQB: decision table over expected status, test status and
   final status, and the state transition from skipped to failed/unexpected
   pass.
-- [ ] 2.14 Audit 8, inherited file: failing test in `test/playwright.test.ts`
+- [x] 2.14 Audit 8, inherited file: failing test in `test/playwright.test.ts`
   for a suite `file: "a.spec.ts"` and a spec without `file`, asserting the
   scenario URI and rule name use `a.spec.ts` and `playwright.spec.ts` is absent;
   with no project the feature name is `a.spec.ts`, with a project it stays the
@@ -127,27 +127,27 @@
   the control. ISTQB: equivalence classes for spec-file present/absent,
   suite-file present/absent and project present/absent; the no-file fallback is
   the invalid class.
-- [ ] 2.15 Audit 9, Messages attempt: failing tests for `1e309`, a string, a
+- [x] 2.15 Audit 9, Messages attempt: failing tests for `1e309`, a string, a
   negative value and a non-integer in `test/inputs.test.ts` or
   `test/messages-producers.test.ts`, and an absent/valid attempt in
   `test/summary.test.ts` and `test/model.test.ts`. Assert the line/file/field
   error, the model/summary parity and that `--json` never contains `null`.
   Cover the number/string/absent equivalence classes, the safe-integer boundary
   and the validation decision table.
-- [ ] 2.16 Audit 10, CI identity cap: failing tests in `test/ci.test.ts` and
+- [x] 2.16 Audit 10, CI identity cap: failing tests in `test/ci.test.ts` and
   `test/cli-ci.test.ts` for a GitHub title, Markdown heading/name/URI/title,
   exactly 200 code points (unchanged), 201 (truncated) and a surrogate pair at
   the boundary. Assert counts, failure-message limits and 50/20 limits stay
   unchanged and Azure output is untouched. ISTQB: boundary at 199/200/201 code
   points and the surrogate boundary, plus ASCII/non-BMP equivalence classes.
-- [ ] 2.17 Audit 11, write errors: failing tests in `test/cli-edge.test.ts` and
+- [x] 2.17 Audit 11, write errors: failing tests in `test/cli-edge.test.ts` and
   `test/cli-ci.test.ts` for a directory `--out` target and a permission-failing
   `--ci-out` target: exact prefix, requested target, Node code, exit 1, no
   `.tmp`, no UUID, no partial file and preserved earlier report. ISTQB:
   equivalence classes for directory/permission failure, the report-first vs
   CI-later decision table and the written-report-to-failed-CI state
   transition.
-- [ ] 2.18 Audit 12, compat bad JSON array: failing tests in
+- [x] 2.18 Audit 12, compat bad JSON array: failing tests in
   `test/compat.test.ts` and `test/compat-sidecar.test.ts` for `[1,2,3]` and an
   array of non-feature objects with `ignoreBadJsonFile: true` (skip with the
   existing warning, valid report renders) and false (compat legacy-array
@@ -173,11 +173,13 @@
   `attachments-presentation.html`). Inspect the diff: the two
   `<main>`→`<div>` replacements, their closing tags, the narrow CSS string and
   the removed 1970 run dates on the three zero-timestamp Messages fixtures are
-  allowed. Record the byte delta and the per-fixture reason. Do not re-pin a
-  Playwright fixture unless the gate record names a legitimately changed
-  expected value; the current fixtures do not change. The two legacy fixtures
-  are re-pinned here for the shell with their 2026 date, and again in the
-  hardening change for the removed date.
+  allowed. Record the byte delta and the per-fixture reason. Measured:
+  `minimal.html` and `attachments-presentation.html` each +104 bytes (CSS
+  insertion +106, `<main>`→`<div>` open/close −2, self-referential size row
+  follows). Do not re-pin a Playwright fixture unless the gate record names a
+  legitimately changed expected value; the current fixtures do not change. The
+  two legacy fixtures are re-pinned here for the shell with their 2026 date, and
+  again in the hardening change for the removed date.
 - [x] 3.5 Docs for the accepted items: update `docs/ARCHITECTURE.md` (default
   and static both render one `<main>`), `docs/AGENT-INTERFACE.md` (remove the
   default three-`<main>` defect note; add the one-BOM sidecar sentence),

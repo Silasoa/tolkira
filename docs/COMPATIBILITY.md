@@ -85,7 +85,7 @@ legacy string. If the callback itself throws, handle that error yourself.
 | `output` | Exact HTML path; missing parent directories are created. |
 | `brandTitle` / `name` | Report title. `brandTitle` wins if both differ. |
 | `metadata` | Flat string/number/boolean values become report metadata; absolute http(s) values become links in the Report header and Details, with a normalized `href` and a trimmed, bidi-control-stripped label. |
-| `ignoreBadJsonFile` | Invalid or non-array `.json` files are skipped with a warning. |
+| `ignoreBadJsonFile` | With `jsonDir`, invalid JSON, non-array JSON or an array with a non-feature object is skipped with a warning. |
 | `theme` | Warned, ignored. Tolkira uses its own theme. |
 | `reportSuiteAsScenarios`, `scenarioTimestamp`, `columnLayout`, `failedSummaryReport` | Warned, ignored. |
 | `storeScreenshots`, `screenshotsDirectory`, `noInlineScreenshots` | Warned, ignored; attachments stay inline. |
@@ -109,9 +109,10 @@ valid legacy feature array or has a feature URI that no other input represents;
 the error names the sidecar and the input. With `ignoreBadJsonFile: true`, an
 invalid file at that reserved path is skipped and the sidecar replaces it
 instead. Every input is parsed once before the report when the sidecar is
-written: it must be a legacy feature array (an array of objects), and one leading
-UTF-8 BOM is accepted. Non-array or non-object content, including Playwright
-JSON, fails before the HTML with an error naming the file. The old
+written: it must be an array of legacy feature objects, where each object has an
+`elements` array or both a string `keyword` and a string `name`, and one leading
+UTF-8 BOM is accepted. Non-array content or an array with a non-feature object, including
+Playwright JSON, fails before the HTML with an error naming the file. The old
 reporter's timestamp sort and filename-derived retry counter are not reproduced:
 features keep their input order and `retried` stays `0` for every element, which
 Seed-Test's group analysis does not read.
