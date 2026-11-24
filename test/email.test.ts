@@ -10,7 +10,7 @@ import {
   type SummaryStatus,
   type SummaryStep,
 } from '../src/summary.js';
-import { summarizeReport } from '../src/summary.js';
+import { summarizeReport } from '../src/index.js';
 import { messagesFixture } from './fixtures.js';
 
 const NOW = new Date('2026-11-20T09:30:00.000Z');

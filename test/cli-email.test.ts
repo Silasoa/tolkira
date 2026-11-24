@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../src/cli.js';
 import { renderEmail } from '../src/email.js';
-import { summarizeReport } from '../src/summary.js';
+import { summarizeReport } from '../src/index.js';
 
 const fixture = fileURLToPath(
   new URL('./fixtures/messages/screenshot.ndjson', import.meta.url),
