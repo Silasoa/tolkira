@@ -218,9 +218,7 @@ counted once. The JSON summary, CI text and exit codes are unchanged.
 ### Earlier attempts
 
 Every `testCaseStarted` stays in the index, but the final result remains the
-scenario, summary and history result. Results that share the final result's
-`retry` value describe the same attempt and are not listed as earlier attempts.
-A retried scenario renders a collapsed
+scenario, summary and history result. A retried scenario renders a collapsed
 `Earlier attempts` block with up to three executed earlier starts in input
 order, each with status, duration and its first failure message. The summary
 reads `3 of 5` when more exist. The block is native `<details>`, escaped,
