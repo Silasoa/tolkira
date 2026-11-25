@@ -15,7 +15,7 @@ function jobsOf(text: string): Map<string, string> {
   for (const line of body) {
     const header = /^  ([a-z][a-z0-9-]*):\s*$/.exec(line);
     if (header) {
-      current = header[1];
+      current = header[1]!;
       jobs.set(current, '');
       continue;
     }

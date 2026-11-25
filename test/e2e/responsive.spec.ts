@@ -313,7 +313,7 @@ test('keeps a long source name inside 320px', async ({ page }) => {
   const output = path.join(dir, 'long-source.html');
 
   try {
-    await copyFile(fixtures[0], longFile);
+    await copyFile(fixtures[0]!, longFile);
     const code = await runCli(
       [unhappy, longFile, '--out', output, '--title', 'Long source'],
       { stdout: () => undefined, stderr: () => undefined },

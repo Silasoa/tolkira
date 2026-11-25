@@ -110,7 +110,11 @@ describe('parity diagnostics rendering', () => {
     )?.suggestion;
     expect(suggestion).toBeDefined();
     if (suggestion) {
-      suggestion.snippets[0].code = '<script>alert(1)</script>';
+      const snippet = suggestion.snippets[0];
+      if (snippet === undefined) {
+        throw new Error('undefined-status fixture has no suggestion snippet');
+      }
+      snippet.code = '<script>alert(1)</script>';
     }
     const undefinedHtml = await renderHtml(undefinedEnvelopes, {
       title: 'Escaped snippets',

@@ -292,7 +292,7 @@ describe('flaky visibility', () => {
     expect(summary).not.toContain('>Passed</span>');
     expect(countsBlock(html)).not.toContain('flaky');
     expect(flakyMeta(html)).toBe(
-      `<span class="flakyMeta">${summaryLabel.replace('{count}', '1')}</span>`,
+      `<span class="flakyMeta">${(summaryLabel ?? '').replace('{count}', '1')}</span>`,
     );
   });
 

@@ -301,21 +301,21 @@ function parsePdfCMap(text: string): PdfCMap {
   const map = new Map<number, string>();
   let sourceBytes = 1;
   const codespace = /begincodespacerange\s*<([0-9A-Fa-f]+)>/.exec(text);
-  if (codespace) sourceBytes = codespace[1].length / 2;
+  if (codespace) sourceBytes = (codespace[1] ?? '').length / 2;
   for (const block of text.matchAll(/beginbfchar([\s\S]*?)endbfchar/g)) {
     for (const match of (block[1] ?? '').matchAll(
       /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g,
     )) {
-      map.set(parseInt(match[1], 16), pdfUtf16(match[2]));
+      map.set(parseInt(match[1] ?? '', 16), pdfUtf16(match[2] ?? ''));
     }
   }
   for (const block of text.matchAll(/beginbfrange([\s\S]*?)endbfrange/g)) {
     for (const match of (block[1] ?? '').matchAll(
       /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g,
     )) {
-      const start = parseInt(match[1], 16);
-      const end = parseInt(match[2], 16);
-      const target = parseInt(match[3], 16);
+      const start = parseInt(match[1] ?? '', 16);
+      const end = parseInt(match[2] ?? '', 16);
+      const target = parseInt(match[3] ?? '', 16);
       for (let code = start; code <= end && code - start < 65536; code += 1) {
         map.set(code, String.fromCharCode(target + (code - start)));
       }
@@ -346,7 +346,7 @@ function decodePdfHex(hex: string, cmap: PdfCMap): string {
   ) {
     const code =
       cmap.sourceBytes === 1
-        ? bytes[index]
+        ? (bytes[index] ?? 0)
         : bytes.readUInt16BE(index);
     out += cmap.map.get(code) ?? '';
   }
@@ -364,7 +364,7 @@ function pdfPageText(
   for (const match of (fontsBlock ?? '').matchAll(
     /\/([A-Za-z0-9]+)\s+(\d+) 0 R/g,
   )) {
-    fonts.set(match[1], pdfCMapFor(pdf, latin, Number(match[2])));
+    fonts.set(match[1] ?? '', pdfCMapFor(pdf, latin, Number(match[2])));
   }
 
   const refs: number[] = [];
@@ -394,7 +394,7 @@ function pdfPageText(
         continue;
       }
       for (const part of (token[3] ?? '').matchAll(/<([0-9A-Fa-f]+)>/g)) {
-        text += current ? decodePdfHex(part[1], current) : '';
+        text += current ? decodePdfHex(part[1] ?? '', current) : '';
       }
       text += ' ';
     }

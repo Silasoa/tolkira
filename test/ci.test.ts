@@ -165,7 +165,7 @@ function stripCode(markdown: string): string {
     if (fenceLength > 0) {
       if (
         fence &&
-        fence[1].length >= fenceLength &&
+        (fence[1] ?? '').length >= fenceLength &&
         (fence[2] ?? '').trim() === ''
       ) {
         fenceLength = 0;
@@ -465,7 +465,7 @@ describe('GitHub annotations', () => {
       }),
     ]);
 
-    const [line] = annotationLines(formatGitHubAnnotations(summary));
+    const [line = ''] = annotationLines(formatGitHubAnnotations(summary));
 
     expect(annotationMessage(line)).toBe(
       `${'a'.repeat(3991)}${'%25'.repeat(9)}[truncated]`,
@@ -478,7 +478,7 @@ describe('GitHub annotations', () => {
       scenario({ feature: '', name, status: 'skipped' }),
     ]);
 
-    const [line] = annotationLines(formatGitHubAnnotations(summary));
+    const [line = ''] = annotationLines(formatGitHubAnnotations(summary));
 
     expect(line.startsWith('::notice title=Skipped::')).toBe(true);
     expect(annotationMessage(line)).toBe(
@@ -495,7 +495,7 @@ describe('GitHub annotations', () => {
       }),
     ]);
 
-    const [line] = annotationLines(formatGitHubAnnotations(summary));
+    const [line = ''] = annotationLines(formatGitHubAnnotations(summary));
 
     expect(annotationMessage(line)).toBe(
       `${'a'.repeat(3999)}\u{1F600}[truncated]`,
@@ -562,7 +562,7 @@ describe('CI identity cap', () => {
       }),
     ]);
 
-    const [line] = annotationLines(formatGitHubAnnotations(summary));
+    const [line = ''] = annotationLines(formatGitHubAnnotations(summary));
     const title = githubTitle(line);
 
     expect(title).toBe(
@@ -949,7 +949,7 @@ describe('Azure DevOps annotations', () => {
         steps: [step({ status: 'failed', message: raw })],
       }),
     ]);
-    const [line] = annotationLines(azureOutput(summary));
+    const [line = ''] = annotationLines(azureOutput(summary));
 
     // Three prefix code points (" — ") leave 3997 of the 4000 for the raw
     // message: 3900 percent signs and 97 of the "a" run.

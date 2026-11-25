@@ -182,9 +182,10 @@ describe('scenario DOM contract', () => {
         expression: () => true,
       }),
     ).toBe(true);
+    const { status: _status, ...withoutStatus } = facts;
     expect(
       scenarioVisible(
-        { ...facts, status: undefined },
+        withoutStatus,
         { ...open, hidden: new Set(['unknown']) },
       ),
     ).toBe(true);

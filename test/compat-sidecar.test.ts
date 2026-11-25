@@ -44,8 +44,15 @@ async function tempDir(): Promise<string> {
   return dir;
 }
 
-async function happyFeatures(): Promise<LegacyFeature[]> {
-  return JSON.parse(await readFile(legacy, 'utf8')) as LegacyFeature[];
+async function happyFeatures(): Promise<[LegacyFeature, ...LegacyFeature[]]> {
+  const features = JSON.parse(
+    await readFile(legacy, 'utf8'),
+  ) as LegacyFeature[];
+  const [first] = features;
+  if (first === undefined) {
+    throw new Error('legacy happy fixture is empty');
+  }
+  return [first, ...features.slice(1)];
 }
 
 async function writeFeature(
@@ -126,9 +133,9 @@ describe('compat merged JSON sidecar', () => {
     const merged = await readSidecar(`${output}.json`);
     expect(merged).toHaveLength(1);
     expect(
-      merged[0].elements.map((element) => element.id).sort(),
+      merged[0]!.elements.map((element) => element.id).sort(),
     ).toEqual(happy.elements.map((element) => element.id).sort());
-    expect(merged[0].elements.every((element) => element.retried === 0)).toBe(
+    expect(merged[0]!.elements.every((element) => element.retried === 0)).toBe(
       true,
     );
   });
@@ -148,7 +155,7 @@ describe('compat merged JSON sidecar', () => {
 
     const merged = await readSidecar(`${output}.json`);
     expect(merged).toHaveLength(1);
-    expect(merged[0].elements).toHaveLength(happy.elements.length);
+    expect(merged[0]!.elements).toHaveLength(happy.elements.length);
   });
 
   it('writes no sidecar for jsonFile, even with jsonDir', async () => {
@@ -493,7 +500,7 @@ describe('compat merged JSON sidecar', () => {
     );
     const merged = await readSidecar(`${output}.json`);
     expect(merged).toHaveLength(1);
-    expect(merged[0].elements.every((element) => element.retried === 0)).toBe(
+    expect(merged[0]!.elements.every((element) => element.retried === 0)).toBe(
       true,
     );
   });

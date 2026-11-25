@@ -114,7 +114,7 @@ test('opens the email at 600 and 320 px without overflow or remote assets', asyn
     expect(metricTops, `${width}px metric rows`).toHaveLength(4);
     if (width === 600) {
       expect(metricTops[0]).toBe(metricTops[1]);
-      expect(metricTops[2]).toBeGreaterThan(metricTops[0]);
+      expect(metricTops[2]).toBeGreaterThan(metricTops[0]!);
     } else {
       expect(metricTops[0]).not.toBe(metricTops[1]);
       expect(metricTops[1]).not.toBe(metricTops[2]);

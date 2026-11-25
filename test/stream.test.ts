@@ -40,7 +40,10 @@ async function streamHtml(
 ): Promise<string> {
   const envelopes = parseMessages(await readFile(fixture, 'utf8'), fixture);
   const stream = Readable.from(envelopes).pipe(
-    new CucumberHtmlStream({ title, ...options }),
+    new CucumberHtmlStream({
+      ...(title === undefined ? {} : { title }),
+      ...options,
+    }),
   );
   let html = '';
   for await (const chunk of stream) html += chunk;

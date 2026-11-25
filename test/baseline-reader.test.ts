@@ -157,73 +157,73 @@ const INVALID_CASES: Array<{
   },
   {
     label: 'a missing feature',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       delete scenario.feature;
     }),
   },
   {
     label: 'a missing name',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       delete scenario.name;
     }),
   },
   {
     label: 'a missing uri',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       delete scenario.uri;
     }),
   },
   {
     label: 'a missing status',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       delete scenario.status;
     }),
   },
   {
     label: 'a missing executed',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       delete scenario.executed;
     }),
   },
   {
     label: 'a non-string feature',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       scenario.feature = 7;
     }),
   },
   {
     label: 'a null name',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       scenario.name = null;
     }),
   },
   {
     label: 'an array uri',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       scenario.uri = [];
     }),
   },
   {
     label: 'a non-string status',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       scenario.status = 2;
     }),
   },
   {
     label: 'a string executed',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       scenario.executed = 'true';
     }),
   },
   {
     label: 'a numeric example',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       scenario.example = 1;
     }),
   },
   {
     label: 'an unknown status',
-    content: jsonWith((doc, scenario) => {
+    content: jsonWith((_doc, scenario) => {
       scenario.status = 'flaky';
     }),
     reason: /status/i,

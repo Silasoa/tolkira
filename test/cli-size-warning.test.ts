@@ -167,9 +167,10 @@ async function writeJUnit(
 
 function splitBytes(total: number, parts: number): number[] {
   const base = Math.floor(total / parts);
-  const sizes = Array.from({ length: parts }, () => base);
-  sizes[0] += total - base * parts;
-  return sizes;
+  const extra = total - base * parts;
+  return Array.from({ length: parts }, (_, index) =>
+    index === 0 ? base + extra : base,
+  );
 }
 
 /** A file whose logical size is `bytes` but whose tail is never written. */
