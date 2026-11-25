@@ -2,22 +2,28 @@
 
 ## ADDED Requirements
 
-### Requirement: Enforce the strict typecheck in the gate
+### Requirement: Enforce the maximal strict typecheck in the gate
 
 The check gate SHALL compile the server and test sources with `strict` plus
 `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`,
-`noUnusedLocals`, `noUnusedParameters` and `noImplicitReturns`. It SHALL
-compile the browser graph in a separate program with no Node type declarations,
-so a browser module cannot rely on a Node global. A type error in either
-program SHALL fail the gate.
+`noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`,
+`noUncheckedSideEffectImports`, `noFallthroughCasesInSwitch`,
+`allowUnreachableCode: false`, `allowUnusedLabels: false` and
+`isolatedModules`. A type error SHALL fail the gate.
 
 #### Scenario: Strict flag violation fails
 
 - **WHEN** an indexed read is used without a guard or default
 - **THEN** the typecheck fails
 - **AND** the same holds for an explicit `undefined` in an exact optional
-  property, a missing `override`, an unused local or parameter and a missing
-  return
+  property, a missing `override`, an unused local or parameter, a missing
+  return, an unreachable statement and a fallthrough case
+
+### Requirement: Typecheck the browser graph without Node types
+
+The gate SHALL compile the browser graph in a separate program with no Node type
+declarations, so a browser module cannot rely on a Node global. A type error in
+that program SHALL fail the gate.
 
 #### Scenario: Browser program has no Node globals
 
@@ -27,12 +33,14 @@ program SHALL fail the gate.
 - **AND** a server module that legitimately uses the DOM still compiles in the
   server program
 
-### Requirement: Enforce the curated lint set at zero warnings
+### Requirement: Enforce the maximal lint set at zero warnings
 
-The gate SHALL run one lint pass with correctness rules as errors, suspicious
-and performance rules as warnings, the import, promise, node, TypeScript and
-Vitest plugins, and only the documented rule exceptions. Any finding at warning
-or error severity SHALL fail the gate.
+The gate SHALL run one lint pass with correctness rules as errors, suspicious,
+performance and pedantic rules as warnings, the import, promise, node,
+TypeScript and Vitest plugins, and type-aware rules. Only the documented
+exceptions may be off. Any finding at warning or error severity SHALL fail the
+gate. The lint configuration SHALL be asserted by a test, so turning a rule or
+category off without changing the contract fails the suite.
 
 #### Scenario: A warning fails the gate
 
@@ -40,12 +48,19 @@ or error severity SHALL fail the gate.
 - **THEN** the gate fails
 - **AND** a clean run exits zero
 
+#### Scenario: A type-aware defect fails the gate
+
+- **WHEN** a module creates a floating promise or awaits a non-thenable
+- **THEN** the type-aware lint run reports it
+- **AND** the gate fails
+
 #### Scenario: Documented exceptions stay quiet
 
 - **WHEN** the lint run scans the test suite and the compatibility shim
 - **THEN** the configured assertion names satisfy the empty-expectation rule
 - **AND** the allowed globals satisfy the underscore rule
 - **AND** the named scoped-off rules produce no finding in their files
+- **AND** the fixture casts in `test/**` do not trip the assertion rule
 
 ### Requirement: Check formatting without changing output
 

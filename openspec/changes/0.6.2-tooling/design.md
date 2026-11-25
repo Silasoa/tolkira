@@ -18,7 +18,8 @@ workflow call. The change adds work inside it, so no workflow file changes.
 
 - Make the typecheck strict without changing behaviour or report bytes.
 - Guard the browser graph against Node globals with a separate program.
-- Turn lint into a curated zero-warning gate with documented exceptions.
+- Turn lint into a maximal zero-warning gate with type-aware rules and
+  documented exceptions.
 - Check formatting with a pinned formatter and a report-byte-safe scope, with
   the same result on every operating system.
 - Fail an empty test selection and enforce a measured coverage floor.
@@ -27,9 +28,6 @@ workflow call. The change adds work inside it, so no workflow file changes.
 
 **Non-Goals:**
 
-- `oxlint --type-aware` / `oxlint-tsgolint`: evaluated, not adopted. It adds a
-  per-platform binary dependency and 330 findings, 287 of them
-  `no-unsafe-type-assertion` noise on fixtures, for about seven new signals.
 - ESLint, a second formatter, or formatting Markdown and `openspec/`.
 - Formatting generated sources, report CSS, fixtures, goldens or lockfiles.
 - Any runtime, CLI, API, report, summary, attachment or package-entry change.
@@ -39,7 +37,14 @@ workflow call. The change adds work inside it, so no workflow file changes.
 
 ### 1. Strict flags without widening the public types
 
-Enable the six flags in `tsconfig.json` and fix the 86 errors by class:
+Enable the six flags in `tsconfig.json` and fix the 86 errors by class. On the
+user's 2026-11-25 decision the set grows to every sensible compiler check, so
+five more are added: `noUncheckedSideEffectImports`,
+`noFallthroughCasesInSwitch`, `allowUnreachableCode: false`,
+`allowUnusedLabels: false` and `isolatedModules`. Measured on the same tree:
+0, 0, 2, 0 and 0 errors. The two `allowUnreachableCode` hits are dead `break`
+statements after the `never`-returning `invalidJson()` in `src/input/load.ts`
+(182, 238); both are removed. The total is 88 errors in 21 files.
 
 | Class | Count | Rule |
 | --- | --- | --- |
@@ -64,14 +69,25 @@ Where a bag has exactly one optional field, `formatCiOutput`'s `title` at two
 call sites, a spread would also trip `unicorn/no-useless-spread` (correctness,
 error). Pass a ternary object instead:
 `title === undefined ? {} : { title }`. The research re-checked that this keeps
-the curated total at 62 findings.
+the base total at 62 findings.
 
 The one emitted declaration that changes is the inferred return type of the
 internal `renderOptions()` helper (`dist/options.d.ts`): five fields move from
-required `T | undefined` to optional `T`. `renderOptions` is not
-exported from the package entry; `dist/index.d.ts`, the run/stream/email/pdf
-declarations and both compat declarations stay unchanged, and no public input
-interface changes. The proof in task 3.3 is scoped to that.
+required `T | undefined` to optional `T`. `renderOptions` is not exported from
+the package entry; `dist/index.d.ts`, the run/stream/email/pdf declarations and
+both compat declarations stay unchanged, and no public input interface changes.
+The proof in task 3.3 is scoped to that.
+
+Two compiler checks stay off, each with a measured reason:
+
+- `noPropertyAccessFromIndexSignature`: 364 findings, all bracket-access
+  rewrites. It is purely syntactic — under `noUncheckedIndexedAccess` the type
+  is already `T | undefined` either way — so it buys consistency, not safety,
+  at the cost of the JSON-heavy readers.
+- `erasableSyntaxOnly`: two sites, both deliberate (a parameter property in
+  `src/stream.ts` and the `export =` namespace in the public CJS compatibility
+  declaration). The project ships emitted JavaScript, not Node type stripping,
+  and the compat declaration is a published API surface.
 
 No fix changes report bytes: every consumer uses `??` or truthiness, never key
 presence, and `JSON.stringify` drops undefined-valued keys. The two non-byte
@@ -102,40 +118,76 @@ it would write `*.tsbuildinfo` and turn `tsconfig.json` into a solution file
 that esbuild and the build configs depend on. The typecheck script runs two
 `tsc -p` passes (1.4 s + 1.1 s).
 
-### 3. Curated lint with documented exceptions
+### 3. Maximal lint with documented exceptions
 
-Extend the scaffolded `.oxlintrc.json` at the repo root; keep its existing
-`ignorePatterns` (`dist/**`, `node_modules/**`, `playwright-report/**`,
-`test-results/**`, `.opencode/**`) and add `coverage/**` and `.openchamber/**`,
-so the gate does not lint its own output. Verified in shape by the research:
+On the user's 2026-11-25 decision the lint set is the maximal one that reports
+defects rather than preference. Extend the scaffolded `.oxlintrc.json` at the
+repo root; keep its existing `ignorePatterns` (`dist/**`, `node_modules/**`,
+`playwright-report/**`, `test-results/**`, `.opencode/**`) and add `coverage/**`
+and `.openchamber/**`, so the gate does not lint its own output. Measured with
+every non-nursery category on, the tree yields 31,605 findings; most are
+preference rules (`one-var` 4,965, `no-magic-numbers` 4,823, `sort-keys`
+2,184), which is why the set is curated by category and documented exception
+instead of "all":
 
 - plugins `typescript`, `unicorn`, `oxc`, `import`, `promise`, `node`,
-  `vitest`; categories correctness `error`, suspicious `warn`, perf `warn`;
+  `vitest`; categories correctness `error`, suspicious, perf and pedantic
+  `warn`; type-aware rules on with `oxlint --type-aware` and a pinned
+  `oxlint-tsgolint`;
 - `vitest/valid-expect` with `maxArgs: 2`; `vitest/expect-expect` with the five
   local assertion names; `eslint/no-underscore-dangle` allowing the two probe
-  globals;
-- off globally: `no-await-in-loop` (deliberate sequential input loading and
-  ordered Playwright steps; `Promise.all` would change ordering, peak memory
-  and error precedence), `unicorn/no-array-sort` (every site sorts a locally
-  built array; `toSorted()` adds allocation for no observable change),
-  `unicorn/consistent-function-scoping` (colocated fixtures),
-  `vitest/no-conditional-expect` (all 17 are paired branches or environment
-  guards, and the rewrite is where a test could be weakened),
-  `oxc/no-map-spread` (cold paths, clearest form), `unicorn/prefer-set-has`
-  (false positive: the value is a string);
+  globals; `typescript/no-unsafe-type-assertion` off in `test/**` only, because
+  the fixtures build malformed inputs with deliberate casts (228 of the 330
+  type-aware findings);
+- off globally as threshold rules with no defect signal: `max-lines` (76),
+  `max-lines-per-function` (304), `max-depth` (17), `max-statements` and
+  `max-dependencies` (16);
+- off globally as preference or modernization without a defect signal:
+  `require-unicode-regexp` (956; every pattern would need its own Unicode
+  review and the internal patterns are ASCII — revisit on a Unicode defect),
+  `escape-case` (109), `no-useless-undefined` (77), `no-negated-condition` (32),
+  `prefer-dom-node-dataset` (28), `explicit-length-check` (27),
+  `prefer-query-selector` (20), `prefer-single-call` (11),
+  `prefer-number-coercion` (6), `prefer-top-level-await` (4), `prefer-at` (3),
+  `no-hex-escape` (3), `new-for-builtins` (2),
+  `no-object-as-default-parameter` (2), `prefer-import-meta-properties` (1);
+- off globally as deliberate design: `no-await-in-loop` (355; sequential input
+  loading and ordered Playwright steps, where `Promise.all` would change
+  ordering, peak memory and error precedence), `no-conditional-in-test` (363;
+  cross-engine and environment guards), `no-array-sort` (69; every site sorts a
+  locally built array and `toSorted()` adds allocation),
+  `require-await` (41; the flagged functions are async for the Playwright and
+  Vitest interfaces), `unicorn/consistent-function-scoping` (36; colocated
+  fixtures), `vitest/no-conditional-expect` (17; paired branches),
+  `oxc/no-map-spread` (8; cold paths, clearest form),
+  `unicorn/prefer-set-has` (1; false positive, the value is a string);
 - per-file off: `promise/no-callback-in-promise` in `src/stream.ts` and
   `src/compat/cucumber-html-reporter.ts` (Node callback contract);
   `eslint/no-shadow` in `src/compat/cucumber-html-reporter.cts` (the public CJS
   type names the `export =` namespace must redeclare).
 
-Fix the remaining 62 findings mechanically: rename 19 shadowed bindings, add
+Fix the 62 base findings as before: rename 19 shadowed bindings, add
 `vi.fn<...>` type arguments (21), add `{ cause }` (11), add a stable throw
 message to 8 assertions, spy on `localeCompare` instead of assigning to the
-prototype (2), and return the discarded code in `cli.ts` (1).
+prototype (2), and return the discarded code in `cli.ts` (1). Then fix the
+pedantic remainder that reports a defect: `unicorn/prefer-string-replace-all`
+(102), `unicorn/prefer-code-point` (20; surrogate-pair correctness),
+`unicorn/no-array-callback-reference` (11), `eslint/no-inner-declarations` (7),
+`eslint/no-loop-func` (5), `unicorn/prefer-type-error` (4),
+`eslint/no-promise-executor-return` (1), `eslint/no-redeclare` (1), `eqeqeq`
+(1). Finally fix the type-aware findings other than the scoped assertion rule:
+`no-floating-promises` (3), `await-thenable` (2), `unbound-method` (2),
+`no-misused-spread` (2), `restrict-template-expressions` (2),
+`no-base-to-string` (1), `consistent-return` (1), the enum comparisons and
+assignments (5), `require-array-sort-compare` (7) and the `no-unnecessary-*`
+cleanups (about 77).
 
-Script: `oxlint --max-warnings=0 .`. Pin `oxlint` to `1.94.0` exactly so a new
-minor cannot add rules or warnings to the gate without a deliberate bump; the
-allowance is the same as Prettier's.
+Script: `oxlint --type-aware --max-warnings=0 .`. Pin `oxlint` to `1.94.0` and
+`oxlint-tsgolint` to `7.0.2008` exactly, so a new minor cannot add rules or
+warnings to the gate without a deliberate bump. The type-aware pass adds 1.9 s.
+`test/tooling-config.test.ts` asserts the categories, the scoped override and
+every exclusion, so a silent weakening of the gate fails the suite and needs a
+reviewed contract change.
 
 ### 4. Formatting scope
 
@@ -195,7 +247,7 @@ plain suite for local runs. The coverage run adds about three to five seconds.
 
 ```json
 "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
-"lint": "oxlint --max-warnings=0 .",
+"lint": "oxlint --type-aware --max-warnings=0 .",
 "format:check": "prettier --check .",
 "format": "prettier --write .",
 "test:coverage": "vitest run --coverage",
@@ -206,18 +258,20 @@ plain suite for local runs. The coverage run adds about three to five seconds.
 the coverage floor. `ci.yml` and `release.yml` need no edit: every check job
 already runs `npm run check`.
 
-The tooling steps add seven to ten seconds. The new probe test file adds four
-to six on top; its spawns get explicit 30 s/40 s timeouts so a cold Windows CI
-does not hit the default 5 s test timeout. Gate time is recorded as tooling
+The tooling steps add nine to twelve seconds: the typecheck passes, the
+type-aware lint pass (+1.9 s) and the formatter. The new probe test file adds
+four to six on top; its spawns get explicit 30 s/40 s timeouts so a cold Windows
+CI does not hit the default 5 s test timeout. Gate time is recorded as tooling
 steps and probe file separately, and the base rule that investigates a >20 %
 runtime increase is answered by that split, not waived.
 
 ### 7. Work order and commits
 
-1. Strict flags and the 86 fixes (src first, then tests), green under
+1. Strict flags and the 88 fixes (src first, then tests), green under
    `tsc --noEmit`.
 2. The client project and the typecheck script.
-3. The curated lint config, the 62 fixes, the pin and `--max-warnings=0`.
+3. The lint config with the type-aware pin, the 62 base fixes and then the
+   pedantic and type-aware fixes, `--max-warnings=0`.
 4. The LF policy in `.gitattributes` with the six renormalized files; then
    Prettier config, ignore, scripts and the formatting-only commit; then rebuild
    assets and confirm no generated diff.
@@ -238,10 +292,12 @@ version, tag, stage and publish wait for the user's approval.
 | The server project keeps DOM, so it alone would not catch `document` in server code. | Accepted: `pdf.ts` needs DOM within `page.evaluate`. The client program is the no-Node guard; the no-DOM probe fails only on `pdf.ts` and the browser entry. |
 | Formatting the ~156 baseline files obscures `git blame`. | One isolated commit, optional `.git-blame-ignore-revs`, never mixed with logic. |
 | A wrong ignore pattern changes report bytes or is reverted by the build. | The proof step runs `npm run assets` and `git diff --exit-code` on the generated files; CSS, fixtures and goldens are explicitly out of scope. |
-| Prettier's LF default fails on a CRLF checkout. | `* text=auto eol=lf` in `.gitattributes`, three archived files renormalized, Windows job proven by CI. |
+| Prettier's LF default fails on a CRLF checkout. | `* text=auto eol=lf` prepended in `.gitattributes`, six tracked files renormalized, Windows job proven by CI. |
 | Rebuilding `dist` after formatting changes non-minified whitespace. | Accepted and recorded; report bytes, behaviour, API and shipped file list are unchanged. |
 | The internal `options.d.ts` return shape changes. | Not exported from the package entry; the public entry, compat declarations and input interfaces are proven unchanged. |
 | Pinning `oxlint` exactly delays rule updates. | Deliberate: a new rule set is a reviewed bump commit, the same policy as Prettier. |
+| `oxlint-tsgolint` adds a per-platform binary and 330 findings, 228 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 102 real fixes are part of the change. |
+| The pedantic and type-aware fixes touch tests mechanically. | Each rule group is its own task and commit; `prefer-code-point` is reviewed per site because surrogate behaviour can differ; assertions are not weakened. |
 | `preserve-caught-error` adds a `cause` property. | Internal only; messages and stderr are unchanged and no consumer reads error keys. |
 | Removing `passWithNoTests` breaks an ad-hoc mistyped `vitest run`. | Intended; every package script names a real file or the full glob. |
 | The coverage provider install hits an npm 10.8.2 arborist bug without the lockfile. | Add it as a normal dev dependency with the lockfile; use `--legacy-peer-deps` only if npm fails, then `npm ci`. |
@@ -249,29 +305,31 @@ version, tag, stage and publish wait for the user's approval.
 
 ## Tests
 
-- `test/tooling-config.test.ts` (new) asserts the six flags, the two-project
-  typecheck, the client program's `types: []` and file list, the curated lint
+- `test/tooling-config.test.ts` (new) asserts the eleven flags, the two-project
+  typecheck, the client program's `types: []` and file list, the maximal lint
   plugins/categories/severities/exceptions and the retained `ignorePatterns`,
-  the `--max-warnings=0` script, the Prettier config and ignore entries, the
-  `.gitattributes` LF policy, the coverage provider/scope/thresholds, the
-  removed `passWithNoTests`, the `check` order and the exact dev-dependency
-  pins.
+  the type-aware script and the `oxlint-tsgolint` pin, the scoped
+  `no-unsafe-type-assertion` override, the `--max-warnings=0` script, the
+  Prettier config and ignore entries, the `.gitattributes` LF policy, the
+  coverage provider/scope/thresholds, the removed `passWithNoTests`, the `check`
+  order and the exact dev-dependency pins.
 - Behavioural probes, each with a positive control: a temporary TypeScript file
   that violates `noUncheckedIndexedAccess` (`values[0].toUpperCase()` yields
   TS18048) fails the strict program while a compliant copy passes (the probe
   config sets `types: []` and the assertion names TS18048, so it cannot pass for
   the wrong reason); a temporary browser-graph module that reads `process`
   fails the client program while a DOM-only copy passes (temp config lists the
-  five repo files plus the module); a warning-severity `eslint/no-shadow`
-  finding makes `--max-warnings=0` exit non-zero while plain `oxlint` exits zero
-  on it and both exit zero on a clean copy; an unformatted source copy fails
-  `prettier --check <file> --config <repo>/.prettierrc.json` while a formatted
-  copy passes; a nonexistent test pattern fails when `passWithNoTests` is gone
-  while a matching pattern passes; a one-file coverage run with
-  `--coverage.thresholds.lines=100` fails on a 0 % control while the measured
-  file passes, which keeps the probe at four to six seconds.
+  five repo files plus the module); a floating promise in a temporary module
+  fails the type-aware lint while an awaited copy passes; a warning-severity
+  `eslint/no-shadow` finding makes `--max-warnings=0` exit non-zero while plain
+  `oxlint` exits zero on it and both exit zero on a clean copy; an unformatted
+  source copy fails `prettier --check <file> --config <repo>/.prettierrc.json`
+  while a formatted copy passes; a nonexistent test pattern fails when
+  `passWithNoTests` is gone while a matching pattern passes; a one-file coverage
+  run with `--coverage.thresholds.lines=100` fails on a 0 % control while the
+  measured file passes, which keeps the probe at four to six seconds.
 - Existing tests are untouched by the tooling change except the mechanical fixes
-  above. The 62 lint fixes never weaken an assertion: `require-to-throw-message`
+  above. The lint fixes never weaken an assertion: `require-to-throw-message`
   only adds a stable message, and `no-extend-native` keeps the same spy.
 - Report characterization: the nine hashes and both golden files must stay
   unchanged; the proof renders the legacy and Messages fixtures before and
