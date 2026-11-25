@@ -45,7 +45,6 @@
     "eslint/no-redeclare": "warn",
     "eslint/no-promise-executor-return": "warn",
     "eslint/eqeqeq": "warn",
-    "eslint/require-await": "off",
     "eslint/max-lines": "off",
     "eslint/max-lines-per-function": "off",
     "eslint/max-depth": "off",

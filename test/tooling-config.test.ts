@@ -753,7 +753,12 @@ describe('type-aware lint probe', () => {
       ]);
 
       const oxlint = packageBin('oxlint');
-      const config = path.join(repoRoot, '.oxlintrc.json');
+      // The probe targets type-aware promise rules, not eslint/require-await.
+      const config = path.join(directory, 'oxlintrc.probe.json');
+      writeJson(config, {
+        extends: [toPosix(path.join(repoRoot, '.oxlintrc.json'))],
+        rules: { 'eslint/require-await': 'off' },
+      });
       const lint = (file: string): RunResult =>
         run(oxlint, [
           '--type-aware',

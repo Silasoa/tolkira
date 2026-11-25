@@ -4,7 +4,6 @@ export type ClientParams = Record<string, string | number>;
 
 // One level of `{param}` is allowed inside a branch body; nested plurals are
 // already forbidden by the catalog check.
-/* oxlint-disable unicorn/prefer-string-replace-all, typescript/no-unsafe-type-assertion, typescript/no-unnecessary-type-conversion -- the embedded browser bundle is pinned to the report bytes */
 const PLURAL =
   /\{([A-Za-z_]\w*), plural, ((?:[A-Za-z]+\s*\{(?:[^{}]|\{[^{}]*\})*\}\s*)+)\}/g;
 const BRANCH = /([A-Za-z]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g;
@@ -28,6 +27,7 @@ export function createClientFormatter(lang: string): ClientFormatter {
     lang: tag,
     number,
     format(template, params = {}) {
+      // oxlint-disable-next-line unicorn/prefer-string-replace-all -- the embedded client bundle is pinned to the report bytes
       const withPlurals = template.replace(
         PLURAL,
         (_match, name: string, body: string) => {
@@ -37,16 +37,19 @@ export function createClientFormatter(lang: string): ClientFormatter {
           const value = Number.isFinite(numeric) ? numeric : 0;
           const branches: Record<string, string> = {};
           for (const branch of body.matchAll(BRANCH)) {
-            branches[branch[1] as string] = branch[2] as string;
+            branches[branch[1]!] = branch[2]!;
           }
           const selected =
             branches[rules.select(value)] ?? branches.other ?? '';
+          // oxlint-disable-next-line unicorn/prefer-string-replace-all -- the embedded client bundle is pinned to the report bytes
           return selected.replace(/#/g, number(value));
         },
       );
+      // oxlint-disable-next-line unicorn/prefer-string-replace-all -- the embedded client bundle is pinned to the report bytes
       return withPlurals.replace(PARAM, (_match, name: string) => {
         if (!Object.hasOwn(params, name)) return '';
         const value = params[name];
+        // oxlint-disable-next-line typescript/no-unnecessary-type-conversion -- the embedded client bundle is pinned to the report bytes
         return typeof value === 'number' ? number(value) : String(value ?? '');
       });
     },

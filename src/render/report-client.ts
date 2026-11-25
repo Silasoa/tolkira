@@ -1,4 +1,3 @@
-/* oxlint-disable unicorn/prefer-string-replace-all, eslint/no-inner-declarations, eslint/no-loop-func, typescript/no-unsafe-type-assertion -- the embedded browser bundle is pinned to the report bytes */
 import { createClientFormatter } from './client-i18n.js';
 import {
   DOM_IDS,
@@ -28,7 +27,7 @@ const messages: Record<string, string> = (() => {
   const block = document.getElementById(DOM_IDS.i18nMessages);
   if (!block?.textContent) return {};
   try {
-    return JSON.parse(block.textContent) as Record<string, string>;
+    return JSON.parse(block.textContent);
   } catch {
     return {};
   }
@@ -67,6 +66,7 @@ const tablist = document.querySelector<HTMLElement>('[role="tablist"]');
 tablist?.addEventListener('keydown', (event) => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
   event.preventDefault();
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion erases at build time and the bundle is pinned
   const index = views.indexOf(document.activeElement as HTMLElement);
   if (index < 0) return;
   const next =
@@ -259,6 +259,7 @@ function clearHighlights(): void {
 }
 
 function escapeRegex(value: string): string {
+  // oxlint-disable-next-line unicorn/prefer-string-replace-all -- the embedded client bundle is pinned to the report bytes
   return value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
 }
 
@@ -284,6 +285,7 @@ function highlightSearch(): void {
       }
       if (
         target.hasAttribute(SCENARIO_ATTRIBUTE) &&
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion erases at build time and the bundle is pinned
         !(target as HTMLDetailsElement).open
       ) {
         continue;
@@ -451,6 +453,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 const copyLive = document.getElementById(DOM_IDS.copyLive);
 
 function legacyCopy(text: string): boolean {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion erases at build time and the bundle is pinned
   const active = document.activeElement as HTMLElement | null;
   const field = document.createElement('textarea');
   field.value = text;
@@ -598,6 +601,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
   );
 }
 
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion erases at build time and the bundle is pinned
 const lightbox = document.getElementById(
   DOM_IDS.lightbox,
 ) as HTMLDialogElement | null;
@@ -609,6 +613,7 @@ if (lightbox) {
   );
   let lightboxTrigger: HTMLElement | null = null;
   let previousOverflow = '';
+  // oxlint-disable-next-line eslint/no-inner-declarations -- the embedded client bundle is pinned to the report bytes
   function closeDialog(): void {
     if (typeof dialog.close === 'function') dialog.close();
     else {
@@ -616,6 +621,7 @@ if (lightbox) {
       restoreLightbox();
     }
   }
+  // oxlint-disable-next-line eslint/no-inner-declarations -- the embedded client bundle is pinned to the report bytes
   function restoreLightbox(): void {
     document.documentElement.style.overflow = previousOverflow;
     lightboxTrigger?.focus();
@@ -624,6 +630,7 @@ if (lightbox) {
   for (const button of document.querySelectorAll<HTMLButtonElement>(
     '.shotButton',
   )) {
+    // oxlint-disable-next-line eslint/no-loop-func -- the embedded client bundle is pinned to the report bytes
     button.addEventListener('click', () => {
       const image = button.querySelector<HTMLImageElement>('img');
       if (!image || !lightboxImage) return;
@@ -666,6 +673,7 @@ function revealHash(): void {
   let node: HTMLElement | null = target;
   while (node) {
     if (node.tagName === 'DETAILS') {
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion erases at build time and the bundle is pinned
       (node as HTMLDetailsElement).open = true;
     }
     node = node.parentElement;

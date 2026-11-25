@@ -1,4 +1,3 @@
-/* oxlint-disable typescript/no-unsafe-type-assertion -- the embedded browser bundle is pinned to the report bytes; assertions erase at build time */
 import type { ReportStatus } from '../report/status.js';
 import { UNEXECUTED_HIDE } from './search.js';
 
@@ -71,6 +70,7 @@ export function decodeScenario(source: AttributeSource): ScenarioFacts {
   const example = source.getAttribute('data-example') ?? undefined;
   const tags = source.getAttribute('data-tags') ?? '';
   return {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion erases at build time and the bundle is pinned
     ...(status === undefined ? {} : { status: status as ReportStatus }),
     name: source.getAttribute('data-scenario-name') ?? '',
     uri: source.getAttribute('data-uri') ?? '',
