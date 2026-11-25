@@ -215,7 +215,7 @@
   comparator), STR (module/test health), UXR and CMP (report order and legacy
   date; only the intended order/date changes). A failing review spawns a fixer,
   not the implementer of record.
-- [ ] 4.3 Host rows in `docs/DROP-IN-VALIDATION.md`: official Cucumber-js host
+- [x] 4.3 Host rows in `docs/DROP-IN-VALIDATION.md`: official Cucumber-js host
   (legacy JSON and Messages), Seed-Test legacy JSON, Spring PetClinic JUnit, the
   `cucumber-html-reporter` shim (including the merged sidecar) and the Playwright
   JSON host (display URI/feature fallback and report order). Record host, pin,
@@ -223,7 +223,11 @@
   text, no invented legacy date, stable order, the JUnit entity behaviour and
   the shim merge. The other release rows stay for the release pass. This task
   owns the `docs/DROP-IN-VALIDATION.md` rows that 3.11 deliberately does not
-  write.
+  write. Recorded on 2026-11-25: the display-URI rule is green on every row.
+  Producer-written failure and log text stays verbatim; the Cucumber-js failure
+  stack and nine PetClinic `system-out` lines name the OS user. The maintainer
+  approved that limit on 2026-11-25; it is recorded in the design Decisions,
+  `SECURITY.md`, `docs/LIMITATIONS.md` and B-068.
 - [ ] 4.4 Gate record: commands, results, characterization/golden evidence with
   the date-only diff, the URI fixture table, the surrogate table, the comparator
   child-process output, the parse-count evidence, the ISO form table, the JUnit

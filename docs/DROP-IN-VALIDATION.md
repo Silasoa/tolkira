@@ -333,6 +333,162 @@ Playwright (static +117 / -7 / +110 B, history +113..+115, +126..+133 and
 Seed-Test per-story JSON remains synthetic (no live backend/MongoDB) and the
 native reporter HTML was compared by content only.
 
+**`0.6.1-hardening` host check (2026-11-25, pre-release tarball).** All five
+required rows ran on the packed pre-hardening tarball (`tolkira-0.6.0.tgz`,
+656,762 B, SHA-256
+`1DF81A0CCC3284DB6BED17B477F985219862C6D55025916DD80EAC7E1115A22C`, packed from
+`c791898`; `--version` prints `0.6.0`), except Cucumber-JVM, which used a second
+pack of the same tree from `1b74ec0` (657,262 B, SHA-256
+`90EAE945924388DECF706DC0EA447698D3D2FDE1E5417A0C286155D1A3C67F99`) that differs
+in docs only (`git diff c791898..HEAD -- src` is empty). Windows 11 Pro
+10.0.26300, Node 26.13.1, npm 10.8.2, JDK 21.0.13.1 (Temurin) and Maven 3.9.9
+for the two Java hosts, Docker daemon not running, Playwright 1.65.1 /
+Chromium 159.0.8154.6. Screenshots at 1440x900, 390x844 and 320 px at 200 % text
+stayed in the temporary evidence roots. Counts and statuses are unchanged
+against the 0.6.0 row on every host; report bytes move with run-specific ids,
+durations and host text plus the approved shell and legacy-date changes. Every
+view check recorded exactly one `<main>`, exactly one banner, no horizontal
+overflow (the raw -15 px is the scrollbar gutter), no console or page error and
+no http/https request; every static report has no `<script>`, no tab roles and
+all details open. Print, PDF and email were not re-run.
+
+**Seed-Test.** At `ce2cad8` (AI branch, detached) `tsc -b` and the backend
+`report.service.spec.ts` passed 35/35, and the host artifacts are byte-identical
+to the 0.6.0 row (story 9,782 B; group 9,033 and 8,956 B). Story report
+88,758 B (1 feature / 3 scenarios, 2 passed and 1 failed / 12 step rows /
+1 attachment of 5,234 B) and group merged sidecar 106,214 B with the directory
+cross-check at 107,195 B (2 features / 4 scenarios, 3 passed and 1 failed /
+16 step rows / 2 attachments of 10,468 B). The summaries are 3,497 B
+(`114398C08B7D4C08B44D2E1AD646D67962AA44680823DFA70A1A040015DC542C`) and 4,446 B
+(`94AE7BD7AD97030CF95C914D20BA021F04C397A7428D83B931F96FF7266D896F`), with the
+directory and merged-sidecar summaries byte-identical. Static 69,371 / 87,575 B,
+baseline 90,273 / 108,710 B (1 new failure and 1 fixed each) and history
+88,788 / 92,664 / 93,099 B and 107,225 / 111,009 / 111,398 B with three
+newest-first Trends rows. The shim story is 89,185 B and the group 107,622 B;
+the 21,579 B sidecar is deep-equal to the old reporter's 21,580 B sidecar (one
+trailing LF), a second run with the sidecar present keeps 2 features /
+6 elements, and the native old HTML is 59,954 / 87,798 B. The 48 HTML, JSON,
+Markdown and stdout files contain no local user name, `Users\`, `file:` or
+absolute path, including `--json` and `--ci markdown`; `file:///C:/Users/<profile>/...`
+and `file:///home/<account>/...` display as `features/Login<id>.feature` and
+`features/login.feature`, and the copied failure text is clean. No run date, no
+date cell and no `1970`. Summary scenarios are UTF-16 ordered, the tag strip puts
+`@Apple` before `@zebra`, the all-passed probe renders `Zebra/apple/Öpfel`, and
+the failed-first feature/source order is the unchanged triage order; two
+identical runs are byte-identical. Attachment parity 1/1/1 and 2/2/2. Limits:
+the per-story JSON is synthetic (no live backend/MongoDB), native HTML was
+compared by content and print/PDF/email were not re-run.
+
+**Cucumber-js.** Official `@cucumber/cucumber@13.3.0` on Node 26.13.1 /
+npm 10.8.2 produced `out.json` 3,156 B and `out.ndjson` 9,742 B (1 feature /
+2 scenarios, 1 passed and 1 failed / 5 steps / 2 inline PNGs of 140 B) and
+exited 1 from the expected failure. Tolkira wrote legacy 72,023 B and Messages
+72,299 B; both summaries are 2,091 B and byte-identical (SHA-256
+`c10cfe87ecb5f4e2d744e86623ced5527c54c64b42a00e9f31291ca13a2ae650`). Static
+53,089 B, baseline 73,538 B (1 new failure, 1 fixed, 0 still failing, 0 not in
+this run), history 72,023 / 75,761 / 76,127 B with three Trends rows, CI
+Markdown 611 B and the baseline CI line 75 B. The `2026-11-24 23:57 UTC` header
+matches `testRunStarted` and no `1970` appears; scenario names are UTF-16 sorted
+and stable; attachment parity is 2/2/2. Privacy: the display URI is
+`features/host.feature` with no `file:` URL or absolute input/output path in the
+metadata, but the literal whole-surface check is red on the producer's failure
+stack, which carries the local user segment and
+`C:\Users\<user>\...\steps.js:18:9` into the HTML error block and `data-search`,
+the `--json` step message, the CI Markdown and the copied failure text; see the
+approved exception below. Native Cucumber HTML was not generated.
+
+**Playwright movies-app.** Pin `5d2cdf08e12a454132b6c86b3f72718d257ca460` with
+the host's Playwright 1.62.1: the full suite ran 123 tests (121 passed,
+2 skipped, 0 failed or flaky, 0 retries) with 113 nested steps and 5 host
+attachments / 161 B of which one has an empty body, so Tolkira counts 4 / 161 B;
+the extracted JSON input is 192,551 B. Tolkira wrote 3 features / 123 scenarios
+/ 236 step rows in 281,542 B, `--json` 73,605 B, static 263,012 B, baseline
+283,081 B (2 fixed and 2 ambiguous groups) with the supplemental 279,783 B
+report listing 1 not in this run, history 281,541 / 285,295 / 285,669 B with
+three Trends rows and CI Markdown 482 B. All 123 scenario source lines equal
+`spec.file:spec.line` byte-for-byte and stay relative; the final statuses are
+121 passed and 2 skipped, every scenario start date matches its final result,
+the header is `2026-11-25 00:01 UTC` and no `1970` appears. No local user name,
+`file:` URL or absolute path appears in HTML, JSON, Markdown, the 16,157 copied
+characters or the visible text, and the clean run has no copy surface. Two
+renders are byte-identical (SHA-256
+`b9475ab862405ec4557432aa42ae5d8cc5587a66f66b85c606de14fd02b9aa1f`), the
+feature/matrix/tag order equals the prior host report, tags are UTF-16 sorted,
+and a single input has no source strip. Attachment parity 4/4/4; the native
+Playwright HTML is 855,603 B and matches 123 tests / 121 passed / 0 failed /
+0 flaky / 2 skipped across the three projects. Limits: the host uses its
+deterministic local mock (no live TMDB) and the native report was compared by
+content counts, not pixels.
+
+**Spring PetClinic.** At `500158f` a full `mvn -B test` with Docker off wrote
+18 Surefire XMLs / 1,089,965 B and ran 79 tests (77 passed, 2 skipped, 0 failed,
+`BUILD SUCCESS`); `MySqlIntegrationTests` skips its two Docker tests and
+`PostgresIntegrationTests` writes a zero-test document. The XML total above the
+0.6.0 row is properties only (`java.class.path` and `surefire.test.class.path`
+each carry the longer temp `m2` path, +4,245 B each). Tolkira on
+`target/surefire-reports`: 20 features / 79 scenarios (77 passed, 2 skipped) /
+79 step rows / 28 attachments / 67,650 B, default 277,371 B, static 259,208 B,
+baseline 283,077 B (0 new failures, 77 fixed, 0 still failing, 0 not in this
+run; CI line 76 B) and history 277,371 / 281,133 / 281,490 B with three
+newest-first rows; `--json` is 44,076 B and `--ci markdown` 540 B. All 79
+scenario names match the 80 Surefire `<testcase>` elements (the extra is the
+zero-test placeholder) and `PostgresIntegrationTests` appears in neither JSON
+nor HTML. Crafted entity cases: a bare `&` in an attribute or text, `&nbsp;` and
+200 bare `&` each exit 1 with `invalid entity reference` and write no report;
+the five named entities and `&#160;`, `&#xA0;`, `&#x1F600;` decode; rejection
+leaves a pre-existing output file byte-identical. Display URIs are bare
+`TEST-*.xml` for relative and absolute inputs, and the JSON and CI text have no
+user name, `file:` or drive prefix. There is no date cell or Details date row
+(header: `JUnit XML / Tolkira report`, `Tolkira report`, `20 features`,
+`79 scenarios with results`, `Test time 6.79 s`, `JUnit XML`) and no `1970` in
+HTML, JSON, CI or Trends. Feature, scenario, source, tag (0) and matrix (20
+rows) order is identical between runs 1 and 3, and the JSON scenario order is
+stable. Attachment parity 28/28/28. The baseline shows 77 fixed against the
+0.6.0 row's 76 because that row does not record how its baseline was built; a
+status flip of all 77 passed scenarios yields 77. The report is 3,529 B smaller
+than the 0.6.0 row because the host's own `system-out` text is shorter, not
+because of a shell change. Privacy is red only for nine copied Spring Boot
+`system-out` lines naming the OS user (see the approved exception); copied
+failure text was not exercised because no scenario failed. Limits:
+Docker/Testcontainers off, native Surefire HTML not generated (content
+comparison only).
+
+**Cucumber-JVM.** At `f71480f`, module `calculator-java-junit-jupiter`, a
+temp-only `cucumber.properties` (`cucumber.plugin=json:target/cucumber.json`,
+restored afterwards): JDK 21.0.13.1 and Maven 3.9.9 ran 8/8 tests with
+`BUILD SUCCESS`. The JSON is 14,625 B; three reruns gave 14,607-14,663 B, so the
+earlier 14,760 B is a run-specific duration sample, not a content difference.
+Tolkira: 3 features / 8 scenarios / 8 passed, 36 step rows (30 scenario + 6
+background) and 18 hooks, 18 text attachments / 498 B, report 94,369 B, `--json`
+11,145 B (SHA-256
+`AC6CF0695FED8E0D3E7109B49D88E73028E30BC5173671E859CBAF3760EAB24C`), static
+75,818 B, baseline 95,795 B / summary 11,385 B (0 new, 0 fixed, 0 still failing,
+0 not in this run, 1 ambiguous legacy-JSON group; a supplemental three-failure
+baseline reproduces the prior row's 3 fixed / 1 ambiguous), history
+94,369 / 98,098 / 98,480 B with a 2,492 B sidecar and three newest-first rows,
+CI Markdown 341 B. Every `classpath:com/example/...` URI is unchanged and no
+drive path, `file:`, user name, `AppData` or temp root appears. There is no
+header date and no `Started:` cell and no `1970`: the JVM JSON has scenario
+`start_timestamp` values but no `options.startedAt`, and the hardened legacy
+adapter invents no run date. Two default runs are byte-identical (SHA-256
+`203640BDEBBB0AFCFAC72CBE1CA6F83F43DFDB49360B5BE2E36D26398EEAA8E5`) and the
+three host reruns keep the same feature, tag, source and matrix order.
+Attachment parity 18 / 498 B. Limits: Chromium only for this row; the artifact
+has no absolute or file-URL URIs and no failing scenario, so the display-URI
+rule and copied failure text were not exercised there.
+
+**Approved exception - producer payload (2026-11-25).** The display-URI rule is
+scoped to the URIs Tolkira renders itself. Two rows miss the literal "no local
+user name in report/JSON/copied text" wording only through text the producer
+wrote: the Cucumber-js failure stack (local user segment and
+`C:\Users\<user>\...\steps.js:18:9` in the HTML error block and `data-search`,
+the `--json` step message, the CI Markdown and the copied failure text) and nine
+PetClinic `system-out` lines (`started by <user> in C:\Users\...`) copied into
+attachment bodies. Both exist in the 0.5.1 and 0.6.0 reports, and the display
+URIs themselves are clean. The maintainer approved the limit for 0.6.1 on
+2026-11-25; `SECURITY.md` and `docs/LIMITATIONS.md` state it and B-068 tracks an
+opt-in redaction mode. Apart from that payload, every host row passed.
+
 ## Release rule
 
 Before a tag, stage or publish:

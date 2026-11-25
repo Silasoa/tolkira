@@ -56,5 +56,16 @@ trusted, or run the generation in a container that limits what those roots
 contain. An opt-in attachment root or allowlist is tracked as B-058 and is not
 part of the current behaviour.
 
+### Producer payload is evidence
+
+The display-URI rule shortens and de-homes the URIs Tolkira renders itself. Text
+the producer wrote is shown verbatim: failure messages, stack traces,
+`system-out`/`system-err`, log and attachment bodies can contain a local user
+name or an absolute path. Tolkira does not rewrite that text, because it is the
+evidence a failure is debugged from; a Cucumber failure stack or a Spring Boot
+log line reaches the HTML, `--json`, CI Markdown and the copied text unchanged
+(B-068). Review a report before it leaves the machine or workspace that produced
+it.
+
 Tolkira does not send telemetry and does not make network requests. A report
 should remain fully offline.

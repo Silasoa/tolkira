@@ -522,6 +522,17 @@ checks → package smoke → `npm stage publish`.
    file-URL inputs. Every render and summary output site applies `displayUri`
    instead, so the privacy promise holds where text is shown while internal
    keys remain exact.
+3. **Producer text stays evidence (approved limit).** The privacy rule is
+   scoped to the display URIs Tolkira renders itself. Failure messages, stack
+   traces, `system-out`/`system-err` and attachment bodies are shown, copied and
+   summarised verbatim, because they are the evidence a failure is debugged
+   from and rewriting them would change what the producer reported. Both host
+   runs that exercise failure and log text carry a local user name in that
+   payload: Cucumber-js renders its own failure stack and PetClinic copies nine
+   Spring Boot log lines. The same text is in their 0.5.1 reports; this change
+   neither introduces nor removes it. The maintainer approved the limit for
+   0.6.1 on 2026-11-25. It is documented in `SECURITY.md` and
+   `docs/LIMITATIONS.md` and tracked as B-068.
 
 ## ADRs
 
