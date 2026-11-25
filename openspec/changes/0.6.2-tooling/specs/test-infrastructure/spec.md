@@ -62,9 +62,10 @@ Windows, Linux and macOS. A formatting violation SHALL fail the gate.
 
 #### Scenario: Same verdict on every checkout
 
-- **WHEN** the gate runs on a Windows, Linux or macOS checkout
-- **THEN** the format check reports the same files
-- **AND** a CRLF working tree does not turn a formatted file into a failure
+- **WHEN** the gate runs on a fresh Windows, Linux or macOS checkout
+- **THEN** the working tree is LF and the format check reports the same files
+- **AND** an existing CRLF working tree is re-checked out rather than
+  reformatted to pass
 
 #### Scenario: Generated and golden files are out of scope
 

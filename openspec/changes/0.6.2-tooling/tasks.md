@@ -25,11 +25,10 @@
   report-byte proof; the isolated formatting commit; the internal
   `options.d.ts` return-shape delta and the scoped public-declaration proof. The
   `preserve-caught-error` `cause` effect is declared as internal-only.
-- [ ] 1.4 Confirm the approved B-055 package covers this contract, no remote
-  issue exists, and the version stays 0.6.1. `docs/BACKLOG.md` B-055 is the
-  tracking record; this is a local, user-approved batch on a patch version, so
-  the one-issue-per-change rule records the exemption here instead of opening
-  an issue after the fact.
+- [ ] 1.4 Confirm the approved B-055 package covers this contract and the
+  version stays 0.6.1. Draft the GitHub issue (area:test, priority:p2), run IR,
+  fix blockers and post it; `docs/BACKLOG.md` B-055 stays the local intake
+  record and the issue references this change.
 
 ## 2. TDD-Red
 
@@ -42,18 +41,20 @@
   `passWithNoTests`, the `check` order and the exact dev-dependency pins.
 - [ ] 2.2 Add the behavioural probes in the same file, each with its positive
   control and an explicit 30 s/40 s timeout: a temporary TypeScript file that
-  violates `noUncheckedIndexedAccess` fails the strict program while a
-  compliant copy passes (the probe config sets `types: []` and the assertion
-  names the expected TS code, so it cannot pass for the wrong reason); a
+  violates `noUncheckedIndexedAccess` (`values[0].toUpperCase()`) fails the
+  strict program with TS18048 while a compliant copy passes (the probe config
+  sets `types: []`, so TS18048 is the failure and not a missing-types error); a
   temporary browser-graph module that reads `process` fails the client program
-  while a DOM-only copy passes (temp config extends `tsconfig.client.json` and
-  lists the five repo files plus the module); a warning-severity
-  `eslint/no-shadow` finding makes `--max-warnings=0` exit non-zero while plain
-  `oxlint` exits zero on it, and both exit zero on a clean copy; an unformatted
-  source copy fails a direct `prettier --check` while a formatted copy passes; a
-  nonexistent test pattern fails when `passWithNoTests` is gone while a matching
-  pattern passes; a coverage run with a temporary threshold above the measured
-  value fails. Use a temp directory outside the repo and resolve the repo
+  with TS2591 while a DOM-only copy passes (temp config extends
+  `tsconfig.client.json` and lists the five repo files plus the module); a
+  warning-severity `eslint/no-shadow` finding makes `--max-warnings=0` exit
+  non-zero while plain `oxlint` exits zero on it, and both exit zero on a clean
+  copy; an unformatted source copy fails
+  `prettier --check <file> --config <repo>/.prettierrc.json` while a formatted
+  copy passes; a nonexistent test pattern fails when `passWithNoTests` is gone
+  while a matching pattern passes; a one-file coverage run with
+  `--coverage.thresholds.lines=100` fails on a 0 % control while the measured
+  file passes. Use a temp directory outside the repo and resolve the repo
   binaries from the repo root; skip a probe only with a written reason.
 - [ ] 2.3 Confirm RED for 2.1 and 2.2 while the existing suite stays green. No
   existing test is deleted, skipped or weakened. ISTQB: decision tables over
@@ -93,15 +94,19 @@
   `require-to-throw-message` assertions. No assertion is loosened.
 - [ ] 3.7 Add `{ cause }` to the 11 `preserve-caught-error` sites, spy on
   `localeCompare` instead of assigning to the prototype (2), and return the
-  discarded code in `cli.ts` (1).
-- [ ] 3.8 Add `* text=auto eol=lf` to `.gitattributes` and renormalize the
-  three archived OpenSpec files (line-ending-only commit). Then add
+  discarded code in `cli.ts` (1). Extend one existing error-path test to assert
+  the wrapped error keeps its cause.
+- [ ] 3.8 Prepend `* text=auto eol=lf` to `.gitattributes` (before the fixture
+  lines, so their attributes keep precedence) and renormalize the six tracked
+  files with CRLF or mixed index endings: five archived OpenSpec files and
+  `docs/adr/0007-optional-pdf-engine.md` (line-ending-only commit). Then add
   `.prettierrc.json` (single quotes, width 80), `.prettierignore` with the full
   scope, pin Prettier 3.10.1 and add `format:check`/`format`. Put `format:check`
-  in `check` before `build`. Format the re-measured tracked files in one
-  isolated commit, rebuild assets, and prove generated sources, both report CSS
-  files, fixtures and goldens are unchanged; render the legacy and Messages
-  fixtures before and after and compare bytes.
+  in `check` before `build`. Land the config, scripts, the `format:check`
+  wiring and the formatted tree in one commit, so the gate is green at every
+  commit; rebuild assets, and prove generated sources, both report CSS files,
+  fixtures and goldens are unchanged; render the legacy and Messages fixtures
+  before and after and compare bytes.
 - [ ] 3.9 Add `@vitest/coverage-v8` exactly 5.1.1, remove `passWithNoTests`,
   add the coverage scope/exclude/thresholds and `test:coverage`, and put it last
   in `check`. Prove an empty test selection fails and the measured suite passes
@@ -118,12 +123,15 @@
 
 - [ ] 4.1 `npm run hygiene`, `npm run check` and `npm run test:e2e` are green.
   Record the exact counts, the tooling-step and probe-file gate time separately,
-  the unit and browser totals, the browser wall clock and per-test duration sum,
-  the client bundle size, the coverage numbers, the re-measured formatting
-  count, the 86/62 baselines and the unchanged nine characterization hashes and
-  two golden files. State that the new test file is the justified delta in the
-  unit total. Run `npm pack --dry-run --json` and compare `files`, `bin`,
-  `exports` and runtime dependencies with the published 0.6.1 package.
+  the unit and browser totals, the client bundle size, the coverage numbers, the
+  re-measured formatting count, the 86/62 baselines and the unchanged nine
+  characterization hashes and two golden files. Record the browser wall clock
+  and per-test duration sum with the machine, OS, core count, worker count, Node
+  and Playwright versions and the exact command, as the base runtime
+  requirement asks. State that the new test file is the justified delta in the
+  unit total. Run `npm pack --dry-run --json` for the file list and
+  `npm view tolkira@0.6.1 bin exports dependencies --json` for the published
+  metadata, and compare both with the 0.6.1 package.
 - [ ] 4.2 Independent reviewers in one batch: SCR (the spec delta and the
   preserved gate/release requirements), CR (type and lint fixes, no assertion
   weakened), DAR (docs and the evaluation record), SEC (dev-only dependency
@@ -131,11 +139,12 @@
   formatter split, probe cost) and STR (config layout, test health, no
   duplicated contract). UXR, CMP and ILA are not triggered because no report
   byte changes; prove it with the hashes. A failing review spawns a fixer.
-- [ ] 4.3 Confirm no host row is required: the only PDF/compat contacts are the
-  `preserve-caught-error` `cause` additions and the scoped rule overrides in
-  `src/pdf.ts`, `src/compat/cucumber-html-reporter.ts` and `.cts`. They change
-  no output, no attachment path and no shim behaviour, and the existing PDF and
-  e2e tests cover those flows. Record that decision in the gate record.
+- [ ] 4.3 Confirm no host row is required: the only PDF contact is the
+  `preserve-caught-error` `cause` addition in `src/pdf.ts`, and the compat
+  contacts are the two scoped rule overrides in
+  `src/compat/cucumber-html-reporter.ts` and `.cts`. They change no output, no
+  attachment path and no shim behaviour, and the existing PDF and e2e tests
+  cover those flows. Record that decision in the gate record.
 - [ ] 4.4 Gate record in `tasks.md`: commands, results, the strict-error and
   lint tables, the formatting, LF, coverage and package proof, the config
   excerpts and the reviewer outcome. Deferred findings get a backlog trigger;

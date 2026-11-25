@@ -54,14 +54,13 @@ Affected: `tsconfig.json`, a new `tsconfig.client.json`, `.oxlintrc.json`,
 `.prettierrc.json`, `.prettierignore`, `.gitattributes`, `vitest.config.ts`,
 `package.json` scripts and dev dependencies, `ci.yml` (no edit expected: it
 already runs `npm run check`), 86 type-error sites in 21 files, 62 lint sites in
-27 files, the 156 tracked files measured as the formatting baseline, and three
-archived OpenSpec files renormalized to LF. No production behaviour, report
-byte, public API or tarball entry point changes; the one emitted declaration
-diff is the inferred return type of the internal `renderOptions()` helper,
-which the package entry does not export. Dev-only dependencies grow by Prettier
-and the Vitest coverage provider; runtime dependencies stay unchanged.
+27 files, the 156 tracked files measured as the formatting baseline, and six
+tracked files renormalized to LF (five archived OpenSpec files and one ADR). No
+production behaviour, report byte, public API or tarball entry point changes;
+the one emitted declaration diff is the inferred return type of the internal
+`renderOptions()` helper, which the package entry does not export. Dev-only
+dependencies grow by Prettier and the Vitest coverage provider; runtime
+dependencies stay unchanged.
 
-Tracking: local backlog B-055. No remote issue exists; the approved backlog
-entry is the tracking record. This is a local, user-approved batch on a patch
-version, so the one-issue-per-change rule records the exemption here rather
-than opening an issue after the fact.
+Tracking: local backlog B-055. A GitHub issue is opened from this contract
+after IR; B-055 remains the local intake record.

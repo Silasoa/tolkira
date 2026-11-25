@@ -68,7 +68,7 @@ the curated total at 62 findings.
 
 The one emitted declaration that changes is the inferred return type of the
 internal `renderOptions()` helper (`dist/options.d.ts`): five fields move from
-required `T | undefined` to optional `T | undefined`. `renderOptions` is not
+required `T | undefined` to optional `T`. `renderOptions` is not
 exported from the package entry; `dist/index.d.ts`, the run/stream/email/pdf
 declarations and both compat declarations stay unchanged, and no public input
 interface changes. The proof in task 3.3 is scoped to that.
@@ -145,9 +145,11 @@ allowance is the same as Prettier's.
 
 That default makes the check checkout-dependent: `windows-latest` runs with
 `core.autocrlf=true`, and `.gitattributes` currently pins only
-`test/fixtures/**`. Add `* text=auto eol=lf` and renormalize the three archived
-OpenSpec files whose index currently holds CRLF. It is a line-ending-only
-commit; without it the Windows check job fails on every text file.
+`test/fixtures/**`. Prepend `* text=auto eol=lf` (before the existing lines, so
+the fixture attributes keep precedence) and renormalize the six tracked files
+whose index holds CRLF or mixed line endings: five archived OpenSpec files and
+`docs/adr/0007-optional-pdf-engine.md`. It is a line-ending-only commit; without
+it the Windows check job fails on every text file.
 
 `.prettierignore` excludes: `node_modules`, `dist`, `coverage`,
 `playwright-report`, `blob-report`, `test-results`, Playwright caches,
@@ -216,16 +218,16 @@ runtime increase is answered by that split, not waived.
    `tsc --noEmit`.
 2. The client project and the typecheck script.
 3. The curated lint config, the 62 fixes, the pin and `--max-warnings=0`.
-4. The LF policy in `.gitattributes` with the renormalized files; then Prettier
-   config, ignore, scripts and the formatting-only commit; then rebuild assets
-   and confirm no generated diff.
+4. The LF policy in `.gitattributes` with the six renormalized files; then
+   Prettier config, ignore, scripts and the formatting-only commit; then rebuild
+   assets and confirm no generated diff.
 5. Coverage provider, remove `passWithNoTests`, thresholds, `test:coverage`
    and the `check` order.
 6. Docs and gate record.
 
 Each commit is one logical change and runs `npm run hygiene`; the formatting
-commit never mixes with logic. Version, tag, stage and publish stay blocked
-until the user approves a version.
+commit never mixes with logic. Commits and pushes run per completed step; only
+version, tag, stage and publish wait for the user's approval.
 
 ## Risks / Trade-offs
 
@@ -234,7 +236,7 @@ until the user approves a version.
 | Coverage thresholds flake across Node 22/24/26 or Windows. | One to two points of headroom; lower by one in a documented follow-up; never drop the gate. |
 | The client project guards only five named files. | Anything reached from the browser entry is pulled in; re-check the list when the entry changes. The metafile is the source of truth. |
 | The server project keeps DOM, so it alone would not catch `document` in server code. | Accepted: `pdf.ts` needs DOM within `page.evaluate`. The client program is the no-Node guard; the no-DOM probe fails only on `pdf.ts` and the browser entry. |
-| Formatting 156 files obscures `git blame`. | One isolated commit, optional `.git-blame-ignore-revs`, never mixed with logic. |
+| Formatting the ~156 baseline files obscures `git blame`. | One isolated commit, optional `.git-blame-ignore-revs`, never mixed with logic. |
 | A wrong ignore pattern changes report bytes or is reverted by the build. | The proof step runs `npm run assets` and `git diff --exit-code` on the generated files; CSS, fixtures and goldens are explicitly out of scope. |
 | Prettier's LF default fails on a CRLF checkout. | `* text=auto eol=lf` in `.gitattributes`, three archived files renormalized, Windows job proven by CI. |
 | Rebuilding `dist` after formatting changes non-minified whitespace. | Accepted and recorded; report bytes, behaviour, API and shipped file list are unchanged. |
@@ -255,25 +257,27 @@ until the user approves a version.
   removed `passWithNoTests`, the `check` order and the exact dev-dependency
   pins.
 - Behavioural probes, each with a positive control: a temporary TypeScript file
-  that violates `noUncheckedIndexedAccess` fails the strict program while a
-  compliant copy passes (the probe config sets `types: []` and asserts the
-  specific TS code, so it cannot pass for the wrong reason); a temporary
-  browser-graph module that reads `process` fails the client program while a
-  DOM-only copy passes (temp config lists the five repo files plus the module);
-  a warning-severity `eslint/no-shadow` finding makes `--max-warnings=0` exit
-  non-zero while plain `oxlint` exits zero on it and both exit zero on a clean
-  copy; an unformatted source copy fails a direct `prettier --check` while a
-  formatted copy passes; a nonexistent test pattern fails when
-  `passWithNoTests` is gone while a matching pattern passes; a coverage run
-  below a threshold fails (set a temporary threshold above the measured value).
+  that violates `noUncheckedIndexedAccess` (`values[0].toUpperCase()` yields
+  TS18048) fails the strict program while a compliant copy passes (the probe
+  config sets `types: []` and the assertion names TS18048, so it cannot pass for
+  the wrong reason); a temporary browser-graph module that reads `process`
+  fails the client program while a DOM-only copy passes (temp config lists the
+  five repo files plus the module); a warning-severity `eslint/no-shadow`
+  finding makes `--max-warnings=0` exit non-zero while plain `oxlint` exits zero
+  on it and both exit zero on a clean copy; an unformatted source copy fails
+  `prettier --check <file> --config <repo>/.prettierrc.json` while a formatted
+  copy passes; a nonexistent test pattern fails when `passWithNoTests` is gone
+  while a matching pattern passes; a one-file coverage run with
+  `--coverage.thresholds.lines=100` fails on a 0 % control while the measured
+  file passes, which keeps the probe at four to six seconds.
 - Existing tests are untouched by the tooling change except the mechanical fixes
   above. The 62 lint fixes never weaken an assertion: `require-to-throw-message`
   only adds a stable message, and `no-extend-native` keeps the same spy.
 - Report characterization: the nine hashes and both golden files must stay
   unchanged; the proof renders the legacy and Messages fixtures before and
   after formatting. Package content is proven with `npm pack --dry-run --json`
-  against the 0.6.1 published file list, `files`, `bin`, `exports` and runtime
-  dependencies.
+  for the file list and `npm view tolkira@0.6.1 bin exports dependencies
+  --json` for the published metadata.
 
 ## ADRs
 
