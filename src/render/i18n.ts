@@ -260,7 +260,7 @@ function formatNodes(
       const value = paramValue(params, node.name);
       if (value === undefined) continue;
       output +=
-        typeof value === 'number' ? hashValue(value, locale) : String(value);
+        typeof value === 'number' ? hashValue(value, locale) : value;
       continue;
     }
     const value = pluralValue(params, node.name);

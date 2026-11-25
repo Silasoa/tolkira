@@ -281,8 +281,16 @@ export function safeHttpUrl(value: string | undefined): string | undefined {
   }
 }
 
-export function metadataValueHtml(value: string): string {
-  const text = String(value ?? '');
+export function metadataText(value: unknown): string {
+  return typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+    ? `${value}`
+    : '';
+}
+
+export function metadataValueHtml(value: unknown): string {
+  const text = metadataText(value);
   const trimmed = stripBidiControls(text).trim();
   // The URL parser deletes tabs and newlines, so a link could disagree with
   // the visible label.

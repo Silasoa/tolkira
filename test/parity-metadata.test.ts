@@ -76,7 +76,9 @@ function ciKeys(value: unknown, path = ''): string[] {
 }
 
 function ciOf(model: { environment?: object }): unknown {
-  return (model.environment as { ci?: unknown } | undefined)?.ci;
+  return model.environment !== undefined && 'ci' in model.environment
+    ? model.environment.ci
+    : undefined;
 }
 
 describe('parity metadata model', () => {

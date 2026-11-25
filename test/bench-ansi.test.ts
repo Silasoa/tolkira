@@ -73,7 +73,7 @@ function runOk(args: string[]): BenchmarkDocument {
   if (result.status !== 0) {
     throw new Error(
       `node scripts/bench-ansi.mjs ${args.join(' ')} exited ${result.status}: ` +
-        `${result.error?.message ?? result.stderr}`,
+        (result.error?.message ?? result.stderr),
     );
   }
   return parseDocument(result.stdout);

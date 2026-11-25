@@ -22,7 +22,7 @@ const skippedAttachments = new WeakMap<object, SkippedAttachmentRecord>();
 
 // Marks one Playwright earlier-attempt image. A WeakSet keeps the mark out of
 // Messages, so hand-written NDJSON cannot embed an earlier image.
-const retryEvidence = new WeakSet<object>();
+const retryEvidence = new WeakSet();
 
 export function markRetryEvidence(value: object): void {
   retryEvidence.add(value);

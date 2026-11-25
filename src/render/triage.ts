@@ -145,8 +145,8 @@ export function renderSourceStrip(
       const attention = attentionCounts(entry.scenarios, t);
       const counts =
         `${t.t('triage.featureCount', { count: entry.features })} · ` +
-        `${t.t('triage.scenarioCount', { count: entry.scenarios.length })}` +
-        `${attention ? ` · ${attention}` : ''}`;
+        t.t('triage.scenarioCount', { count: entry.scenarios.length }) +
+        (attention ? ` · ${attention}` : '');
       return `<li class="sourceItem"><div class="sourceHead"><span class="triageStatus ${statusClass(entry.status)}">${statusLabel(entry.status, t)}</span><span class="sourceName">${escapeHtml(entry.file)}</span></div><p class="sourceCounts">${counts}</p>${featureBar(entry.scenarios)}</li>`;
     })
     .join('');

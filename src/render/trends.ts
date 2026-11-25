@@ -86,13 +86,27 @@ function time(run: HistoryRun): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+const REPORT_STATUSES: ReadonlySet<string> = new Set([
+  'passed',
+  'failed',
+  'skipped',
+  'pending',
+  'undefined',
+  'ambiguous',
+  'unknown',
+]);
+
+function isReportStatus(value: string): value is ReportStatus {
+  return REPORT_STATUSES.has(value);
+}
+
 function statusOf(
   run: HistoryRun,
   t: Translator,
 ): { label: string; className: string } {
   const status: ReportStatus =
-    typeof run?.status === 'string' && Object.hasOwn(STATUS_CLASSES, run.status)
-      ? (run.status as ReportStatus)
+    typeof run?.status === 'string' && isReportStatus(run.status)
+      ? run.status
       : 'unknown';
   return {
     label: statusLabel(status, t),

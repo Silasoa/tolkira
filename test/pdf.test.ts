@@ -52,9 +52,7 @@ const INSTALL_GUIDANCE = {
 };
 
 async function loadRenderPdf(): Promise<RenderPdf> {
-  const module = (await import('../src/pdf.js')) as {
-    renderPdf: RenderPdf;
-  };
+  const module = await import('../src/pdf.js');
   return module.renderPdf;
 }
 
@@ -332,9 +330,7 @@ describe('renderPdf', () => {
   });
 
   it('is exported from the package root', async () => {
-    const { renderPdf } = (await import('../src/pdf.js')) as {
-      renderPdf: RenderPdf;
-    };
+    const { renderPdf } = await import('../src/pdf.js');
     const root = (await import('../src/index.js')) as unknown as {
       renderPdf?: RenderPdf;
     };

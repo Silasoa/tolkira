@@ -292,7 +292,7 @@ function syntheticCase(options: SyntheticCase = {}): Envelope[] {
       },
     );
   }
-  return envelopes as unknown as Envelope[];
+  return envelopes;
 }
 
 function detailsAttachmentCount(html: string): number {

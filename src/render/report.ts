@@ -46,6 +46,7 @@ import {
   healthMarkup,
   hookLabel,
   isFlakyScenario,
+  metadataText,
   metadataValueHtml,
   orderFeatures,
   scenarioSourceLabel,
@@ -765,7 +766,7 @@ function renderFeature(
 
 function metadataLine(metadata: Record<string, string> | undefined): string {
   return Object.entries(metadata ?? {})
-    .filter(([key, value]) => key.length > 0 && String(value ?? '').length > 0)
+    .filter(([key, value]) => key.length > 0 && metadataText(value).length > 0)
     .map(
       ([key, value]) =>
         `<span><b>${escapeHtml(key)}</b> ${metadataValueHtml(value)}</span>`,

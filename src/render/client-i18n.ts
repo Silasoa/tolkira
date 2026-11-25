@@ -44,7 +44,7 @@ export function createClientFormatter(lang: string): ClientFormatter {
       return withPlurals.replaceAll(PARAM, (_match, name: string) => {
         if (!Object.hasOwn(params, name)) return '';
         const value = params[name];
-        return typeof value === 'number' ? number(value) : String(value ?? '');
+        return typeof value === 'number' ? number(value) : (value ?? '');
       });
     },
   };

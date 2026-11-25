@@ -69,7 +69,7 @@ function withDocumentKey(raw: string, key: string, value: unknown): string {
 function withScenarioKey(raw: string, key: string, value: unknown): string {
   return raw.replace(
     '"scenarios":[{',
-    `"scenarios":[{${`"${key}":${JSON.stringify(value)},`}`,
+    `"scenarios":[{"${key}":${JSON.stringify(value)},`,
   );
 }
 

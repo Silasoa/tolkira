@@ -11,6 +11,7 @@ import {
   durationLabel,
   exactSizeLabel,
   healthMarkup,
+  metadataText,
   metadataValueHtml,
   sizeLabel,
   statusBar,
@@ -127,7 +128,7 @@ export function renderAnalysisView(
     attachments: summary.attachments,
   };
   const customRows = Object.entries(options.metadata ?? {})
-    .filter(([key, value]) => key.length > 0 && String(value ?? '').length > 0)
+    .filter(([key, value]) => key.length > 0 && metadataText(value).length > 0)
     .map(
       ([key, value]) =>
         `<dt>${escapeHtml(key)}</dt><dd>${metadataValueHtml(value)}</dd>`,

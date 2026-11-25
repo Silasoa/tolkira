@@ -1051,7 +1051,7 @@ describe('empty-run model', () => {
     const model = await messagesModelFor(emptyAllUnexecutedFixture);
 
     expect(model.scenarios).toHaveLength(2);
-    expect(model.scenarios.every((scenario) => scenario.executed === false)).toBe(
+    expect(model.scenarios.every((scenario) => !scenario.executed)).toBe(
       true,
     );
     expect(model.counts.scenarios.total).toBe(0);
@@ -1135,7 +1135,7 @@ describe('empty-run model', () => {
     const model = await modelFor(legacyScreenshotFixture);
 
     expect(model.scenarios.length).toBeGreaterThan(0);
-    expect(model.scenarios.every((scenario) => scenario.executed === true)).toBe(
+    expect(model.scenarios.every((scenario) => scenario.executed)).toBe(
       true,
     );
     expect(model.counts.scenarios.total).toBe(model.scenarios.length);
@@ -1156,7 +1156,7 @@ describe('empty-run model', () => {
     const model = buildReportModel(await parseJUnitXml(content, 'basic.xml'));
 
     expect(model.scenarios.length).toBeGreaterThan(0);
-    expect(model.scenarios.every((scenario) => scenario.executed === true)).toBe(
+    expect(model.scenarios.every((scenario) => scenario.executed)).toBe(
       true,
     );
     expect(model.counts.scenarios.total).toBe(model.scenarios.length);

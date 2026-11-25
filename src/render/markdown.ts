@@ -25,7 +25,7 @@ markdown.renderer.rules.link_open = (tokens, index, options, _env, self) => {
 };
 
 markdown.renderer.rules.image = (tokens, index) =>
-  markdown.utils.escapeHtml(String(tokens[index]?.content ?? ''));
+  markdown.utils.escapeHtml(tokens[index]?.content ?? '');
 
 // markdown-it has no hook that sees a link's children, so drop anchors that
 // wrap an image or point outside the link allowlist. Images become alt text.
