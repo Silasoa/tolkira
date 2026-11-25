@@ -1,6 +1,6 @@
 const BIDI_CONTROLS = /[\u202A-\u202E\u2066-\u2069]/g;
 // ESC, C0 controls other than tab/newline, DEL and C1 controls.
-// oxlint-disable-next-line no-control-regex -- the control ranges are the ANSI escape set
+// oxlint-disable-next-line no-control-regex -- the C0/C1 control ranges are stripped from report text
 const ANSI_CONTROLS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/;
 const STRING_INTRODUCERS = new Set([0x90, 0x98, 0x9d, 0x9e, 0x9f]);
 
@@ -16,7 +16,7 @@ export function compareText(a: string, b: string): number {
 /** Keeps a path or label on one line in confirmations and error output. */
 export function oneLine(value: string): string {
   return value.replaceAll(
-    // oxlint-disable-next-line no-control-regex -- the control ranges are the ANSI escape set
+    // oxlint-disable-next-line no-control-regex -- the C0/C1 control and bidi mark ranges become spaces
     /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
     ' ',
   );

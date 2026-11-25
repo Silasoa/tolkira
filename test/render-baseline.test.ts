@@ -469,7 +469,7 @@ describe('baseline report panel', () => {
     expect(slice).toContain(
       '<span class="baselineFeature">Checkout</span> · <span class="baselineName">pays by card</span> <span class="baselineExample">#1.2</span>',
     );
-    // oxlint-disable-next-line no-control-regex
+    // oxlint-disable-next-line no-control-regex -- the panel must carry no C0 controls or the RLO override
     expect(slice).not.toMatch(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u202e]/);
   });
 

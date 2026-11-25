@@ -500,6 +500,39 @@ describe('legacy JSON adapter', () => {
     ).toEqual(['a', '1']);
   });
 
+  it('drops a table whose rows mix arrays and cell objects', () => {
+    const envelopes = parseLegacyJson(
+      JSON.stringify([
+        {
+          name: 'Mixed table rows',
+          elements: [
+            {
+              keyword: 'Scenario',
+              name: 'Mixed rows',
+              steps: [
+                {
+                  keyword: 'Given ',
+                  name: 'a mixed table',
+                  table: {
+                    rows: [['a', '1'], { cells: ['b', '2'] }],
+                  },
+                  result: { status: 'passed', duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      'mixed-table-rows.json',
+    );
+
+    const steps =
+      envelopes.find((envelope) => envelope.gherkinDocument)?.gherkinDocument
+        ?.feature?.children[0]?.scenario?.steps ?? [];
+    expect(steps).toHaveLength(1);
+    expect(steps[0]?.dataTable).toBeUndefined();
+  });
+
   it('keeps string-valued step text unchanged', () => {
     const envelopes = parseLegacyJson(
       JSON.stringify([

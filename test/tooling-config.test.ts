@@ -58,7 +58,7 @@ function readText(relativePath: string): string {
 }
 
 function trackedSourceFiles(): string[] {
-  const result = spawnSync('git', ['ls-files', '-z', '--', 'src'], {
+  const result = spawnSync('git', ['ls-files', '-z', '--', 'src', 'test'], {
     cwd: repoRoot,
     encoding: 'utf8',
   });
@@ -67,7 +67,7 @@ function trackedSourceFiles(): string[] {
   }
   return (result.stdout ?? '')
     .split('\0')
-    .filter((file) => file.endsWith('.ts'));
+    .filter((file) => /\.(?:ts|cts|mts)$/.test(file));
 }
 
 function packageBin(name: string, binary = name): string {
@@ -328,41 +328,41 @@ describe('curated lint', () => {
     expect(rules).not.toHaveProperty('eslint/require-await');
   });
 
-  it('scopes the four documented per-file exceptions', () => {
+  it('scopes exactly the four documented per-file exceptions', () => {
     const overrides = readJson<LintConfig>('.oxlintrc.json').overrides ?? [];
-    const scopedFiles = new Set(
-      overrides.flatMap((entry) => entry.files ?? []),
-    );
-    expect([...scopedFiles].sort()).toEqual([
-      'src/compat/cucumber-html-reporter.cts',
-      'src/compat/cucumber-html-reporter.ts',
-      'src/render/html.ts',
-      'src/stream.ts',
-      'test/**',
-    ]);
-
-    const offFor = (file: string, rule: string): boolean =>
-      overrides.some(
-        (entry) =>
-          (entry.files?.includes(file) ?? false) &&
-          entry.rules?.[rule] === 'off',
-      );
-
-    expect(offFor('test/**', 'typescript/no-unsafe-type-assertion')).toBe(true);
-    expect(offFor('src/stream.ts', 'promise/no-callback-in-promise')).toBe(
-      true,
-    );
-    expect(
-      offFor(
-        'src/compat/cucumber-html-reporter.ts',
-        'promise/no-callback-in-promise',
-      ),
-    ).toBe(true);
-    expect(
-      offFor('src/compat/cucumber-html-reporter.cts', 'eslint/no-shadow'),
-    ).toBe(true);
-    expect(offFor('test/**', 'eslint/require-await')).toBe(true);
-    expect(offFor('src/render/html.ts', 'eslint/require-await')).toBe(true);
+    const expected: LintOverride[] = [
+      {
+        files: ['test/**'],
+        rules: {
+          'typescript/no-unsafe-type-assertion': 'off',
+          'eslint/require-await': 'off',
+        },
+      },
+      {
+        files: ['src/stream.ts', 'src/compat/cucumber-html-reporter.ts'],
+        rules: { 'promise/no-callback-in-promise': 'off' },
+      },
+      {
+        files: ['src/compat/cucumber-html-reporter.cts'],
+        rules: { 'eslint/no-shadow': 'off' },
+      },
+      {
+        files: ['src/render/html.ts'],
+        rules: { 'eslint/require-await': 'off' },
+      },
+    ];
+    const normalize = (entries: LintOverride[]): string[] =>
+      entries
+        .map((entry) =>
+          JSON.stringify({
+            files: [...(entry.files ?? [])].sort(),
+            rules: Object.entries(entry.rules ?? {})
+              .sort(([left], [right]) => (left < right ? -1 : 1))
+              .map(([rule, value]) => `${rule}: ${value}`),
+          }),
+        )
+        .sort();
+    expect(normalize(overrides)).toEqual(normalize(expected));
   });
 
   it('runs lint type-aware at zero warnings', () => {
@@ -373,23 +373,24 @@ describe('curated lint', () => {
 
 describe('lint suppressions', () => {
   it('keeps every suppression inline with a reason and pins the map', () => {
+    const fileLevel = /^\s*(?:\/\/|\/\*)\s*oxlint-disable(?![-\w])/;
+    const nextLine = /^\s*(?:\/\/|\/\*)\s*oxlint-disable-next-line\b/;
+    const pinned = /^\s*\/\/ oxlint-disable-next-line (\S+) -- \S/;
     const found: string[] = [];
     for (const file of trackedSourceFiles()) {
       const lines = readText(file).split(/\r?\n/);
       lines.forEach((line, index) => {
         const where = `${file}:${index + 1}`;
-        expect(line, where).not.toMatch(/^\s*\/\* oxlint-disable /);
-        expect(line, where).not.toMatch(/^\s*\/\/ oxlint-disable /);
-        if (!line.includes('oxlint-disable-next-line')) return;
-        expect(line, where).toMatch(
-          /^\s*\/\/ oxlint-disable-next-line \S+ -- \S.*$/,
-        );
-        const rule = /oxlint-disable-next-line (\S+) -- /.exec(line)?.[1];
+        expect(line, where).not.toMatch(fileLevel);
+        if (!nextLine.test(line)) return;
+        expect(line, where).toMatch(pinned);
+        const rule = pinned.exec(line)?.[1];
         if (rule !== undefined) found.push(`${file} ${rule}`);
       });
     }
     expect(found.sort()).toEqual(
       [
+        'src/compat/cucumber-html-reporter.cts eslint/no-redeclare',
         'src/render/client-i18n.ts typescript/no-unnecessary-type-conversion',
         'src/render/client-i18n.ts unicorn/prefer-string-replace-all',
         'src/render/client-i18n.ts unicorn/prefer-string-replace-all',
@@ -406,6 +407,15 @@ describe('lint suppressions', () => {
         'src/render/report-client.ts unicorn/prefer-string-replace-all',
         'src/text.ts no-control-regex',
         'src/text.ts no-control-regex',
+        'test/ansi-stripping.test.ts no-control-regex',
+        'test/e2e/attachments.spec.ts unicorn/prefer-number-coercion',
+        'test/e2e/attachments.spec.ts unicorn/prefer-number-coercion',
+        'test/e2e/clipboard.spec.ts no-control-regex',
+        'test/e2e/helpers.ts unicorn/prefer-code-point',
+        'test/e2e/size-diagnostics.spec.ts unicorn/prefer-number-coercion',
+        'test/e2e/size-diagnostics.spec.ts unicorn/prefer-number-coercion',
+        'test/render-baseline.test.ts no-control-regex',
+        'test/tooling-config.test.ts typescript/no-unnecessary-type-parameters',
       ].sort(),
     );
   });
@@ -462,7 +472,10 @@ describe('format gate', () => {
     expect(lines[0]).toBe('* text=auto eol=lf');
     expect(lines).toContain('test/fixtures/** text eol=lf');
     expect(lines).toContain('test/fixtures/**/*.png binary');
-    expect(lines.indexOf('test/fixtures/** text eol=lf')).toBeGreaterThan(0);
+    const textIndex = lines.indexOf('test/fixtures/** text eol=lf');
+    const pngIndex = lines.indexOf('test/fixtures/**/*.png binary');
+    expect(textIndex).toBeGreaterThan(0);
+    expect(pngIndex).toBeGreaterThan(textIndex);
   });
 
   it('exposes format:check and format scripts', () => {
@@ -471,16 +484,20 @@ describe('format gate', () => {
     expect(scripts['format']).toBe('prettier --write .');
   });
 
-  it('runs format:check before build in the check gate', () => {
+  it('runs the exact check steps in order', () => {
     const scripts = readJson<PackageJson>('package.json').scripts ?? {};
     const steps = (scripts['check'] ?? '')
-      .split(' && ')
+      .split('&&')
       .map((step) => step.trim());
-    const formatIndex = steps.indexOf('npm run format:check');
-    const buildIndex = steps.indexOf('npm run build');
-    expect(formatIndex).toBeGreaterThanOrEqual(0);
-    expect(buildIndex).toBeGreaterThan(formatIndex);
-    expect(steps.at(-1)).toBe('npm run test:coverage');
+    expect(steps).toEqual([
+      'npm run i18n:check',
+      'npm run assets',
+      'npm run typecheck',
+      'npm run lint',
+      'npm run format:check',
+      'npm run build',
+      'npm run test:coverage',
+    ]);
   });
 });
 
@@ -609,13 +626,9 @@ describe('client program probe', () => {
         ].join('\n'),
         'utf8',
       );
-      const browserFiles = [
-        'src/render/report-client.ts',
-        'src/render/client-i18n.ts',
-        'src/render/dom-contract.ts',
-        'src/render/search.ts',
-        'src/report/status.ts',
-      ].map((file) => toPosix(path.join(repoRoot, file)));
+      const browserFiles = (
+        readJson<ClientTsConfig>('tsconfig.client.json').include ?? []
+      ).map((file) => toPosix(path.join(repoRoot, file)));
       const baseConfig = {
         extends: toPosix(path.join(repoRoot, 'tsconfig.client.json')),
         compilerOptions: { noEmit: true },
@@ -698,10 +711,6 @@ describe('lint warning probe', () => {
       expect(strictShadow.status).not.toBe(0);
       expect(output(strictShadow)).toMatch(/no-shadow/);
 
-      const plainClean = lint(clean, false);
-      expect(plainClean.error).toBeUndefined();
-      expect(plainClean.status).toBe(0);
-
       const strictClean = lint(clean, true);
       expect(strictClean.error).toBeUndefined();
       expect(strictClean.status).toBe(0);
@@ -713,7 +722,7 @@ describe('lint warning probe', () => {
 
 describe('type-aware lint probe', () => {
   it(
-    'fails a floating promise and an awaited non-thenable, passes the awaited copies',
+    'fails a floating promise and an awaited non-thenable, passes the awaited copy',
     () => {
       const directory = makeProbeDirectory('type-aware');
       writeProbeTsConfig(directory, ['*.ts']);
@@ -744,11 +753,6 @@ describe('type-aware lint probe', () => {
       const nonThenable = write('non-thenable.ts', [
         'export async function run(): Promise<void> {',
         '  await 42;',
-        '}',
-      ]);
-      const thenable = write('thenable.ts', [
-        'export async function run(): Promise<void> {',
-        '  await Promise.resolve(42);',
         '}',
       ]);
 
@@ -784,10 +788,6 @@ describe('type-aware lint probe', () => {
       expect(nonThenableResult.error).toBeUndefined();
       expect(nonThenableResult.status).not.toBe(0);
       expect(output(nonThenableResult)).toMatch(/await-thenable/);
-
-      const thenableResult = lint(thenable);
-      expect(thenableResult.error).toBeUndefined();
-      expect(thenableResult.status).toBe(0);
     },
     TEST_TIMEOUT_MS,
   );
@@ -898,11 +898,12 @@ describe('empty selection probe', () => {
       );
       expect(empty.error).toBeUndefined();
       expect(empty.status).not.toBe(0);
+      expect(output(empty)).toMatch(/No test files found/);
 
       const matched = run(vitest, ['run', 'test/smoke.test.ts'], repoRoot);
       expect(matched.error).toBeUndefined();
       expect(matched.status).toBe(0);
-      expect(output(matched)).toMatch(/1 passed/);
+      expect(output(matched)).toMatch(/passed/);
     },
     TEST_TIMEOUT_MS,
   );

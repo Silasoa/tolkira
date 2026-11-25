@@ -186,7 +186,7 @@ describe('ANSI escape stripping in report text', () => {
     expect(html).not.toContain('dcs payload');
     expect(html).not.toContain('apc payload');
     expect(html).not.toMatch(
-      // oxlint-disable-next-line no-control-regex
+      // oxlint-disable-next-line no-control-regex -- rendered text must carry no C0 or C1 controls
       /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/,
     );
     expect(html).toContain(VISIBLE_ANSI);

@@ -145,7 +145,7 @@ test('copies failure details without terminal escape sequences', async ({
     expect(copied).not.toContain('dcs payload');
     expect(copied).not.toContain('apc payload');
     expect(copied).not.toMatch(
-      // oxlint-disable-next-line no-control-regex
+      // oxlint-disable-next-line no-control-regex -- copied text must carry no C0 or C1 controls
       /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/,
     );
   } finally {

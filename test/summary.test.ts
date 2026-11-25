@@ -520,9 +520,11 @@ describe('empty-run summary', () => {
     expect(summary.counts.scenarios.total).toBe(0);
     expect(summary.counts.scenarios.unknown).toBe(0);
     expect(summary.scenarios).toHaveLength(2);
-    expect(summary.scenarios.every((scenario) => !scenario.executed)).toBe(
-      true,
-    );
+    expect(
+      summary.scenarios.every((scenario) =>
+        Object.is(scenario.executed, false),
+      ),
+    ).toBe(true);
     expect(summary.counts.features).toBe(1);
   });
 
@@ -607,7 +609,9 @@ describe('empty-run summary', () => {
     const summary = await summarizeReport(messages);
 
     expect(summary.schemaVersion).toBe(2);
-    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(true);
+    expect(
+      summary.scenarios.every((scenario) => Object.is(scenario.executed, true)),
+    ).toBe(true);
     expect(summary.counts.steps.total).toBe(
       summary.scenarios.reduce(
         (sum, scenario) => sum + scenario.steps.length,
@@ -640,7 +644,9 @@ describe('empty-run summary', () => {
 
     expect(summary.schemaVersion).toBe(2);
     expect(summary.scenarios.length).toBeGreaterThan(0);
-    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(true);
+    expect(
+      summary.scenarios.every((scenario) => Object.is(scenario.executed, true)),
+    ).toBe(true);
     expect(summary.counts.scenarios.total).toBe(summary.scenarios.length);
   });
 
@@ -664,7 +670,9 @@ describe('empty-run summary', () => {
 
     expect(summary.schemaVersion).toBe(2);
     expect(summary.scenarios.length).toBeGreaterThan(0);
-    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(true);
+    expect(
+      summary.scenarios.every((scenario) => Object.is(scenario.executed, true)),
+    ).toBe(true);
     expect(summary.counts.scenarios.total).toBe(summary.scenarios.length);
     expect(summary.attachments.total).toBeGreaterThan(0);
   });

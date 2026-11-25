@@ -196,7 +196,7 @@ describe('compat merged JSON sidecar', () => {
     await mkdir(output);
 
     await expect(generate({ jsonDir: dir, output })).rejects.toThrow(
-      /EISDIR|EPERM|EACCES|ENOENT/,
+      /EISDIR|EPERM|EACCES/,
     );
 
     await expectNoSidecar(`${output}.json`);
