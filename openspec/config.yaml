@@ -10,9 +10,9 @@ context: |
 
   ## Why
 
-  The de-facto Cucumber JSON reporter (cucumber-html-reporter) is effectively
-  unmaintained, carries old CDN/template dependencies and only supports legacy
-  JSON. The official Cucumber HTML formatter is modern and single-file but
+  The de-facto Cucumber JSON reporter (cucumber-html-reporter) was dormant
+  from October 2024 to November 2026, carries old CDN/template dependencies and
+  only supports legacy JSON. The official Cucumber HTML formatter is modern and single-file but
   consumes Messages only and has no dashboard/metadata/history/branding. The
   multiple-cucumber-html-reporter is active but heavier, folder-based and
   JSON-only. There is a gap for a lightweight hybrid that keeps existing JSON
