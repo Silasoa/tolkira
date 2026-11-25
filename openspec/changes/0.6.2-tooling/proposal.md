@@ -59,8 +59,8 @@ Affected: `tsconfig.json`, a new `tsconfig.client.json`, `.oxlintrc.json`,
 `.prettierrc.json`, `.prettierignore`, `.gitattributes`, `vitest.config.ts`,
 `package.json` scripts and dev dependencies, `ci.yml` (no edit expected: it
 already runs `npm run check`), 88 type-error sites in 22 files, the 335 lint
-findings (63 base, 156 pedantic, 116 type-aware; 321 fixed and 14 pinned per
-line in the byte-pinned browser files), the tracked files measured as the
+findings (63 base, 156 pedantic, 116 type-aware; 314 fixed and 21 pinned per
+line), the tracked files measured as the
 formatting baseline, and seven tracked files renormalized to LF (five archived
 OpenSpec files, one ADR and `src/render/escape.ts`). No production behaviour,
 report byte,
