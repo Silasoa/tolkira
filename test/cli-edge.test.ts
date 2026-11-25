@@ -5,6 +5,7 @@ import {
   readFile,
   readdir,
   rm,
+  stat,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -776,4 +777,19 @@ describe('CLI JSON display URI privacy', () => {
     expect(run.stdout).not.toContain(USER);
     expect(run.stdout).not.toContain('/home/');
   });
+});
+
+describe('output permissions', () => {
+  it.skipIf(process.platform === 'win32')(
+    'writes the report owner-only on POSIX',
+    async () => {
+      const dir = await tempDir();
+      const out = path.join(dir, 'report.html');
+
+      const run = await cli([legacy, '--out', out]);
+
+      expect(run.code, run.stderr).toBe(0);
+      expect((await stat(out)).mode & 0o777).toBe(0o600);
+    },
+  );
 });
