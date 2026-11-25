@@ -107,9 +107,16 @@ tests and docs differ; no row was re-run on the 0.6.1 literal. CI packed 80
 entries, 657.3 kB, npm shasum
 `9ed6f3a5adfb627be285e4f81fdba18d5de962ff`, staged `tolkira@0.6.1` with id
 `234439a9-bfea-4597-89c4-4a9e60537076` and tag `latest`; the provenance
-statement reached log index `4106198783`. The package is public only after the
-maintainer's 2FA approval; the table above keeps its last full release run
-(0.6.0), and the published artifact hash is added after that approval.
+statement reached log index `4106198783`. The maintainer approved the staged
+package on 2026-11-25 and the registry now serves `latest: 0.6.1`. The published
+tarball is 657,269 B with SHA-256
+`89E9993C30B4D09111FA4FCB98C977F795A3F9396A72D2416E23C232DD616C54` (80
+entries; `dist/cli.js` and `dist/index.js` present), its npm shasum and
+integrity match the staged values, and `npm audit signatures` verified 17
+registry signatures and 7 attestations. A global install of the published
+package printed `0.6.1`, rendered the fixture default report at 66,371 B, the
+static report at 47,783 B without a `<script>` and a 1,039 B `--json` summary.
+The table above keeps its last full release run (0.6.0).
 
 **`0.5.1` release run (2026-11-23, final tarball).** All five required rows ran
 on the packed 0.5.1 tarball (`tolkira-0.5.1.tgz`, 581,397 B, SHA-256
