@@ -146,7 +146,9 @@ Keep a Changelog and the project uses semantic versioning.
   the browser suite, publish needs both, and the tag/version and
   main-ancestor checks stay in place. `31dd112` added the gates and checks;
   `f448f60` replaced its shallow main fetch with the full fetch the ancestor
-  check needs.
+  check needs. The publish job now runs the build before `npm pack`, because
+  `dist/` is not committed and a tag would otherwise pack a tarball without the
+  CLI.
 
 ### Changed
 
