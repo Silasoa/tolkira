@@ -209,12 +209,17 @@
   (report-level change) are green; typecheck, lint, unit tests and build
   included. Record the exact counts, the client bundle size, the report byte
   delta and the legacy-date characterization/golden re-pin.
-- [ ] 4.2 Independent reviewers in one batch: SCR (all five deltas), CR, DAR
+- [x] 4.2 Independent reviewers in one batch: SCR (all five deltas), CR, DAR
   (including the 0600 and JUnit docs), SEC (URI privacy, surrogate bodies, JUnit
   entities, ISO 8601 history input), PCA (detection, surrogate and URI changes,
   comparator), STR (module/test health), UXR and CMP (report order and legacy
   date; only the intended order/date changes). A failing review spawns a fixer,
-  not the implementer of record.
+  not the implementer of record. Results on 2026-11-24/25: SCR, CR and UXR
+  passed (UXR with two should-fix notes, now B-069/B-070); PCA, SEC, STR, DAR
+  and CMP failed on the first snapshot. Code and docs fixers landed separately,
+  then targeted re-checks passed for SEC, PCA, STR, CMP, SCR and CR; DAR passed
+  at `90ff796` after the producer-payload text was corrected (wording nits in
+  `5685748`).
 - [x] 4.3 Host rows in `docs/DROP-IN-VALIDATION.md`: official Cucumber-js host
   (legacy JSON and Messages), Seed-Test legacy JSON, Spring PetClinic JUnit, the
   `cucumber-html-reporter` shim (including the merged sidecar) and the Playwright
@@ -235,8 +240,12 @@
   entity table, the 200k merge result, the release-workflow test output, the
   0600 POSIX mode check and the host rows. Deferred findings get a backlog
   trigger; nothing is dropped silently.
-- [ ] 4.5 Fix every review finding or record a decision with a trigger; re-run
-  the gate after fixes.
+- [x] 4.5 Fix every review finding or record a decision with a trigger; re-run
+  the gate after fixes. Every blocker was fixed; the residual display-URI forms
+  and the cost bound became B-067, and the non-redacted producer payload became
+  the approved, documented limit in B-068, `SECURITY.md` and
+  `docs/LIMITATIONS.md`. Gate re-run after the fixes: `npm run check` 1,764
+  passed / 10 skipped, three-engine `npm run test:e2e` 454 passed / 8 skipped.
 
 ## 5. Release boundary
 
