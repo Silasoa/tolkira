@@ -67,7 +67,7 @@ async function readSidecar(file: string): Promise<LegacyFeature[]> {
 }
 
 async function expectNoSidecar(file: string): Promise<void> {
-  await expect(readFile(file, 'utf8')).rejects.toThrow();
+  await expect(readFile(file, 'utf8')).rejects.toThrow(/ENOENT/);
 }
 
 describe('compat merged JSON sidecar', () => {
@@ -192,7 +192,9 @@ describe('compat merged JSON sidecar', () => {
     const output = path.join(dir, 'report.html');
     await mkdir(output);
 
-    await expect(generate({ jsonDir: dir, output })).rejects.toThrow();
+    await expect(generate({ jsonDir: dir, output })).rejects.toThrow(
+      /EISDIR|EPERM|EACCES|ENOENT/,
+    );
 
     await expectNoSidecar(`${output}.json`);
   });
@@ -336,7 +338,7 @@ describe('compat merged JSON sidecar', () => {
     await expect(generate({ jsonDir: dir, output })).rejects.toThrow(input);
 
     await expect(readFile(input, 'utf8')).resolves.toBe(before);
-    await expect(readFile(output, 'utf8')).rejects.toThrow();
+    await expect(readFile(output, 'utf8')).rejects.toThrow(/ENOENT/);
   });
 
   it('refuses a sidecar with represented and unique uris', async () => {
@@ -365,7 +367,7 @@ describe('compat merged JSON sidecar', () => {
     await expect(generate({ jsonDir: dir, output })).rejects.toThrow(input);
 
     await expect(readFile(input, 'utf8')).resolves.toBe(before);
-    await expect(readFile(output, 'utf8')).rejects.toThrow();
+    await expect(readFile(output, 'utf8')).rejects.toThrow(/ENOENT/);
   });
 
   it('handles a BOM source on first and second runs', async () => {
@@ -461,7 +463,7 @@ describe('compat merged JSON sidecar', () => {
     await expect(generate({ jsonDir: dir, output })).rejects.toThrow(input);
 
     await expect(readFile(input, 'utf8')).resolves.toBe(before);
-    await expect(readFile(output, 'utf8')).rejects.toThrow();
+    await expect(readFile(output, 'utf8')).rejects.toThrow(/ENOENT/);
   });
 
   it('rejects non-legacy JSON in jsonDir before the HTML', async () => {
@@ -476,7 +478,7 @@ describe('compat merged JSON sidecar', () => {
 
     await expect(generate({ jsonDir: dir, output })).rejects.toThrow(input);
 
-    await expect(readFile(output, 'utf8')).rejects.toThrow();
+    await expect(readFile(output, 'utf8')).rejects.toThrow(/ENOENT/);
   });
 
   it('merges only valid files when ignoreBadJsonFile is set', async () => {

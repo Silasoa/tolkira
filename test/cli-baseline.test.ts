@@ -28,7 +28,11 @@ import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
 
 // The CLI tests never launch a browser: the PDF module is replaced here.
-const pdf = vi.hoisted(() => ({ renderPdf: vi.fn() }));
+const pdf = vi.hoisted(() => ({
+  renderPdf: vi.fn<
+    (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
+  >(),
+}));
 vi.mock('../src/pdf.js', () => ({ renderPdf: pdf.renderPdf }));
 
 const input = legacyFixture('minimal.json');

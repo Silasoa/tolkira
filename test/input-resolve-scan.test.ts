@@ -22,8 +22,8 @@ vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs/promises')>();
   return {
     ...actual,
-    readFile: vi.fn(actual.readFile),
-    realpath: vi.fn(actual.realpath),
+    readFile: vi.fn<typeof actual.readFile>(actual.readFile),
+    realpath: vi.fn<typeof actual.realpath>(actual.realpath),
   };
 });
 

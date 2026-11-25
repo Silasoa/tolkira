@@ -28,9 +28,13 @@ vi.mock('../src/input/load.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/input/load.js')>();
   return {
     ...actual,
-    resolveInputFiles: vi.fn(actual.resolveInputFiles),
-    scanInputBytes: vi.fn(actual.scanInputBytes),
-    loadResolvedInputs: vi.fn(actual.loadResolvedInputs),
+    resolveInputFiles: vi.fn<typeof actual.resolveInputFiles>(
+      actual.resolveInputFiles,
+    ),
+    scanInputBytes: vi.fn<typeof actual.scanInputBytes>(actual.scanInputBytes),
+    loadResolvedInputs: vi.fn<typeof actual.loadResolvedInputs>(
+      actual.loadResolvedInputs,
+    ),
   };
 });
 
@@ -38,7 +42,9 @@ vi.mock('../src/run.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/run.js')>();
   return {
     ...actual,
-    summarizeReportFromResolved: vi.fn(actual.summarizeReportFromResolved),
+    summarizeReportFromResolved: vi.fn<typeof actual.summarizeReportFromResolved>(
+      actual.summarizeReportFromResolved,
+    ),
   };
 });
 

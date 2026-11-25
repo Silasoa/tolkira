@@ -16,7 +16,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../src/i18n/catalogs.js';
 
 // The CLI tests never launch a browser: the PDF module is replaced here.
-const pdf = vi.hoisted(() => ({ renderPdf: vi.fn() }));
+const pdf = vi.hoisted(() => ({
+  renderPdf: vi.fn<
+    (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
+  >(),
+}));
 vi.mock('../src/pdf.js', () => ({ renderPdf: pdf.renderPdf }));
 
 import { runCli } from '../src/cli.js';

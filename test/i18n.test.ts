@@ -212,7 +212,7 @@ describe('formatMessage', () => {
       expect(
         () => formatMessage(message, { name: 'Ada', count: 1 }, 'en'),
         message,
-      ).toThrow();
+      ).toThrow(/Invalid message/);
     }
   });
 
@@ -230,7 +230,7 @@ describe('formatMessage', () => {
       expect(
         () => formatMessage(message, { count: 1 }, 'en'),
         message,
-      ).toThrow();
+      ).toThrow(/Invalid message/);
     }
   });
 

@@ -5,17 +5,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // is replaced by this fake page/browser pair.
 const engine = vi.hoisted(() => {
   const page = {
-    route: vi.fn(),
-    setContent: vi.fn(),
-    evaluate: vi.fn(),
-    pdf: vi.fn(),
+    route: vi.fn<
+      (
+        pattern: RegExp,
+        handler: (route: { abort: () => void }) => void,
+      ) => Promise<void>
+    >(),
+    setContent: vi.fn<
+      (
+        html: string,
+        options?: { waitUntil?: string; timeout?: number },
+      ) => Promise<void>
+    >(),
+    evaluate: vi.fn<(task: () => Promise<void>) => Promise<void>>(),
+    pdf: vi.fn<() => Promise<Uint8Array>>(),
   };
   const browser = {
-    newPage: vi.fn(),
-    close: vi.fn(),
+    newPage: vi.fn<() => Promise<typeof page>>(),
+    close: vi.fn<() => Promise<void>>(),
   };
   const chromium = {
-    launch: vi.fn(),
+    launch: vi.fn<() => Promise<typeof browser>>(),
   };
   return { page, browser, chromium };
 });
