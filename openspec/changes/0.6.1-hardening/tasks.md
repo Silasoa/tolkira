@@ -205,7 +205,7 @@
 
 ## 4. Verification and review
 
-- [ ] 4.1 `npm run hygiene`, `npm run check` and `npm run test:e2e`
+- [x] 4.1 `npm run hygiene`, `npm run check` and `npm run test:e2e`
   (report-level change) are green; typecheck, lint, unit tests and build
   included. Record the exact counts, the client bundle size, the report byte
   delta and the legacy-date characterization/golden re-pin.
@@ -239,6 +239,40 @@
 
 ## 5. Release boundary
 
-- [ ] 5.1 Do not bump the version, tag, stage or publish. 0.6.1 preparation and
+- [x] 5.1 Do not bump the version, tag, stage or publish. 0.6.1 preparation and
   approval remain a separate user decision after this change and
   `0.6.1-quality-pass` are complete and reviewed.
+
+## Gate record (2026-11-25)
+
+### Gate
+
+| Check | Result |
+| --- | --- |
+| `npm run hygiene` | `hygiene: ok`, 850 tracked files / 417 commits |
+| `npm run check` | catalog 203 keys / 2 locales; typecheck, lint and build green; 92 test files, 1,764 passed / 10 skipped (1,774) |
+| `npm run test:e2e` | 454 passed / 8 skipped (462) on Chromium, Firefox and WebKit, 2.1 min |
+| CI for `929ed97` | green: hygiene, check (22/24/26), check-windows, e2e, e2e-macos, package |
+| Client bundle | `client-bundle.ts` 15,438 bytes (budget 16,000); styles 41,119 + 1,058 bytes |
+
+Report byte delta on the fixed-clock goldens: `minimal.html` 66,458 -> 66,350
+(-108), `attachments-presentation.html` 70,634 -> 70,634 (0). The -108 B is
+exactly the three removed legacy date spans (report header, analysis header,
+scenario `Started:` cell; 33 + 33 + 42 characters) plus the self-reported
+`Report HTML` size line; the Messages golden keeps its real timestamp. Both
+goldens were re-pinned in `ba6aca4`. No runtime dependency was added.
+
+### Evidence
+
+| Area | Evidence |
+| --- | --- |
+| URI table | 34 cases in `test/summary.test.ts` (`display URI privacy`): POSIX/single-slash/localhost/remote file URLs, UNC, `%2F`/`%5C` and encoded leading separators, encoded home/`Users`/`Documents and Settings` segments, plain and `%2e` dot/parent segments, userinfo, home below another directory, drive before `Users`, home-only (empty), trailing home, WSL mount, `features` marker above and after the home segment, absolute without marker, deeper path (last three), dotted filename, relative paths, missing URI, idempotency; plus the 64,000-segment linear case (41 ms against 2.4 s on the old code) and the raw-URI model fallback in `test/model.test.ts` |
+| Surrogate table | `test/render-attachments.test.ts`: lone high/low surrogate in `image/png` and `video/mp4` (4 cases) keeps the report complete with a base64 data URI and no `URI malformed`; normal UTF-8 stays readable; `BASE64` stays byte-identical; an empty body renders no data URI; `audio/mpeg` is an `application/octet-stream` binary download |
+| Parse count | `test/input-detect.test.ts` `first-line parse count`: one-line Playwright 1, one-line Messages 1, multi-line Playwright 1, legacy 1, JUnit 0 |
+| Comparator | `test/render-report.test.ts` bundles the CLI and runs it under `sv_SE.UTF-8` and `de_DE.UTF-8`: JSON and Markdown byte-identical, summary/matrix/tag order `Zebra, apple, Äpfel` |
+| ISO forms | `test/history.test.ts`: 10 accepted forms (writer form, `Z` without ms, positive/negative offset, 1/3/9 fraction digits, offset with seconds, `2026-02-30` via `Date.parse`, `+23:59`), each kept verbatim and read without rewriting the file; 6 rejected forms (no zone, no zone with ms, free text, local date, `+25:00`, `+0200`); a stored offset survives the writer |
+| JUnit entities | `test/junit.test.ts` and the PetClinic host row: five named entities, `&#160;`, `&#xA0;`, `&#x1F600;` decode; a bare `&` in text or attribute, `&nbsp;` and 200 bare `&` exit 1 with a bounded label and write no report; DTD/entity declarations are rejected; the scan is a forward pass |
+| 200k merge | `test/compat-sidecar.test.ts`: 1 + 200,000 duplicate features merge without `RangeError` (772 ms for the single-test run, including fixture write and parse); the 65,000 + 65,000 boundary keeps order and `retried: 0` |
+| Release workflow | `test/release-workflow.test.ts`, 7 tests: active run lines only, Linux gate with hygiene/check/browser, macOS browser gate, publish after both gates, tag/version mismatch fails, tag not on main fails, package smoke and stage on a green tag |
+| 0600 POSIX mode | `test/cli-edge.test.ts` owner-only test, skipped on Windows (one of the 10 skips), green in CI on Node 22/24/26 (run `45517045112`) |
+| Host rows | the `0.6.1-hardening` block in `docs/DROP-IN-VALIDATION.md`: five rows, four clean and the approved producer-payload limit |

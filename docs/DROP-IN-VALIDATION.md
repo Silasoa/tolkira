@@ -87,7 +87,7 @@ Tolkira view carries, record that functional gap.
 
 ## Host status
 
-| Host | Last run | Result | Notes |
+| Host | Last release run | Result | Notes |
 | --- | --- | --- | --- |
 | Seed-Test | 2026-11-24 | Pass (`0.6.0`) | Pin `ce2cad8` (AI branch), host-validated tarball (631,852 B). `tsc -b` and `report.service.spec.ts` 35/35. Story: 1 feature / 3 scenarios (2 passed, 1 failed), 12 step rows, 1 attachment / 5,234 B, report 88,679 B; group: 2 features / 4 scenarios (3 passed, 1 failed), 16 step rows, 2 attachments / 10,468 B, report 106,291 B; shim group sidecar 21,579 B / 2 stories, deep-equal to the old reporter's sidecar; the old reporter adds one trailing newline (21,580 vs 21,579 B). Static 69,290 B, baseline 1 new failure / 1 fixed, history 3 runs. No overflow, no console errors, no external requests. The +170 B default delta is the measured scroll-offset script; other report bytes move with ids and durations. Limits: per-story JSON synthetic (no live backend/MongoDB), native `cucumber-html-reporter` HTML compared by content counts only. |
 | Cucumber-js host | 2026-11-24 | Pass (`0.6.0`) | Official `@cucumber/cucumber@13.3.0` on Node 26.13.1 / npm 10.8.2: 2 scenarios (1 passed, 1 failed), 5 steps (4 passed, 1 failed), 2 inline PNGs / 140 B. `out.json` 3,302 B, `out.ndjson` 9,974 B; reports 72,452 / 72,578 B; the two summaries are byte-identical (2,191 B, same SHA-256). Static 53,322 B with one `<main>`, no `<script>` and all details open; baseline 1 new failure / 1 fixed; history 3 runs / Trends. No overflow, console errors or external requests. Native Cucumber HTML not generated. |
