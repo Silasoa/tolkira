@@ -75,8 +75,10 @@ last release overall. npm has 7.2.0 from 2024-10-01, published without a GitHub
 release and without a CHANGELOG entry; the CHANGELOG's newest entry is 6.0.0
 (March 2023). Do not write "no release since 2023" in a public comment. Write
 "last npm publish October 2024; last GitHub release March 2023". The README's
-"unmaintained since October 2024" refers to the npm publish, and is defensible;
-the 2023 claim is not.
+"unmaintained since October 2024" referred to the npm publish and was
+defensible until 2026-11-25, when the maintainer answered #296, merged PR #305
+and published 7.2.1. Since then the accurate wording is "dormant from October
+2024 to November 2026"; never call the project dead or abandoned.
 
 ### #265 "Maintainer of Project"
 

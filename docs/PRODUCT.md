@@ -19,10 +19,10 @@ Everything else is secondary.
 ## The problem
 
 The de-facto open-source report for Cucumber JSON,
-`cucumber-html-reporter`, is effectively unmaintained:
+`cucumber-html-reporter`, was dormant for about two years:
 
-- last release October 2024;
-- 92 open issues;
+- no release between October 2024 and the 7.2.1 patch on 2026-11-25;
+- 91 open issues;
 - old runtime dependencies, including a second copy of Cucumber 9;
 - Bootstrap 3/jQuery/Google Charts loaded from CDNs;
 - legacy JSON only.

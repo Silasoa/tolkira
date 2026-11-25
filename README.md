@@ -407,10 +407,11 @@ tested producer matrix,
 
 ## Why Tolkira exists
 
-[`cucumber-html-reporter`](https://github.com/protractor-cucumber-framework/cucumber-html-reporter)
-has been effectively unmaintained since October 2024. It still has a large
-user base, but it loads Bootstrap, jQuery and Google Charts from CDNs, only
-reads legacy JSON, and carries old runtime dependencies. Reports that should
+[`cucumber-html-reporter`](https://github.com/gkushang/cucumber-html-reporter)
+was dormant from October 2024 to November 2026, when it shipped one merged bug
+fix and the 7.2.1 patch; 91 issues remain open. It still has a large user base,
+but it loads Bootstrap, jQuery and Google Charts from CDNs, only reads legacy
+JSON, and carries old runtime dependencies. Reports that should
 work offline lose their layout and charts.
 
 Tolkira keeps the old input working and fixes the parts that hurt:

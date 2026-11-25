@@ -1,6 +1,6 @@
 # Seed-Test report comparison
 
-This is a visual and functional comparison between the unmaintained
+This is a visual and functional comparison between the older
 `cucumber-html-reporter@7.2.0` (bootstrap theme) and Tolkira, using the Seed-Test
 report options and equivalent scenario, story and group inputs.
 

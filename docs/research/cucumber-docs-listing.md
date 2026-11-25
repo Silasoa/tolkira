@@ -231,9 +231,11 @@ it. MCHR, the newest entry, has 1.14M npm downloads/month and its own website.
    maintainer may be wary of the project on principle.
 4. **No project website.** The list mostly links product sites or long-lived
    repositories; Tolkira links a 19-day-old GitHub repo.
-5. **Competitive tone.** Tolkira's README calls the legacy reporter effectively
+5. **Competitive tone.** Tolkira's README called the legacy reporter effectively
    unmaintained and compares itself to it. The docs entry must be neutral and
-   must not repeat that framing.
+   must not repeat that framing; since 2026-11-25 the project is active again
+   (see the #296 follow-up), so "dormant 2024-2026" is the strongest accurate
+   wording.
 6. **One maintainer, no community.** No issues, no discussions, no independent
    reports.
 7. **Node 22+.** Not a docs objection, but it narrows the audience.
@@ -355,6 +357,17 @@ no earlier reply). The text names no version and carries the AI disclosure.
 Next venue: `atinfo/awesome-test-automation`, week 2, one list at a time; no
 other venue without per-venue approval.
 
+**#296 follow-up, same day.** Within two hours of the comment the maintainer
+answered the thread ("yes, this is still active project", offering contributor
+and admin roles), merged the 18-month-old PR #305, bumped the version and
+published `cucumber-html-reporter@7.2.1` on npm (2026-11-25T18:19Z). The
+factual claims in the posted comment were true at posting time but describe a
+snapshot that has since moved; the comment needs no correction and no second
+reply. Consequence for every later venue: never describe the legacy reporter as
+dead, abandoned or unmaintained. "Dormant from October 2024 to November 2026"
+is the accurate and defensible wording; the structural differences (CDN assets,
+legacy JSON only, 91 open issues) are unaffected by a 7.2.1 patch.
+
 ## 8. Proof
 
 ### URLs read (2026-11-23)
@@ -442,8 +455,9 @@ https://raw.githubusercontent.com/cucumber/cucumber-ruby/<tag>/README.md
   `30420c28` 2024-12-19, `7f51c33f` 2026-11-10).
 - Godog commit `8839248`, 2018-02-07, adds the `cucumber-html-reporter`
   reference; the line is still present at README line 300.
-- `gkushang/cucumber-html-reporter`: not archived, last push 2024-11-20, 239
-  stars, 92 open items.
+- `gkushang/cucumber-html-reporter`: not archived; 239 stars, 91 open items.
+  Snapshot 2026-11-23 (last push then 2024-11-20); the project resumed on
+  2026-11-25 with 7.2.1, see the #296 follow-up below.
 - `myie/cucumber-html-reporter`: last push 2018-02-06; Docker Hub API 404 on
   2026-11-23.
 - `tolkira`: 0.5.0, MIT, npm created 2026-11-04, last publish 2026-11-23,
@@ -462,8 +476,9 @@ https://raw.githubusercontent.com/cucumber/cucumber-ruby/<tag>/README.md
    listing; none has a third-party list.
 5. Do not open both `reporting.md` and `related-tools.md` in parallel. One
    venue, one line.
-6. Do not repeat the README's "unmaintained since October 2024" framing in the
-   docs entry. Keep it neutral.
+6. Do not repeat the README's old "unmaintained since October 2024" framing in
+   the docs entry. Keep it neutral; the legacy project resumed activity on
+   2026-11-25.
 7. Do not claim "official", "sponsored" or "recommended by Cucumber". The list
    is explicitly third-party.
 8. Do not ask for stars, upvotes or a fast review. Do not bump the PR.
