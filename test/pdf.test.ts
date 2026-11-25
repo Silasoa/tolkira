@@ -170,7 +170,7 @@ describe('renderPdf', () => {
     expect(pattern.test('http://example.com/image.png')).toBe(true);
     expect(pattern.test('data:image/png;base64,AAAA')).toBe(false);
     expect(pattern.test('file:///tmp/image.png')).toBe(false);
-    const route = { abort: vi.fn() };
+    const route = { abort: vi.fn<() => void>() };
     handler(route);
     expect(route.abort).toHaveBeenCalledTimes(1);
     expect(engine.page.route.mock.invocationCallOrder[0]).toBeLessThan(
@@ -258,8 +258,12 @@ describe('renderPdf', () => {
     vi.doMock('playwright-core', () => {
       throw new Error('not installed beside Tolkira');
     });
-    const projectRequire = vi.fn(() => ({ chromium: engine.chromium }));
-    const createRequire = vi.fn(() => projectRequire);
+    const projectRequire = vi.fn<(id: string) => unknown>(() => ({
+      chromium: engine.chromium,
+    }));
+    const createRequire = vi.fn<(path: string) => unknown>(
+      () => projectRequire,
+    );
     vi.doMock('node:module', async (importOriginal) => ({
       ...(await importOriginal<typeof import('node:module')>()),
       createRequire,
@@ -284,10 +288,12 @@ describe('renderPdf', () => {
     vi.doMock('playwright-core', () => {
       throw new Error('not installed beside Tolkira');
     });
-    const projectRequire = vi.fn(() => {
+    const projectRequire = vi.fn<(id: string) => unknown>(() => {
       throw new Error('not installed in the project');
     });
-    const createRequire = vi.fn(() => projectRequire);
+    const createRequire = vi.fn<(path: string) => unknown>(
+      () => projectRequire,
+    );
     vi.doMock('node:module', async (importOriginal) => ({
       ...(await importOriginal<typeof import('node:module')>()),
       createRequire,

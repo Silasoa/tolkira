@@ -303,10 +303,8 @@ describe('createTranslator', () => {
     expect(partial.t(otherKey as MessageKey)).toBe(
       englishCatalog[otherKey as MessageKey],
     );
-    const loose = partial.t as unknown as (
-      key: string,
-      params?: Record<string, string | number>,
-    ) => string;
+    const loose = (key: string, params?: Record<string, string | number>): string =>
+      partial.t(key as MessageKey, params);
     expect(loose('missing.key')).toBe('missing.key');
     expect(loose('constructor')).toBe('constructor');
     expect(loose('__proto__')).toBe('__proto__');
