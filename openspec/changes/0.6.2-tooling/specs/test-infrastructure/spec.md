@@ -1,4 +1,4 @@
-# Spec Delta
+﻿# Spec Delta
 
 ## ADDED Requirements
 
@@ -37,10 +37,10 @@ that program SHALL fail the gate.
 
 The gate SHALL run one lint pass with correctness rules as errors, suspicious,
 performance and pedantic rules as warnings, the import, promise, node,
-TypeScript and Vitest plugins, and type-aware rules. Only the documented
-exceptions may be off. Any finding at warning or error severity SHALL fail the
-gate. The lint configuration SHALL be asserted by a test, so turning a rule or
-category off without changing the contract fails the suite.
+TypeScript, unicorn, oxc and Vitest plugins, and type-aware rules. Only the
+documented exceptions may be off. Any finding at warning or error severity
+SHALL fail the gate. The lint configuration SHALL be asserted by a test, so
+turning a rule or category off without changing the contract fails the suite.
 
 #### Scenario: A warning fails the gate
 
@@ -61,6 +61,7 @@ category off without changing the contract fails the suite.
 - **AND** the allowed globals satisfy the underscore rule
 - **AND** the named scoped-off rules produce no finding in their files
 - **AND** the fixture casts in `test/**` do not trip the assertion rule
+- **AND** the same cast in a `src`-shaped module still fails
 
 ### Requirement: Check formatting without changing output
 

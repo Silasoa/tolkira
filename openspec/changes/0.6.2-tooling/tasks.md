@@ -1,4 +1,4 @@
-# Tasks
+﻿# Tasks
 
 ## 1. Gate
 
@@ -11,7 +11,7 @@
   `unicorn/no-useless-spread` finding from single-property spreads) and all
   accepted should-fix items are folded in. Re-check the revised contract.
 - [ ] 1.2 Re-confirm the seams and counts on the contract commit: 88 strict
-  errors in 21 files, the 62 base lint findings in 27 files, the pedantic and
+  errors in 22 files, the 62 base lint findings in 27 files, the pedantic and
   type-aware sets, the five-file browser graph and the coverage baseline. The
   formatting count is the `e5c002a` baseline of 156 tracked files; re-measure it
   after Red, when the new test file and configs exist. Confirm no runtime
@@ -19,7 +19,7 @@
   of the change, and that `tsconfig.build.json` and esbuild are untouched.
 - [ ] 1.3 Record the decisions before Red: conditional spreads instead of
   widening the public optional input types; the ternary object form where a bag
-  has one optional field; the user's 2026-11-25 maximal-sensible decision — the
+  has one optional field; the user's 2026-11-25 maximal-sensible decision â€” the
   pedantic category with the measured exclusions, type-aware rules with the
   assertion rule scoped off in `test/**`, the five extra compiler checks, and
   `noPropertyAccessFromIndexSignature`/`erasableSyntaxOnly` left off with their
@@ -47,14 +47,17 @@
   order and the exact dev-dependency pins.
 - [ ] 2.2 Add the behavioural probes in the same file, each with its positive
   control and an explicit 30 s/40 s timeout: a temporary TypeScript file that
-  violates `noUncheckedIndexedAccess` (`values[0].toUpperCase()`) fails the
-  strict program with TS18048 while a compliant copy passes (the probe config
+  violates `noUncheckedIndexedAccess` (the two-line
+  `const first = values[0]; first.toUpperCase()` form; the chained call is
+  TS2532) fails the strict program with TS18048 while a compliant copy passes
+  (the probe config
   sets `types: []`, so TS18048 is the failure and not a missing-types error); a
   temporary browser-graph module that reads `process` fails the client program
   with TS2591 while a DOM-only copy passes (temp config extends
   `tsconfig.client.json` and lists the five repo files plus the module); a
   floating promise in a temporary module fails the type-aware lint while an
-  awaited copy passes; a warning-severity `eslint/no-shadow` finding makes
+  awaited copy passes, and an awaited non-thenable fails while a thenable
+  passes; a warning-severity `eslint/no-shadow` finding makes
   `--max-warnings=0` exit non-zero while plain `oxlint` exits zero on it, and
   both exit zero on a clean copy; an unformatted source copy fails
   `prettier --check <file> --config <repo>/.prettierrc.json` while a formatted
@@ -106,36 +109,42 @@
   `localeCompare` instead of assigning to the prototype (2), and return the
   discarded code in `cli.ts` (1). Extend one existing error-path test to assert
   the wrapped error keeps its cause.
-- [ ] 3.8 Fix the pedantic findings that report a defect:
-  `unicorn/prefer-string-replace-all` (102), `unicorn/prefer-code-point` (20,
-  reviewed per site because surrogate behaviour can differ),
-  `unicorn/no-array-callback-reference` (11), `eslint/no-inner-declarations`
-  (7), `eslint/no-loop-func` (5), `unicorn/prefer-type-error` (4),
-  `eslint/no-promise-executor-return` (1), `eslint/no-redeclare` (1), `eqeqeq`
-  (1). Re-measure the remainder and record the exact count.
-- [ ] 3.9 Fix the type-aware findings: floating promises (3), `await-thenable`
-  (2), `unbound-method` (2), `no-misused-spread` (2),
-  `restrict-template-expressions` (2), `no-base-to-string` (1),
-  `consistent-return` (1), the enum comparisons and assignments (5),
-  `require-array-sort-compare` (7) and the `no-unnecessary-*` cleanups (about
-  77). Each fix keeps behaviour; a floating promise is awaited or explicitly
-  handled, never silenced.
-- [ ] 3.10 Prepend `* text=auto eol=lf` to `.gitattributes` (before the fixture
+- [ ] 3.8 Fix `unicorn/prefer-string-replace-all` (98): a global regex
+  `replace` becomes `replaceAll`, same match set. Re-measure after the group.
+- [ ] 3.9 Fix `unicorn/prefer-code-point` (20), reviewed per site because
+  surrogate-pair behaviour can differ; keep any `charCodeAt` that asserts a code
+  unit and record why.
+- [ ] 3.10 Fix the small pedantic group: `no-array-callback-reference` (11),
+  `prefer-number-coercion` (6), `no-inner-declarations` (5),
+  `prefer-type-error` (4), `no-loop-func` (4),
+  `no-object-as-default-parameter` (2), `new-for-builtins` (2),
+  `no-redeclare` (1), `no-promise-executor-return` (1) and `eqeqeq` (1). No
+  assertion is weakened; re-measure the remainder.
+- [ ] 3.11 Fix the type-aware findings: the 41 `src` `no-unsafe-type-assertion`
+  casts, floating promises (2), `await-thenable` (2), `unbound-method` (2),
+  `no-misused-spread` (2), `restrict-template-expressions` (2), the enum
+  comparisons and assignments (5) and `require-array-sort-compare` (7). Each fix
+  keeps behaviour; a floating promise is awaited or explicitly handled, never
+  silenced. Review `no-base-to-string` and `consistent-return` per site and fix
+  or record a scoped decision.
+- [ ] 3.12 Fix the `no-unnecessary-*` cleanups (about 77).
+- [ ] 3.13 Prepend `* text=auto eol=lf` to `.gitattributes` (before the fixture
   lines, so their attributes keep precedence) and renormalize the six tracked
   files with CRLF or mixed index endings: five archived OpenSpec files and
-  `docs/adr/0007-optional-pdf-engine.md` (line-ending-only commit). Then add
-  `.prettierrc.json` (single quotes, width 80), `.prettierignore` with the full
-  scope, pin Prettier 3.10.1 and add `format:check`/`format`. Put `format:check`
-  in `check` before `build`. Land the config, scripts, the `format:check`
-  wiring and the formatted tree in one commit, so the gate is green at every
-  commit; rebuild assets, and prove generated sources, both report CSS files,
-  fixtures and goldens are unchanged; render the legacy and Messages fixtures
-  before and after and compare bytes.
-- [ ] 3.11 Add `@vitest/coverage-v8` exactly 5.1.1, remove `passWithNoTests`,
+  `docs/adr/0007-optional-pdf-engine.md` (line-ending-only commit).
+- [ ] 3.14 Add `.prettierrc.json` (single quotes, width 80), `.prettierignore`
+  with the full scope, pin Prettier 3.10.1 and add `format:check`/`format`; put
+  `format:check` in `check` before `build`. Do not commit the config alone.
+- [ ] 3.15 Format the re-measured tracked files and land the config, scripts, the
+  `format:check` wiring and the formatted tree in one commit, so the gate is
+  green at every commit. Rebuild assets, prove generated sources, both report
+  CSS files, fixtures and goldens are unchanged, and render the legacy and
+  Messages fixtures before and after to compare bytes.
+- [ ] 3.16 Add `@vitest/coverage-v8` exactly 5.1.1, remove `passWithNoTests`,
   add the coverage scope/exclude/thresholds and `test:coverage`, and put it last
   in `check`. Prove an empty test selection fails and the measured suite passes
   the floor.
-- [ ] 3.12 Docs: `docs/CHANGELOG.md` (tooling only, no runtime change, the
+- [ ] 3.17 Docs: `docs/CHANGELOG.md` (tooling only, no runtime change, the
   dev-only dependencies, the public input declarations unchanged, the internal
   `options.d.ts` diff, the `cause` effect), `docs/ARCHITECTURE.md` (gate
   composition, the two typecheck programs, the maximal lint set and the LF

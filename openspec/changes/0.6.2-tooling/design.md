@@ -1,4 +1,4 @@
-# Design
+﻿# Design
 
 ## Context
 
@@ -35,7 +35,7 @@ workflow call. The change adds work inside it, so no workflow file changes.
 
 ## Decisions
 
-### 1. Strict flags without widening the public types
+### 1. The maximal strict flags without widening the public types
 
 Enable the six flags in `tsconfig.json` and fix the 86 errors by class. On the
 user's 2026-11-25 decision the set grows to every sensible compiler check, so
@@ -44,7 +44,8 @@ five more are added: `noUncheckedSideEffectImports`,
 `allowUnusedLabels: false` and `isolatedModules`. Measured on the same tree:
 0, 0, 2, 0 and 0 errors. The two `allowUnreachableCode` hits are dead `break`
 statements after the `never`-returning `invalidJson()` in `src/input/load.ts`
-(182, 238); both are removed. The total is 88 errors in 21 files.
+(182, 238); both are removed. The total is 88 errors in 22 files (10 `src`,
+12 `test`); `load.ts` is the tenth source file.
 
 | Class | Count | Rule |
 | --- | --- | --- |
@@ -81,8 +82,8 @@ The proof in task 3.3 is scoped to that.
 Two compiler checks stay off, each with a measured reason:
 
 - `noPropertyAccessFromIndexSignature`: 364 findings, all bracket-access
-  rewrites. It is purely syntactic — under `noUncheckedIndexedAccess` the type
-  is already `T | undefined` either way — so it buys consistency, not safety,
+  rewrites. It is purely syntactic â€” under `noUncheckedIndexedAccess` the type
+  is already `T | undefined` either way â€” so it buys consistency, not safety,
   at the cost of the JSON-heavy readers.
 - `erasableSyntaxOnly`: two sites, both deliberate (a parameter property in
   `src/stream.ts` and the `export =` namespace in the public CJS compatibility
@@ -124,11 +125,29 @@ On the user's 2026-11-25 decision the lint set is the maximal one that reports
 defects rather than preference. Extend the scaffolded `.oxlintrc.json` at the
 repo root; keep its existing `ignorePatterns` (`dist/**`, `node_modules/**`,
 `playwright-report/**`, `test-results/**`, `.opencode/**`) and add `coverage/**`
-and `.openchamber/**`, so the gate does not lint its own output. Measured with
-every non-nursery category on, the tree yields 31,605 findings; most are
-preference rules (`one-var` 4,965, `no-magic-numbers` 4,823, `sort-keys`
-2,184), which is why the set is curated by category and documented exception
-instead of "all":
+and `.openchamber/**`, so the gate does not lint its own output. Measured on the
+tracked tree at `6258711` (before the Red file) on 2026-11-25, with a temporary
+config:
+
+| Stage | Findings |
+| --- | --- |
+| Every non-nursery category | 30,905 |
+| Pedantic over the base categories | 3,063 |
+| After the documented exclusions and config | 217 |
+| â€” of which the base fixes | 62 |
+| â€” of which the pedantic fixes | 155 |
+| Type-aware over the base categories | 330 |
+| â€” assertion casts scoped off in `test/**` | 187 |
+| â€” fixed: 41 `src` assertion casts plus 102 other | 143 |
+| Pedantic type-aware rules excluded (see below) | 3,262 |
+
+Most of the 30,905 are preference rules (`one-var` 4,965,
+`no-magic-numbers` 4,823, `sort-keys` 2,184), which is why the set is curated by
+category and documented exception instead of "all". Task 1.2 re-measures after
+Red; the new test file must be lint-clean under the final config and changes
+some rule counts (`no-conditional-in-test` 363 â†’ 382).
+
+The config:
 
 - plugins `typescript`, `unicorn`, `oxc`, `import`, `promise`, `node`,
   `vitest`; categories correctness `error`, suspicious, perf and pedantic
@@ -137,20 +156,21 @@ instead of "all":
 - `vitest/valid-expect` with `maxArgs: 2`; `vitest/expect-expect` with the five
   local assertion names; `eslint/no-underscore-dangle` allowing the two probe
   globals; `typescript/no-unsafe-type-assertion` off in `test/**` only, because
-  the fixtures build malformed inputs with deliberate casts (228 of the 330
-  type-aware findings);
+  the suite builds malformed inputs with deliberate casts (187 of the 330
+  type-aware findings). The 41 `src` casts are fixed; a probe proves the same
+  cast fails in a `src`-shaped module, so the scope is the tests and not the
+  rule;
 - off globally as threshold rules with no defect signal: `max-lines` (76),
-  `max-lines-per-function` (304), `max-depth` (17), `max-statements` and
-  `max-dependencies` (16);
+  `max-lines-per-function` (304), `max-depth` (17), `max-statements` (0) and
+  `max-dependencies` (16; `import/max-dependencies`);
 - off globally as preference or modernization without a defect signal:
-  `require-unicode-regexp` (956; every pattern would need its own Unicode
-  review and the internal patterns are ASCII — revisit on a Unicode defect),
-  `escape-case` (109), `no-useless-undefined` (77), `no-negated-condition` (32),
-  `prefer-dom-node-dataset` (28), `explicit-length-check` (27),
-  `prefer-query-selector` (20), `prefer-single-call` (11),
-  `prefer-number-coercion` (6), `prefer-top-level-await` (4), `prefer-at` (3),
-  `no-hex-escape` (3), `new-for-builtins` (2),
-  `no-object-as-default-parameter` (2), `prefer-import-meta-properties` (1);
+  `require-unicode-regexp` (956, 118 of them in `src`; every pattern would need
+  its own Unicode review â€” revisit on a Unicode defect), `escape-case` (109),
+  `no-useless-undefined` (77), `no-negated-condition` (32),
+  `explicit-length-check` (22), `prefer-dom-node-dataset` (14),
+  `prefer-query-selector` (12), `prefer-single-call` (11),
+  `prefer-top-level-await` (4), `prefer-at` (3), `no-hex-escape` (3),
+  `prefer-dom-node-append` (1), `prefer-import-meta-properties` (1);
 - off globally as deliberate design: `no-await-in-loop` (355; sequential input
   loading and ordered Playwright steps, where `Promise.all` would change
   ordering, peak memory and error precedence), `no-conditional-in-test` (363;
@@ -162,32 +182,54 @@ instead of "all":
   `oxc/no-map-spread` (8; cold paths, clearest form),
   `unicorn/prefer-set-has` (1; false positive, the value is a string);
 - per-file off: `promise/no-callback-in-promise` in `src/stream.ts` and
-  `src/compat/cucumber-html-reporter.ts` (Node callback contract);
+  `src/compat/cucumber-html-reporter.ts` (4; Node callback contract);
   `eslint/no-shadow` in `src/compat/cucumber-html-reporter.cts` (the public CJS
-  type names the `export =` namespace must redeclare).
+  type names the `export =` namespace must redeclare);
+- off as pedantic type-aware rules that report preference or would require
+  typing the whole JSON pipeline (3,262): `typescript/prefer-readonly-parameter-types`
+  (1,850; every parameter readonly is not a defect signal and breaks mutable
+  APIs), `typescript/strict-boolean-expressions` (372; forces explicit
+  comparisons everywhere), `typescript/no-unsafe-member-access` (360),
+  `typescript/no-unsafe-assignment` (272), `typescript/no-unsafe-call` (269),
+  `typescript/no-unsafe-return` (44), `typescript/no-unsafe-argument` (36) â€”
+  together the `no-unsafe-*` family (981) is the "type the whole JSON pipeline"
+  change, not a lint-gate fix; `typescript/prefer-nullish-coalescing` (21),
+  `typescript/no-confusing-void-expression` (20) and 18 smaller
+  preference rules.
 
 Fix the 62 base findings as before: rename 19 shadowed bindings, add
 `vi.fn<...>` type arguments (21), add `{ cause }` (11), add a stable throw
 message to 8 assertions, spy on `localeCompare` instead of assigning to the
-prototype (2), and return the discarded code in `cli.ts` (1). Then fix the
-pedantic remainder that reports a defect: `unicorn/prefer-string-replace-all`
-(102), `unicorn/prefer-code-point` (20; surrogate-pair correctness),
-`unicorn/no-array-callback-reference` (11), `eslint/no-inner-declarations` (7),
-`eslint/no-loop-func` (5), `unicorn/prefer-type-error` (4),
-`eslint/no-promise-executor-return` (1), `eslint/no-redeclare` (1), `eqeqeq`
-(1). Finally fix the type-aware findings other than the scoped assertion rule:
-`no-floating-promises` (3), `await-thenable` (2), `unbound-method` (2),
-`no-misused-spread` (2), `restrict-template-expressions` (2),
-`no-base-to-string` (1), `consistent-return` (1), the enum comparisons and
-assignments (5), `require-array-sort-compare` (7) and the `no-unnecessary-*`
-cleanups (about 77).
+prototype (2), and return the discarded code in `cli.ts` (1). Then fix the 155
+pedantic findings: `unicorn/prefer-string-replace-all` (98),
+`unicorn/prefer-code-point` (20; surrogate-pair correctness),
+`unicorn/no-array-callback-reference` (11),
+`unicorn/prefer-number-coercion` (6), `eslint/no-inner-declarations` (5),
+`unicorn/prefer-type-error` (4), `eslint/no-loop-func` (4),
+`unicorn/no-object-as-default-parameter` (2; shared mutable defaults),
+`unicorn/new-for-builtins` (2), `eslint/no-redeclare` (1),
+`eslint/no-promise-executor-return` (1) and `eqeqeq` (1). Finally fix the 143
+type-aware findings: the 41 `src` `no-unsafe-type-assertion` casts, then
+`typescript/no-floating-promises` (2), `typescript/await-thenable` (2),
+`typescript/unbound-method` (2), `typescript/no-misused-spread` (2),
+`typescript/restrict-template-expressions` (2), the enum comparisons and
+assignments (5), `typescript/require-array-sort-compare` (7) and the
+`typescript/no-unnecessary-*` cleanups (about 77). `no-base-to-string` and
+`consistent-return` are suspected false positives in the inventory; review each
+site and either fix it with a behaviour proof or record a scoped decision, never
+a silent silence.
 
 Script: `oxlint --type-aware --max-warnings=0 .`. Pin `oxlint` to `1.94.0` and
 `oxlint-tsgolint` to `7.0.2008` exactly, so a new minor cannot add rules or
-warnings to the gate without a deliberate bump. The type-aware pass adds 1.9 s.
+warnings to the gate without a deliberate bump. The type-aware pass measured
+2.45 s on the maximal set; the gate-time record uses the final config.
 `test/tooling-config.test.ts` asserts the categories, the scoped override and
-every exclusion, so a silent weakening of the gate fails the suite and needs a
-reviewed contract change.
+every exclusion, so a silent weakening of the gate fails the suite. The test is
+a tripwire, not a lock: an agent that edits the config and the test together
+still changes behaviour, so SCR/CR review the diff against this contract and the
+spec. `skipLibCheck` stays on because it only skips dependency declarations
+(speed, not own-code safety); the ten `.mjs` scripts run outside the TypeScript
+program and are a named boundary, typechecking them is a separate change.
 
 ### 4. Formatting scope
 
@@ -259,7 +301,8 @@ the coverage floor. `ci.yml` and `release.yml` need no edit: every check job
 already runs `npm run check`.
 
 The tooling steps add nine to twelve seconds: the typecheck passes, the
-type-aware lint pass (+1.9 s) and the formatter. The new probe test file adds
+type-aware lint pass (2.45 s on the maximal set) and the formatter. The new
+probe test file adds
 four to six on top; its spawns get explicit 30 s/40 s timeouts so a cold Windows
 CI does not hit the default 5 s test timeout. Gate time is recorded as tooling
 steps and probe file separately, and the base rule that investigates a >20 %
@@ -296,7 +339,7 @@ version, tag, stage and publish wait for the user's approval.
 | Rebuilding `dist` after formatting changes non-minified whitespace. | Accepted and recorded; report bytes, behaviour, API and shipped file list are unchanged. |
 | The internal `options.d.ts` return shape changes. | Not exported from the package entry; the public entry, compat declarations and input interfaces are proven unchanged. |
 | Pinning `oxlint` exactly delays rule updates. | Deliberate: a new rule set is a reviewed bump commit, the same policy as Prettier. |
-| `oxlint-tsgolint` adds a per-platform binary and 330 findings, 228 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 102 real fixes are part of the change. |
+| `oxlint-tsgolint` adds a per-platform binary and 330 findings, 187 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 143 real fixes are part of the change. |
 | The pedantic and type-aware fixes touch tests mechanically. | Each rule group is its own task and commit; `prefer-code-point` is reviewed per site because surrogate behaviour can differ; assertions are not weakened. |
 | `preserve-caught-error` adds a `cause` property. | Internal only; messages and stderr are unchanged and no consumer reads error keys. |
 | Removing `passWithNoTests` breaks an ad-hoc mistyped `vitest run`. | Intended; every package script names a real file or the full glob. |
@@ -314,8 +357,10 @@ version, tag, stage and publish wait for the user's approval.
   coverage provider/scope/thresholds, the removed `passWithNoTests`, the `check`
   order and the exact dev-dependency pins.
 - Behavioural probes, each with a positive control: a temporary TypeScript file
-  that violates `noUncheckedIndexedAccess` (`values[0].toUpperCase()` yields
-  TS18048) fails the strict program while a compliant copy passes (the probe
+  that violates `noUncheckedIndexedAccess` (the two-line form
+  `const first = values[0]; first.toUpperCase()` yields TS18048; the chained
+  call yields TS2532 on TypeScript 7) fails the strict program while a compliant
+  copy passes (the probe
   config sets `types: []` and the assertion names TS18048, so it cannot pass for
   the wrong reason); a temporary browser-graph module that reads `process`
   fails the client program while a DOM-only copy passes (temp config lists the
@@ -346,8 +391,12 @@ version, tag, stage and publish wait for the user's approval.
 
 ## Open questions
 
-1. **Contract approval.** The B-055 package was approved on 2026-11-24. This
-   contract adds no scope beyond it; the one decision that reverses the
-   research recommendation (conditional spreads instead of widening the public
-   optional types) keeps the approved "no public API change" rule. No product
+1. **Contract approval.** The B-055 package was approved on 2026-11-24. The
+   user's 2026-11-25 decision extends it to the maximal sensible strictness:
+   five more compiler checks, the pedantic category, type-aware rules and the
+   measured exclusions above. Two decisions reverse earlier research
+   recommendations: conditional spreads instead of widening the public optional
+   types (keeps the approved "no public API change" rule), and type-aware
+   adoption where the research had recommended against it (the cost is the
+   pinned dev-only binary and the 3,262 excluded preference rules). No product
    question is open.
