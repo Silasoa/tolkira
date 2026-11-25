@@ -4,6 +4,16 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
     environment: 'node',
-    passWithNoTests: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/render/report-client.ts'],
+      thresholds: {
+        statements: 93,
+        branches: 86,
+        functions: 95,
+        lines: 95,
+      },
+    },
   },
 });
