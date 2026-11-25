@@ -36,7 +36,9 @@ export function isFeatureLike(value: unknown): boolean {
 }
 
 type LegacySniff =
-  { kind: 'legacy'; parsed: unknown[] } | { kind: 'malformed' } | undefined;
+  | { kind: 'legacy'; parsed: unknown[] }
+  | { kind: 'malformed' }
+  | undefined;
 
 function sniffLegacy(content: string): LegacySniff {
   const trimmed = content.replace(/^\uFEFF/, '').trimStart();

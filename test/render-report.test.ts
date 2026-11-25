@@ -397,7 +397,8 @@ describe('messages rendering', () => {
       .split(/\r?\n/)
       .map((line) => JSON.parse(line) as Record<string, unknown>);
     const attachment = lines.find((line) => line.attachment)?.attachment as
-      Record<string, unknown> | undefined;
+      | Record<string, unknown>
+      | undefined;
     if (attachment) {
       attachment.fileName = '<img src=x onerror=alert(4)>.png';
     }

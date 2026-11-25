@@ -25,7 +25,10 @@ const FAILING = new Set<SummaryStatus>(['failed', 'undefined', 'ambiguous']);
 const PROTO_KEYS = ['__proto__', 'constructor', 'prototype'] as const;
 
 export type BaselineChange =
-  'new-failure' | 'fixed' | 'still-failing' | 'added';
+  | 'new-failure'
+  | 'fixed'
+  | 'still-failing'
+  | 'added';
 
 /** One validated baseline row; only identity, status and execution are trusted. */
 export interface BaselineScenario {

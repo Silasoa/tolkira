@@ -40,6 +40,14 @@ interface LintConfig {
   ignorePatterns?: string[];
 }
 
+interface FormatConfig {
+  printWidth?: number;
+  singleQuote?: boolean;
+  sortImports?: boolean;
+  sortPackageJson?: boolean;
+  ignorePatterns?: string[];
+}
+
 interface RunResult {
   status: number | null;
   stdout: string;
@@ -248,7 +256,8 @@ describe('curated lint', () => {
     const rules = readJson<LintConfig>('.oxlintrc.json').rules ?? {};
     expect(rules['vitest/valid-expect']).toEqual(['error', { maxArgs: 2 }]);
     const expectExpect = rules['vitest/expect-expect'] as
-      [string, { assertFunctionNames?: string[] }] | undefined;
+      | [string, { assertFunctionNames?: string[] }]
+      | undefined;
     expect(expectExpect?.[0]).toBe('error');
     expect([...(expectExpect?.[1]?.assertFunctionNames ?? [])].sort()).toEqual([
       'expect',
@@ -258,7 +267,8 @@ describe('curated lint', () => {
       'validatePair',
     ]);
     const underscore = rules['eslint/no-underscore-dangle'] as
-      [string, { allow?: string[] }] | undefined;
+      | [string, { allow?: string[] }]
+      | undefined;
     expect(underscore?.[0]).toBe('warn');
     expect([...(underscore?.[1]?.allow ?? [])].sort()).toEqual([
       '__tolkiraCopied',
@@ -423,17 +433,16 @@ describe('lint suppressions', () => {
 
 describe('format gate', () => {
   it('pins the formatter style', () => {
-    const config = readJson<Record<string, unknown>>('.prettierrc.json');
-    expect(config['singleQuote']).toBe(true);
-    expect(config['printWidth']).toBe(80);
+    const config = readJson<FormatConfig>('.oxfmtrc.json');
+    expect(config.printWidth).toBe(80);
+    expect(config.singleQuote).toBe(true);
+    expect(config.sortImports).toBe(false);
+    expect(config.sortPackageJson).toBe(false);
   });
 
-  it('ignores generated, golden and tool output', () => {
-    const entries = readText('.prettierignore')
-      .split(/\r?\n/)
-      .map((entry) => entry.trim().replace(/\/$/, ''))
-      .filter((entry) => entry.length > 0);
-    for (const entry of [
+  it('ignores exactly the generated, golden and tool output', () => {
+    const config = readJson<FormatConfig>('.oxfmtrc.json');
+    expect(config.ignorePatterns).toEqual([
       'node_modules',
       'dist',
       'coverage',
@@ -459,9 +468,7 @@ describe('format gate', () => {
       'src/render/report.css',
       'src/render/baseline.css',
       '*.md',
-    ]) {
-      expect(entries).toContain(entry);
-    }
+    ]);
   });
 
   it('enforces LF checkout with fixture precedence', () => {
@@ -480,8 +487,8 @@ describe('format gate', () => {
 
   it('exposes format:check and format scripts', () => {
     const scripts = readJson<PackageJson>('package.json').scripts ?? {};
-    expect(scripts['format:check']).toBe('prettier --check .');
-    expect(scripts['format']).toBe('prettier --write .');
+    expect(scripts['format:check']).toBe('oxfmt --check');
+    expect(scripts['format']).toBe('oxfmt');
   });
 
   it('runs the exact check steps in order', () => {
@@ -535,18 +542,19 @@ describe('coverage floor', () => {
 });
 
 describe('dev dependency pins', () => {
-  it('pins oxlint, prettier and the coverage provider exactly', () => {
+  it('pins oxlint, oxfmt and the coverage provider exactly', () => {
     const devDependencies =
       readJson<PackageJson>('package.json').devDependencies ?? {};
     const pins = [
       ['oxlint', '1.94.0'],
       ['oxlint-tsgolint', '7.0.2008'],
-      ['prettier', '3.10.1'],
+      ['oxfmt', '0.80.0'],
       ['@vitest/coverage-v8', '5.1.1'],
     ] as const;
     for (const [name, version] of pins) {
       expect(devDependencies[name], name).toBe(version);
     }
+    expect(devDependencies).not.toHaveProperty('prettier');
   });
 });
 
@@ -868,10 +876,12 @@ describe('format check probe', () => {
         'utf8',
       );
 
-      const prettier = packageBin('prettier');
-      const config = path.join(repoRoot, '.prettierrc.json');
+      // Oxfmt accepts probe files outside the config directory, so the repo
+      // config is used directly.
+      const oxfmt = packageBin('oxfmt');
+      const config = path.join(repoRoot, '.oxfmtrc.json');
       const check = (file: string): RunResult =>
-        run(prettier, ['--check', file, '--config', config], directory);
+        run(oxfmt, ['--check', file, '-c', config], directory);
 
       const bad = check(unformatted);
       expect(bad.error).toBeUndefined();
