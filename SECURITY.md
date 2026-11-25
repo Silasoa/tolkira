@@ -67,9 +67,9 @@ replaces absolute local paths in Playwright error text with a relative path or
 basename (`docs/PLAYWRIGHT-JSON.md`). A Cucumber failure stack reaches the HTML
 error block and `data-search`, the `--json` step message, CI Markdown and the
 copied failure text; a Spring Boot `system-out` line reaches the HTML attachment
-body and its copy button. Neither is in the `--json` summary or CI Markdown,
-which carry attachment counts only. Review a report before it leaves the
-machine or workspace that produced it.
+body and its copy button. The attachment body and its copy button are not in
+the `--json` summary or CI Markdown, which carry attachment counts only. Review
+a report before it leaves the machine or workspace that produced it.
 
 Tolkira does not send telemetry and does not make network requests. A report
 should remain fully offline.

@@ -983,11 +983,12 @@ that is only a home directory (`/home/<user>`, `/mnt/c/Users/<user>`) shows an
 empty display URI. For these plain and single-encoded forms, a local user name
 does not appear in the HTML display URI, the summary `uri` or copied failure
 text. The home comparison decodes once: a double-encoded segment such as
-`%2568ome` is not treated as home, and a parent segment that cancels the home
-root or a Windows-canonicalised home name can keep a name-like segment, so
-those forms are outside the no-user-name guarantee (B-067). Relative URIs are
-unchanged and keep the existing `/features/` marker and last-three fallback; a
-relative path that starts with a home segment is outside this rule.
+`%2568ome` is not treated as home, and an encoded authority, an adjacent
+`home/home` pair, a parent segment that cancels the home root or a
+Windows-canonicalised home name can keep a name-like segment, so those forms
+are outside the no-user-name guarantee (B-067). Relative URIs are unchanged and
+keep the existing `/features/` marker and last-three fallback; a relative path
+that starts with a home segment is outside this rule.
 
 The legacy adapter normalises a URI before the summary sees it. For an absolute
 path or file URL it applies the same analysis and `/features/` marker, but an
