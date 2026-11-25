@@ -199,7 +199,7 @@ function ansiToHtml(text: string, colorize: boolean): string {
 
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index] ?? '';
-    const code = text.charCodeAt(index);
+    const code = text.codePointAt(index) ?? 0;
     if (isEscapeIntroducer(code)) {
       const scan = scanEscape(text, index);
       if (scan.sgr !== undefined) {

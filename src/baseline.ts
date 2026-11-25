@@ -220,7 +220,7 @@ function parseScenario(
  */
 export async function readBaseline(file: string): Promise<BaselineSummary> {
   let text = await readText(file);
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  if (text.codePointAt(0) === 0xfeff) text = text.slice(1);
 
   let document: unknown;
   try {

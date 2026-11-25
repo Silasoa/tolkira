@@ -56,7 +56,7 @@ function numberFormat(locale: string): Intl.NumberFormat {
 // Locale tags can come from argv or an API caller; keep error output on one
 // line and free of terminal control sequences.
 const ANSI_ESCAPE = new RegExp(
-  `${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`,
+  `${String.fromCodePoint(27)}\\[[0-?]*[ -/]*[@-~]`,
   'g',
 );
 
@@ -303,7 +303,7 @@ function escapeJson(json: string): string {
   return json.replaceAll(
     /[<>&\u2028\u2029]/g,
     (character) =>
-      `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+      `\\u${(character.codePointAt(0) ?? 0).toString(16).padStart(4, '0')}`,
   );
 }
 

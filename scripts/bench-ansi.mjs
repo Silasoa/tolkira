@@ -91,7 +91,7 @@ function makeReferences({ scanEscape, isEscapeIntroducer }) {
     let output = '';
     let chunkStart = 0;
     for (let index = 0; index < text.length; index += 1) {
-      const code = text.charCodeAt(index);
+      const code = text.codePointAt(index) ?? 0;
       const escape = isEscapeIntroducer(code);
       if (escape || isControl(code)) {
         if (index > chunkStart) output += text.slice(chunkStart, index);
@@ -106,7 +106,7 @@ function makeReferences({ scanEscape, isEscapeIntroducer }) {
   function stripAnsiCharAppend(text) {
     let output = '';
     for (let index = 0; index < text.length; index += 1) {
-      const code = text.charCodeAt(index);
+      const code = text.codePointAt(index) ?? 0;
       if (isEscapeIntroducer(code)) {
         index = scanEscape(text, index).end - 1;
       } else if (!isControl(code)) {

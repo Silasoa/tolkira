@@ -317,6 +317,9 @@ function parsePdfCMap(text: string): PdfCMap {
       const end = parseInt(match[2] ?? '', 16);
       const target = parseInt(match[3] ?? '', 16);
       for (let code = start; code <= end && code - start < 65536; code += 1) {
+        // PDF CMaps map UTF-16 code units; a surrogate pair arrives as two
+        // separate consecutive targets, so a code-point conversion is wrong.
+        // oxlint-disable-next-line unicorn/prefer-code-point
         map.set(code, String.fromCharCode(target + (code - start)));
       }
     }

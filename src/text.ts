@@ -23,10 +23,18 @@ export function oneLine(value: string): string {
 // `start` is ESC + '[' or a single C1 CSI byte.
 function csiEnd(text: string, start: number): number {
   let index = start + 1;
-  while (index < text.length && text.charCodeAt(index) >= 0x30 && text.charCodeAt(index) <= 0x3f) {
+  while (
+    index < text.length &&
+    (text.codePointAt(index) ?? 0) >= 0x30 &&
+    (text.codePointAt(index) ?? 0) <= 0x3f
+  ) {
     index += 1;
   }
-  while (index < text.length && text.charCodeAt(index) >= 0x20 && text.charCodeAt(index) <= 0x2f) {
+  while (
+    index < text.length &&
+    (text.codePointAt(index) ?? 0) >= 0x20 &&
+    (text.codePointAt(index) ?? 0) <= 0x2f
+  ) {
     index += 1;
   }
   return index < text.length ? index + 1 : index;
@@ -64,7 +72,7 @@ export function isEscapeIntroducer(code: number): boolean {
 // OSC, DCS, APC, PM and SOS, all terminated by ST, plus two-byte designators
 // with intermediates.
 export function scanEscape(text: string, start: number): EscapeScan {
-  const first = text.charCodeAt(start);
+  const first = text.codePointAt(start) ?? 0;
 
   if (first === 0x9b) {
     const end = csiEnd(text, start);
@@ -107,15 +115,15 @@ export function scanEscape(text: string, start: number): EscapeScan {
   let end = index;
   while (
     end < text.length &&
-    text.charCodeAt(end) >= 0x20 &&
-    text.charCodeAt(end) <= 0x2f
+    (text.codePointAt(end) ?? 0) >= 0x20 &&
+    (text.codePointAt(end) ?? 0) <= 0x2f
   ) {
     end += 1;
   }
   if (
     end < text.length &&
-    text.charCodeAt(end) >= 0x30 &&
-    text.charCodeAt(end) <= 0x7e
+    (text.codePointAt(end) ?? 0) >= 0x30 &&
+    (text.codePointAt(end) ?? 0) <= 0x7e
   ) {
     end += 1;
   }
@@ -145,7 +153,7 @@ export function stripAnsi(text: string): string {
   let output = '';
   let chunkStart = 0;
   for (let index = 0; index < text.length; index += 1) {
-    const code = text.charCodeAt(index);
+    const code = text.codePointAt(index) ?? 0;
     const escape = isEscapeIntroducer(code);
     if (escape || isControl(code)) {
       if (index > chunkStart) output += text.slice(chunkStart, index);

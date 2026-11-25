@@ -333,7 +333,7 @@ async function readSidecar(
     }
     const text = await readBounded(handle, info.size);
     // Exactly one leading UTF-8 BOM, as the baseline reader does.
-    return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+    return text.codePointAt(0) === 0xfeff ? text.slice(1) : text;
   } finally {
     await handle.close().catch(() => undefined);
   }

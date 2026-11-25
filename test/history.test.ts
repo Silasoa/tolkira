@@ -643,7 +643,7 @@ describe('reading a BOM-prefixed history sidecar', () => {
     const plainBytes = await readFile(plain, 'utf8');
     const bomBytes = await readFile(bom, 'utf8');
     expect(bomBytes).toBe(plainBytes);
-    expect(bomBytes.charCodeAt(0)).toBe('{'.charCodeAt(0));
+    expect(bomBytes.codePointAt(0)).toBe('{'.codePointAt(0));
     expect(bomBytes).not.toContain('\uFEFF');
     expect(JSON.parse(bomBytes)).toMatchObject({ schemaVersion: 2 });
     const written = JSON.parse(bomBytes) as { runs: HistoryRun[] };
