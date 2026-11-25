@@ -15,7 +15,7 @@ export class CucumberHtmlStream extends Transform {
     super({ objectMode: true });
   }
 
-  _transform(
+  override _transform(
     envelope: Envelope,
     _encoding: BufferEncoding,
     callback: TransformCallback,
@@ -24,7 +24,7 @@ export class CucumberHtmlStream extends Transform {
     callback();
   }
 
-  _flush(callback: TransformCallback): void {
+  override _flush(callback: TransformCallback): void {
     renderHtml(this.envelopes, {
       ...renderOptions(this.options),
       ...(this.options.history === undefined

@@ -498,19 +498,26 @@ function stepArgument(legacyStep: LegacyStep): {
       typeof legacyStep.docString === 'string'
         ? { content: legacyStep.docString }
         : legacyStep.docString;
+    const line = docString.line ?? legacyStep.line;
     return {
       content: docString.content ?? docString.value ?? '',
-      line: docString.line ?? legacyStep.line,
+      ...(line === undefined ? {} : { line }),
     };
   }
 
   if (legacyStep.text !== undefined) {
-    return { content: normalizeText(legacyStep.text), line: legacyStep.line };
+    return {
+      content: normalizeText(legacyStep.text),
+      ...(legacyStep.line === undefined ? {} : { line: legacyStep.line }),
+    };
   }
 
   const rows = tableRows(legacyStep.rows ?? legacyStep.table);
   if (rows !== undefined) {
-    return { rows, line: legacyStep.line };
+    return {
+      rows,
+      ...(legacyStep.line === undefined ? {} : { line: legacyStep.line }),
+    };
   }
 
   return {};

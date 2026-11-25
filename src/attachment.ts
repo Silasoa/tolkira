@@ -42,6 +42,12 @@ interface MediaTypeInfo {
   textFormat: AttachmentTextFormat;
 }
 
+const DEFAULT_MEDIA_TYPE: MediaTypeInfo = {
+  extension: 'bin',
+  kind: 'binary',
+  textFormat: 'plain',
+};
+
 const MEDIA_TYPES: Record<string, MediaTypeInfo> = {
   'application/json': { extension: 'json', kind: 'text', textFormat: 'json' },
   'application/octet-stream': { extension: 'bin', kind: 'binary', textFormat: 'plain' },
@@ -103,8 +109,7 @@ export function attachmentMetadata(
   const mediaType = safeMediaType(
     attachment.mediaType || 'application/octet-stream',
   );
-  const info =
-    MEDIA_TYPES[mediaType] ?? MEDIA_TYPES['application/octet-stream'];
+  const info = MEDIA_TYPES[mediaType] ?? DEFAULT_MEDIA_TYPE;
   return {
     mediaType,
     kind: info.kind,

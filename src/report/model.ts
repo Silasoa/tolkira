@@ -374,8 +374,10 @@ function toAttachment(attachment: Attachment): ReportAttachment {
       kind,
       textFormat,
       bytes,
-      text: kind === 'text' ? decoded : undefined,
-      dataUri: kind === 'binary' ? `data:${mediaType};base64,${body}` : undefined,
+      ...(kind === 'text' ? { text: decoded } : {}),
+      ...(kind === 'binary'
+        ? { dataUri: `data:${mediaType};base64,${body}` }
+        : {}),
     };
   }
 
@@ -476,17 +478,19 @@ export function buildReportModel(
   for (const envelope of envelopes) {
     if (envelope.meta) {
       const { implementation, runtime, os, cpu, protocolVersion } = envelope.meta;
-      source = productLabel(implementation) ?? 'Cucumber';
+      const implementationLabel = productLabel(implementation);
+      const runtimeLabel = productLabel(runtime);
+      const osLabel = productLabel(os);
+      const cpuLabel = productLabel(cpu);
+      source = implementationLabel ?? 'Cucumber';
       // The first non-empty CI block wins; later or legacy-synthesized meta
       // must not erase it.
       const ci = environment?.ci ?? ciFromMeta(envelope.meta.ci);
       const next: ReportEnvironment = {
-        ...(implementation && productLabel(implementation)
-          ? { producer: productLabel(implementation) }
-          : {}),
-        ...(runtime && productLabel(runtime) ? { runtime: productLabel(runtime) } : {}),
-        ...(os && productLabel(os) ? { os: productLabel(os) } : {}),
-        ...(cpu && productLabel(cpu) ? { cpu: productLabel(cpu) } : {}),
+        ...(implementationLabel ? { producer: implementationLabel } : {}),
+        ...(runtimeLabel ? { runtime: runtimeLabel } : {}),
+        ...(osLabel ? { os: osLabel } : {}),
+        ...(cpuLabel ? { cpu: cpuLabel } : {}),
         ...(protocolVersion ? { protocol: protocolVersion } : {}),
         ...(ci ? { ci } : {}),
       };
@@ -764,6 +768,7 @@ export function buildReportModel(
     );
     const skippedAttachmentEntries = skippedAttachmentEntriesOf(latest);
     const earlier = earlierAttemptsFor(pickle.id, latest);
+    const startedAt = timestampIso(latest.timestamp);
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
@@ -780,7 +785,7 @@ export function buildReportModel(
       executed,
       durationMs: finiteDuration(duration),
       attempt: Number.isFinite(latest.attempt) ? latest.attempt : 0,
-      ...(timestampIso(latest.timestamp) ? { startedAt: timestampIso(latest.timestamp) } : {}),
+      ...(startedAt ? { startedAt } : {}),
       ownTags: outlineExample
         ? (outlineExample.examples.tags ?? []).map((tag) => tag.name)
         : tree

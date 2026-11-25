@@ -93,7 +93,7 @@ async function planSidecar(
   const index = parsed.findIndex(({ file }) => samePath(file, sidecar));
   let selected = parsed;
   if (index !== -1) {
-    const candidate = parsed[index];
+    const candidate = parsed[index]!;
     const others = parsed.filter((_, position) => position !== index);
     if (!isPreviousSidecar(candidate, others)) {
       throw collisionError(sidecar, candidate.file);

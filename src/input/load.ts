@@ -179,7 +179,6 @@ export async function loadResolvedInputs(
             break;
           case 'json-validation':
             invalidJson(content, input.file);
-            break;
         }
       }
       continue;
@@ -235,7 +234,6 @@ export async function loadResolvedInputs(
         break;
       case 'json-validation':
         invalidJson(content, input.file);
-        break;
     }
 
     groups.push({

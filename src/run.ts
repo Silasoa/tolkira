@@ -81,7 +81,7 @@ async function loadRun(
     ),
     inputFiles: groups.length,
     inputBytes: groups.reduce((sum, group) => sum + group.bytes, 0),
-    provenance: groups.length > 1 ? provenanceFor(groups) : undefined,
+    ...(groups.length > 1 ? { provenance: provenanceFor(groups) } : {}),
   };
 }
 
@@ -96,7 +96,7 @@ function render(
     ...(run.comparison === undefined ? {} : { comparison: run.comparison }),
     summary: run.summary,
     index: run.index,
-    provenance: run.provenance,
+    ...(run.provenance === undefined ? {} : { provenance: run.provenance }),
     skippedAttachments: run.skippedAttachments,
     inputFiles: run.inputFiles,
     inputBytes: run.inputBytes,

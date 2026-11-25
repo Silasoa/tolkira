@@ -23,10 +23,10 @@ export interface BaselineRenderOptions extends RenderReportOptions {
 export function renderOptions(options: RenderReportOptions) {
   return {
     title: options.title ?? 'Tolkira report',
-    metadata: options.metadata,
-    logo: options.logo,
-    accent: options.accent,
-    locale: options.locale,
-    static: options.static,
+    ...(options.metadata === undefined ? {} : { metadata: options.metadata }),
+    ...(options.logo === undefined ? {} : { logo: options.logo }),
+    ...(options.accent === undefined ? {} : { accent: options.accent }),
+    ...(options.locale === undefined ? {} : { locale: options.locale }),
+    ...(options.static === undefined ? {} : { static: options.static }),
   };
 }

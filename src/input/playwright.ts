@@ -260,10 +260,18 @@ function validateError(
     if (!isObject(value.location)) {
       throw invalid(source, `${where}.location must be an object.`);
     }
+    const file = optionalString(value.location, 'file', source, `${where}.location`);
+    const line = optionalNumber(value.location, 'line', source, `${where}.location`);
+    const column = optionalNumber(
+      value.location,
+      'column',
+      source,
+      `${where}.location`,
+    );
     error.location = {
-      file: optionalString(value.location, 'file', source, `${where}.location`),
-      line: optionalNumber(value.location, 'line', source, `${where}.location`),
-      column: optionalNumber(value.location, 'column', source, `${where}.location`),
+      ...(file === undefined ? {} : { file }),
+      ...(line === undefined ? {} : { line }),
+      ...(column === undefined ? {} : { column }),
     };
   }
   return error;

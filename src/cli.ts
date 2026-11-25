@@ -677,15 +677,23 @@ export async function runCli(
       );
       if (emailPath !== undefined) {
         await writeEmailSummary(emailPath, summary, {
-          title: parsed.values.title,
-          locale,
-          accent,
+          ...(parsed.values.title === undefined
+            ? {}
+            : { title: parsed.values.title }),
+          ...(locale === undefined ? {} : { locale }),
+          ...(accent === undefined ? {} : { accent }),
           now: new Date(),
         });
       }
       const ciText =
         ci !== undefined
-          ? formatCiOutput(summary, ci, { title: parsed.values.title })
+          ? formatCiOutput(
+              summary,
+              ci,
+              parsed.values.title === undefined
+                ? {}
+                : { title: parsed.values.title },
+            )
           : undefined;
       if (ciText !== undefined && ciOut !== undefined) {
         await writeCiOutput(ciOut, ciText);
@@ -701,11 +709,13 @@ export async function runCli(
     }
 
     const generated = await generateReportFromResolved(resolvedInputs, {
-      title: parsed.values.title,
+      ...(parsed.values.title === undefined
+        ? {}
+        : { title: parsed.values.title }),
       metadata,
-      logo,
-      accent,
-      historyLimit,
+      ...(logo === undefined ? {} : { logo }),
+      ...(accent === undefined ? {} : { accent }),
+      ...(historyLimit === undefined ? {} : { historyLimit }),
       ...(parsed.values.static ? { static: true } : {}),
       ...(locale === undefined ? {} : { locale }),
       ...(history === undefined ? {} : { history }),
@@ -721,10 +731,12 @@ export async function runCli(
     }
     if (emailPath !== undefined) {
       await writeEmailSummary(emailPath, summary, {
-        title: parsed.values.title,
-        locale,
+        ...(parsed.values.title === undefined
+          ? {}
+          : { title: parsed.values.title }),
+        ...(locale === undefined ? {} : { locale }),
         reportName: path.basename(output ?? pdfPath ?? ''),
-        accent,
+        ...(accent === undefined ? {} : { accent }),
         now: new Date(),
       });
     }
@@ -753,7 +765,13 @@ export async function runCli(
 
     const ciText =
       ci !== undefined
-        ? formatCiOutput(summary, ci, { title: parsed.values.title })
+        ? formatCiOutput(
+            summary,
+            ci,
+            parsed.values.title === undefined
+              ? {}
+              : { title: parsed.values.title },
+          )
         : undefined;
     if (ciText !== undefined && ciOut !== undefined) {
       await writeCiOutput(ciOut, ciText);

@@ -59,8 +59,9 @@ function renderTriageRow({
       ? hookLabel(failedHook)
       : '';
   const reasonMessage = failedStep?.message ?? failedHook?.message ?? '';
+  const firstLine = reasonMessage.split(/\r?\n/)[0] ?? '';
   const reason = reasonSource
-    ? `${reasonSource} — ${reasonMessage.split(/\r?\n/)[0].trim().slice(0, 120)}${reasonMessage.split(/\r?\n/)[0].trim().length > 120 ? '…' : ''}`
+    ? `${reasonSource} — ${firstLine.trim().slice(0, 120)}${firstLine.trim().length > 120 ? '…' : ''}`
     : '';
   return `<li class="triageItem"><a class="triageFeature" href="#${featureId(index)}" title="${escapeHtml(featureSourceLabel(feature, t))}"><span class="triageStatus ${statusClass(feature.status)}">${statusLabel(feature.status, t)}</span><span>${escapeHtml(feature.name)}</span></a><p class="triageCounts">${attentionCounts(scenarios, t)}</p><ul class="triageScenarios">${links}${more}</ul>${reason ? `<p class="triageReason"><span class="triageReasonLabel">${t.t('triage.firstFailure')}</span> ${escapeHtml(reason)}</p>` : ''}</li>`;
 }
