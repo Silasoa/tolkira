@@ -10,7 +10,7 @@ when the optional Playwright Chromium engine is installed.
 
 ![Tolkira report showing a failed scenario, its error and an inline screenshot](docs/comparison/tolkira-0.6.0-report.png)
 
-Current release: **v0.6.0** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
+Current release: **v0.6.1** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.
 > The maintainer sets the product direction and approves releases. Most code,

@@ -9,7 +9,7 @@ import {
 } from './run.js';
 import type { ReportSummary } from './summary.js';
 
-export const version = '0.6.0';
+export const version = '0.6.1';
 export const phase = 'development';
 
 export type {

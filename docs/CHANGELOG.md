@@ -3,7 +3,7 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
-## [0.6.1] - Unreleased
+## [0.6.1] - 2026-11-25
 
 ### Fixed
 
