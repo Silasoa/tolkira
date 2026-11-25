@@ -4,9 +4,10 @@
 
 The approved B-055 package is a tooling change on 0.6.1. Measured on
 2026-11-25 at `e5c002a`: Windows x64, Node 26.13.1, TypeScript 7.0.2, Vitest
-5.1.1, oxlint 1.94.0 (from `^1.90.0`), esbuild 0.28.2. The evidence lives in
-`docs/research/b055-lint-inventory.md` and
+5.1.1, oxlint 1.94.0 (from `^1.90.0`), esbuild 0.28.2, Prettier 3.10.1. The
+evidence lives in `docs/research/b055-lint-inventory.md` and
 `docs/research/b055-tooling-plan.md`; this design turns it into the contract.
+PIR and DXR reviewed the first draft; their findings are folded in below.
 
 The gate is `npm run check` and is already the only command CI and the release
 workflow call. The change adds work inside it, so no workflow file changes.
@@ -18,9 +19,11 @@ workflow call. The change adds work inside it, so no workflow file changes.
 - Make the typecheck strict without changing behaviour or report bytes.
 - Guard the browser graph against Node globals with a separate program.
 - Turn lint into a curated zero-warning gate with documented exceptions.
-- Check formatting with a pinned formatter and a report-byte-safe scope.
+- Check formatting with a pinned formatter and a report-byte-safe scope, with
+  the same result on every operating system.
 - Fail an empty test selection and enforce a measured coverage floor.
-- Keep one local and CI gate, and keep the added runtime under ten seconds.
+- Keep one local and CI gate and name the added runtime honestly: the tooling
+  steps plus one probe test file.
 
 **Non-Goals:**
 
@@ -41,8 +44,8 @@ Enable the six flags in `tsconfig.json` and fix the 86 errors by class:
 | Class | Count | Rule |
 | --- | --- | --- |
 | TS18048 | 19 | Guard or default at the indexed read. |
-| TS2345 | 21 | Same value as TS18048, narrowed once at the read. The high-leverage test edit is `compat-sidecar.test.ts`'s `happyFeatures()` returning one feature (throw on an empty fixture), which clears 12 + 5 + 5 combined findings across TS18048/TS2345/TS2379. |
-| TS2379 | 14 | Conditional spreads at the call site; do **not** declare option properties as `T | undefined`. |
+| TS2345 | 21 | Same value as TS18048, narrowed once at the read. The high-leverage test edit is `compat-sidecar.test.ts`'s `happyFeatures()`, which returns `Promise<[LegacyFeature, ...LegacyFeature[]]>` (throw on an empty fixture). The tuple keeps all 16 destructuring call sites and is a single-function edit. |
+| TS2379 | 14 | Conditional spreads at the call site; do **not** declare option properties as `T \| undefined`. Includes `test/stream.test.ts:43`. |
 | TS2375 | 8 | Conditional spread or hoist a double call (`productLabel`, `timestampIso`) so narrowing holds. |
 | TS2532 | 10 | Non-null assertion only where a preceding assertion proves presence; otherwise a local guard. |
 | TS6133 / TS4114 | 12 / 2 | `_doc` parameter; `override` on the two stream methods. |
@@ -51,11 +54,24 @@ The inventory proposed widening the five public input option bags with
 `| undefined` to clear seven TS2379 findings. That changes the emitted
 declarations (`title?: string` becomes `title?: string | undefined`), which the
 approved package rules out. The alternative is chosen: conditional spreads at
-the CLI call sites (`title`, `metadata`, `logo`, `accent`, `historyLimit`) and
-in `renderOptions()` for `metadata`, `logo`, `accent`, `locale`, `static`.
-`GenerateReportOptions.historyLimit` stays `number | undefined` only as an
-optional property; the CLI passes it conditionally. The cost is about 20 lines;
-the public declaration stays byte-identical.
+the CLI call sites (`title`, `metadata`, `logo`, `accent`, `locale`,
+`historyLimit`) and in `renderOptions()` for `metadata`, `logo`, `accent`,
+`locale`, `static`. `GenerateReportOptions.historyLimit` stays a plain optional
+property; the CLI passes it conditionally. The cost is about 20 lines; the
+public input declarations stay byte-identical.
+
+Where a bag has exactly one optional field, `formatCiOutput`'s `title` at two
+call sites, a spread would also trip `unicorn/no-useless-spread` (correctness,
+error). Pass a ternary object instead:
+`title === undefined ? {} : { title }`. The research re-checked that this keeps
+the curated total at 62 findings.
+
+The one emitted declaration that changes is the inferred return type of the
+internal `renderOptions()` helper (`dist/options.d.ts`): five fields move from
+required `T | undefined` to optional `T | undefined`. `renderOptions` is not
+exported from the package entry; `dist/index.d.ts`, the run/stream/email/pdf
+declarations and both compat declarations stay unchanged, and no public input
+interface changes. The proof in task 3.3 is scoped to that.
 
 No fix changes report bytes: every consumer uses `??` or truthiness, never key
 presence, and `JSON.stringify` drops undefined-valued keys. The two non-byte
@@ -78,15 +94,20 @@ DOM because `src/pdf.ts` legitimately runs page code in a browser context).
 and exactly those five files. Its entry pulls the rest; the list documents the
 boundary.
 
-`tsconfig.build.json` and `tsconfig.compat-cjs.json` are untouched, so
-declaration emit is byte-identical (56 files verified) and esbuild reads only
-`tsconfig.json`. No `tsc -b`: it would write `*.tsbuildinfo` and turn
-`tsconfig.json` into a solution file that esbuild and the build configs depend
-on. The typecheck script runs two `tsc -p` passes (1.4 s + 1.1 s).
+`tsconfig.build.json` and `tsconfig.compat-cjs.json` are untouched, so the
+emitted declarations change only where a source type changes (the internal
+`options.d.ts` helper above). Prettier does not format generated sources, so no
+generated file is rewritten. esbuild reads only `tsconfig.json`. No `tsc -b`:
+it would write `*.tsbuildinfo` and turn `tsconfig.json` into a solution file
+that esbuild and the build configs depend on. The typecheck script runs two
+`tsc -p` passes (1.4 s + 1.1 s).
 
 ### 3. Curated lint with documented exceptions
 
-`.oxlintrc.json` at the repo root, verified in shape by the research:
+Extend the scaffolded `.oxlintrc.json` at the repo root; keep its existing
+`ignorePatterns` (`dist/**`, `node_modules/**`, `playwright-report/**`,
+`test-results/**`, `.opencode/**`) and add `coverage/**` and `.openchamber/**`,
+so the gate does not lint its own output. Verified in shape by the research:
 
 - plugins `typescript`, `unicorn`, `oxc`, `import`, `promise`, `node`,
   `vitest`; categories correctness `error`, suspicious `warn`, perf `warn`;
@@ -120,29 +141,38 @@ allowance is the same as Prettier's.
 
 `.prettierrc.json`: `{ "singleQuote": true, "printWidth": 80 }`, Prettier
 3.10.1 pinned. Everything else is 3.x default and matches `.editorconfig`.
+`endOfLine` keeps Prettier's default `lf`.
+
+That default makes the check checkout-dependent: `windows-latest` runs with
+`core.autocrlf=true`, and `.gitattributes` currently pins only
+`test/fixtures/**`. Add `* text=auto eol=lf` and renormalize the three archived
+OpenSpec files whose index currently holds CRLF. It is a line-ending-only
+commit; without it the Windows check job fails on every text file.
 
 `.prettierignore` excludes: `node_modules`, `dist`, `coverage`,
 `playwright-report`, `blob-report`, `test-results`, Playwright caches,
 `.openchamber`, `.opencode`, `.tmp`, `.cache`, `openspec/`, `test/fixtures/`,
 `docs/comparison/`, `docs/ui-loop/`, `package-lock.json`, `*.tgz`, `*.png`,
 `*.webm`, the three generated sources (`src/render/client-bundle.ts`,
-`src/render/styles.ts`, `src/i18n/catalogs.ts`), the two report CSS files,
-`src/render/baseline.css` and `*.md`.
+`src/render/styles.ts`, `src/i18n/catalogs.ts`), the two report CSS files
+`src/render/report.css` and `src/render/baseline.css`, and `*.md`.
 
 `*.md` is excluded so the formatting commit stays code-only; docs may follow as
 their own commit. The CSS files are copied verbatim into report strings, and
 the fixtures include the two golden HTML files. Formatting any of them would
 change report bytes, which the contract forbids.
 
-Blast radius is 156 tracked files: 36 `src`, 109 `test`, 7 `scripts`, 3
-`.github` issue templates, 1 `tsconfig.json`. Formatting all of `src` in a copy
-and rebuilding gives identical report bytes for the legacy and Messages
-fixtures and an unchanged minified client bundle. Non-minified `dist/*.js`
-whitespace changes on the next rebuild; that is a formatting-only difference
-and the release rebuild is the documented point.
+Blast radius is the ~156 tracked files measured at `e5c002a` (36 `src`, 109
+`test`, 7 `scripts`, 3 `.github`, 1 `tsconfig.json`). Re-measure after Red:
+`test/tooling-config.test.ts`, `tsconfig.client.json` and `.prettierrc.json`
+exist by then. Formatting all of `src` in a copy and rebuilding gives identical
+report bytes for the legacy and Messages fixtures and an unchanged minified
+client bundle. Non-minified `dist/*.js` whitespace changes on the next rebuild;
+that is a formatting-only difference and the release rebuild is the documented
+point.
 
-Scripts: `format:check` and `format`. The formatting is one isolated commit,
-never mixed with a logic change.
+Scripts: `format:check` and `format`. `format:check` runs inside `check` before
+build. The formatting is one isolated commit, never mixed with a logic change.
 
 ### 5. Coverage and empty-suite guard
 
@@ -172,7 +202,13 @@ plain suite for local runs. The coverage run adds about three to five seconds.
 
 `prepublishOnly` keeps calling `check`, so a release also needs formatting and
 the coverage floor. `ci.yml` and `release.yml` need no edit: every check job
-already runs `npm run check`. The whole gate grows by seven to ten seconds.
+already runs `npm run check`.
+
+The tooling steps add seven to ten seconds. The new probe test file adds four
+to six on top; its spawns get explicit 30 s/40 s timeouts so a cold Windows CI
+does not hit the default 5 s test timeout. Gate time is recorded as tooling
+steps and probe file separately, and the base rule that investigates a >20 %
+runtime increase is answered by that split, not waived.
 
 ### 7. Work order and commits
 
@@ -180,15 +216,16 @@ already runs `npm run check`. The whole gate grows by seven to ten seconds.
    `tsc --noEmit`.
 2. The client project and the typecheck script.
 3. The curated lint config, the 62 fixes, the pin and `--max-warnings=0`.
-4. Prettier config, ignore, scripts and the formatting-only commit; then rebuild
-   assets and confirm no generated diff.
+4. The LF policy in `.gitattributes` with the renormalized files; then Prettier
+   config, ignore, scripts and the formatting-only commit; then rebuild assets
+   and confirm no generated diff.
 5. Coverage provider, remove `passWithNoTests`, thresholds, `test:coverage`
    and the `check` order.
 6. Docs and gate record.
 
-Each commit is one logical change, runs `npm run hygiene`, and never mixes the
-formatting commit with logic. The change itself stays uncommitted as a release
-candidate until the user approves a version.
+Each commit is one logical change and runs `npm run hygiene`; the formatting
+commit never mixes with logic. Version, tag, stage and publish stay blocked
+until the user approves a version.
 
 ## Risks / Trade-offs
 
@@ -199,32 +236,44 @@ candidate until the user approves a version.
 | The server project keeps DOM, so it alone would not catch `document` in server code. | Accepted: `pdf.ts` needs DOM within `page.evaluate`. The client program is the no-Node guard; the no-DOM probe fails only on `pdf.ts` and the browser entry. |
 | Formatting 156 files obscures `git blame`. | One isolated commit, optional `.git-blame-ignore-revs`, never mixed with logic. |
 | A wrong ignore pattern changes report bytes or is reverted by the build. | The proof step runs `npm run assets` and `git diff --exit-code` on the generated files; CSS, fixtures and goldens are explicitly out of scope. |
+| Prettier's LF default fails on a CRLF checkout. | `* text=auto eol=lf` in `.gitattributes`, three archived files renormalized, Windows job proven by CI. |
 | Rebuilding `dist` after formatting changes non-minified whitespace. | Accepted and recorded; report bytes, behaviour, API and shipped file list are unchanged. |
+| The internal `options.d.ts` return shape changes. | Not exported from the package entry; the public entry, compat declarations and input interfaces are proven unchanged. |
 | Pinning `oxlint` exactly delays rule updates. | Deliberate: a new rule set is a reviewed bump commit, the same policy as Prettier. |
 | `preserve-caught-error` adds a `cause` property. | Internal only; messages and stderr are unchanged and no consumer reads error keys. |
 | Removing `passWithNoTests` breaks an ad-hoc mistyped `vitest run`. | Intended; every package script names a real file or the full glob. |
 | The coverage provider install hits an npm 10.8.2 arborist bug without the lockfile. | Add it as a normal dev dependency with the lockfile; use `--legacy-peer-deps` only if npm fails, then `npm ci`. |
+| The probe file slows the unit suite past the base 20 % rule. | Explicit timeouts, recorded split, and the increase is investigated and explained rather than hidden. |
 
 ## Tests
 
 - `test/tooling-config.test.ts` (new) asserts the six flags, the two-project
   typecheck, the client program's `types: []` and file list, the curated lint
-  categories/plugins/severities/exceptions, the `--max-warnings=0` script, the
-  Prettier config and ignore entries, the coverage provider/scope/thresholds,
-  the removed `passWithNoTests`, the `check` order and the exact dev-dependency
+  plugins/categories/severities/exceptions and the retained `ignorePatterns`,
+  the `--max-warnings=0` script, the Prettier config and ignore entries, the
+  `.gitattributes` LF policy, the coverage provider/scope/thresholds, the
+  removed `passWithNoTests`, the `check` order and the exact dev-dependency
   pins.
-- Behavioural probes, not only config reads: one temporary TypeScript file that
-  violates `noUncheckedIndexedAccess` fails the strict program; one temporary
-  browser-graph module that reads `process` fails the client program; a
-  suspicious lint finding makes `--max-warnings=0` exit non-zero while a clean
-  file exits zero; an unformatted source copy fails `format:check`; a
-  nonexistent test pattern fails when `passWithNoTests` is gone.
+- Behavioural probes, each with a positive control: a temporary TypeScript file
+  that violates `noUncheckedIndexedAccess` fails the strict program while a
+  compliant copy passes (the probe config sets `types: []` and asserts the
+  specific TS code, so it cannot pass for the wrong reason); a temporary
+  browser-graph module that reads `process` fails the client program while a
+  DOM-only copy passes (temp config lists the five repo files plus the module);
+  a warning-severity `eslint/no-shadow` finding makes `--max-warnings=0` exit
+  non-zero while plain `oxlint` exits zero on it and both exit zero on a clean
+  copy; an unformatted source copy fails a direct `prettier --check` while a
+  formatted copy passes; a nonexistent test pattern fails when
+  `passWithNoTests` is gone while a matching pattern passes; a coverage run
+  below a threshold fails (set a temporary threshold above the measured value).
 - Existing tests are untouched by the tooling change except the mechanical fixes
   above. The 62 lint fixes never weaken an assertion: `require-to-throw-message`
   only adds a stable message, and `no-extend-native` keeps the same spy.
 - Report characterization: the nine hashes and both golden files must stay
-  unchanged; the proof renders the legacy and Messages fixtures before and after
-  formatting.
+  unchanged; the proof renders the legacy and Messages fixtures before and
+  after formatting. Package content is proven with `npm pack --dry-run --json`
+  against the 0.6.1 published file list, `files`, `bin`, `exports` and runtime
+  dependencies.
 
 ## ADRs
 

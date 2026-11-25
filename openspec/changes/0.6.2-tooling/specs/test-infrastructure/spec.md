@@ -51,13 +51,20 @@ or error severity SHALL fail the gate.
 
 The gate SHALL verify formatting with one pinned formatter and config. The
 format scope SHALL exclude generated sources, report CSS, test fixtures and
-committed goldens, so formatting cannot change a report byte. A formatting
-violation SHALL fail the gate.
+committed goldens, so formatting cannot change a report byte. The repository
+SHALL enforce LF checkout line endings, so the check gives the same result on
+Windows, Linux and macOS. A formatting violation SHALL fail the gate.
 
 #### Scenario: Unformatted source fails
 
 - **WHEN** a tracked source file differs from the formatter output
 - **THEN** the format check fails
+
+#### Scenario: Same verdict on every checkout
+
+- **WHEN** the gate runs on a Windows, Linux or macOS checkout
+- **THEN** the format check reports the same files
+- **AND** a CRLF working tree does not turn a formatted file into a failure
 
 #### Scenario: Generated and golden files are out of scope
 
@@ -88,18 +95,21 @@ suite covers, and SHALL fail below 93 percent statements, 86 percent branches,
 ### Requirement: Preserve behaviour and package content
 
 The tooling baseline SHALL NOT change runtime behaviour, report bytes, the
-public API or the shipped entry points. The report characterization hashes and
-golden HTML files SHALL stay unchanged. The formatter and the coverage provider
-SHALL be development-only dependencies.
+public API or the shipped entry points. The characterization baseline SHALL
+follow the base requirement "Keep the characterization baseline"; this change
+introduces no intentional render change. The formatter and the coverage
+provider SHALL be development-only dependencies.
 
 #### Scenario: Report bytes unchanged
 
 - **WHEN** the same fixtures are rendered before and after the change
 - **THEN** the report bytes are identical
-- **AND** the characterization hashes and both golden HTML files are unchanged
+- **AND** no characterization hash or golden file is re-pinned
 
 #### Scenario: Runtime surface unchanged
 
 - **WHEN** the packed package is inspected
 - **THEN** its entry points, runtime dependencies and file set are unchanged
 - **AND** the public declaration names the same input types
+- **AND** the internal helper declaration change does not add or remove an
+  entry point
