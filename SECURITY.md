@@ -59,13 +59,17 @@ part of the current behaviour.
 ### Producer payload is evidence
 
 The display-URI rule shortens and de-homes the URIs Tolkira renders itself. Text
-the producer wrote is shown verbatim: failure messages, stack traces,
+the producer wrote is not redacted: failure messages, stack traces,
 `system-out`/`system-err`, log and attachment bodies can contain a local user
-name or an absolute path. Tolkira does not rewrite that text, because it is the
-evidence a failure is debugged from; a Cucumber failure stack or a Spring Boot
-log line reaches the HTML, `--json`, CI Markdown and the copied text unchanged
-(B-068). Review a report before it leaves the machine or workspace that produced
-it.
+name or an absolute path, and Tolkira shows them as the evidence a failure is
+debugged from (B-068). The one exception is the native Playwright adapter, which
+replaces absolute local paths in Playwright error text with a relative path or
+basename (`docs/PLAYWRIGHT-JSON.md`). A Cucumber failure stack reaches the HTML
+error block and `data-search`, the `--json` step message, CI Markdown and the
+copied failure text; a Spring Boot `system-out` line reaches the HTML attachment
+body and its copy button. Neither is in the `--json` summary or CI Markdown,
+which carry attachment counts only. Review a report before it leaves the
+machine or workspace that produced it.
 
 Tolkira does not send telemetry and does not make network requests. A report
 should remain fully offline.

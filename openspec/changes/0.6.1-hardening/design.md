@@ -524,14 +524,20 @@ checks → package smoke → `npm stage publish`.
    keys remain exact.
 3. **Producer text stays evidence (approved limit).** The privacy rule is
    scoped to the display URIs Tolkira renders itself. Failure messages, stack
-   traces, `system-out`/`system-err` and attachment bodies are shown, copied and
-   summarised verbatim, because they are the evidence a failure is debugged
-   from and rewriting them would change what the producer reported. Both host
-   runs that exercise failure and log text carry a local user name in that
-   payload: Cucumber-js renders its own failure stack and PetClinic copies nine
-   Spring Boot log lines. The same text is in their 0.5.1 reports; this change
-   neither introduces nor removes it. The maintainer approved the limit for
-   0.6.1 on 2026-11-25. It is documented in `SECURITY.md` and
+   traces, `system-out`/`system-err` and attachment bodies are shown and copied
+   as the producer wrote them, because they are the evidence a failure is
+   debugged from and rewriting them would change what the producer reported.
+   The native Playwright adapter is the documented exception: it replaces
+   absolute local paths in Playwright error text with a relative path or
+   basename. A Cucumber failure stack reaches the HTML error block and
+   `data-search`, the `--json` step message, CI Markdown and the copied failure
+   text; a Spring Boot `system-out` line reaches the HTML attachment body and
+   its copy button, not `--json` or CI Markdown, which carry attachment counts
+   only. Both host runs that exercise failure and log text carry a local user
+   name in that payload: Cucumber-js renders its own failure stack and PetClinic
+   copies nine Spring Boot log lines. The same text is in their 0.5.1 reports;
+   this change neither introduces nor removes it. The maintainer approved the
+   limit for 0.6.1 on 2026-11-25. It is documented in `SECURITY.md` and
    `docs/LIMITATIONS.md` and tracked as B-068.
 
 ## ADRs

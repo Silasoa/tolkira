@@ -433,8 +433,11 @@ the HTML report has been written.
 
 ## Messages are not redacted
 
-Failure messages, scenario names and URIs are copied from the input verbatim.
-Tolkira does not redact secrets. Do not rely on CI masking for annotations:
+Failure messages, scenario names and URIs are copied from the input without
+additional redaction. Tolkira does not redact secrets. (The native Playwright
+adapter already replaces absolute local paths in Playwright error text, as
+documented in [`PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).) Do not rely on CI
+masking for annotations:
 keep credentials out of test data. GitLab does not mask them, a local Markdown
 file never does, GitHub masking applies to registered secrets in the job log,
 and Azure DevOps masking also covers only registered secrets; none is a

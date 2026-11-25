@@ -2,7 +2,7 @@
 
 ## ADDED Requirements
 
-### Requirement: Accept valid ISO 8601 history timestamps
+### Requirement: Accept ISO 8601-shaped history timestamps
 
 The history reader SHALL accept a timestamp with a zone (`Z` or `±HH:MM`),
 optional seconds and optional fractional seconds, and a finite `Date.parse`.

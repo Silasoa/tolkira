@@ -334,7 +334,7 @@ Seed-Test per-story JSON remains synthetic (no live backend/MongoDB) and the
 native reporter HTML was compared by content only.
 
 **`0.6.1-hardening` host check (2026-11-25, pre-release tarball).** All five
-required rows ran on the packed pre-hardening tarball (`tolkira-0.6.0.tgz`,
+required rows ran on the packed pre-release tarball (`tolkira-0.6.0.tgz`,
 656,762 B, SHA-256
 `1DF81A0CCC3284DB6BED17B477F985219862C6D55025916DD80EAC7E1115A22C`, packed from
 `c791898`; `--version` prints `0.6.0`), except Cucumber-JVM, which used a second

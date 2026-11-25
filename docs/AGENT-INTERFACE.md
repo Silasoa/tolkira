@@ -83,7 +83,9 @@ tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
   shared file.
 - Exit codes are unchanged. A failed test run still exits 0; invalid
   combinations exit 2 before any file is written.
-- Messages are copied verbatim and are not redacted. See [`CI.md`](CI.md).
+- Messages are copied without additional redaction (the Playwright adapter
+  already scrubs absolute local paths from its error text). See
+  [`CI.md`](CI.md).
 
 GitHub mode caps at 50 error and 20 notice annotations and states the
 remainder; the final count notice keeps the exact totals. A failed run status
@@ -981,10 +983,11 @@ that is only a home directory (`/home/<user>`, `/mnt/c/Users/<user>`) shows an
 empty display URI. For these plain and single-encoded forms, a local user name
 does not appear in the HTML display URI, the summary `uri` or copied failure
 text. The home comparison decodes once: a double-encoded segment such as
-`%2568ome` is not treated as home, so that form is outside the no-user-name
-guarantee. Relative URIs are unchanged and keep the existing `/features/`
-marker and last-three fallback; a relative path that starts with a home segment
-is outside this rule.
+`%2568ome` is not treated as home, and a parent segment that cancels the home
+root or a Windows-canonicalised home name can keep a name-like segment, so
+those forms are outside the no-user-name guarantee (B-067). Relative URIs are
+unchanged and keep the existing `/features/` marker and last-three fallback; a
+relative path that starts with a home segment is outside this rule.
 
 The legacy adapter normalises a URI before the summary sees it. For an absolute
 path or file URL it applies the same analysis and `/features/` marker, but an

@@ -127,9 +127,9 @@
   publish job needs both, the tag/version check and the main-ancestor check
   exist, the main fetch is full (`f448f60`, no `--depth`, `fetch-depth: 0`), and
   only active `run:` lines count. A green path reaches the package smoke and
-  stage step. No workflow code is changed beyond the full-fetch fix; the test
-  goes RED only on a contract regression. ISTQB: decision table over tag match ×
-  main membership × gate result.
+  stage step. No workflow code is changed; the full-fetch fix is the prior
+  `f448f60`; the test goes RED only on a contract regression. ISTQB: decision
+  table over tag match × main membership × gate result.
 - [x] 2.10 Confirm RED for 2.1-2.9. No existing test is deleted, skipped or
   weakened. Any assertion that encoded the old behaviour is updated in place and
   named here: the `home/<user>` display URI and the raw-URI model feature
@@ -224,11 +224,12 @@
   the shim merge. The other release rows stay for the release pass. This task
   owns the `docs/DROP-IN-VALIDATION.md` rows that 3.11 deliberately does not
   write. Recorded on 2026-11-25: the display-URI rule is green on every row.
-  Producer-written failure and log text stays verbatim; the Cucumber-js failure
+  Producer-written failure and log text is shown without redaction (except the
+  Playwright error-text path scrub); the Cucumber-js failure
   stack and nine PetClinic `system-out` lines name the OS user. The maintainer
   approved that limit on 2026-11-25; it is recorded in the design Decisions,
   `SECURITY.md`, `docs/LIMITATIONS.md` and B-068.
-- [ ] 4.4 Gate record: commands, results, characterization/golden evidence with
+- [x] 4.4 Gate record: commands, results, characterization/golden evidence with
   the date-only diff, the URI fixture table, the surrogate table, the comparator
   child-process output, the parse-count evidence, the ISO form table, the JUnit
   entity table, the 200k merge result, the release-workflow test output, the
@@ -259,8 +260,9 @@ Report byte delta on the fixed-clock goldens: `minimal.html` 66,458 -> 66,350
 (-108), `attachments-presentation.html` 70,634 -> 70,634 (0). The -108 B is
 exactly the three removed legacy date spans (report header, analysis header,
 scenario `Started:` cell; 33 + 33 + 42 characters) plus the self-reported
-`Report HTML` size line; the Messages golden keeps its real timestamp. Both
-goldens were re-pinned in `ba6aca4`. No runtime dependency was added.
+`Report HTML` size line; the Messages golden keeps its real timestamp.
+`minimal.html` was re-pinned in `ba6aca4`; `attachments-presentation.html` is
+unchanged. No runtime dependency was added.
 
 ### Evidence
 
