@@ -175,9 +175,11 @@ CLI and other exports SHALL remain ESM-only.
 When `jsonDir` is used without `jsonFile`, the compatibility shim SHALL write a
 merged legacy JSON array to `<output>.json` after the report HTML is written.
 The array SHALL merge features by `uri`, concatenate duplicate `elements`, set
-`retried: 0` on every element and use two-space indentation. The sidecar SHALL
-be written atomically and SHALL create missing parent directories. `jsonFile`
-SHALL NOT produce a sidecar.
+`retried: 0` on every element and use two-space indentation. Duplicate features
+SHALL be merged by appending their elements one at a time; the merge SHALL NOT
+use a spread that can exceed the engine's argument limit. The sidecar SHALL be
+written atomically and SHALL create missing parent directories. `jsonFile` SHALL
+NOT produce a sidecar.
 
 #### Scenario: Seed-Test group shape
 
@@ -196,6 +198,22 @@ SHALL NOT produce a sidecar.
 
 - **WHEN** the HTML report cannot be written
 - **THEN** no sidecar remains
+
+#### Scenario: Large duplicate merge
+
+- **WHEN** two same-URI features contain about 65,000 elements each
+- **THEN** the sidecar is written without `RangeError`
+- **AND** all about 130,000 elements are present
+- **AND** their order is the input order
+- **AND** every element has `retried: 0`
+
+#### Scenario: Merge above the engine argument limit
+
+- **WHEN** a one-element feature is followed by a same-URI duplicate with about
+  200,000 elements
+- **THEN** the sidecar is written without `RangeError`
+- **AND** the appended element order is preserved
+- **AND** the old `push(...elements)` spread boundary is exercised
 
 ### Requirement: Handle a previous or colliding sidecar
 
