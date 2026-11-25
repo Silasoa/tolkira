@@ -1294,8 +1294,8 @@ async function scenarioPlan(
 
   const tagNames: string[] = [];
   const addTag = (value: string): void => {
-    const name = value.startsWith('@') ? value : `@${value}`;
-    if (name.length > 1 && !tagNames.includes(name)) tagNames.push(name);
+    const tagName = value.startsWith('@') ? value : `@${value}`;
+    if (tagName.length > 1 && !tagNames.includes(tagName)) tagNames.push(tagName);
   };
   for (const tag of spec.tags) addTag(tag);
   for (const annotation of test.annotations) {

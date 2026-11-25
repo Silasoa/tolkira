@@ -211,10 +211,10 @@ describe('Playwright source line', () => {
   it('keeps the line out of the summary, CI text and email', async () => {
     const { envelopes } = await movieRun();
     const summary = summarizeEnvelopes(envelopes);
-    const scenario = summary.scenarios[0];
+    const summaryScenario = summary.scenarios[0];
 
-    expect(scenario?.uri).toBe('movie-list.spec.ts');
-    expect(Object.keys(scenario ?? {})).not.toContain('line');
+    expect(summaryScenario?.uri).toBe('movie-list.spec.ts');
+    expect(Object.keys(summaryScenario ?? {})).not.toContain('line');
     expect(summary.scenarios.map((row) => [row.name, row.status, row.uri])).toEqual([
       ['movie list spec', 'failed', 'movie-list.spec.ts'],
     ]);

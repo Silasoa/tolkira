@@ -90,11 +90,11 @@ export function resolveLocale(tag?: string): ResolvedLocale {
   const lower = canonical.toLowerCase();
   const primary = lower.split('-')[0] ?? lower;
   const exact = SUPPORTED_LOCALES.find(
-    (tag) => tag.toLowerCase() === lower,
+    (supported) => supported.toLowerCase() === lower,
   );
   const matched =
     exact ??
-    SUPPORTED_LOCALES.find((tag) => tag.toLowerCase() === primary);
+    SUPPORTED_LOCALES.find((supported) => supported.toLowerCase() === primary);
   if (!matched) throw supportedError(canonical);
   return {
     requested: canonical,

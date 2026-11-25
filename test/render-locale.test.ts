@@ -312,9 +312,9 @@ describe('German report rendering', () => {
 
   it('keeps the German report within 10 kB of the English report', async () => {
     const english = await renderFile(minimalFixture);
-    const german = await renderFile(minimalFixture, 'de');
+    const germanHtml = await renderFile(minimalFixture, 'de');
 
-    expect(Buffer.byteLength(german, 'utf8') - Buffer.byteLength(english, 'utf8'))
+    expect(Buffer.byteLength(germanHtml, 'utf8') - Buffer.byteLength(english, 'utf8'))
       .toBeLessThanOrEqual(10_000);
   });
 

@@ -768,7 +768,7 @@ export function buildReportModel(
     );
     const skippedAttachmentEntries = skippedAttachmentEntriesOf(latest);
     const earlier = earlierAttemptsFor(pickle.id, latest);
-    const startedAt = timestampIso(latest.timestamp);
+    const scenarioStartedAt = timestampIso(latest.timestamp);
     const row: ReportScenario = {
       id: pickle.id,
       name: pickle.name,
@@ -785,7 +785,7 @@ export function buildReportModel(
       executed,
       durationMs: finiteDuration(duration),
       attempt: Number.isFinite(latest.attempt) ? latest.attempt : 0,
-      ...(startedAt ? { startedAt } : {}),
+      ...(scenarioStartedAt ? { startedAt: scenarioStartedAt } : {}),
       ownTags: outlineExample
         ? (outlineExample.examples.tags ?? []).map((tag) => tag.name)
         : tree

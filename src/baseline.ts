@@ -504,8 +504,8 @@ export function compareBaseline(
     }
     if (baseRows.length === 1 && currentRows.length === 1) {
       const base = baseRows[0];
-      const current = currentRows[0];
-      if (base && current) classifyPair(base, current, counts, changes);
+      const currentRow = currentRows[0];
+      if (base && currentRow) classifyPair(base, currentRow, counts, changes);
       continue;
     }
     const pairs = pairRepeated(baseRows, currentRows);

@@ -233,16 +233,20 @@ describe('JUnit XML input', () => {
       failed: 4,
       skipped: 0,
     });
-    const messages = new Map(
+    const messageByScenario = new Map(
       summary.scenarios.map((scenario) => [
         scenario.name,
         scenario.steps[0]?.message,
       ]),
     );
-    expect(messages.get('text failure')).toBe('AssertionError: text only');
-    expect(messages.get('cdata failure')).toBe('CDATA boom');
-    expect(messages.get('self closing failure')).toBeUndefined();
-    expect(messages.get('text error')).toBe('RuntimeError: text only');
+    expect(messageByScenario.get('text failure')).toBe(
+      'AssertionError: text only',
+    );
+    expect(messageByScenario.get('cdata failure')).toBe('CDATA boom');
+    expect(messageByScenario.get('self closing failure')).toBeUndefined();
+    expect(messageByScenario.get('text error')).toBe(
+      'RuntimeError: text only',
+    );
 
     const html = await renderReport(failureShapesFixture, {
       title: 'Failure shapes',

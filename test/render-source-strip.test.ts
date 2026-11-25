@@ -171,11 +171,11 @@ describe('source strip', () => {
       ...envelopesFor(firstUri, 'one', 'One'),
       ...envelopesFor(secondUri, 'two', 'Two'),
     ];
-    const provenance = new Map([
+    const sourceMap = new Map([
       [firstUri, 'one.json'],
       [secondUri, 'two.json'],
     ]);
-    const model = buildReportModel(envelopes, provenance);
+    const model = buildReportModel(envelopes, sourceMap);
     const strip = renderSourceStrip(model, createTranslator('en'));
 
     expect(model.features.map((feature) => feature.sourceFile)).toEqual([
@@ -195,7 +195,7 @@ describe('source strip', () => {
         scenarios: [{ name: 'ok', status: 'passed' }],
       })),
     );
-    const provenance = new Map(
+    const sourceMap = new Map(
       Array.from({ length: 21 }, (_, index) => [
         `features/source-${index + 1}.feature`,
         `source-${index + 1}.json`,
@@ -203,7 +203,7 @@ describe('source strip', () => {
     );
     const html = await renderHtml(run, {
       title: 'Many sources',
-      provenance,
+      provenance: sourceMap,
     });
 
     expect(html.match(/class="sourceItem"/g) ?? []).toHaveLength(6);

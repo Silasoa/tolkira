@@ -409,14 +409,14 @@ describe('legacy JSON adapter', () => {
 
   it('normalises real Behave seconds to milliseconds', async () => {
     const summary = await summarizeReport(behaveReal);
-    const failed = summary.scenarios.find(
+    const failedScenario = summary.scenarios.find(
       (scenario) => scenario.status === 'failed',
     );
 
-    expect(failed?.name).toBe('fails');
-    expect(failed?.durationMs).toBeGreaterThan(0);
-    expect(failed?.steps[0]?.durationMs).toBeGreaterThan(0);
-    expect(failed?.steps[0]?.message).toContain('boom');
+    expect(failedScenario?.name).toBe('fails');
+    expect(failedScenario?.durationMs).toBeGreaterThan(0);
+    expect(failedScenario?.steps[0]?.durationMs).toBeGreaterThan(0);
+    expect(failedScenario?.steps[0]?.message).toContain('boom');
   });
 
   it('rejects unknown legacy result statuses', () => {

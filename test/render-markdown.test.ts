@@ -15,20 +15,20 @@ const junitFixture = fileURLToPath(
 );
 
 function syntheticJson(
-  featureDescription: string,
-  scenarioDescription = '',
+  featureMarkdown: string,
+  scenarioMarkdown = '',
 ): string {
   return JSON.stringify([
     {
       uri: 'features/synthetic-markdown.feature',
       name: 'Synthetic markdown',
-      description: featureDescription,
+      description: featureMarkdown,
       elements: [
         {
           keyword: 'Scenario',
           type: 'scenario',
           name: 'Synthetic scenario',
-          description: scenarioDescription,
+          description: scenarioMarkdown,
           steps: [
             {
               keyword: 'Given ',
@@ -43,12 +43,12 @@ function syntheticJson(
 }
 
 async function renderSynthetic(
-  featureDescription: string,
-  scenarioDescription = '',
+  featureMarkdown: string,
+  scenarioMarkdown = '',
 ): Promise<string> {
   return renderHtml(
     parseLegacyJson(
-      syntheticJson(featureDescription, scenarioDescription),
+      syntheticJson(featureMarkdown, scenarioMarkdown),
       'synthetic-markdown.json',
     ),
     { title: 'Synthetic markdown' },

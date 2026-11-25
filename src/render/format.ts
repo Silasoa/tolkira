@@ -53,12 +53,12 @@ const MIB = 1024 * 1024;
 /** Contributor size: one-decimal MB at 1 MiB and above, exact bytes below. */
 export function sizeLabel(bytes: number, t: Translator): string {
   if (bytes >= MIB) {
-    const count = new Intl.NumberFormat(t.lang, {
+    const megabytes = new Intl.NumberFormat(t.lang, {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     }).format(bytes / MIB);
     // Number and unit stay on one line at 200 % text zoom.
-    return t.t('format.megabytes', { count }).replaceAll(' ', '\u00a0');
+    return t.t('format.megabytes', { count: megabytes }).replaceAll(' ', '\u00a0');
   }
   return t.t('format.bytes', { count: bytes });
 }
@@ -139,8 +139,8 @@ export function attentionCounts(
   return [...counts.entries()]
     .sort((a, b) => statusSeverity(b[0]) - statusSeverity(a[0]))
     .map(
-      ([status, count]) =>
-        `${t.number(count)} ${lowerLabel(statusLabel(status, t))}`,
+      ([status, statusCount]) =>
+        `${t.number(statusCount)} ${lowerLabel(statusLabel(status, t))}`,
     )
     .join(', ');
 }
@@ -149,8 +149,8 @@ export function executedOnly(scenarios: ReportScenario[]): ReportScenario[] {
   return scenarios.filter((scenario) => scenario.executed);
 }
 
-function barWidth(count: number, total: number): number {
-  return total === 0 ? 0 : Math.round((count / total) * 1000) / 10;
+function barWidth(part: number, total: number): number {
+  return total === 0 ? 0 : Math.round((part / total) * 1000) / 10;
 }
 
 export function featureBar(scenarios: ReportScenario[]): string {

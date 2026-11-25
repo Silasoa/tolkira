@@ -74,8 +74,8 @@ function runs(count: number): HistoryRun[] {
   return Array.from({ length: count }, (_, index) => makeRun(index));
 }
 
-function sidecar(entries: readonly HistoryRun[], schemaVersion = 1): string {
-  return JSON.stringify({ schemaVersion, runs: entries }, null, 2);
+function sidecar(entries: readonly HistoryRun[], version = 1): string {
+  return JSON.stringify({ schemaVersion: version, runs: entries }, null, 2);
 }
 
 async function writeRaw(
@@ -438,7 +438,7 @@ describe('history write cap', () => {
     // Valid but maximal: 128 UTF-16 code units in the id, 200 code points in the
     // title, escaped by JSON as lone surrogates, plus large whole counters.
     const large = 12_345_678_901_234_567_000;
-    const counts: StatusCounts = {
+    const largeCounts: StatusCounts = {
       total: large * 7,
       passed: large,
       failed: large,
@@ -452,7 +452,7 @@ describe('history write cap', () => {
       makeRun(index, {
         id: `${String(index).padStart(3, '0')}${'\uD800'.repeat(HISTORY_MAX_ID - 3)}`,
         title: '\uD800'.repeat(HISTORY_MAX_TITLE),
-        counts: { features: large, scenarios: counts, steps: counts },
+        counts: { features: large, scenarios: largeCounts, steps: largeCounts },
         durationMs: large,
         attachments: { total: large, bytes: large },
       }),
