@@ -489,6 +489,22 @@ URIs themselves are clean. The maintainer approved the limit for 0.6.1 on
 2026-11-25; `SECURITY.md` and `docs/LIMITATIONS.md` state it and B-068 tracks an
 opt-in redaction mode. Apart from that payload, every host row passed.
 
+**Final 0.6.1 artifact check (2026-11-25).** A clean export of the release-prep
+commit (`7c32d41`) contains no `dist/`; `npm ci`, `npm run build` and
+`npm pack` produced `tolkira-0.6.1.tgz` with 81 entries, 658,026 B and SHA-256
+`3867F9AD5CACF8FAD142C7D04E8A460D989824C852D69CA382C4E0059FBEB4E0` (Windows
+pack: Node 26.13.1, npm 10.8.2; the Linux CI pack hash will differ and is
+recorded after the tag). A global install printed `0.6.1`, `--help` started with
+`Usage: tolkira`, and the legacy `minimal.json` fixture rendered a 66,362 B
+report containing `Minimal feature`. The tarball carries `dist/cli.js`,
+`dist/index.js` and their type declarations, and no tests, fixtures, scripts,
+openspec or lock file. The five required host rows above were run on the
+pre-release tarball from `c791898`; `git diff c791898..HEAD -- src scripts
+test/fixtures` is empty and the package manifests differ only in the version
+literal, so those rows stand as this release's host evidence. No host row was
+re-run on the 0.6.1 literal. The publish job now builds before it packs; the
+workflow test fails if that step is missing or moved after `npm pack`.
+
 ## Release rule
 
 Before a tag, stage or publish:
