@@ -124,22 +124,42 @@ function makeProbeDirectory(name: string): string {
   return directory;
 }
 
+function writeProbeTsConfig(directory: string, include: string[]): void {
+  writeJson(path.join(directory, 'tsconfig.json'), {
+    compilerOptions: {
+      target: 'ES2022',
+      module: 'NodeNext',
+      moduleResolution: 'NodeNext',
+      strict: true,
+      noEmit: true,
+      types: [],
+    },
+    include,
+  });
+}
+
 describe('strict typecheck', () => {
-  it('enables strict mode and the six added flags', () => {
+  it('enables strict mode and the eleven compiler checks', () => {
     const config = readJson<{ compilerOptions?: Record<string, unknown> }>(
       'tsconfig.json',
     );
     const options = config.compilerOptions ?? {};
-    expect(options['strict']).toBe(true);
-    for (const flag of [
-      'noUncheckedIndexedAccess',
-      'exactOptionalPropertyTypes',
-      'noImplicitOverride',
-      'noUnusedLocals',
-      'noUnusedParameters',
-      'noImplicitReturns',
-    ]) {
-      expect(options[flag]).toBe(true);
+    const checks = [
+      ['strict', true],
+      ['noUncheckedIndexedAccess', true],
+      ['exactOptionalPropertyTypes', true],
+      ['noImplicitOverride', true],
+      ['noUnusedLocals', true],
+      ['noUnusedParameters', true],
+      ['noImplicitReturns', true],
+      ['noUncheckedSideEffectImports', true],
+      ['noFallthroughCasesInSwitch', true],
+      ['allowUnreachableCode', false],
+      ['allowUnusedLabels', false],
+      ['isolatedModules', true],
+    ] as const;
+    for (const [flag, value] of checks) {
+      expect(options[flag]).toBe(value);
     }
   });
 
@@ -202,12 +222,13 @@ describe('curated lint', () => {
     expect([...(config.plugins ?? [])].sort()).toEqual(expected);
   });
 
-  it('sets correctness to error and suspicious and perf to warning', () => {
+  it('sets correctness to error and the other categories to warning', () => {
     const categories =
       readJson<LintConfig>('.oxlintrc.json').categories ?? {};
     expect(categories['correctness']).toBe('error');
     expect(categories['suspicious']).toBe('warn');
     expect(categories['perf']).toBe('warn');
+    expect(categories['pedantic']).toBe('warn');
   });
 
   it('configures the documented rule exceptions', () => {
@@ -238,42 +259,104 @@ describe('curated lint', () => {
       '__tolkiraXss',
     ]);
     for (const rule of [
-      'eslint/no-await-in-loop',
-      'unicorn/no-array-sort',
-      'unicorn/consistent-function-scoping',
-      'unicorn/prefer-set-has',
-      'oxc/no-map-spread',
-      'vitest/no-conditional-expect',
+      'eslint/no-redeclare',
+      'eslint/no-promise-executor-return',
+      'eslint/eqeqeq',
     ]) {
-      expect(rules[rule]).toBe('off');
+      expect(rules[rule]).toBe('warn');
     }
   });
 
-  it('scopes the callback and shadow exceptions per file', () => {
-    const overrides = readJson<LintConfig>('.oxlintrc.json').overrides ?? [];
-    expect(overrides).toHaveLength(2);
-
-    const callback = overrides.find((entry) =>
-      entry.files?.includes('src/stream.ts'),
-    );
-    expect([...(callback?.files ?? [])].sort()).toEqual([
-      'src/compat/cucumber-html-reporter.ts',
-      'src/stream.ts',
-    ]);
-    expect(callback?.rules).toEqual({
-      'promise/no-callback-in-promise': 'off',
-    });
-
-    const shadow = overrides.find((entry) =>
-      entry.files?.includes('src/compat/cucumber-html-reporter.cts'),
-    );
-    expect(shadow?.files).toEqual(['src/compat/cucumber-html-reporter.cts']);
-    expect(shadow?.rules).toEqual({ 'eslint/no-shadow': 'off' });
+  it('disables the documented threshold, preference and deliberate rules', () => {
+    const rules = readJson<LintConfig>('.oxlintrc.json').rules ?? {};
+    for (const rule of [
+      'eslint/max-lines',
+      'eslint/max-lines-per-function',
+      'eslint/max-depth',
+      'eslint/max-statements',
+      'import/max-dependencies',
+      'eslint/require-unicode-regexp',
+      'unicorn/escape-case',
+      'unicorn/no-useless-undefined',
+      'eslint/no-negated-condition',
+      'unicorn/no-negated-condition',
+      'unicorn/explicit-length-check',
+      'unicorn/prefer-dom-node-dataset',
+      'unicorn/prefer-query-selector',
+      'unicorn/prefer-single-call',
+      'unicorn/prefer-top-level-await',
+      'unicorn/prefer-at',
+      'unicorn/no-hex-escape',
+      'unicorn/prefer-dom-node-append',
+      'unicorn/prefer-import-meta-properties',
+      'eslint/no-await-in-loop',
+      'vitest/no-conditional-in-test',
+      'unicorn/no-array-sort',
+      'unicorn/consistent-function-scoping',
+      'vitest/no-conditional-expect',
+      'oxc/no-map-spread',
+      'unicorn/prefer-set-has',
+      'typescript/prefer-readonly-parameter-types',
+      'typescript/strict-boolean-expressions',
+      'typescript/no-unsafe-member-access',
+      'typescript/no-unsafe-assignment',
+      'typescript/no-unsafe-call',
+      'typescript/no-unsafe-return',
+      'typescript/no-unsafe-argument',
+      'typescript/prefer-nullish-coalescing',
+      'typescript/no-confusing-void-expression',
+      'typescript/switch-exhaustiveness-check',
+      'typescript/no-deprecated',
+      'typescript/prefer-promise-reject-errors',
+      'typescript/strict-void-return',
+      'typescript/require-await',
+    ]) {
+      expect(rules[rule], rule).toBe('off');
+    }
   });
 
-  it('runs lint at zero warnings', () => {
+  it('scopes the four documented per-file exceptions', () => {
+    const overrides = readJson<LintConfig>('.oxlintrc.json').overrides ?? [];
+    const scopedFiles = new Set(
+      overrides.flatMap((entry) => entry.files ?? []),
+    );
+    expect([...scopedFiles].sort()).toEqual([
+      'src/compat/cucumber-html-reporter.cts',
+      'src/compat/cucumber-html-reporter.ts',
+      'src/render/html.ts',
+      'src/stream.ts',
+      'test/**',
+    ]);
+
+    const offFor = (file: string, rule: string): boolean =>
+      overrides.some(
+        (entry) =>
+          (entry.files?.includes(file) ?? false) &&
+          entry.rules?.[rule] === 'off',
+      );
+
+    expect(
+      offFor('test/**', 'typescript/no-unsafe-type-assertion'),
+    ).toBe(true);
+    expect(offFor('src/stream.ts', 'promise/no-callback-in-promise')).toBe(
+      true,
+    );
+    expect(
+      offFor(
+        'src/compat/cucumber-html-reporter.ts',
+        'promise/no-callback-in-promise',
+      ),
+    ).toBe(true);
+    expect(
+      offFor('src/compat/cucumber-html-reporter.cts', 'eslint/no-shadow'),
+    ).toBe(true);
+    expect(offFor('test/**', 'eslint/require-await')).toBe(true);
+    expect(offFor('src/render/html.ts', 'eslint/require-await')).toBe(true);
+  });
+
+  it('runs lint type-aware at zero warnings', () => {
     const scripts = readJson<PackageJson>('package.json').scripts ?? {};
-    expect(scripts['lint']).toBe('oxlint --max-warnings=0 .');
+    expect(scripts['lint']).toBe('oxlint --type-aware --max-warnings=0 .');
   });
 });
 
@@ -389,6 +472,7 @@ describe('dev dependency pins', () => {
       readJson<PackageJson>('package.json').devDependencies ?? {};
     const pins = [
       ['oxlint', '1.94.0'],
+      ['oxlint-tsgolint', '7.0.2008'],
       ['prettier', '3.10.1'],
       ['@vitest/coverage-v8', '5.1.1'],
     ] as const;
@@ -571,6 +655,140 @@ describe('lint warning probe', () => {
       expect(strictClean.error).toBeUndefined();
       expect(strictClean.status).toBe(0);
       expect(output(strictClean)).not.toMatch(/no-shadow/);
+    },
+    TEST_TIMEOUT_MS,
+  );
+});
+
+describe('type-aware lint probe', () => {
+  it(
+    'fails a floating promise and an awaited non-thenable, passes the awaited copies',
+    () => {
+      const directory = makeProbeDirectory('type-aware');
+      writeProbeTsConfig(directory, ['*.ts']);
+      const write = (name: string, lines: string[]): string => {
+        const file = path.join(directory, name);
+        writeFileSync(file, `${lines.join('\n')}\n`, 'utf8');
+        return file;
+      };
+
+      const floating = write('floating.ts', [
+        'export async function load(): Promise<number> {',
+        '  return 1;',
+        '}',
+        '',
+        'export function run(): void {',
+        '  load();',
+        '}',
+      ]);
+      const awaited = write('awaited.ts', [
+        'export async function load(): Promise<number> {',
+        '  return 1;',
+        '}',
+        '',
+        'export async function run(): Promise<void> {',
+        '  await load();',
+        '}',
+      ]);
+      const nonThenable = write('non-thenable.ts', [
+        'export async function run(): Promise<void> {',
+        '  await 42;',
+        '}',
+      ]);
+      const thenable = write('thenable.ts', [
+        'export async function run(): Promise<void> {',
+        '  await Promise.resolve(42);',
+        '}',
+      ]);
+
+      const oxlint = packageBin('oxlint');
+      const config = path.join(repoRoot, '.oxlintrc.json');
+      const lint = (file: string): RunResult =>
+        run(oxlint, [
+          '--type-aware',
+          '--max-warnings=0',
+          '--config',
+          config,
+          file,
+        ]);
+
+      const floatingResult = lint(floating);
+      expect(output(floatingResult)).not.toMatch(
+        /Failed to find type-aware linter executable/,
+      );
+      expect(floatingResult.error).toBeUndefined();
+      expect(floatingResult.status).not.toBe(0);
+      expect(output(floatingResult)).toMatch(/no-floating-promises/);
+
+      const awaitedResult = lint(awaited);
+      expect(awaitedResult.error).toBeUndefined();
+      expect(awaitedResult.status).toBe(0);
+
+      const nonThenableResult = lint(nonThenable);
+      expect(nonThenableResult.error).toBeUndefined();
+      expect(nonThenableResult.status).not.toBe(0);
+      expect(output(nonThenableResult)).toMatch(/await-thenable/);
+
+      const thenableResult = lint(thenable);
+      expect(thenableResult.error).toBeUndefined();
+      expect(thenableResult.status).toBe(0);
+    },
+    TEST_TIMEOUT_MS,
+  );
+});
+
+describe('assertion scope probe', () => {
+  it(
+    'fails an unsafe cast in src and passes it in test under the test override',
+    () => {
+      const directory = makeProbeDirectory('assertion-scope');
+      const source = path.join(directory, 'src', 'unsafe.ts');
+      const testFile = path.join(directory, 'test', 'unsafe.ts');
+      mkdirSync(path.dirname(source), { recursive: true });
+      mkdirSync(path.dirname(testFile), { recursive: true });
+      const body = [
+        'export function id(value: unknown): string {',
+        '  return value as string;',
+        '}',
+        '',
+      ].join('\n');
+      writeFileSync(source, body, 'utf8');
+      writeFileSync(testFile, body, 'utf8');
+      writeProbeTsConfig(directory, ['src/**/*.ts', 'test/**/*.ts']);
+
+      const config = path.join(directory, 'oxlintrc.scope.json');
+      writeJson(config, {
+        extends: [toPosix(path.join(repoRoot, '.oxlintrc.json'))],
+        overrides: [
+          {
+            files: ['**/test/**'],
+            rules: { 'typescript/no-unsafe-type-assertion': 'off' },
+          },
+        ],
+      });
+
+      const oxlint = packageBin('oxlint');
+      const lint = (file: string): RunResult =>
+        run(oxlint, [
+          '--type-aware',
+          '--max-warnings=0',
+          '--config',
+          config,
+          file,
+        ]);
+
+      const sourceResult = lint(source);
+      expect(output(sourceResult)).not.toMatch(
+        /Failed to find type-aware linter executable/,
+      );
+      expect(sourceResult.error).toBeUndefined();
+      expect(sourceResult.status).not.toBe(0);
+      expect(output(sourceResult)).toMatch(/no-unsafe-type-assertion/);
+
+      const testResult = lint(testFile);
+      expect(testResult.error).toBeUndefined();
+      expect(testResult.status).toBe(0);
+      expect(output(testResult)).not.toMatch(/no-unsafe-type-assertion/);
     },
     TEST_TIMEOUT_MS,
   );
