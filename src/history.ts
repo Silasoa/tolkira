@@ -463,6 +463,7 @@ export async function writeHistory(
     const code = (error as NodeJS.ErrnoException).code;
     throw new Error(
       `Cannot write history file ${oneLine(file)}${code ? ` (${code})` : ''}`,
+      { cause: error },
     );
   }
 }

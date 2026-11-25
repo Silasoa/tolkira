@@ -412,8 +412,11 @@ describe('input merging', () => {
       'utf8',
     );
 
-    await expect(renderReport(dir, { title: 'Broken' })).rejects.toThrow(
-      'Invalid legacy JSON',
+    const failure = renderReport(dir, { title: 'Broken' });
+    await expect(failure).rejects.toThrow('Invalid legacy JSON');
+    await expect(failure).rejects.toHaveProperty(
+      'cause',
+      expect.any(SyntaxError),
     );
   });
 

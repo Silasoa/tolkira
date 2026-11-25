@@ -607,7 +607,9 @@ export function parseLegacyJson(
     parsed = JSON.parse(content.replace(/^\uFEFF/, ''));
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid legacy JSON in ${source}: ${detail}`);
+    throw new Error(`Invalid legacy JSON in ${source}: ${detail}`, {
+      cause: error,
+    });
   }
   return parseLegacyValue(parsed, source, options);
 }

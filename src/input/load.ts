@@ -26,7 +26,7 @@ function invalidJson(content: string, file: string): never {
     JSON.parse(content.replace(/^\uFEFF/, '').trimStart());
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid JSON in ${file}: ${detail}`);
+    throw new Error(`Invalid JSON in ${file}: ${detail}`, { cause: error });
   }
   throw new Error(`Unsupported input: ${file}`);
 }

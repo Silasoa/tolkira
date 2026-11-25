@@ -223,6 +223,7 @@ async function writeEmailSummary(
     const code = (error as NodeJS.ErrnoException).code;
     throw new Error(
       `Cannot write email to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+      { cause: error },
     );
   }
 }
@@ -234,6 +235,7 @@ async function writeReport(file: string, html: string): Promise<void> {
     const code = (error as NodeJS.ErrnoException).code;
     throw new Error(
       `Cannot write report to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+      { cause: error },
     );
   }
 }
@@ -245,6 +247,7 @@ async function writeCiOutput(file: string, text: string): Promise<void> {
     const code = (error as NodeJS.ErrnoException).code;
     throw new Error(
       `Cannot write CI output to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+      { cause: error },
     );
   }
 }
@@ -265,6 +268,7 @@ async function writePdf(
     // Raw Chromium errors can carry the command line and the home directory.
     throw new Error(
       `Cannot render PDF for ${oneLine(file)}: ${oneLine(detail).slice(0, 500)}`,
+      { cause: error },
     );
   }
   try {
@@ -273,6 +277,7 @@ async function writePdf(
     const code = (error as NodeJS.ErrnoException).code;
     throw new Error(
       `Cannot write PDF to ${oneLine(file)}${code ? ` (${code})` : ''}`,
+      { cause: error },
     );
   }
 }
@@ -815,5 +820,6 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   runCli(process.argv.slice(2)).then((code) => {
     process.exitCode = code;
+    return code;
   });
 }

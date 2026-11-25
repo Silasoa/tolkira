@@ -268,6 +268,7 @@ export function parseMessages(content: string, source: string): Envelope[] {
       );
       throw new Error(
         `Invalid Cucumber Messages on line ${number} of ${source}: ${clean}`,
+        { cause: error },
       );
     }
   });

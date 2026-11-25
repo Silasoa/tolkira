@@ -101,7 +101,9 @@ export async function renderPdf(
     try {
       browser = await chromium.launch({ headless: true });
     } catch (error) {
-      if (missingBrowser(error)) throw new Error(INSTALL_GUIDANCE);
+      if (missingBrowser(error)) {
+        throw new Error(INSTALL_GUIDANCE, { cause: error });
+      }
       throw error;
     }
     const page = await browser.newPage();

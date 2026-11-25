@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { build } from 'esbuild';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { compareBaseline } from '../src/baseline.js';
 import { formatMarkdownSummary } from '../src/ci.js';
 import { renderReport, summarizeReport } from '../src/index.js';
@@ -673,14 +673,12 @@ describe('host-locale-independent report order', () => {
       status: 'passed' as const,
       executed: true,
     }));
-    const original = String.prototype.localeCompare;
     const collator = new Intl.Collator('sv');
-    String.prototype.localeCompare = function (
-      this: string,
-      that: string,
-    ): number {
-      return collator.compare(this, that);
-    } as typeof String.prototype.localeCompare;
+    const spy = vi
+      .spyOn(String.prototype, 'localeCompare')
+      .mockImplementation(function (this: string, that: string): number {
+        return collator.compare(this, that);
+      });
 
     try {
       const summary = await summarizeReport(dir);
@@ -709,7 +707,7 @@ describe('host-locale-independent report order', () => {
         'Äpfel',
       ]);
     } finally {
-      String.prototype.localeCompare = original;
+      spy.mockRestore();
     }
   });
 

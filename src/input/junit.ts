@@ -445,7 +445,9 @@ export async function parseJUnitXml(
     parsed = parser.parse(content);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid JUnit XML in ${source}: ${detail}`);
+    throw new Error(`Invalid JUnit XML in ${source}: ${detail}`, {
+      cause: error,
+    });
   }
 
   const suites = collectSuites(parsed).filter(
