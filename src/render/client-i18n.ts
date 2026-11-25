@@ -34,7 +34,7 @@ export function createClientFormatter(lang: string): ClientFormatter {
           const value = Number.isFinite(numeric) ? numeric : 0;
           const branches: Record<string, string> = {};
           for (const branch of body.matchAll(BRANCH)) {
-            branches[branch[1] as string] = branch[2] as string;
+            branches[branch[1] ?? ''] = branch[2] ?? '';
           }
           const selected =
             branches[rules.select(value)] ?? branches.other ?? '';

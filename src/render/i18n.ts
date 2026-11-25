@@ -136,7 +136,7 @@ function parseBranches(text: string): Map<string, Node[]> {
   const branches = new Map<string, Node[]>();
   let index = 0;
   while (index < text.length) {
-    while (index < text.length && /\s/.test(text[index] as string)) index += 1;
+    while (index < text.length && /\s/.test(text[index] ?? '')) index += 1;
     if (index >= text.length) break;
     const match = /^([A-Za-z]+)\s*\{/.exec(text.slice(index));
     if (!match) invalid('malformed plural branch');
@@ -144,7 +144,7 @@ function parseBranches(text: string): Map<string, Node[]> {
     const close = closingBrace(text, open);
     if (close < 0) invalid('unbalanced plural branch');
     branches.set(
-      match[1] as string,
+      match[1] ?? '',
       parseNodes(text.slice(open + 1, close), true),
     );
     index = close + 1;
@@ -183,7 +183,7 @@ function parseNodes(text: string, nested: boolean): Node[] {
     buffer = '';
   };
   for (let index = 0; index < text.length; index += 1) {
-    const character = text[index] as string;
+    const character = text[index] ?? '';
     if (character === '}') invalid('stray }');
     if (character !== '{') {
       buffer += character;
@@ -351,9 +351,9 @@ export function createTranslator(
     dir: resolved.dir,
     t(key, params = {}) {
       const message = Object.hasOwn(active, key)
-        ? (active[key] as string)
+        ? (active[key] ?? key)
         : Object.hasOwn(ENGLISH, key)
-          ? (ENGLISH[key] as string)
+          ? (ENGLISH[key] ?? key)
           : key;
       return formatMessage(message, params, lang);
     },

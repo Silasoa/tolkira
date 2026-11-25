@@ -32,6 +32,9 @@ interface LegacyFeature {
 
 const tempDirs: string[] = [];
 
+const byCodeUnit = (a: string | undefined, b: string | undefined): number =>
+  (a ?? '') < (b ?? '') ? -1 : (a ?? '') > (b ?? '') ? 1 : 0;
+
 afterEach(async () => {
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
@@ -95,7 +98,7 @@ describe('compat merged JSON sidecar', () => {
     const raw = await readFile(sidecarPath, 'utf8');
     const merged = JSON.parse(raw) as LegacyFeature[];
 
-    expect(merged.map((feature) => feature.uri).sort()).toEqual([
+    expect(merged.map((feature) => feature.uri).sort(byCodeUnit)).toEqual([
       'features/one.feature',
       'features/two.feature',
     ]);
@@ -133,8 +136,8 @@ describe('compat merged JSON sidecar', () => {
     const merged = await readSidecar(`${output}.json`);
     expect(merged).toHaveLength(1);
     expect(
-      merged[0]!.elements.map((element) => element.id).sort(),
-    ).toEqual(happy.elements.map((element) => element.id).sort());
+      merged[0]!.elements.map((element) => element.id).sort(byCodeUnit),
+    ).toEqual(happy.elements.map((element) => element.id).sort(byCodeUnit));
     expect(merged[0]!.elements.every((element) => element.retried === 0)).toBe(
       true,
     );
@@ -293,10 +296,9 @@ describe('compat merged JSON sidecar', () => {
     const secondSidecar = await readSidecar(`${output}.json`);
 
     expect(secondSidecar).toEqual(firstSidecar);
-    expect(secondSidecar.map((feature) => feature.uri).sort()).toEqual([
-      'features/one.feature',
-      'features/two.feature',
-    ]);
+    expect(secondSidecar.map((feature) => feature.uri).sort(byCodeUnit)).toEqual(
+      ['features/one.feature', 'features/two.feature'],
+    );
     expect(second.summary.counts.scenarios.total).toBe(
       first.summary.counts.scenarios.total,
     );

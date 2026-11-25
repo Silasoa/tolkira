@@ -30,7 +30,7 @@ function prettyJson(text: string): string | undefined {
     }
   };
   for (let index = 0; index < text.length; index += 1) {
-    const character = text[index] as string;
+    const character = text[index] ?? '';
     if (inString) {
       out.push(character);
       if (escaped) escaped = false;
@@ -80,7 +80,7 @@ function prettyJson(text: string): string | undefined {
       continue;
     }
     let end = index;
-    while (end < text.length && !/[\s,\]}:]/.test(text[end] as string)) {
+    while (end < text.length && !/[\s,\]}:]/.test(text[end] ?? '')) {
       end += 1;
     }
     openItem();

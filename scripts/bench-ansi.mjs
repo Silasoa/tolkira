@@ -393,7 +393,7 @@ try {
     process.exitCode = error.exitCode;
   } else {
     console.error(
-      `bench-ansi: ${error instanceof Error ? error.message : error}`,
+      `bench-ansi: ${error instanceof Error ? error.message : String(error)}`,
     );
     process.exitCode = 1;
   }

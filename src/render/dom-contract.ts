@@ -62,12 +62,26 @@ export interface AttributeSource {
   getAttribute(name: string): string | null;
 }
 
+const REPORT_STATUSES: ReadonlySet<string> = new Set([
+  'passed',
+  'failed',
+  'skipped',
+  'pending',
+  'undefined',
+  'ambiguous',
+  'unknown',
+]);
+
+function isReportStatus(value: string): value is ReportStatus {
+  return REPORT_STATUSES.has(value);
+}
+
 export function decodeScenario(source: AttributeSource): ScenarioFacts {
   const status = source.getAttribute(STATUS_ATTRIBUTE) ?? undefined;
   const example = source.getAttribute('data-example') ?? undefined;
   const tags = source.getAttribute('data-tags') ?? '';
   return {
-    ...(status === undefined ? {} : { status: status as ReportStatus }),
+    ...(status === undefined || !isReportStatus(status) ? {} : { status }),
     name: source.getAttribute('data-scenario-name') ?? '',
     uri: source.getAttribute('data-uri') ?? '',
     tags: tags ? tags.split(' ') : [],

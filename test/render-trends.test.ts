@@ -410,9 +410,9 @@ describe('Trends view', () => {
       (match) => match[0],
     );
     expect(headers.length).toBeGreaterThanOrEqual(5);
-    expect(headers.filter((header) => /scope="col"/.test(header))).toHaveLength(
-      headers.length,
-    );
+    expect(
+      headers.filter((header) => header.includes('scope="col"')),
+    ).toHaveLength(headers.length);
   });
 
   it('escapes a history title', async () => {

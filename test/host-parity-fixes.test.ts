@@ -1,4 +1,5 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { AttachmentContentEncoding } from '@cucumber/messages';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -369,7 +370,7 @@ describe('legacy hook output', () => {
       attachments.every(
         (attachment) =>
           attachment.mediaType === 'text/plain' &&
-          attachment.contentEncoding === 'IDENTITY',
+          attachment.contentEncoding === AttachmentContentEncoding.IDENTITY,
       ),
     ).toBe(true);
   });

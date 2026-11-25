@@ -382,7 +382,11 @@ describe('Playwright JSON input', () => {
     expect(
       new Set(documents.map((uri) => uri.split('/').slice(0, 3).join('/'))).size,
     ).toBe(1);
-    expect(documents.map((uri) => uri.split('/').at(-1)).sort()).toEqual([
+    expect(
+      documents
+        .map((uri) => uri.split('/').at(-1) ?? '')
+        .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+    ).toEqual([
       'alpha',
       'beta',
     ]);

@@ -19,9 +19,13 @@ const STATUS_ORDER: TestStepResultStatus[] = [
   TestStepResultStatus.FAILED,
 ];
 
+const STATUS_SEVERITY: Record<string, number> = Object.fromEntries(
+  STATUS_ORDER.map((status, index) => [status, index]),
+);
+
 /** Raw Cucumber ordinal; the report comparator forces passed last. */
 export function statusSeverity(status: ReportStatus): number {
-  return STATUS_ORDER.indexOf(status.toUpperCase() as TestStepResultStatus);
+  return STATUS_SEVERITY[status.toUpperCase()] ?? -1;
 }
 
 export interface ExecutedStatus {

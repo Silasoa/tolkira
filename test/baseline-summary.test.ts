@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderReport, summarizeReport, type ReportSummary } from '../src/index.js';
+
+const byCodeUnit = (a: string | undefined, b: string | undefined): number =>
+  (a ?? '') < (b ?? '') ? -1 : (a ?? '') > (b ?? '') ? 1 : 0;
 import { junitFixture, legacyFixture, messagesFixture } from './fixtures.js';
 import {
   baselineBlock,
@@ -125,8 +128,10 @@ describe('outline example coordinate', () => {
       ReportSummary['scenarios'][number] & { example?: string }
     >;
     const examples = rows.map((row) => row.example);
-    expect([...examples].sort()).toEqual(
-      ['#1.1', '#1.2', '#2.1', '#2.2', '#1.1', '#1.2', '#1.3'].sort(),
+    expect([...examples].sort(byCodeUnit)).toEqual(
+      ['#1.1', '#1.2', '#2.1', '#2.2', '#1.1', '#1.2', '#1.3'].sort(
+        byCodeUnit,
+      ),
     );
 
     const keys = Object.keys(rows[0] ?? {});
@@ -136,8 +141,10 @@ describe('outline example coordinate', () => {
     const reportLabels = [...html.matchAll(/data-example="([^"]+)"/g)].map(
       (match) => match[1],
     );
-    expect(reportLabels.sort()).toEqual(
-      examples.filter((value): value is string => value !== undefined).sort(),
+    expect(reportLabels.sort(byCodeUnit)).toEqual(
+      examples.filter((value): value is string => value !== undefined).sort(
+        byCodeUnit,
+      ),
     );
   });
 

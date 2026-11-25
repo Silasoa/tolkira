@@ -8,7 +8,7 @@ export const BASELINE_MAX_BYTES = 10_485_760;
 const MAX_DEPTH = 64;
 const NOT_IN_THIS_RUN_LIMIT = 50;
 
-const STATUSES = new Set<SummaryStatus>([
+const STATUSES: ReadonlySet<string> = new Set([
   'passed',
   'failed',
   'skipped',
@@ -106,11 +106,19 @@ async function readBounded(handle: FileHandle, size: number): Promise<Buffer> {
   return buffer.subarray(0, offset);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isSummaryStatus(value: string): value is SummaryStatus {
+  return STATUSES.has(value);
+}
+
 function decodeText(file: string, bytes: Uint8Array): string {
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   } catch {
-    fail(file, 'not valid UTF-8');
+    return fail(file, 'not valid UTF-8');
   }
 }
 
@@ -182,10 +190,10 @@ function parseScenario(
   index: number,
   file: string,
 ): BaselineScenario {
-  if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+  if (!isRecord(entry) || Array.isArray(entry)) {
     fail(file, `scenarios[${index}] must be an object`);
   }
-  const row = entry as Record<string, unknown>;
+  const row = entry;
   for (const key of PROTO_KEYS) {
     if (Object.hasOwn(row, key)) {
       fail(file, `scenarios[${index}] has the unsupported key ${key}`);
@@ -194,7 +202,7 @@ function parseScenario(
   const feature = stringField(row, 'feature', index, file);
   const name = stringField(row, 'name', index, file);
   const uri = stringField(row, 'uri', index, file);
-  if (typeof row.status !== 'string' || !STATUSES.has(row.status as SummaryStatus)) {
+  if (typeof row.status !== 'string' || !isSummaryStatus(row.status)) {
     fail(file, `scenarios[${index}].status is not a documented scenario status`);
   }
   if (typeof row.executed !== 'boolean') {
@@ -207,7 +215,7 @@ function parseScenario(
     feature,
     name,
     uri: displayUri(uri),
-    status: row.status as SummaryStatus,
+    status: row.status,
     executed: row.executed,
     ...(row.example === undefined ? {} : { example: row.example }),
   };
@@ -231,14 +239,10 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
     }
     fail(file, 'not valid JSON');
   }
-  if (
-    typeof document !== 'object' ||
-    document === null ||
-    Array.isArray(document)
-  ) {
+  if (!isRecord(document) || Array.isArray(document)) {
     fail(file, 'expected a JSON object');
   }
-  const data = document as Record<string, unknown>;
+  const data = document;
   for (const key of PROTO_KEYS) {
     if (Object.hasOwn(data, key)) {
       fail(file, `unsupported key ${key}`);
@@ -255,7 +259,7 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
   }
   if (
     typeof data.status !== 'string' ||
-    !STATUSES.has(data.status as SummaryStatus)
+    !isSummaryStatus(data.status)
   ) {
     fail(file, 'status is not a documented scenario status');
   }
@@ -269,7 +273,7 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
   );
   return {
     schemaVersion: 2,
-    status: data.status as SummaryStatus,
+    status: data.status,
     scenarios,
   };
 }

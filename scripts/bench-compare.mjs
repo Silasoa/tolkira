@@ -691,7 +691,7 @@ async function main() {
           console.error(`${size} ${key}: FCP ${lcp[size][key].fcp.median} ms, load ${lcp[size][key].load.median} ms`);
         } catch (error) {
           lcp[size][key] = { error: String(error) };
-          console.error(`${size} ${key}: browser FAILED ${error}`);
+          console.error(`${size} ${key}: browser FAILED ${String(error)}`);
         }
       }
     }

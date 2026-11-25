@@ -1,3 +1,4 @@
+import { AttachmentContentEncoding } from '@cucumber/messages';
 import type { Attachment } from '@cucumber/messages';
 
 /** Per-attachment cap; the sanitizer checks decoded bytes, the Playwright adapter checks file size. */
@@ -93,7 +94,7 @@ export function attachmentBytes(
   attachment: Pick<Attachment, 'body' | 'contentEncoding'>,
 ): number {
   const body = attachment.body ?? '';
-  if (attachment.contentEncoding === 'BASE64') {
+  if (attachment.contentEncoding === AttachmentContentEncoding.BASE64) {
     const padding = body.endsWith('==') ? 2 : body.endsWith('=') ? 1 : 0;
     return Math.max(0, Math.floor((body.length * 3) / 4) - padding);
   }

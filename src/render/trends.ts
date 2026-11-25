@@ -54,11 +54,12 @@ function whole(value: unknown): number {
     : 0;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function safeCounts(value: unknown): StatusCounts {
-  const counts =
-    typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>)
-      : {};
+  const counts = isRecord(value) ? value : {};
   return {
     total: whole(counts.total),
     passed: whole(counts.passed),

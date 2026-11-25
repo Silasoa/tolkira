@@ -39,7 +39,7 @@ function isSpace(character: string): boolean {
 function isTagShaped(text: string): boolean {
   let index = 0;
   while (index < text.length) {
-    const character = text[index] as string;
+    const character = text[index] ?? '';
     if (isSpace(character)) {
       index += 1;
       continue;
@@ -52,7 +52,7 @@ function isTagShaped(text: string): boolean {
       index += 1;
       const start = index;
       while (index < text.length) {
-        const next = text[index] as string;
+        const next = text[index] ?? '';
         if (next === '\\') {
           index += 2;
           continue;
@@ -65,7 +65,7 @@ function isTagShaped(text: string): boolean {
     }
     const start = index;
     while (index < text.length) {
-      const next = text[index] as string;
+      const next = text[index] ?? '';
       if (isSpace(next) || next === '(' || next === ')') break;
       index += 1;
     }

@@ -37,7 +37,7 @@ export interface HistoryRun {
   flaky?: number;
 }
 
-const STATUSES = new Set<SummaryStatus>([
+const STATUSES: ReadonlySet<string> = new Set([
   'passed',
   'failed',
   'skipped',
@@ -119,15 +119,29 @@ function amount(value: unknown, reject: Reject, field: string): number {
   return value;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isSummaryStatus(value: string): value is SummaryStatus {
+  return STATUSES.has(value);
+}
+
+function errorCode(error: unknown): string | undefined {
+  return error instanceof Error && 'code' in error && typeof error.code === 'string'
+    ? error.code
+    : undefined;
+}
+
 function statusCounts(
   value: unknown,
   reject: Reject,
   field: string,
 ): StatusCounts {
-  if (typeof value !== 'object' || value === null) {
+  if (!isRecord(value)) {
     reject(`${field} must be an object`);
   }
-  const counts = value as Record<string, unknown>;
+  const counts = value;
   const parsed: StatusCounts = {
     total: whole(counts.total, reject, `${field}.total`),
     passed: whole(counts.passed, reject, `${field}.passed`),
@@ -163,10 +177,10 @@ function isIsoTime(value: unknown): value is string {
 /** The reader's field rules, shared by read and write. */
 function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
   const at = `runs[${index}]`;
-  if (typeof value !== 'object' || value === null) {
+  if (!isRecord(value)) {
     reject(`${at} must be an object`);
   }
-  const run = value as Record<string, unknown>;
+  const run = value;
   if (typeof run.id !== 'string' || !run.id) reject(`${at}.id must be a string`);
   if (!isIsoTime(run.recordedAt)) {
     reject(`${at}.recordedAt must be an ISO timestamp`);
@@ -175,17 +189,17 @@ function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
   if (Array.from(run.title).length > HISTORY_MAX_TITLE) {
     reject(`${at}.title is longer than ${HISTORY_MAX_TITLE} characters`);
   }
-  if (typeof run.status !== 'string' || !STATUSES.has(run.status as SummaryStatus)) {
+  if (typeof run.status !== 'string' || !isSummaryStatus(run.status)) {
     reject(`${at}.status is not a known status`);
   }
-  if (typeof run.counts !== 'object' || run.counts === null) {
+  if (!isRecord(run.counts)) {
     reject(`${at}.counts must be an object`);
   }
-  const counts = run.counts as Record<string, unknown>;
-  if (typeof run.attachments !== 'object' || run.attachments === null) {
+  const counts = run.counts;
+  if (!isRecord(run.attachments)) {
     reject(`${at}.attachments must be an object`);
   }
-  const attachments = run.attachments as Record<string, unknown>;
+  const attachments = run.attachments;
   const scenarios = statusCounts(
     counts.scenarios,
     reject,
@@ -195,7 +209,7 @@ function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
     id: run.id,
     recordedAt: run.recordedAt,
     title: run.title,
-    status: run.status as SummaryStatus,
+    status: run.status,
     counts: {
       features: whole(counts.features, reject, `${at}.counts.features`),
       scenarios,
@@ -220,10 +234,7 @@ function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
 
 /** Validates one run for writing: caps the title and applies the id cap. */
 function writeRun(value: unknown, reject: Reject, index: number): HistoryRun {
-  const record =
-    typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>)
-      : undefined;
+  const record = isRecord(value) ? value : undefined;
   const capped =
     record && typeof record.title === 'string'
       ? { ...record, title: capTitle(record.title) }
@@ -322,7 +333,7 @@ async function readSidecar(
     // O_NONBLOCK is undefined on Windows; the fstat regular-file guard does the work.
     handle = await open(file, constants.O_RDONLY | constants.O_NONBLOCK);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    if (errorCode(error) === 'ENOENT') return undefined;
     throw error;
   }
   try {
@@ -352,14 +363,10 @@ function parseHistoryText(text: string, reject: Reject): ParsedHistory {
   } catch {
     return reject('not valid JSON');
   }
-  if (
-    typeof document !== 'object' ||
-    document === null ||
-    Array.isArray(document)
-  ) {
+  if (!isRecord(document) || Array.isArray(document)) {
     return reject('expected a JSON object');
   }
-  const data = document as Record<string, unknown>;
+  const data = document;
   if (
     data.schemaVersion !== HISTORY_SCHEMA_VERSION &&
     data.schemaVersion !== HISTORY_SCHEMA_VERSION_MAX
@@ -460,7 +467,7 @@ export async function writeHistory(
     await writeAtomic(file, text);
   } catch (error) {
     // Name the target, never the atomic temporary file.
-    const code = (error as NodeJS.ErrnoException).code;
+    const code = errorCode(error);
     throw new Error(
       `Cannot write history file ${oneLine(file)}${code ? ` (${code})` : ''}`,
       { cause: error },

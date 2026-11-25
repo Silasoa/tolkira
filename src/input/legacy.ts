@@ -482,12 +482,30 @@ function tableRows(
     ];
   }
   if ('rows' in table && table.rows) {
-    if (Array.isArray(table.rows[0])) {
-      return (table.rows as string[][]).map((cells) => ({ cells }));
-    }
-    return table.rows as Array<{ cells?: string[] }>;
+    const rows = table.rows;
+    if (isCellRows(rows)) return rows.map((cells) => ({ cells }));
+    if (isCellObjectRows(rows)) return rows;
   }
   return undefined;
+}
+
+function isCellRows(value: unknown): value is string[][] {
+  return (
+    Array.isArray(value) &&
+    value.every((row) => Array.isArray(row))
+  );
+}
+
+function isCellObjectRows(
+  value: unknown,
+): value is Array<{ cells?: string[] }> {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (row) =>
+        typeof row === 'object' && row !== null && !Array.isArray(row),
+    )
+  );
 }
 
 function stepArgument(legacyStep: LegacyStep): {
@@ -739,7 +757,10 @@ export function parseLegacyValue(
 
       const pickleSteps: PickleStep[] = executableSteps.map(
         (legacyStep, index) => {
-          const step = executableNodes[index] as Step;
+          const step = executableNodes[index];
+          if (step === undefined) {
+            throw new Error(`Missing step node at index ${index}`);
+          }
           const pickleStep: PickleStep = {
             id: nextId('pickle-step'),
             text: step.text,
@@ -800,7 +821,10 @@ export function parseLegacyValue(
       }
 
       for (const [index, pickleStep] of pickleSteps.entries()) {
-        const legacyStep = executableSteps[index] as LegacyStep;
+        const legacyStep = executableSteps[index];
+        if (legacyStep === undefined) {
+          throw new Error(`Missing legacy step at index ${index}`);
+        }
         plans.push({
           testStep: { id: nextId('test-step'), pickleStepId: pickleStep.id },
           legacyStep,

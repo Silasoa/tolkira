@@ -331,7 +331,9 @@ export function provenanceFor(groups: LoadedInput[]): Map<string, string> {
 
   const provenance = new Map<string, string>();
   for (const [uri, files] of uriFiles) {
-    if (files.size === 1) provenance.set(uri, [...files][0] as string);
+    if (files.size !== 1) continue;
+    const [only] = files;
+    if (only !== undefined) provenance.set(uri, only);
   }
   return provenance;
 }

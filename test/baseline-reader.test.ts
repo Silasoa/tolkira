@@ -350,7 +350,7 @@ describe('hostile baseline shapes', () => {
   it('rejects invalid UTF-8 and names the file', async () => {
     const dir = await makeTempDir();
     const file = path.join(dir, 'invalid-utf8.json');
-    await writeFileSync(file, Buffer.from([0x7b, 0xff, 0xfe, 0x7d]));
+    writeFileSync(file, Buffer.from([0x7b, 0xff, 0xfe, 0x7d]));
 
     const result = await cli([input, '--baseline', file, '--json']);
 

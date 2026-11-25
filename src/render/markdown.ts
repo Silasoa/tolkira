@@ -80,8 +80,15 @@ for (const type of ['heading_open', 'heading_close'] as const) {
   };
 }
 
+function hasTranslator(value: unknown): value is { t: Translator } {
+  return typeof value === 'object' && value !== null && 't' in value;
+}
+
 markdown.renderer.rules.table_open = (_tokens, _index, _options, env) => {
-  const translator = (env as { t: Translator }).t;
+  if (!hasTranslator(env)) {
+    throw new Error('markdown table renderer needs a translator in env');
+  }
+  const translator = env.t;
   return `<div class="tableWrap" tabindex="0" role="region" aria-label="${escapeHtml(translator.t('markdown.descriptionTable'))}"><table>`;
 };
 markdown.renderer.rules.table_close = () => '</table></div>';

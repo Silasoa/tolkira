@@ -108,7 +108,7 @@ describe('legacy JSON adapter', () => {
         ],
       },
     ]);
-    const envelopes = await parseLegacyJson(content, 'named.json', {
+    const envelopes = parseLegacyJson(content, 'named.json', {
       idPrefix: 'named',
       startedAt: new Date('2026-01-01T00:00:00.000Z'),
     });

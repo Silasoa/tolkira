@@ -215,6 +215,12 @@ function pathConflicts(
   return conflictsWithInputs(file, inputs);
 }
 
+function errorCode(error: unknown): string | undefined {
+  return error instanceof Error && 'code' in error && typeof error.code === 'string'
+    ? error.code
+    : undefined;
+}
+
 async function writeEmailSummary(
   file: string,
   summary: ReportSummary,
@@ -225,7 +231,7 @@ async function writeEmailSummary(
     await writeAtomic(file, html);
   } catch (error) {
     // Name the target, never the atomic temporary file.
-    const code = (error as NodeJS.ErrnoException).code;
+    const code = errorCode(error);
     throw new Error(
       `Cannot write email to ${oneLine(file)}${code ? ` (${code})` : ''}`,
       { cause: error },
@@ -237,7 +243,7 @@ async function writeReport(file: string, html: string): Promise<void> {
   try {
     await writeAtomic(file, html);
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
+    const code = errorCode(error);
     throw new Error(
       `Cannot write report to ${oneLine(file)}${code ? ` (${code})` : ''}`,
       { cause: error },
@@ -249,7 +255,7 @@ async function writeCiOutput(file: string, text: string): Promise<void> {
   try {
     await writeAtomic(file, text);
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
+    const code = errorCode(error);
     throw new Error(
       `Cannot write CI output to ${oneLine(file)}${code ? ` (${code})` : ''}`,
       { cause: error },
@@ -279,7 +285,7 @@ async function writePdf(
   try {
     await writeAtomic(file, bytes);
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
+    const code = errorCode(error);
     throw new Error(
       `Cannot write PDF to ${oneLine(file)}${code ? ` (${code})` : ''}`,
       { cause: error },
@@ -820,7 +826,7 @@ function isMainModule(): boolean {
 }
 
 if (isMainModule()) {
-  runCli(process.argv.slice(2)).then((code) => {
+  void runCli(process.argv.slice(2)).then((code) => {
     process.exitCode = code;
     return code;
   });

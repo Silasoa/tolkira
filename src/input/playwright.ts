@@ -571,9 +571,9 @@ function stripTrailingTags(value: string): string {
   let end = value.length;
   while (end > 0) {
     let tokenEnd = end;
-    while (tokenEnd > 0 && /\s/.test(value[tokenEnd - 1] as string)) tokenEnd -= 1;
+    while (tokenEnd > 0 && /\s/.test(value[tokenEnd - 1] ?? '')) tokenEnd -= 1;
     let tokenStart = tokenEnd;
-    while (tokenStart > 0 && !/\s/.test(value[tokenStart - 1] as string)) {
+    while (tokenStart > 0 && !/\s/.test(value[tokenStart - 1] ?? '')) {
       tokenStart -= 1;
     }
     const token = value.slice(tokenStart, tokenEnd);
@@ -1242,13 +1242,12 @@ async function scenarioPlan(
   const results = test.results;
   const finalIndex =
     results.length > 0
-      ? results.reduce(
-          (best, candidate, index) =>
-            candidate.retry >= (results[best] as PlaywrightResult).retry
-              ? index
-              : best,
-          0,
-        )
+      ? results.reduce((best, candidate, index) => {
+          const bestResult = results[best];
+          return bestResult !== undefined && candidate.retry >= bestResult.retry
+            ? index
+            : best;
+        }, 0)
       : -1;
   const final = finalIndex >= 0 ? results[finalIndex] : undefined;
   const finalStatus = final?.status;
@@ -1688,8 +1687,9 @@ export async function parsePlaywrightJson(
           let clock = attempt.timestamp;
           const count = Math.min(attempt.steps.length, plan.testCase.testSteps.length);
           for (let index = 0; index < count; index += 1) {
-            const testStep = plan.testCase.testSteps[index] as TestStep;
-            const step = attempt.steps[index] as CanonicalStep;
+            const testStep = plan.testCase.testSteps[index];
+            const step = attempt.steps[index];
+            if (testStep === undefined || step === undefined) break;
             envelopes.push({
               testStepStarted: {
                 testCaseStartedId: startedId,

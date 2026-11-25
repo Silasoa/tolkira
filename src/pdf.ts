@@ -31,17 +31,14 @@ async function loadChromium(): Promise<Chromium> {
       const projectRequire = createRequire(
         path.join(process.cwd(), 'package.json'),
       );
-      engine = projectRequire('playwright-core') as Engine;
+      engine = projectRequire('playwright-core');
     } catch {
       throw new Error(INSTALL_GUIDANCE);
     }
   }
-  // Check ownership before reading: a mock or a partial module without the
-  // export must fall into the install guidance, not a TypeError.
-  const hasChromium =
-    engine !== undefined && Object.hasOwn(engine, 'chromium');
-  const chromium = hasChromium
-    ? (engine as { chromium?: Chromium }).chromium
+  if (engine === undefined) throw new Error(INSTALL_GUIDANCE);
+  const chromium = Object.hasOwn(engine, 'chromium')
+    ? engine.chromium
     : undefined;
   if (!chromium) throw new Error(INSTALL_GUIDANCE);
   return chromium;

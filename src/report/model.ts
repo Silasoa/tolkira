@@ -1,4 +1,4 @@
-import { getWorstTestStepResult } from '@cucumber/messages';
+import { getWorstTestStepResult, AttachmentContentEncoding } from '@cucumber/messages';
 import type {
   Attachment,
   Background,
@@ -219,7 +219,7 @@ export interface ReportModel {
   runAttachments: ReportAttachment[];
 }
 
-const VALID_STATUS = new Set<ReportStatus>([
+const VALID_STATUS: ReadonlySet<string> = new Set([
   'passed',
   'failed',
   'skipped',
@@ -229,11 +229,13 @@ const VALID_STATUS = new Set<ReportStatus>([
   'unknown',
 ]);
 
+function isReportStatus(value: string): value is ReportStatus {
+  return VALID_STATUS.has(value);
+}
+
 function statusOf(status: unknown): ReportStatus {
   const value = typeof status === 'string' ? status.toLowerCase() : '';
-  return VALID_STATUS.has(value as ReportStatus)
-    ? (value as ReportStatus)
-    : 'unknown';
+  return isReportStatus(value) ? value : 'unknown';
 }
 
 function durationMs(duration: { seconds: number; nanos: number } | undefined): number {
@@ -347,7 +349,7 @@ function toAttachment(attachment: Attachment): ReportAttachment {
   const body = attachment.body ?? '';
   const { fileName, mediaType, kind, bytes, textFormat } =
     attachmentMetadata(attachment);
-  const isBase64 = attachment.contentEncoding === 'BASE64';
+  const isBase64 = attachment.contentEncoding === AttachmentContentEncoding.BASE64;
 
   if (kind === 'image' || kind === 'video' || kind === 'audio') {
     return {

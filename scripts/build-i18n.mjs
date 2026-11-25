@@ -45,7 +45,9 @@ const identifier = (tag) => {
 const object = (values) =>
   `{\n${keys.map((key) => `  ${JSON.stringify(key)}: ${JSON.stringify(values[key])},`).join('\n')}\n}`;
 
-const sortedTargets = [...targets.keys()].sort();
+const sortedTargets = [...targets.keys()].sort(
+  (a, b) => (a < b ? -1 : a > b ? 1 : 0),
+);
 const usedIdentifiers = new Set(['en', 'catalogs', 'MessageKey']);
 const declarations = sortedTargets.map((tag) => {
   const name = identifier(tag);

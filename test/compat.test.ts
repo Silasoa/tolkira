@@ -305,7 +305,7 @@ describe('cucumber-html-reporter compat', () => {
 
     await new Promise<void>((resolve, reject) => {
       // Intentionally ignore the returned promise: the callback owns errors.
-      generate({ output }, (error) => {
+      void generate({ output }, (error) => {
         try {
           expect(error).toBeInstanceOf(Error);
           resolve();

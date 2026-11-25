@@ -52,7 +52,7 @@ async function readFeatures(
   if (!Array.isArray(parsed) || !parsed.every((entry) => isFeatureLike(entry))) {
     return undefined;
   }
-  return parsed as Record<string, unknown>[];
+  return parsed;
 }
 
 function collisionError(sidecar: string, input: string): Error {
@@ -107,7 +107,7 @@ async function planSidecar(
       const key = featureKey(feature);
       const elements = (
         Array.isArray(feature.elements) ? feature.elements : []
-      ).map((element) => ({ ...(element as object), retried: 0 }));
+      ).map((element) => ({ ...element, retried: 0 }));
       const existing = merged.get(key);
       if (existing) {
         for (const element of elements) existing.elements.push(element);

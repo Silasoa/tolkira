@@ -1,7 +1,9 @@
 import { TestStepResultStatus } from '@cucumber/messages';
 import type { Envelope } from '@cucumber/messages';
 
-const STATUS_VALUES = new Set(Object.values(TestStepResultStatus));
+const STATUS_VALUES: ReadonlySet<string> = new Set(
+  Object.values(TestStepResultStatus),
+);
 
 export const ENVELOPE_KEYS = new Set([
   'attachment',
@@ -61,12 +63,14 @@ function requireObject(
   key: string,
   source: string,
   line: number,
-): void {
-  if (!isObject(payload[field])) {
+): JsonObject {
+  const value = payload[field];
+  if (!isObject(value)) {
     throw new Error(
       `Invalid Cucumber Messages on line ${line} of ${source}: "${key}.${field}" must be an object.`,
     );
   }
+  return value;
 }
 
 function requireArray(
@@ -90,9 +94,8 @@ function requireStepResult(
   source: string,
   line: number,
 ): void {
-  requireObject(payload, field, key, source, line);
-  const result = payload[field] as JsonObject;
-  if (!isString(result.status) || !STATUS_VALUES.has(result.status as TestStepResultStatus)) {
+  const result = requireObject(payload, field, key, source, line);
+  if (!isString(result.status) || !STATUS_VALUES.has(result.status)) {
     throw new Error(
       `Invalid Cucumber Messages on line ${line} of ${source}: "${key}.${field}.status" must be a known Cucumber status.`,
     );
@@ -253,8 +256,8 @@ export function parseMessages(content: string, source: string): Envelope[] {
         );
       }
 
-      const key = Object.keys(value)[0] as string;
-      const payload = (value as JsonObject)[key];
+      const key = Object.keys(value)[0] ?? '';
+      const payload = Object.values(value)[0];
       if (!isObject(payload)) {
         throw new Error(`"${key}" must be an object`);
       }

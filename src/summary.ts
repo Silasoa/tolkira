@@ -98,7 +98,7 @@ export interface ReportSummary {
   scenarios: SummaryScenario[];
 }
 
-const VALID_STATUSES = new Set<SummaryStatus>([
+const VALID_STATUSES: ReadonlySet<string> = new Set([
   'passed',
   'failed',
   'skipped',
@@ -108,11 +108,13 @@ const VALID_STATUSES = new Set<SummaryStatus>([
   'unknown',
 ]);
 
+function isSummaryStatus(value: string): value is SummaryStatus {
+  return VALID_STATUSES.has(value);
+}
+
 function toStatus(status: unknown): SummaryStatus {
   const normalized = typeof status === 'string' ? status.toLowerCase() : '';
-  return VALID_STATUSES.has(normalized as SummaryStatus)
-    ? (normalized as SummaryStatus)
-    : 'unknown';
+  return isSummaryStatus(normalized) ? normalized : 'unknown';
 }
 
 function emptyCounts(): StatusCounts {

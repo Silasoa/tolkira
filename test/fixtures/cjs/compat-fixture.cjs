@@ -87,7 +87,7 @@ async function main() {
   if (command === 'callback-only-error') {
     // Callback-only style: the returned promise is deliberately not awaited.
     await new Promise((resolve) => {
-      compat.generate({ output }, (error) => {
+      void compat.generate({ output }, (error) => {
         emit({ callbacks: 1, callbackError: serializeError(error) });
         resolve();
       });

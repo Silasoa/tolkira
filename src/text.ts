@@ -92,7 +92,7 @@ export function scanEscape(text: string, start: number): EscapeScan {
 
   let index = start + 1;
   if (index >= text.length) return { end: index };
-  const introducer = text[index] as string;
+  const introducer = text[index] ?? '';
 
   if (introducer === '[') {
     const end = csiEnd(text, index);

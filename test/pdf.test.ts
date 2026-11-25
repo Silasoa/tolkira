@@ -264,10 +264,7 @@ describe('renderPdf', () => {
     const createRequire = vi.fn<(path: string) => unknown>(
       () => projectRequire,
     );
-    vi.doMock('node:module', async (importOriginal) => ({
-      ...(await importOriginal<typeof import('node:module')>()),
-      createRequire,
-    }));
+    vi.doMock('node:module', () => ({ createRequire }));
     try {
       const renderPdf = await loadRenderPdf();
 
@@ -294,10 +291,7 @@ describe('renderPdf', () => {
     const createRequire = vi.fn<(path: string) => unknown>(
       () => projectRequire,
     );
-    vi.doMock('node:module', async (importOriginal) => ({
-      ...(await importOriginal<typeof import('node:module')>()),
-      createRequire,
-    }));
+    vi.doMock('node:module', () => ({ createRequire }));
     try {
       const renderPdf = await loadRenderPdf();
 
