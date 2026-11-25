@@ -30,7 +30,9 @@ npm run test:e2e
 npm run bench:ansi
 ```
 
-`npm run check` runs typecheck, lint, unit tests and build. `npm run hygiene`
+`npm run check` runs `i18n:check`, assets, both typecheck programs, the
+type-aware lint at zero warnings, the Prettier check, the build and the coverage
+suite; an empty test glob and coverage below the floor fail. `npm run hygiene`
 checks tracked generated/local files, absolute local paths in docs and commit
 trailers; CI runs the same check on the committed tree. `npm run bench:ansi`
 measures `stripAnsi` on fixed message corpora and fails on the 500 ms

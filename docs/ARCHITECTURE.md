@@ -611,11 +611,29 @@ Test names, metadata, file names and attachments are untrusted input.
 ## Toolchain
 
 - Node.js 22, 24 and 26 in CI.
-- TypeScript, ESM.
+- TypeScript 7, ESM, with eleven strict checks and two programs: the
+  server/test program with Node types and `tsconfig.client.json` for the browser
+  graph with `types: []` and DOM only. `npm run typecheck` runs both.
 - esbuild for the CLI/library bundle.
-- oxlint (fast, single binary, no ESLint dependency tree).
-- Vitest.
+- oxlint with the maximal config: correctness as error, suspicious, performance
+  and pedantic as warning, type-aware rules through the pinned
+  `oxlint-tsgolint`, and `--max-warnings=0`. Global exceptions are named in
+  `.oxlintrc.json`; a per-line suppression carries its rule and a reason and is
+  pinned by `test/tooling-config.test.ts`, so a silent weakening fails the
+  suite.
+- Prettier for formatting, landed in one isolated formatting-only commit;
+  `format:check` ignores generated sources, the report CSS, fixtures, goldens,
+  Markdown and `openspec/`.
+- Vitest with a v8 coverage floor of 93 statements, 86 branches, 95 functions
+  and 95 lines over `src/**/*.ts` minus the embedded browser entry; an empty
+  test selection fails.
 - Playwright for browser-level checks.
+- LF checkout policy (`* text=auto eol=lf` in `.gitattributes`).
+- `npm run check` runs i18n:check, assets, typecheck, lint, format:check, build
+  and the coverage suite, in that order; CI and the release workflow call it
+  unchanged.
+- Dev-only exact pins: oxlint 1.94.0, oxlint-tsgolint 7.0.2008, Prettier 3.10.1
+  and @vitest/coverage-v8 5.1.1.
 - npm trusted publishing with provenance.
 
 ## Key decisions

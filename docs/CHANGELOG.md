@@ -3,6 +3,34 @@
 All notable changes to Tolkira are recorded here. The format follows
 Keep a Changelog and the project uses semantic versioning.
 
+## [Unreleased]
+
+### Changed
+
+- The quality gate compiles with eleven strict TypeScript checks in two
+  programs: the server and test sources with Node types, and the browser graph
+  with no Node declarations, so a Node global in browser code fails.
+- Lint runs the maximal sensible oxlint set: correctness as error, suspicious,
+  performance and pedantic as warnings, type-aware rules through the pinned
+  `oxlint-tsgolint`, and `--max-warnings=0`. The 335 findings on the
+  strict-fixed tree are fixed except 14 in the four browser files that are
+  embedded in every report; those stay as per-line suppressions with a reason,
+  pinned by the gate test.
+- Prettier 3.10.1 is the formatter, landed in one formatting-only commit with a
+  `format:check` step. No generated source, report CSS, fixture, golden or
+  report byte changes.
+- Unit coverage has a floor of 93 statements, 86 branches, 95 functions and 95
+  lines over `src/**/*.ts` minus the embedded browser entry; `passWithNoTests`
+  is gone, so an empty test selection fails.
+- The repository enforces LF checkout line endings.
+- `npm run check` remains the single local and CI gate; the added steps run
+  inside it. Dev-only dependencies: `oxlint-tsgolint` 7.0.2008, Prettier 3.10.1
+  and `@vitest/coverage-v8` 5.1.1, with `oxlint` pinned to 1.94.0.
+- No runtime dependency, CLI/API option, report byte, public input declaration,
+  package entry or workflow change. Wrapped errors keep their `cause`
+  internally, and the non-exported `renderOptions()` helper has a narrower
+  return shape in `dist/options.d.ts`; neither is public API.
+
 ## [0.6.1] - 2026-11-25
 
 ### Fixed
