@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [],
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": [
+    "src/render/client-i18n.ts",
+    "src/render/dom-contract.ts",
+    "src/render/report-client.ts",
+    "src/render/search.ts",
+    "src/report/status.ts"
+  ]
+}
