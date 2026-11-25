@@ -149,7 +149,10 @@ function envelopes(): Envelope[] {
       },
     },
   ];
-  return parseMessages(lines.map((line) => JSON.stringify(line)).join('\n'), 'ansi.ndjson');
+  return parseMessages(
+    lines.map((line) => JSON.stringify(line)).join('\n'),
+    'ansi.ndjson',
+  );
 }
 
 describe('ANSI escape stripping in report text', () => {
@@ -168,7 +171,9 @@ describe('ANSI escape stripping in report text', () => {
     const hook = steps.find((step) => step.keyword === 'Hook');
 
     expect(hook?.message).toBe(VISIBLE_ANSI);
-    expect(steps.find((step) => step.keyword === 'Given')?.message).toBe(VISIBLE_ANSI);
+    expect(steps.find((step) => step.keyword === 'Given')?.message).toBe(
+      VISIBLE_ANSI,
+    );
   });
 
   it('never emits escape sequences or terminal payloads into HTML', async () => {
@@ -180,8 +185,10 @@ describe('ANSI escape stripping in report text', () => {
     expect(html).not.toContain(']8;;');
     expect(html).not.toContain('dcs payload');
     expect(html).not.toContain('apc payload');
-    // oxlint-disable-next-line no-control-regex
-    expect(html).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/);
+    expect(html).not.toMatch(
+      // oxlint-disable-next-line no-control-regex
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/,
+    );
     expect(html).toContain(VISIBLE_ANSI);
   });
 });

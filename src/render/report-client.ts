@@ -1,3 +1,4 @@
+/* oxlint-disable unicorn/prefer-string-replace-all, eslint/no-inner-declarations, eslint/no-loop-func, typescript/no-unsafe-type-assertion -- the embedded browser bundle is pinned to the report bytes */
 import { createClientFormatter } from './client-i18n.js';
 import {
   DOM_IDS,
@@ -23,20 +24,11 @@ import {
 
 // The report always embeds the active locale's client.* strings in an inert
 // JSON block. No catalog or English fallback map enters this bundle.
-function isStringRecord(value: unknown): value is Record<string, string> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    Object.values(value).every((entry) => typeof entry === 'string')
-  );
-}
-
 const messages: Record<string, string> = (() => {
   const block = document.getElementById(DOM_IDS.i18nMessages);
   if (!block?.textContent) return {};
   try {
-    const parsed: unknown = JSON.parse(block.textContent);
-    return isStringRecord(parsed) ? parsed : {};
+    return JSON.parse(block.textContent) as Record<string, string>;
   } catch {
     return {};
   }
@@ -75,9 +67,7 @@ const tablist = document.querySelector<HTMLElement>('[role="tablist"]');
 tablist?.addEventListener('keydown', (event) => {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
   event.preventDefault();
-  const activeElement = document.activeElement;
-  const index =
-    activeElement instanceof HTMLElement ? views.indexOf(activeElement) : -1;
+  const index = views.indexOf(document.activeElement as HTMLElement);
   if (index < 0) return;
   const next =
     event.key === 'Home'
@@ -189,7 +179,9 @@ function apply(): void {
   }
   for (const feature of features) {
     const any = [
-      ...feature.querySelectorAll<HTMLDetailsElement>(`[${SCENARIO_ATTRIBUTE}]`),
+      ...feature.querySelectorAll<HTMLDetailsElement>(
+        `[${SCENARIO_ATTRIBUTE}]`,
+      ),
     ].some((child) => !child.hidden);
     feature.hidden = !any;
     if (any && (query || state.hidden.size || tag)) feature.open = true;
@@ -267,7 +259,7 @@ function clearHighlights(): void {
 }
 
 function escapeRegex(value: string): string {
-  return value.replaceAll(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+  return value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
 }
 
 function highlightSearch(): void {
@@ -292,7 +284,7 @@ function highlightSearch(): void {
       }
       if (
         target.hasAttribute(SCENARIO_ATTRIBUTE) &&
-        !(target instanceof HTMLDetailsElement && target.open)
+        !(target as HTMLDetailsElement).open
       ) {
         continue;
       }
@@ -306,7 +298,10 @@ function highlightSearch(): void {
         const value = node.nodeValue;
         if (!value) continue;
         const parent = node.parentElement;
-        if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')) {
+        if (
+          parent &&
+          (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE')
+        ) {
           continue;
         }
         pattern.lastIndex = 0;
@@ -330,7 +325,8 @@ function highlightSearch(): void {
 }
 
 const search = document.querySelector<HTMLInputElement>('input[data-search]');
-const tagFilter = document.querySelector<HTMLSelectElement>('[data-tag-filter]');
+const tagFilter =
+  document.querySelector<HTMLSelectElement>('[data-tag-filter]');
 const statusButtons = [
   ...document.querySelectorAll<HTMLButtonElement>(
     `button.filter[${FILTER_STATUS_ATTRIBUTE}]`,
@@ -356,10 +352,7 @@ function syncFilterUi(): void {
         : 'true',
     );
   }
-  presetButton?.setAttribute(
-    'aria-pressed',
-    presetActive() ? 'true' : 'false',
-  );
+  presetButton?.setAttribute('aria-pressed', presetActive() ? 'true' : 'false');
 }
 
 function syncUrl(): void {
@@ -458,9 +451,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 const copyLive = document.getElementById(DOM_IDS.copyLive);
 
 function legacyCopy(text: string): boolean {
-  const activeElement = document.activeElement;
-  const active =
-    activeElement instanceof HTMLElement ? activeElement : null;
+  const active = document.activeElement as HTMLElement | null;
   const field = document.createElement('textarea');
   field.value = text;
   field.setAttribute('readonly', '');
@@ -490,12 +481,12 @@ function writeClipboard(text: string, done: (ok: boolean) => void): void {
   function fallback(): void {
     finish(legacyCopy(text));
   }
-  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+  if (
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === 'function'
+  ) {
     try {
-      navigator.clipboard.writeText(text).then(
-        () => finish(true),
-        fallback,
-      );
+      navigator.clipboard.writeText(text).then(() => finish(true), fallback);
     } catch {
       fallback();
     }
@@ -525,7 +516,7 @@ function failureText(button: HTMLElement): string {
   const error =
     step?.querySelector('.error') ?? hook?.querySelector('.error') ?? null;
   const stepLabel = hook
-    ? hook.querySelector('.hookLabel')?.textContent?.trim() ?? 'Hook'
+    ? (hook.querySelector('.hookLabel')?.textContent?.trim() ?? 'Hook')
     : `${keyword} ${text.trim()}`.trim();
   const stepKind = hook
     ? `${translate('client.clipboardHook')} `
@@ -607,9 +598,9 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
   );
 }
 
-const lightboxElement = document.getElementById(DOM_IDS.lightbox);
-const lightbox =
-  lightboxElement instanceof HTMLDialogElement ? lightboxElement : null;
+const lightbox = document.getElementById(
+  DOM_IDS.lightbox,
+) as HTMLDialogElement | null;
 if (lightbox) {
   const dialog = lightbox;
   const lightboxImage = dialog.querySelector<HTMLImageElement>('img');
@@ -618,33 +609,32 @@ if (lightbox) {
   );
   let lightboxTrigger: HTMLElement | null = null;
   let previousOverflow = '';
-  const closeDialog = (): void => {
+  function closeDialog(): void {
     if (typeof dialog.close === 'function') dialog.close();
     else {
       dialog.removeAttribute('open');
       restoreLightbox();
     }
-  };
-  const restoreLightbox = (): void => {
+  }
+  function restoreLightbox(): void {
     document.documentElement.style.overflow = previousOverflow;
     lightboxTrigger?.focus();
     lightboxTrigger = null;
-  };
-  const openLightbox = (button: HTMLButtonElement): void => {
-    const image = button.querySelector<HTMLImageElement>('img');
-    if (!image || !lightboxImage) return;
-    lightboxImage.src = image.src;
-    lightboxImage.alt = image.alt;
-    lightboxTrigger = button;
-    previousOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.setAttribute('open', '');
-  };
+  }
   for (const button of document.querySelectorAll<HTMLButtonElement>(
     '.shotButton',
   )) {
-    button.addEventListener('click', () => openLightbox(button));
+    button.addEventListener('click', () => {
+      const image = button.querySelector<HTMLImageElement>('img');
+      if (!image || !lightboxImage) return;
+      lightboxImage.src = image.src;
+      lightboxImage.alt = image.alt;
+      lightboxTrigger = button;
+      previousOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = 'hidden';
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    });
   }
   closeLightbox?.addEventListener('click', closeDialog);
   dialog.addEventListener('click', (event) => {
@@ -675,8 +665,8 @@ function revealHash(): void {
   if (!target) return;
   let node: HTMLElement | null = target;
   while (node) {
-    if (node instanceof HTMLDetailsElement) {
-      node.open = true;
+    if (node.tagName === 'DETAILS') {
+      (node as HTMLDetailsElement).open = true;
     }
     node = node.parentElement;
   }

@@ -4,6 +4,7 @@ export type ClientParams = Record<string, string | number>;
 
 // One level of `{param}` is allowed inside a branch body; nested plurals are
 // already forbidden by the catalog check.
+/* oxlint-disable unicorn/prefer-string-replace-all, typescript/no-unsafe-type-assertion, typescript/no-unnecessary-type-conversion -- the embedded browser bundle is pinned to the report bytes */
 const PLURAL =
   /\{([A-Za-z_]\w*), plural, ((?:[A-Za-z]+\s*\{(?:[^{}]|\{[^{}]*\})*\}\s*)+)\}/g;
 const BRANCH = /([A-Za-z]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g;
@@ -27,24 +28,26 @@ export function createClientFormatter(lang: string): ClientFormatter {
     lang: tag,
     number,
     format(template, params = {}) {
-      const withPlurals = template.replaceAll(
+      const withPlurals = template.replace(
         PLURAL,
         (_match, name: string, body: string) => {
-          const numeric = Number(Object.hasOwn(params, name) ? params[name] : 0);
+          const numeric = Number(
+            Object.hasOwn(params, name) ? params[name] : 0,
+          );
           const value = Number.isFinite(numeric) ? numeric : 0;
           const branches: Record<string, string> = {};
           for (const branch of body.matchAll(BRANCH)) {
-            branches[branch[1] ?? ''] = branch[2] ?? '';
+            branches[branch[1] as string] = branch[2] as string;
           }
           const selected =
             branches[rules.select(value)] ?? branches.other ?? '';
-          return selected.replaceAll('#', number(value));
+          return selected.replace(/#/g, number(value));
         },
       );
-      return withPlurals.replaceAll(PARAM, (_match, name: string) => {
+      return withPlurals.replace(PARAM, (_match, name: string) => {
         if (!Object.hasOwn(params, name)) return '';
         const value = params[name];
-        return typeof value === 'number' ? number(value) : (value ?? '');
+        return typeof value === 'number' ? number(value) : String(value ?? '');
       });
     },
   };

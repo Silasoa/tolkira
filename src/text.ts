@@ -15,8 +15,11 @@ export function compareText(a: string, b: string): number {
 
 /** Keeps a path or label on one line in confirmations and error output. */
 export function oneLine(value: string): string {
-  // oxlint-disable-next-line no-control-regex
-  return value.replaceAll(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ');
+  return value.replaceAll(
+    // oxlint-disable-next-line no-control-regex
+    /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
+    ' ',
+  );
 }
 
 // Returns the index just past the CSI sequence that starts at `start`, where
@@ -109,7 +112,9 @@ export function scanEscape(text: string, start: number): EscapeScan {
     introducer === '^' ||
     introducer === 'X'
   ) {
-    return { end: stringEnd(text, index + 1, introducer === ']') ?? text.length };
+    return {
+      end: stringEnd(text, index + 1, introducer === ']') ?? text.length,
+    };
   }
 
   let end = index;

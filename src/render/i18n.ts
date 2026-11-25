@@ -1,8 +1,4 @@
-import {
-  catalogs,
-  en as english,
-  type MessageKey,
-} from '../i18n/catalogs.js';
+import { catalogs, en as english, type MessageKey } from '../i18n/catalogs.js';
 
 export type { MessageKey };
 
@@ -15,7 +11,11 @@ export interface ResolvedLocale {
 
 type TextNode = { type: 'text'; value: string };
 type ParamNode = { type: 'param'; name: string };
-type PluralNode = { type: 'plural'; name: string; branches: Map<string, Node[]> };
+type PluralNode = {
+  type: 'plural';
+  name: string;
+  branches: Map<string, Node[]>;
+};
 type Node = TextNode | ParamNode | PluralNode;
 
 const CATALOGS = catalogs as Record<string, Record<string, string>>;
@@ -143,10 +143,7 @@ function parseBranches(text: string): Map<string, Node[]> {
     const open = index + match[0].length - 1;
     const close = closingBrace(text, open);
     if (close < 0) invalid('unbalanced plural branch');
-    branches.set(
-      match[1] ?? '',
-      parseNodes(text.slice(open + 1, close), true),
-    );
+    branches.set(match[1] ?? '', parseNodes(text.slice(open + 1, close), true));
     index = close + 1;
   }
   if (!branches.has('other')) invalid('plural needs an other branch');
@@ -253,14 +250,14 @@ function formatNodes(
   let output = '';
   for (const node of nodes) {
     if (node.type === 'text') {
-      output += hash === undefined ? node.value : node.value.replaceAll('#', hash);
+      output +=
+        hash === undefined ? node.value : node.value.replaceAll('#', hash);
       continue;
     }
     if (node.type === 'param') {
       const value = paramValue(params, node.name);
       if (value === undefined) continue;
-      output +=
-        typeof value === 'number' ? hashValue(value, locale) : value;
+      output += typeof value === 'number' ? hashValue(value, locale) : value;
       continue;
     }
     const value = pluralValue(params, node.name);
@@ -361,9 +358,7 @@ export function createTranslator(
       return plainNumber ? plainNumber.format(value) : String(value);
     },
     percent(value) {
-      return percentFormat
-        ? percentFormat.format(value / 100)
-        : `${value}%`;
+      return percentFormat ? percentFormat.format(value / 100) : `${value}%`;
     },
     duration(milliseconds) {
       if (!Number.isFinite(milliseconds) || milliseconds < 0) return '0 ms';
@@ -396,4 +391,27 @@ export function createTranslator(
       return escapeJson(JSON.stringify(messages));
     },
   };
+}
+
+/** Scoped shell rules for the German report; empty for English. */
+export function localeShellCss(t: Translator): string {
+  if ((t.lang.split('-')[0] ?? '').toLowerCase() === 'en') return '';
+  return (
+    ':lang(de) .statusText{overflow-wrap:anywhere;text-align:center}' +
+    ':lang(de) .legendRow{overflow-wrap:anywhere}' +
+    ':lang(de) .legendRow > *{min-width:0}' +
+    ':lang(de) .triageSummary{overflow-wrap:anywhere}' +
+    ':lang(de) .triageSummary > *{min-width:0}' +
+    ':lang(de) .featureTable th:first-child,:lang(de) .featureTable td:first-child{min-width:9.5rem}' +
+    ':lang(de) .featureTable .matrixName{overflow-wrap:break-word}' +
+    ':lang(de) .panel h2{overflow-wrap:anywhere;hyphens:auto}' +
+    ':lang(de) .trendsPanel{overflow-wrap:anywhere}' +
+    ':lang(de) .metaList{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}' +
+    ':lang(de) .metaList dt{min-width:0;overflow-wrap:anywhere}' +
+    '@container (max-width:10rem){:lang(de) .metaList{grid-template-columns:minmax(0,1fr)}}' +
+    '@media (max-width:560px){:lang(de) .sizeMeta{grid-template-columns:minmax(0,1fr)}}' +
+    '@container (min-width:260px){:lang(de) .feature > summary{grid-template-columns:minmax(6.25rem,max-content) minmax(0,1fr) 1.25rem}:lang(de) .feature > summary .statusText{white-space:nowrap}}' +
+    '@media (max-width:560px){.expand{flex-wrap:wrap}html:lang(de){scroll-padding-top:8em}}' +
+    '@media print{:lang(de) .featureTable th:first-child,:lang(de) .featureTable td:first-child{min-width:0}}'
+  );
 }

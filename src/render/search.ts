@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unsafe-type-assertion -- the embedded browser bundle is pinned to the report bytes; assertions erase at build time */
 import { parse } from '@cucumber/tag-expressions';
 
 export const SEARCH_OPEN_CAP = 20;
@@ -39,7 +40,7 @@ function isSpace(character: string): boolean {
 function isTagShaped(text: string): boolean {
   let index = 0;
   while (index < text.length) {
-    const character = text[index] ?? '';
+    const character = text[index] as string;
     if (isSpace(character)) {
       index += 1;
       continue;
@@ -52,7 +53,7 @@ function isTagShaped(text: string): boolean {
       index += 1;
       const start = index;
       while (index < text.length) {
-        const next = text[index] ?? '';
+        const next = text[index] as string;
         if (next === '\\') {
           index += 2;
           continue;
@@ -65,7 +66,7 @@ function isTagShaped(text: string): boolean {
     }
     const start = index;
     while (index < text.length) {
-      const next = text[index] ?? '';
+      const next = text[index] as string;
       if (isSpace(next) || next === '(' || next === ')') break;
       index += 1;
     }

@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/no-unsafe-type-assertion -- the embedded browser bundle is pinned to the report bytes; assertions erase at build time */
 import type { ReportStatus } from '../report/status.js';
 import { UNEXECUTED_HIDE } from './search.js';
 
@@ -24,7 +25,10 @@ export function featureId(index: number): string {
   return `feature-${index + 1}`;
 }
 
-export function scenarioId(featureIndex: number, scenarioIndex: number): string {
+export function scenarioId(
+  featureIndex: number,
+  scenarioIndex: number,
+): string {
   return `scenario-${featureIndex + 1}-${scenarioIndex + 1}`;
 }
 
@@ -62,26 +66,12 @@ export interface AttributeSource {
   getAttribute(name: string): string | null;
 }
 
-const REPORT_STATUSES: ReadonlySet<string> = new Set([
-  'passed',
-  'failed',
-  'skipped',
-  'pending',
-  'undefined',
-  'ambiguous',
-  'unknown',
-]);
-
-function isReportStatus(value: string): value is ReportStatus {
-  return REPORT_STATUSES.has(value);
-}
-
 export function decodeScenario(source: AttributeSource): ScenarioFacts {
   const status = source.getAttribute(STATUS_ATTRIBUTE) ?? undefined;
   const example = source.getAttribute('data-example') ?? undefined;
   const tags = source.getAttribute('data-tags') ?? '';
   return {
-    ...(status === undefined || !isReportStatus(status) ? {} : { status }),
+    ...(status === undefined ? {} : { status: status as ReportStatus }),
     name: source.getAttribute('data-scenario-name') ?? '',
     uri: source.getAttribute('data-uri') ?? '',
     tags: tags ? tags.split(' ') : [],
