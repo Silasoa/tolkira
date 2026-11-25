@@ -347,6 +347,14 @@ venue in the plan.
 Sequence: own release -> `atinfo` -> official docs -> `TheJambo` -> #296 ->
 `Awesome-Cucumber`. Do not submit the docs PR on launch day.
 
+**#296 posted 2026-11-25.** The approved comment is live at
+<https://github.com/gkushang/cucumber-html-reporter/issues/296#issuecomment-7167649816>
+after re-checking the three maintenance dates (npm 7.2.0 on 2024-10-01, release
+6.0.0 on 2023-03-03, last push 2024-11-20) and the thread state (open, unlocked,
+no earlier reply). The text names no version and carries the AI disclosure.
+Next venue: `atinfo/awesome-test-automation`, week 2, one list at a time; no
+other venue without per-venue approval.
+
 ## 8. Proof
 
 ### URLs read (2026-11-23)
