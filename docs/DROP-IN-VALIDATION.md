@@ -96,6 +96,21 @@ Tolkira view carries, record that functional gap.
 | Cucumber-JVM examples | 2026-11-24 | Pass (`0.6.0`) | Pin `f71480f`, `calculator-java-junit-jupiter` with a temp-only `cucumber.properties` adding `json:target/cucumber.json` (14,760 B): 3 features / 8 scenarios / 8 passed; 30 scenario steps + 6 background steps + 18 hooks = 54 results; Tolkira renders 36 step rows + 18 hooks and 18 text attachments / 498 B, report 94,666 B. Static 76,113 B with one `<main>`, no `<script>` and 37/37 details open; baseline 3 fixed plus one ambiguous legacy-JSON group; history 3 runs. No overflow, console errors or external requests. JDK 21.0.9 and Maven 3.9.9 were provisioned into the evidence directory; the 8/54 record reproduces, the earlier 9/52 one does not. |
 | `cucumber-html-reporter@7.2.0` reference | 2026-11-20 | Content PASS | Same fixture; screenshots at 1440/390; no visual parity; old install 144 packages / 7 vulnerabilities. The 0.5 shell was not compared to CHR. |
 
+**`0.6.1` release run (2026-11-25, tag `v0.6.1` at `3bd2c87`).** Release run
+`45649497193` passed: the Linux gate ran hygiene, check and the three-engine
+browser suite, the macOS gate ran the three-engine browser suite, and the
+publish job built, packed, installed and smoke-tested the CLI before staging
+the package. The host evidence for this release is the `0.6.1-hardening` block
+above: its five rows ran on a tarball from `c791898` whose `src/`, `scripts/`
+and `test/fixtures` are identical to the tag, so only the version literal,
+tests and docs differ; no row was re-run on the 0.6.1 literal. CI packed 80
+entries, 657.3 kB, npm shasum
+`9ed6f3a5adfb627be285e4f81fdba18d5de962ff`, staged `tolkira@0.6.1` with id
+`234439a9-bfea-4597-89c4-4a9e60537076` and tag `latest`; the provenance
+statement reached log index `4106198783`. The package is public only after the
+maintainer's 2FA approval; the table above keeps its last full release run
+(0.6.0), and the published artifact hash is added after that approval.
+
 **`0.5.1` release run (2026-11-23, final tarball).** All five required rows ran
 on the packed 0.5.1 tarball (`tolkira-0.5.1.tgz`, 581,397 B, SHA-256
 `C584C33B704BAC7539910916ABF280A8030CBB0E08432916BFB691A191234364`) in
