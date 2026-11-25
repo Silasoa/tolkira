@@ -383,16 +383,18 @@ describe('curated lint', () => {
 
 describe('lint suppressions', () => {
   it('keeps every suppression inline with a reason and pins the map', () => {
-    const fileLevel = /^\s*(?:\/\/|\/\*)\s*oxlint-disable(?![-\w])/;
-    const nextLine = /^\s*(?:\/\/|\/\*)\s*oxlint-disable-next-line\b/;
-    const pinned = /^\s*\/\/ oxlint-disable-next-line (\S+) -- \S/;
+    const fileLevel = /^\s*(?:\/\/|\/\*)\s*(?:eslint|oxlint)-disable(?![-\w])/;
+    const inlineDirective =
+      /^\s*(?:\/\/|\/\*)\s*(?:eslint|oxlint)-disable-(?:next-line|line)\b/;
+    const pinned =
+      /^\s*\/\/ (?:eslint|oxlint)-disable-(?:next-line|line) (\S+) -- \S/;
     const found: string[] = [];
     for (const file of trackedSourceFiles()) {
       const lines = readText(file).split(/\r?\n/);
       lines.forEach((line, index) => {
         const where = `${file}:${index + 1}`;
         expect(line, where).not.toMatch(fileLevel);
-        if (!nextLine.test(line)) return;
+        if (!inlineDirective.test(line)) return;
         expect(line, where).toMatch(pinned);
         const rule = pinned.exec(line)?.[1];
         if (rule !== undefined) found.push(`${file} ${rule}`);
