@@ -80,7 +80,7 @@
     "build": "npm run clean && npm run assets && node esbuild.mjs && tsc -p tsconfig.build.json && tsc -p tsconfig.compat-cjs.json",
     "postbuild": "node scripts/copy-compat-cjs.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
-    "lint": "oxlint .",
+    "lint": "oxlint --type-aware --max-warnings=0 .",
     "test": "npm run i18n:check && npm run assets && vitest run",
     "test:e2e": "playwright test",
     "pretest:e2e": "npm run assets",
@@ -108,7 +108,8 @@
     "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.6",
     "esbuild": "^0.28.2",
-    "oxlint": "^1.90.0",
+    "oxlint": "1.94.0",
+    "oxlint-tsgolint": "7.0.2008",
     "playwright": "^1.65.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
