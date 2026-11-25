@@ -61,6 +61,7 @@ jobs:
           git fetch origin main
           git merge-base --is-ancestor HEAD FETCH_HEAD
       - run: npm ci
+      - run: npm run build
       - run: npm pack --pack-destination /tmp
       - run: npm install -g --prefix /tmp/global /tmp/tolkira-*.tgz
       - run: test -x /tmp/global/bin/tolkira

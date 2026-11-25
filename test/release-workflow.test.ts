@@ -143,6 +143,19 @@ describe('release workflow gate', () => {
     expect(activeCommands(publish)).not.toContain('--depth');
   });
 
+  it('builds the package before packing it from a clean checkout', async () => {
+    const commands = runCommands(job(await workflowJobs(), 'publish'));
+    const build = commands.indexOf('npm run build');
+    const pack = commands.findIndex((command) =>
+      /^npm pack --pack-destination \S+$/.test(command),
+    );
+
+    // dist/ is gitignored: without a build the packed tarball has no CLI.
+    expect(build, 'build step').toBeGreaterThanOrEqual(0);
+    expect(pack, 'pack step').toBeGreaterThan(build);
+    expect(commands.filter((command) => command === 'npm run build')).toHaveLength(1);
+  });
+
   it('reaches the package smoke and stage step on a green tag', async () => {
     const commands = runCommands(job(await workflowJobs(), 'publish'));
     const order: Array<[string, RegExp]> = [
