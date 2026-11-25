@@ -45,14 +45,16 @@ const identifier = (tag) => {
 const object = (values) =>
   `{\n${keys.map((key) => `  ${JSON.stringify(key)}: ${JSON.stringify(values[key])},`).join('\n')}\n}`;
 
-const sortedTargets = [...targets.keys()].sort(
-  (a, b) => (a < b ? -1 : a > b ? 1 : 0),
+const sortedTargets = [...targets.keys()].sort((a, b) =>
+  a < b ? -1 : a > b ? 1 : 0,
 );
 const usedIdentifiers = new Set(['en', 'catalogs', 'MessageKey']);
 const declarations = sortedTargets.map((tag) => {
   const name = identifier(tag);
   if (usedIdentifiers.has(name)) {
-    throw new Error(`Locale tag "${tag}" maps to duplicate identifier "${name}"`);
+    throw new Error(
+      `Locale tag "${tag}" maps to duplicate identifier "${name}"`,
+    );
   }
   usedIdentifiers.add(name);
   return `export const ${name}: Record<MessageKey, string> = ${object(targets.get(tag))};`;
@@ -60,9 +62,7 @@ const declarations = sortedTargets.map((tag) => {
 
 const catalogEntries = ['en', ...sortedTargets].map((tag) => {
   const name = tag === 'en' ? 'en' : identifier(tag);
-  return name === tag
-    ? `  ${name},`
-    : `  ${JSON.stringify(tag)}: ${name},`;
+  return name === tag ? `  ${name},` : `  ${JSON.stringify(tag)}: ${name},`;
 });
 
 const keyUnion = keys.map((key) => `  | ${JSON.stringify(key)}`).join('\n');

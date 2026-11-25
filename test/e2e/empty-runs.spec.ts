@@ -35,9 +35,7 @@ test('renders an empty run without outcomes or triage', async ({ page }) => {
       page.getByRole('tabpanel', { name: 'Report' }).locator('.healthTop .sr'),
     ).toHaveText('0 / 0 passed');
     await expect(
-      page
-        .getByRole('tabpanel', { name: 'Report' })
-        .locator('.runHead .meta'),
+      page.getByRole('tabpanel', { name: 'Report' }).locator('.runHead .meta'),
     ).toContainText('0 scenarios with results');
     await expect(page.locator('details.feature')).toHaveAttribute('open', '');
     await expect(
@@ -72,14 +70,10 @@ test('keeps a blank row searchable in a mixed run', async ({ page }) => {
         .getByText('1 / 1 attempted', { exact: true }),
     ).toBeVisible();
     await expect(
-      page
-        .getByRole('tabpanel', { name: 'Report' })
-        .locator('.runHead .meta'),
+      page.getByRole('tabpanel', { name: 'Report' }).locator('.runHead .meta'),
     ).toContainText('1 scenario with results');
     await expect(
-      page
-        .getByRole('tabpanel', { name: 'Report' })
-        .locator('.runHead .meta'),
+      page.getByRole('tabpanel', { name: 'Report' }).locator('.runHead .meta'),
     ).toContainText('1 unexecuted');
     const feature = page.locator('details.feature');
     await expect(feature).not.toHaveAttribute('open', '');
@@ -113,7 +107,9 @@ test('keeps a blank row searchable in a mixed run', async ({ page }) => {
   }
 });
 
-test('counts only executed scenarios in a mixed-status run', async ({ page }) => {
+test('counts only executed scenarios in a mixed-status run', async ({
+  page,
+}) => {
   const { dir, output } = await writeReport(
     [emptyStatusesFixture],
     'Mixed statuses',
@@ -136,9 +132,9 @@ test('counts only executed scenarios in a mixed-status run', async ({ page }) =>
     await expect(
       page.getByText('1 passed of 2 attempted · 1 failed'),
     ).toBeVisible();
-    await expect(page.locator('button.filter[data-filter-status="unknown"]')).toHaveCount(
-      0,
-    );
+    await expect(
+      page.locator('button.filter[data-filter-status="unknown"]'),
+    ).toHaveCount(0);
 
     const triage = page.getByRole('navigation', { name: 'Needs attention' });
     await expect(triage).toBeVisible();
@@ -191,7 +187,9 @@ test('computes the attempted scenario ratio for a run with a skip', async ({
     await page.getByRole('tab', { name: 'Details' }).click();
     const details = page.locator('#analysis-view');
     await expect(details.locator('.healthTop strong')).toHaveText('50%');
-    await expect(details.locator('.healthTop')).toContainText('1 / 2 attempted');
+    await expect(details.locator('.healthTop')).toContainText(
+      '1 / 2 attempted',
+    );
     await expect(details).toContainText(
       'Pass rate counts attempted (non-skipped) scenarios; counts and bars include skipped.',
     );
@@ -213,7 +211,9 @@ test('computes the attempted scenario ratio for a run with a skip', async ({
   }
 });
 
-test('renders the empty state when there are no scenarios', async ({ page }) => {
+test('renders the empty state when there are no scenarios', async ({
+  page,
+}) => {
   const { dir, output } = await writeReport(
     [emptyNoneFixture],
     'No scenarios',
@@ -229,9 +229,7 @@ test('renders the empty state when there are no scenarios', async ({ page }) => 
     ).toBeVisible();
     await expect(page.getByText('No scenarios in this report.')).toBeVisible();
     await expect(
-      page
-        .getByRole('tabpanel', { name: 'Report' })
-        .locator('.runHead .meta'),
+      page.getByRole('tabpanel', { name: 'Report' }).locator('.runHead .meta'),
     ).toContainText('0 scenarios with results');
     await expect(page.locator('details.feature')).toHaveCount(0);
     await expect(

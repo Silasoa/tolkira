@@ -62,7 +62,11 @@ async function metadataLayout(
   });
   expect(layout.linkRight).toBeLessThanOrEqual(layout.metaRight + 1);
   expect(layout.linkWidth).toBeLessThanOrEqual(layout.metaWidth + 1);
-  return { columns: layout.columns, align: layout.align, linkWidth: layout.linkWidth };
+  return {
+    columns: layout.columns,
+    align: layout.align,
+    linkWidth: layout.linkWidth,
+  };
 }
 
 test('stacks the Details metadata at 320 px with 200% text only', async ({
@@ -184,7 +188,13 @@ test('wraps a long metadata link at 320 px and 1440 px without a request', async
 
   try {
     const code = await runCli(
-      [legacyFixture('happy.json'), '--out', output, '--meta', `CI run=${LONG_URL}`],
+      [
+        legacyFixture('happy.json'),
+        '--out',
+        output,
+        '--meta',
+        `CI run=${LONG_URL}`,
+      ],
       {
         stdout: () => undefined,
         stderr: (text) => {
@@ -211,7 +221,10 @@ test('wraps a long metadata link at 320 px and 1440 px without a request', async
 
     const header = page.locator('#report-view .runHead .meta');
     expect(await overflow(), 'report overflow').toBeLessThanOrEqual(1);
-    const headerLink = header.getByRole('link', { name: LONG_URL, exact: true });
+    const headerLink = header.getByRole('link', {
+      name: LONG_URL,
+      exact: true,
+    });
     await expect(headerLink).toBeVisible();
     await expect(headerLink).toHaveAttribute('href', LONG_URL);
     await expect(headerLink).toHaveAttribute('rel', 'noopener noreferrer');

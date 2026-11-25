@@ -244,9 +244,7 @@ describe('JUnit XML input', () => {
     );
     expect(messageByScenario.get('cdata failure')).toBe('CDATA boom');
     expect(messageByScenario.get('self closing failure')).toBeUndefined();
-    expect(messageByScenario.get('text error')).toBe(
-      'RuntimeError: text only',
-    );
+    expect(messageByScenario.get('text error')).toBe('RuntimeError: text only');
 
     const html = await renderReport(failureShapesFixture, {
       title: 'Failure shapes',
@@ -284,15 +282,18 @@ describe('JUnit XML input', () => {
       'text',
       '<testsuites><testsuite name="bare text"><testcase name="passes"><failure>a &amp; b & c</failure></testcase></testsuite></testsuites>',
     ],
-  ])('rejects a bare ampersand before a later entity in %s', async (_where, xml) => {
-    const dir = await tempDir();
-    const file = path.join(dir, 'bare-amp-before-entity.xml');
-    await writeFile(file, xml, 'utf8');
+  ])(
+    'rejects a bare ampersand before a later entity in %s',
+    async (_where, xml) => {
+      const dir = await tempDir();
+      const file = path.join(dir, 'bare-amp-before-entity.xml');
+      await writeFile(file, xml, 'utf8');
 
-    await expect(renderReport(file, { title: 'Bare ampersand' })).rejects.toThrow(
-      /Invalid JUnit XML .*invalid entity reference/,
-    );
-  });
+      await expect(
+        renderReport(file, { title: 'Bare ampersand' }),
+      ).rejects.toThrow(/Invalid JUnit XML .*invalid entity reference/);
+    },
+  );
 
   it('decodes numeric character references', async () => {
     const dir = await tempDir();
@@ -368,7 +369,11 @@ describe('JUnit XML input', () => {
     const empty = path.join(dir, 'empty-file.xml');
     const multi = path.join(dir, 'multi-root.xml');
     await writeFile(empty, '', 'utf8');
-    await writeFile(multi, '<testsuite name="a"/><testsuite name="b"/>', 'utf8');
+    await writeFile(
+      multi,
+      '<testsuite name="a"/><testsuite name="b"/>',
+      'utf8',
+    );
 
     await expect(renderReport(empty, { title: 'Empty' })).rejects.toThrow(
       /line \d+, column \d+/,
@@ -391,9 +396,7 @@ describe('JUnit XML input', () => {
   it('rejects mismatched closing tags instead of parsing them silently', async () => {
     await expect(
       renderReport(malformedFixture, { title: 'Malformed' }),
-    ).rejects.toThrow(
-      /Invalid JUnit XML in .*malformed\.xml at line \d+/,
-    );
+    ).rejects.toThrow(/Invalid JUnit XML in .*malformed\.xml at line \d+/);
   });
 
   it('rejects a JUnit document without test cases', async () => {
@@ -710,9 +713,7 @@ describe('JUnit XML entities', () => {
     const summary = await summarizeReport(file);
 
     expect(summary.scenarios[0]?.name).toBe('named & entities');
-    expect(summary.scenarios[0]?.feature).toBe(
-      'A & B < C > D " E \' F',
-    );
+    expect(summary.scenarios[0]?.feature).toBe('A & B < C > D " E \' F');
     expect(summary.scenarios[0]?.steps[0]?.message).toBe(
       'A & B < C > D " E \' F',
     );
@@ -775,12 +776,15 @@ describe('JUnit XML entities', () => {
 
     const outDir = await tempDir();
     let stderr = '';
-    const code = await runCli([input, '--out', path.join(outDir, 'report.html')], {
-      stdout: () => {},
-      stderr: (text) => {
-        stderr += text;
+    const code = await runCli(
+      [input, '--out', path.join(outDir, 'report.html')],
+      {
+        stdout: () => {},
+        stderr: (text) => {
+          stderr += text;
+        },
       },
-    });
+    );
 
     expect(code).toBe(1);
     expect(stderr).toContain('invalid entity reference');
@@ -840,28 +844,29 @@ describe('JUnit XML entities', () => {
       'utf8',
     );
 
-    await expect(renderReport(acceptedDir, { title: 'Accepted dir' })).resolves
-      .toContain('passes &amp; prints');
-    await expect(renderReport(rejectedDir, { title: 'Rejected dir' })).rejects
-      .toThrow(/Invalid JUnit XML in .*rejected\.xml: invalid entity reference &nbsp;/);
+    await expect(
+      renderReport(acceptedDir, { title: 'Accepted dir' }),
+    ).resolves.toContain('passes &amp; prints');
+    await expect(
+      renderReport(rejectedDir, { title: 'Rejected dir' }),
+    ).rejects.toThrow(
+      /Invalid JUnit XML in .*rejected\.xml: invalid entity reference &nbsp;/,
+    );
   });
 
-  it(
-    'scans a long bare-& run in linear time',
-    async () => {
-      const dir = await tempDir();
-      const file = path.join(dir, 'bare-amp.xml');
-      await writeFile(
-        file,
-        `<testsuites><testsuite name="bare"><testcase name="long"><failure>${'&'.repeat(200_000)}</failure></testcase></testsuite></testsuites>`,
-        'utf8',
-      );
+  it('scans a long bare-& run in linear time', async () => {
+    const dir = await tempDir();
+    const file = path.join(dir, 'bare-amp.xml');
+    await writeFile(
+      file,
+      `<testsuites><testsuite name="bare"><testcase name="long"><failure>${'&'.repeat(200_000)}</failure></testcase></testsuite></testsuites>`,
+      'utf8',
+    );
 
-      await expect(renderReport(file, { title: 'Bare ampersands' })).rejects
-        .toThrow(/Invalid JUnit XML/);
-    },
-    5_000,
-  );
+    await expect(
+      renderReport(file, { title: 'Bare ampersands' }),
+    ).rejects.toThrow(/Invalid JUnit XML/);
+  }, 5_000);
 
   it('caps an over-long entity name in the error text', async () => {
     const dir = await tempDir();
@@ -879,7 +884,9 @@ describe('JUnit XML entities', () => {
     );
     const message = error instanceof Error ? error.message : '';
 
-    expect(message).toContain(`invalid entity reference &${'a'.repeat(64)}...;`);
+    expect(message).toContain(
+      `invalid entity reference &${'a'.repeat(64)}...;`,
+    );
     expect(message).not.toContain(entity);
   });
 

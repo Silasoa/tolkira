@@ -36,7 +36,8 @@ const forbidden = [
 
 for (const file of files) {
   for (const [pattern, rule] of forbidden) {
-    const hit = typeof pattern === 'function' ? pattern(file) : pattern.test(file);
+    const hit =
+      typeof pattern === 'function' ? pattern(file) : pattern.test(file);
     if (hit) report(file, 0, rule);
   }
 }
@@ -45,7 +46,7 @@ for (const file of files) {
 // contain producer paths, so they are excluded. Placeholders such as
 // C:\Users\<user>\... are fine: a named user plus another separator is required.
 const localPath =
-  "[A-Za-z]:\\\\Users\\\\[A-Za-z0-9._-]+\\\\|[A-Za-z]:/Users/[A-Za-z0-9._-]+/|(^|[[:space:](\"'`])/(Users|home)/[A-Za-z0-9._-]+/";
+  '[A-Za-z]:\\\\Users\\\\[A-Za-z0-9._-]+\\\\|[A-Za-z]:/Users/[A-Za-z0-9._-]+/|(^|[[:space:]("\'`])/(Users|home)/[A-Za-z0-9._-]+/';
 const grep = spawnSync(
   'git',
   [
@@ -66,7 +67,12 @@ const grep = spawnSync(
 if (grep.status === 0) {
   for (const line of grep.stdout.split('\n')) {
     const match = /^(.*?):(\d+):/.exec(line);
-    if (match) report(match[1], Number(match[2]), 'absolute local path (use a relative path or placeholder)');
+    if (match)
+      report(
+        match[1],
+        Number(match[2]),
+        'absolute local path (use a relative path or placeholder)',
+      );
   }
 } else if (grep.status !== 1) {
   console.error(grep.stderr || 'hygiene: git grep failed');
@@ -89,11 +95,17 @@ for (const record of records) {
   if (!hashLine) continue;
   commits += 1;
   if (/^co-authored-by\s*:/im.test(body.join('\x1f'))) {
-    report(`commit ${hashLine.slice(0, 12)}`, 0, 'Co-authored-by trailer is not allowed');
+    report(
+      `commit ${hashLine.slice(0, 12)}`,
+      0,
+      'Co-authored-by trailer is not allowed',
+    );
   }
 }
 
-console.log(`hygiene: checked ${files.length} tracked files and ${commits} commits`);
+console.log(
+  `hygiene: checked ${files.length} tracked files and ${commits} commits`,
+);
 if (findings.length > 0) {
   console.error(`hygiene: ${findings.length} finding(s)`);
   for (const finding of findings) console.error(`  ${finding}`);

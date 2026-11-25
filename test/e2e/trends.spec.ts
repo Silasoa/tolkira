@@ -41,7 +41,9 @@ async function twoRunHistory(): Promise<{
   first: ReportFile;
   second: ReportFile;
 }> {
-  const historyDir = await mkdtemp(path.join(tmpdir(), 'tolkira-trends-history-'));
+  const historyDir = await mkdtemp(
+    path.join(tmpdir(), 'tolkira-trends-history-'),
+  );
   const history = path.join(historyDir, 'history.json');
   try {
     const first = await writeReportWithHistory(
@@ -140,9 +142,7 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
 
     // The old contract pinned one `nowrap` row and a fixed bar height; the
     // decided contract is that no tab is clipped at 320 px or 200% text.
-    const expectTabsVisibleAndAnchor = async (
-      label: string,
-    ): Promise<void> => {
+    const expectTabsVisibleAndAnchor = async (label: string): Promise<void> => {
       const tabs = page.getByRole('tab');
       const boxes = await tabs.evaluateAll((elements) =>
         elements.map((element) => {
@@ -204,10 +204,9 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
           viewportWidth + 1,
         );
       }
-      expect(
-        await pageOverflow(page),
-        `${label} overflow`,
-      ).toBeLessThanOrEqual(1);
+      expect(await pageOverflow(page), `${label} overflow`).toBeLessThanOrEqual(
+        1,
+      );
     };
 
     await page.setViewportSize({ width: 320, height: 700 });
@@ -468,7 +467,11 @@ test('keeps a 365-run Trends shell readable at 320 and 200% text', async ({
         flaky: index % 5,
       };
     });
-    await writeFile(history, JSON.stringify({ schemaVersion: 1, runs }), 'utf8');
+    await writeFile(
+      history,
+      JSON.stringify({ schemaVersion: 1, runs }),
+      'utf8',
+    );
     report = await writeReportWithHistory(
       [firstInput],
       history,

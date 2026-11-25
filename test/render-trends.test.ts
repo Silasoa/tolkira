@@ -49,11 +49,16 @@ function renderTrends(history?: HistoryRun[]): Promise<string> {
   return renderHtml(envelopes, options);
 }
 
-function renderLocalizedTrends(history: HistoryRun[], locale: string): Promise<string> {
+function renderLocalizedTrends(
+  history: HistoryRun[],
+  locale: string,
+): Promise<string> {
   return renderHtml(envelopes, { title: 'Trends report', history, locale });
 }
 
-async function catalogMessages(locale: 'en' | 'de'): Promise<Record<string, string>> {
+async function catalogMessages(
+  locale: 'en' | 'de',
+): Promise<Record<string, string>> {
   const raw = JSON.parse(
     await readFile(
       new URL(`../src/i18n/locales/${locale}.json`, import.meta.url),
@@ -69,9 +74,9 @@ async function catalogMessages(locale: 'en' | 'de'): Promise<Record<string, stri
 }
 
 function numericHeaders(panel: string): string[] {
-  return [...panel.matchAll(/<th scope="col" class="num">([\s\S]*?)<\/th>/g)].map(
-    (match) => match[1] ?? '',
-  );
+  return [
+    ...panel.matchAll(/<th scope="col" class="num">([\s\S]*?)<\/th>/g),
+  ].map((match) => match[1] ?? '');
 }
 
 function viewTabs(html: string): string[] {
@@ -165,7 +170,9 @@ describe('Trends view', () => {
       title: 'March run',
     });
 
-    const rows = tableRows(trendsPanel(await renderTrends([middle, oldest, newest])));
+    const rows = tableRows(
+      trendsPanel(await renderTrends([middle, oldest, newest])),
+    );
 
     expect(rows).toHaveLength(3);
     expect(rows[0]).toContain('March run');
@@ -331,7 +338,9 @@ describe('Trends view', () => {
       },
     });
 
-    const svg = sparkline(trendsPanel(await renderTrends([newest, oldest, middle])));
+    const svg = sparkline(
+      trendsPanel(await renderTrends([newest, oldest, middle])),
+    );
 
     expect(svg).toContain('aria-hidden="true"');
     expect(svg).toMatch(/\bviewBox="0 0 [\d.]+ [\d.]+"/);
@@ -354,9 +363,7 @@ describe('Trends view', () => {
       Array.from({ length: count }, (_, index) =>
         run({
           id: `dense-${index}`,
-          recordedAt: new Date(
-            Date.UTC(2026, 0, 1, 0, 0, index),
-          ).toISOString(),
+          recordedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
         }),
       );
 
@@ -369,7 +376,10 @@ describe('Trends view', () => {
   });
 
   it('omits a run with no attempt and does not bridge the gap', async () => {
-    const before = run({ id: 'before', recordedAt: '2026-01-01T00:00:00.000Z' });
+    const before = run({
+      id: 'before',
+      recordedAt: '2026-01-01T00:00:00.000Z',
+    });
     const skipped = run({
       id: 'gap',
       recordedAt: '2026-02-01T00:00:00.000Z',

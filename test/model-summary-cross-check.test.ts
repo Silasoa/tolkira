@@ -9,8 +9,16 @@ import { parseMessages } from '../src/input/messages.js';
 import { playwrightFixture } from './fixtures.js';
 import { buildReportModel, type ReportModel } from '../src/report/model.js';
 import { renderHtml } from '../src/render/html.js';
-import { type ReportStatus, statusSeverity, worstExecutedStatus } from '../src/report/status.js';
-import { displayUri, summarizeEnvelopes, type ReportSummary } from '../src/summary.js';
+import {
+  type ReportStatus,
+  statusSeverity,
+  worstExecutedStatus,
+} from '../src/report/status.js';
+import {
+  displayUri,
+  summarizeEnvelopes,
+  type ReportSummary,
+} from '../src/summary.js';
 
 const fixture = (path: string): string =>
   fileURLToPath(new URL(`./fixtures/${path}`, import.meta.url));
@@ -160,7 +168,11 @@ function syntheticCase(options: SyntheticCase = {}): Envelope[] {
   ];
   if (options.secondStep) {
     testSteps.push({ id: 'ts2', pickleStepId: 'ps2' });
-    pickleSteps.push({ id: 'ps2', text: 'another step', astNodeIds: ['ast-2'] });
+    pickleSteps.push({
+      id: 'ps2',
+      text: 'another step',
+      astNodeIds: ['ast-2'],
+    });
   }
   const envelopes: Array<Record<string, unknown>> = [
     {
@@ -302,9 +314,7 @@ function detailsAttachmentCount(html: string): number {
 }
 
 describe('rendered attachment parity', () => {
-  async function crossCheck(
-    options: SyntheticCase,
-  ): Promise<{
+  async function crossCheck(options: SyntheticCase): Promise<{
     model: ReportModel;
     summary: ReportSummary;
     details: number;
@@ -354,7 +364,9 @@ describe('rendered attachment parity', () => {
 
   it('does not count a run-hook attachment without a matching start', async () => {
     const { model, summary, details, html } = await crossCheck({
-      attachments: [{ testCaseStartedId: undefined, testRunHookStartedId: 'missing' }],
+      attachments: [
+        { testCaseStartedId: undefined, testRunHookStartedId: 'missing' },
+      ],
     });
 
     expect(html).not.toContain('class="attachment"');
@@ -411,9 +423,7 @@ describe('rendered attachment parity', () => {
   });
 
   it('agrees on a run without timing', async () => {
-    const envelopes = await loadEnvelopes(
-      playwrightFixture('no-timing.json'),
-    );
+    const envelopes = await loadEnvelopes(playwrightFixture('no-timing.json'));
     const model = buildReportModel(envelopes);
     const summary = summarizeEnvelopes(envelopes);
 
@@ -478,29 +488,27 @@ describe('rendered attachment parity', () => {
       ['earlier-start', 'FAILED', 5, 5_000_000],
       ['later-start', 'PASSED', 6, 6_000_000],
     ] as const;
-    const attempts = starts.flatMap(
-      ([id, status, seconds, durationNanos]) => [
-        {
-          testCaseStarted: {
-            id,
-            testCaseId: 'timestamp-case',
-            attempt: 0,
-            timestamp: { seconds, nanos: 0 },
-          },
+    const attempts = starts.flatMap(([id, status, seconds, durationNanos]) => [
+      {
+        testCaseStarted: {
+          id,
+          testCaseId: 'timestamp-case',
+          attempt: 0,
+          timestamp: { seconds, nanos: 0 },
         },
-        {
-          testStepFinished: {
-            testCaseStartedId: id,
-            testStepId: 'timestamp-step',
-            testStepResult: {
-              status,
-              duration: { seconds: 0, nanos: durationNanos },
-            },
-            timestamp: { seconds, nanos: 1 },
+      },
+      {
+        testStepFinished: {
+          testCaseStartedId: id,
+          testStepId: 'timestamp-step',
+          testStepResult: {
+            status,
+            duration: { seconds: 0, nanos: durationNanos },
           },
+          timestamp: { seconds, nanos: 1 },
         },
-      ],
-    );
+      },
+    ]);
     const envelopes = [
       {
         gherkinDocument: {

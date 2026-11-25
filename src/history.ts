@@ -128,7 +128,9 @@ function isSummaryStatus(value: string): value is SummaryStatus {
 }
 
 function errorCode(error: unknown): string | undefined {
-  return error instanceof Error && 'code' in error && typeof error.code === 'string'
+  return error instanceof Error &&
+    'code' in error &&
+    typeof error.code === 'string'
     ? error.code
     : undefined;
 }
@@ -181,7 +183,8 @@ function parseRun(value: unknown, reject: Reject, index: number): HistoryRun {
     reject(`${at} must be an object`);
   }
   const run = value;
-  if (typeof run.id !== 'string' || !run.id) reject(`${at}.id must be a string`);
+  if (typeof run.id !== 'string' || !run.id)
+    reject(`${at}.id must be a string`);
   if (!isIsoTime(run.recordedAt)) {
     reject(`${at}.recordedAt must be an ISO timestamp`);
   }
@@ -371,9 +374,7 @@ function parseHistoryText(text: string, reject: Reject): ParsedHistory {
     data.schemaVersion !== HISTORY_SCHEMA_VERSION &&
     data.schemaVersion !== HISTORY_SCHEMA_VERSION_MAX
   ) {
-    return reject(
-      `unsupported schema version ${excerpt(data.schemaVersion)}`,
-    );
+    return reject(`unsupported schema version ${excerpt(data.schemaVersion)}`);
   }
   if (!Array.isArray(data.runs)) return reject('runs must be an array');
   return {
@@ -451,7 +452,9 @@ export async function writeHistory(
       ? HISTORY_SCHEMA_VERSION_MAX
       : HISTORY_SCHEMA_VERSION;
   const reject: Reject = (reason) => cannotWrite(file, reason);
-  let bounded = runs.slice(-window).map((run, index) => writeRun(run, reject, index));
+  let bounded = runs
+    .slice(-window)
+    .map((run, index) => writeRun(run, reject, index));
   let text = serialize(schemaVersion, bounded);
   while (
     Buffer.byteLength(text, 'utf8') > HISTORY_MAX_BYTES &&
@@ -461,7 +464,10 @@ export async function writeHistory(
     text = serialize(schemaVersion, bounded);
   }
   if (Buffer.byteLength(text, 'utf8') > HISTORY_MAX_BYTES) {
-    cannotWrite(file, `the newest run alone exceeds ${HISTORY_MAX_BYTES} bytes`);
+    cannotWrite(
+      file,
+      `the newest run alone exceeds ${HISTORY_MAX_BYTES} bytes`,
+    );
   }
   try {
     await writeAtomic(file, text);

@@ -16,8 +16,7 @@ import {
 
 const REMOTE_MARKDOWN_IMAGE =
   /!\[([^\]]*)\]\(\s*(?:https?:)?\/\/[^)\s]+(?:\s+["'][^"']*["'])?\s*\)/gi;
-const REMOTE_ANGLE_IMAGE =
-  /!\[([^\]]*)\]\(\s*<(?:https?:)?\/\/[^>]+>\s*\)/gi;
+const REMOTE_ANGLE_IMAGE = /!\[([^\]]*)\]\(\s*<(?:https?:)?\/\/[^>]+>\s*\)/gi;
 const RAW_IMAGE_TAG = /<img\b[^>]*>/gi;
 
 // The Markdown renderer owns images and emits alt text only. Neutralise remote
@@ -90,7 +89,9 @@ export function sanitizeEnvelopes(envelopes: Envelope[]): Envelope[] {
     if (envelope.attachment) {
       const bytes = attachmentBytes(envelope.attachment);
       if (bytes > MAX_ATTACHMENT_BYTES) {
-        throw new Error('Attachment is larger than 50 MB. Use a smaller asset.');
+        throw new Error(
+          'Attachment is larger than 50 MB. Use a smaller asset.',
+        );
       }
       totalAttachmentBytes += bytes;
       if (totalAttachmentBytes > MAX_TOTAL_ATTACHMENT_BYTES) {

@@ -296,9 +296,9 @@ describe('compat merged JSON sidecar', () => {
     const secondSidecar = await readSidecar(`${output}.json`);
 
     expect(secondSidecar).toEqual(firstSidecar);
-    expect(secondSidecar.map((feature) => feature.uri).sort(byCodeUnit)).toEqual(
-      ['features/one.feature', 'features/two.feature'],
-    );
+    expect(
+      secondSidecar.map((feature) => feature.uri).sort(byCodeUnit),
+    ).toEqual(['features/one.feature', 'features/two.feature']);
     expect(second.summary.counts.scenarios.total).toBe(
       first.summary.counts.scenarios.total,
     );

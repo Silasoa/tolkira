@@ -74,8 +74,12 @@ test('shows a source strip for multiple input files', async ({ page }) => {
     await page.goto(reportUrl(output));
     const sources = page.getByRole('region', { name: 'Sources' });
     await expect(sources).toBeVisible();
-    await expect(sources.getByText('unhappy.json', { exact: true })).toBeVisible();
-    await expect(sources.getByText('happy.json', { exact: true })).toBeVisible();
+    await expect(
+      sources.getByText('unhappy.json', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      sources.getByText('happy.json', { exact: true }),
+    ).toBeVisible();
     expect(await sources.innerText()).not.toContain(
       path.dirname(unhappyFixture),
     );

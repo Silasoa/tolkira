@@ -58,9 +58,7 @@ test('renders a messages report in the browser', async ({ page }) => {
     await page.keyboard.press('Escape');
     await expect(lightbox).toBeHidden();
     await expect
-      .poll(() =>
-        page.evaluate(() => document.documentElement.style.overflow),
-      )
+      .poll(() => page.evaluate(() => document.documentElement.style.overflow))
       .toBe('');
     await expect(page.locator('.shotButton').first()).toBeFocused();
 
@@ -68,9 +66,7 @@ test('renders a messages report in the browser', async ({ page }) => {
     await page.getByRole('button', { name: 'Close' }).click();
     await expect(lightbox).toBeHidden();
     await expect
-      .poll(() =>
-        page.evaluate(() => document.documentElement.style.overflow),
-      )
+      .poll(() => page.evaluate(() => document.documentElement.style.overflow))
       .toBe('');
     await expect(page.locator('.shotButton').first()).toBeFocused();
 
@@ -81,7 +77,9 @@ test('renders a messages report in the browser', async ({ page }) => {
       page.locator('.error').filter({ hasText: 'Expected 1 to equal 2' }),
     ).toBeVisible();
 
-    const failedFilter = page.locator('button.filter[data-filter-status="failed"]');
+    const failedFilter = page.locator(
+      'button.filter[data-filter-status="failed"]',
+    );
     await page.getByRole('heading', { name: 'Failing scenario' }).click();
     await expect(failedFilter).toHaveAttribute('aria-pressed', 'true');
     await expect(
@@ -212,7 +210,9 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
     const hookGroup = page.locator('details.hookGroup').first();
     await expect(hookGroup).toBeVisible();
     await hookGroup.locator('summary').click();
-    await expect(hookGroup.locator('.hookLabel').first()).toContainText('Before');
+    await expect(hookGroup.locator('.hookLabel').first()).toContainText(
+      'Before',
+    );
     await expect(
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
@@ -248,7 +248,9 @@ test('survives a malformed URL hash', async ({ page }) => {
   }
 });
 
-test('labels a feature from two spec files at every width', async ({ page }) => {
+test('labels a feature from two spec files at every width', async ({
+  page,
+}) => {
   const { dir, output } = await writeReport(
     [twoFilesFixture],
     'Two files',

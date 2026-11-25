@@ -34,11 +34,13 @@ describe('legacy cucumber-js versions', () => {
       expect(model.counts.scenarios.total).toBe(2);
       expect(model.counts.scenarios.passed).toBe(1);
       expect(model.counts.scenarios.failed).toBe(1);
-      const failed = model.scenarios.find((scenario) => scenario.status === 'failed');
+      const failed = model.scenarios.find(
+        (scenario) => scenario.status === 'failed',
+      );
       expect(failed?.name).toBe('fails');
-      expect(
-        failed?.steps.some((step) => step.message?.includes('boom')),
-      ).toBe(true);
+      expect(failed?.steps.some((step) => step.message?.includes('boom'))).toBe(
+        true,
+      );
 
       const html = await renderReport(file, {
         title: `cucumber-js ${version}`,

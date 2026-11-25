@@ -72,9 +72,9 @@ const SKIP_REASON_KEYS: Record<SkippedAttachment['reason'], MessageKey> = {
 };
 
 function scenarioTags(model: ReportModel): string[] {
-  return [...new Set(model.scenarios.flatMap((scenario) => scenario.tags))].sort(
-    compareText,
-  );
+  return [
+    ...new Set(model.scenarios.flatMap((scenario) => scenario.tags)),
+  ].sort(compareText);
 }
 
 function renderDiagnostic(step: ReportStep, t: Translator): string {
@@ -210,9 +210,7 @@ function backgroundMarkup(
   return backgrounds
     .filter((background) => background.name || background.description)
     .map((background) => {
-      const name = background.name
-        ? ` ${escapeHtml(background.name)}`
-        : '';
+      const name = background.name ? ` ${escapeHtml(background.name)}` : '';
       const description = renderDescription(background.description, t);
       return `<section class="background" data-background><h3 class="backgroundTitle"><span class="kw">${escapeHtml(background.keyword)}:</span>${name}</h3>${description}</section>`;
     })
@@ -415,9 +413,7 @@ function renderScenario(
     staticMode ||
     (scenario.executed &&
       (scenario.status !== 'passed' || (!grouped && Boolean(image))));
-  const passedHooks = scenario.hooks.filter(
-    (hook) => hook.status === 'passed',
-  );
+  const passedHooks = scenario.hooks.filter((hook) => hook.status === 'passed');
   const inlineItems = [
     ...scenario.steps.map((step) => ({
       order: step.order,
@@ -471,9 +467,7 @@ function renderScenario(
     name: scenario.name,
     uri: displayUri(scenario.uri),
     tags: scenario.tags,
-    ...(grouped
-      ? { example, examplesName: outline?.examplesName ?? '' }
-      : {}),
+    ...(grouped ? { example, examplesName: outline?.examplesName ?? '' } : {}),
     search: scenarioText(scenario),
   })
     .map(([name, value]) => `${name}="${escapeHtml(value)}"`)
@@ -516,7 +510,10 @@ function renderOutline(
   t: Translator,
   staticMode = false,
 ): string {
-  const blocks = new Map<string, { outline: ReportOutline; rows: ReportScenario[] }>();
+  const blocks = new Map<
+    string,
+    { outline: ReportOutline; rows: ReportScenario[] }
+  >();
   for (const row of rows) {
     if (!row.outline) continue;
     const block = blocks.get(row.outline.examplesId) ?? {
@@ -529,7 +526,14 @@ function renderOutline(
   const exampleBlocks = [...blocks.values()]
     .sort((a, b) => a.outline.examplesIndex - b.outline.examplesIndex)
     .map((block) =>
-      renderExamples(block.outline, block.rows, featureIndex, idIndex, t, staticMode),
+      renderExamples(
+        block.outline,
+        block.rows,
+        featureIndex,
+        idIndex,
+        t,
+        staticMode,
+      ),
     )
     .join('');
   const description = renderDescription(outline.description, t);
@@ -597,7 +601,9 @@ function renderRuleBlock(
   const name = rule.name ? ` ${escapeHtml(rule.name)}` : '';
   const description = renderDescription(rule.description, t);
   return `<section class="rule" data-rule data-search="${escapeHtml(ruleSearchText(rule))}"><h3 class="ruleTitle"><span class="kw">${escapeHtml(rule.keyword)}:</span>${name}</h3>${tagsMarkup(rule.tags, 'ruleTags')}${description}${backgroundMarkup(rule.backgrounds, t)}<div class="ruleRows">${block.items
-    .map((item) => renderFeatureItem(item, featureIndex, idIndex, true, t, staticMode))
+    .map((item) =>
+      renderFeatureItem(item, featureIndex, idIndex, true, t, staticMode),
+    )
     .join('')}</div></section>`;
 }
 
@@ -654,7 +660,9 @@ function renderFeature(
   const description = renderDescription(feature.description, t);
   // Triage and row anchors share this severity order; grouping only changes
   // the display order, never the ids.
-  const idIndex = new Map(scenarios.map((scenario, index) => [scenario.id, index]));
+  const idIndex = new Map(
+    scenarios.map((scenario, index) => [scenario.id, index]),
+  );
   const inputIndex = new Map(
     feature.scenarios.map((scenario, index) => [scenario.id, index]),
   );
@@ -734,19 +742,17 @@ function renderFeature(
   }
   const topItems: Array<RenderItem | RuleBlock> = [
     ...featureItems,
-    ...[...ruleBlocks.values()].map(
-      (block): RuleBlock => ({
-        kind: 'rule',
-        status: worstExecutedStatus(
-          block.items.flatMap((item) =>
-            item.scenario ? [item.scenario] : (item.rows ?? []),
-          ),
+    ...[...ruleBlocks.values()].map((block): RuleBlock => ({
+      kind: 'rule',
+      status: worstExecutedStatus(
+        block.items.flatMap((item) =>
+          item.scenario ? [item.scenario] : (item.rows ?? []),
         ),
-        order: block.order,
-        rule: block.rule,
-        items: block.items,
-      }),
-    ),
+      ),
+      order: block.order,
+      rule: block.rule,
+      items: block.items,
+    })),
   ];
   topItems.sort((a, b) => {
     const status = compareStatus(a.status, b.status);
@@ -811,7 +817,9 @@ function toolbar(model: ReportModel, t: Translator): string {
       (status) =>
         `<button class="filter" type="button" ${FILTER_STATUS_ATTRIBUTE}="${status}" aria-pressed="true">${statusLabel(status, t)} <b>${t.number(model.counts.scenarios[status])}</b></button>`,
     )
-    .join('')}${preset}</div><div class="expand"><button type="button" data-expand="all">${t.t('report.expandAll')}</button><button type="button" data-expand="none">${t.t('report.collapseAll')}</button></div></div>`;
+    .join(
+      '',
+    )}${preset}</div><div class="expand"><button type="button" data-expand="all">${t.t('report.expandAll')}</button><button type="button" data-expand="none">${t.t('report.collapseAll')}</button></div></div>`;
 }
 
 export function renderReportView(

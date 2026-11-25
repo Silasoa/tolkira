@@ -73,7 +73,10 @@ describe('embedded report stylesheet', () => {
 
   it('appends the minified baseline stylesheet as a separate constant', async () => {
     const source = (
-      await readFile(new URL('../src/render/baseline.css', import.meta.url), 'utf8')
+      await readFile(
+        new URL('../src/render/baseline.css', import.meta.url),
+        'utf8',
+      )
     ).replaceAll('\r\n', '\n');
     const minified = transformSync(source, {
       loader: 'css',

@@ -70,9 +70,7 @@ const noTimingFixture = fileURLToPath(
   new URL('./fixtures/playwright/no-timing.json', import.meta.url),
 );
 
-function tiedAttemptRun(
-  statuses: Array<'PASSED' | 'FAILED'>,
-): Envelope[] {
+function tiedAttemptRun(statuses: Array<'PASSED' | 'FAILED'>): Envelope[] {
   const envelopes: Array<Record<string, unknown>> = [
     {
       pickle: {
@@ -177,9 +175,9 @@ describe('machine-readable summary', () => {
     const failing = summary.scenarios.find(
       (scenario) => scenario.status === 'failed',
     );
-    expect(failing?.steps.some((step) => step.message?.includes('-8 !== 0'))).toBe(
-      true,
-    );
+    expect(
+      failing?.steps.some((step) => step.message?.includes('-8 !== 0')),
+    ).toBe(true);
   });
 
   it('merges Messages and legacy input into one summary', async () => {
@@ -271,7 +269,9 @@ describe('machine-readable summary', () => {
     );
     expect(first.attachments.total).toBe(attachmentCount);
 
-    const keys = first.scenarios.map((scenario) => `${scenario.uri}\0${scenario.name}`);
+    const keys = first.scenarios.map(
+      (scenario) => `${scenario.uri}\0${scenario.name}`,
+    );
     // Fixed UTF-16 code-unit order; the host locale must not participate.
     expect(keys).toEqual(
       [...keys].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
@@ -322,7 +322,8 @@ describe('machine-readable summary', () => {
     ]);
 
     const passed = undefinedSummary.scenarios.find(
-      (scenario) => scenario.name === 'Steps before undefined steps are executed',
+      (scenario) =>
+        scenario.name === 'Steps before undefined steps are executed',
     )?.steps[0];
     expect(passed?.status).toBe('passed');
     expect(passed?.definitions).toBeUndefined();
@@ -396,9 +397,9 @@ describe('machine-readable summary', () => {
     const steps = summary.scenarios.flatMap((scenario) => scenario.steps);
 
     expect(steps.some((step) => step.status === 'undefined')).toBe(true);
-    expect(
-      steps.every((step) => !step.suggestions && !step.definitions),
-    ).toBe(true);
+    expect(steps.every((step) => !step.suggestions && !step.definitions)).toBe(
+      true,
+    );
   });
 
   it('uses the Messages attempt, absent as zero and valid as given', () => {
@@ -467,7 +468,9 @@ describe('machine-readable summary', () => {
     expect(
       summary.scenarios
         .flatMap((scenario) => scenario.steps)
-        .some((step) => step.keyword === 'Hook' && step.name === 'seed database'),
+        .some(
+          (step) => step.keyword === 'Hook' && step.name === 'seed database',
+        ),
     ).toBe(true);
   });
 });
@@ -604,9 +607,7 @@ describe('empty-run summary', () => {
     const summary = await summarizeReport(messages);
 
     expect(summary.schemaVersion).toBe(2);
-    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(
-      true,
-    );
+    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(true);
     expect(summary.counts.steps.total).toBe(
       summary.scenarios.reduce(
         (sum, scenario) => sum + scenario.steps.length,
@@ -639,9 +640,7 @@ describe('empty-run summary', () => {
 
     expect(summary.schemaVersion).toBe(2);
     expect(summary.scenarios.length).toBeGreaterThan(0);
-    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(
-      true,
-    );
+    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(true);
     expect(summary.counts.scenarios.total).toBe(summary.scenarios.length);
   });
 
@@ -665,9 +664,7 @@ describe('empty-run summary', () => {
 
     expect(summary.schemaVersion).toBe(2);
     expect(summary.scenarios.length).toBeGreaterThan(0);
-    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(
-      true,
-    );
+    expect(summary.scenarios.every((scenario) => scenario.executed)).toBe(true);
     expect(summary.counts.scenarios.total).toBe(summary.scenarios.length);
     expect(summary.attachments.total).toBeGreaterThan(0);
   });
@@ -837,32 +834,30 @@ describe('display URI privacy', () => {
       uri: `/home/${USER}/proj/features/login.feature`,
       expected: 'features/login.feature',
     },
-  ])('drops the local user name and is idempotent for a $name', ({
-    uri,
-    expected,
-  }) => {
-    const display = displayUri(uri);
+  ])(
+    'drops the local user name and is idempotent for a $name',
+    ({ uri, expected }) => {
+      const display = displayUri(uri);
 
-    expect(display).toBe(expected);
-    expect(display).not.toContain(USER);
-    expect(display).not.toContain('/home/');
-    expect(display).not.toContain('/Users/');
-    expect(display).not.toMatch(/^[a-z]:\//i);
-    expect(displayUri(display)).toBe(display);
-  });
-
-  it(
-    'analyzes repeated home segments in linear time',
-    () => {
-      // 64k pairs took seconds with the old rescan-and-splice loop; the
-      // single pass finishes in milliseconds.
-      const display = displayUri(`/${`home/${USER}/`.repeat(64_000)}proj/login.feature`);
-
-      expect(display).toBe('proj/login.feature');
+      expect(display).toBe(expected);
       expect(display).not.toContain(USER);
+      expect(display).not.toContain('/home/');
+      expect(display).not.toContain('/Users/');
+      expect(display).not.toMatch(/^[a-z]:\//i);
+      expect(displayUri(display)).toBe(display);
     },
-    2_000,
   );
+
+  it('analyzes repeated home segments in linear time', () => {
+    // 64k pairs took seconds with the old rescan-and-splice loop; the
+    // single pass finishes in milliseconds.
+    const display = displayUri(
+      `/${`home/${USER}/`.repeat(64_000)}proj/login.feature`,
+    );
+
+    expect(display).toBe('proj/login.feature');
+    expect(display).not.toContain(USER);
+  }, 2_000);
 
   it.each([
     { name: 'a plain relative path', uri: 'features/login.feature' },

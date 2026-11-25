@@ -5,18 +5,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // is replaced by this fake page/browser pair.
 const engine = vi.hoisted(() => {
   const page = {
-    route: vi.fn<
-      (
-        pattern: RegExp,
-        handler: (route: { abort: () => void }) => void,
-      ) => Promise<void>
-    >(),
-    setContent: vi.fn<
-      (
-        html: string,
-        options?: { waitUntil?: string; timeout?: number },
-      ) => Promise<void>
-    >(),
+    route:
+      vi.fn<
+        (
+          pattern: RegExp,
+          handler: (route: { abort: () => void }) => void,
+        ) => Promise<void>
+      >(),
+    setContent:
+      vi.fn<
+        (
+          html: string,
+          options?: { waitUntil?: string; timeout?: number },
+        ) => Promise<void>
+      >(),
     evaluate: vi.fn<(task: () => Promise<void>) => Promise<void>>(),
     pdf: vi.fn<() => Promise<Uint8Array>>(),
   };
@@ -40,8 +42,8 @@ const HTML =
 
 // Not valid UTF-8 on purpose: the CLI must keep the engine bytes untouched.
 const PDF_BYTES = Buffer.from([
-  0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xff, 0xfe,
-  0x00, 0x01, 0x80, 0x7f,
+  0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xff, 0xfe, 0x00,
+  0x01, 0x80, 0x7f,
 ]);
 
 const INSTALL_GUIDANCE = {

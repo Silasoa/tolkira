@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
-import {
-  removeReport,
-  reportUrl,
-  writeInput,
-  writeReport,
-} from './helpers.js';
+import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
 const tagFixture = legacyFixture('tag-expressions.json');
 const markdownFixture = messagesFixture('markdown-descriptions.ndjson');
@@ -28,9 +23,7 @@ test('filters by a tag expression and hides empty groups', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'gamma three' }),
     ).toBeHidden();
-    await expect(
-      page.getByRole('heading', { name: 'beta two' }),
-    ).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'beta two' })).toBeHidden();
     await expect(
       page.locator('details.feature').filter({ hasText: 'Beta feature' }),
     ).toBeHidden();
@@ -130,12 +123,8 @@ test('combines a tag expression with status and tag filters using AND', async ({
     await expect(page.locator('#tolkira-live')).toHaveText(
       '1 of 4 scenarios visible',
     );
-    await expect(
-      page.getByRole('heading', { name: 'beta two' }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'alpha one' }),
-    ).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'beta two' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'alpha one' })).toBeHidden();
 
     await tag.selectOption('@b');
     await expect(page.locator('#tolkira-live')).toHaveText(
@@ -210,7 +199,9 @@ test('caps newly opened rows for a tag expression at 20', async ({ page }) => {
   }
 });
 
-test('counts only newly opened rows against the search cap', async ({ page }) => {
+test('counts only newly opened rows against the search cap', async ({
+  page,
+}) => {
   const elements = Array.from({ length: 30 }, (_, index) => ({
     keyword: 'Scenario',
     type: 'scenario',
@@ -332,8 +323,8 @@ test('restores query, repeated hide and tag parameters and syncs controls', asyn
     await expect(page.locator('#empty-results')).toBeVisible();
     expect(new URL(page.url()).hash).toBe('#scenario-1-1');
 
-    const hides = await page.evaluate(
-      () => new URL(location.href).searchParams.getAll('hide'),
+    const hides = await page.evaluate(() =>
+      new URL(location.href).searchParams.getAll('hide'),
     );
     expect(hides).toEqual(['passed', 'failed']);
   } finally {
@@ -444,9 +435,7 @@ test('keeps filtering working when replaceState throws', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: 'alpha one' }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'beta two' }),
-    ).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'beta two' })).toBeHidden();
     await expect(page.locator('#tolkira-live')).toHaveText(
       '1 of 4 scenarios visible',
     );
@@ -461,7 +450,9 @@ test('keeps filtering working when replaceState throws', async ({ page }) => {
   }
 });
 
-test('ignores empty, unknown and uppercase URL parameters', async ({ page }) => {
+test('ignores empty, unknown and uppercase URL parameters', async ({
+  page,
+}) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   const { dir, output } = await writeReport(
@@ -522,16 +513,16 @@ test('keeps the static report readable without JavaScript', async ({
     await expect(
       page.getByRole('heading', { name: 'alpha one' }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'beta two' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'beta two' })).toBeVisible();
   } finally {
     await context.close();
     await removeReport(dir);
   }
 });
 
-test('renders Markdown descriptions without JavaScript', async ({ browser }) => {
+test('renders Markdown descriptions without JavaScript', async ({
+  browser,
+}) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   const { dir, output } = await writeReport(
@@ -548,10 +539,9 @@ test('renders Markdown descriptions without JavaScript', async ({ browser }) => 
       page.getByRole('heading', { name: 'Feature guide' }),
     ).toBeVisible();
     await expect(page.getByText('nested item')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'HTTPS link' })).toHaveAttribute(
-      'rel',
-      'noopener noreferrer nofollow',
-    );
+    await expect(
+      page.getByRole('link', { name: 'HTTPS link' }),
+    ).toHaveAttribute('rel', 'noopener noreferrer nofollow');
   } finally {
     await context.close();
     await removeReport(dir);

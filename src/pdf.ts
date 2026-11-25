@@ -128,11 +128,7 @@ export async function renderPdf(
       preferCSSPageSize: true,
       displayHeaderFooter: false,
     };
-    const pdf = await withDeadline(
-      page.pdf(printOptions),
-      timeout,
-      'print',
-    );
+    const pdf = await withDeadline(page.pdf(printOptions), timeout, 'print');
     // Return a view over the engine bytes; the PDF can be large.
     return new Uint8Array(pdf.buffer, pdf.byteOffset, pdf.byteLength);
   } finally {

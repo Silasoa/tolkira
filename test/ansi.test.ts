@@ -21,7 +21,9 @@ describe('renderAnsiLog', () => {
   });
 
   it('maps indexed colours 0-15 to palette classes', () => {
-    const html = renderAnsiLog('\u001b[38;5;1mred\u001b[48;5;12mbluebg\u001b[0m');
+    const html = renderAnsiLog(
+      '\u001b[38;5;1mred\u001b[48;5;12mbluebg\u001b[0m',
+    );
 
     expect(html).toContain('ansi-fg-1');
     expect(html).toContain('ansi-bg-12');

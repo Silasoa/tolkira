@@ -42,7 +42,9 @@ test('shows CI metadata and rich attachments without requests', async ({
       `${CI_REMOTE}/commit/${FULL_REVISION}`,
     );
     await expect(commit).toHaveAttribute('title', FULL_REVISION);
-    await expect(page.getByText('v1.2.3', { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByText('v1.2.3', { exact: true }).first(),
+    ).toBeVisible();
 
     const scenario = page.locator('[data-scenario-name="Rich attachments"]');
     await expect(scenario).toBeVisible();
@@ -73,7 +75,9 @@ test('shows CI metadata and rich attachments without requests', async ({
     await expect(
       links.getByRole('link', { name: 'http://example.com/two' }),
     ).toBeVisible();
-    await expect(links.getByRole('link', { name: /javascript:/ })).toHaveCount(0);
+    await expect(links.getByRole('link', { name: /javascript:/ })).toHaveCount(
+      0,
+    );
 
     const log = page
       .locator('details.attachmentText')
@@ -118,14 +122,18 @@ test('shows CI metadata and rich attachments without requests', async ({
         .evaluate((element) => Boolean(element.closest('[hidden]'))),
     ).toBe(false);
     const analysis = page.locator('#analysis-view');
-    await expect(analysis.locator('dt').filter({ hasText: /^CI$/ })).toBeVisible();
+    await expect(
+      analysis.locator('dt').filter({ hasText: /^CI$/ }),
+    ).toBeVisible();
     await expect(
       analysis.locator('dt').filter({ hasText: /^Revision$/ }),
     ).toBeVisible();
     await expect(
       analysis.locator('dt').filter({ hasText: /^Branch$/ }),
     ).toBeVisible();
-    await expect(analysis.locator('dt').filter({ hasText: /^Tag$/ })).toBeVisible();
+    await expect(
+      analysis.locator('dt').filter({ hasText: /^Tag$/ }),
+    ).toBeVisible();
 
     expect(
       requests.every(
@@ -159,7 +167,9 @@ test('falls back above the ANSI byte boundary', async ({ page }) => {
   }
 });
 
-test('keeps ANSI colours readable in light and dark themes', async ({ page }) => {
+test('keeps ANSI colours readable in light and dark themes', async ({
+  page,
+}) => {
   const { dir, output } = await writeReport([presentation], 'ANSI contrast');
 
   try {
@@ -169,9 +179,11 @@ test('keeps ANSI colours readable in light and dark themes', async ({ page }) =>
       .filter({ hasText: 'session.log' });
     await log.locator('summary').click();
 
-    const ansiClasses = await log.locator('pre span').evaluateAll((nodes) =>
-      nodes.flatMap((node) => Array.from(node.classList)),
-    );
+    const ansiClasses = await log
+      .locator('pre span')
+      .evaluateAll((nodes) =>
+        nodes.flatMap((node) => Array.from(node.classList)),
+      );
     for (let index = 0; index < 16; index += 1) {
       expect(ansiClasses).toContain(`ansi-fg-${index}`);
     }
@@ -179,7 +191,9 @@ test('keeps ANSI colours readable in light and dark themes', async ({ page }) =>
     expect(
       await log
         .locator('.ansi-inline-fg')
-        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('style'))),
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute('style')),
+        ),
     ).toContain('--ansi-fg:#ffffff');
 
     const minimumContrast = (): Promise<number> =>
@@ -280,9 +294,9 @@ test.describe('without scripting', () => {
       await expect(log).toContainText('ERROR');
       await expect(log).toContainText('256-colour');
       await expect(log).toContainText('truecolour');
-      await expect(
-        log.getByRole('button', { name: /copy log/i }),
-      ).toHaveCount(0);
+      await expect(log.getByRole('button', { name: /copy log/i })).toHaveCount(
+        0,
+      );
 
       expect(
         requests.every(

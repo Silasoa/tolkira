@@ -1,12 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { messagesFixture } from '../fixtures.js';
-import {
-  removeReport,
-  reportUrl,
-  writeInput,
-  writeReport,
-} from './helpers.js';
+import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
 const rulesOutlineBackgroundFixture = messagesFixture(
   'rules-outline-background.ndjson',
@@ -31,7 +26,9 @@ test('renders rules, backgrounds and outlines together', async ({ page }) => {
     await expect(
       page.getByRole('heading', { name: /Feature setup/, level: 3 }),
     ).toBeVisible();
-    await expect(page.getByText('Feature background description.')).toBeVisible();
+    await expect(
+      page.getByText('Feature background description.'),
+    ).toBeVisible();
     await expect(
       rule.getByRole('heading', { name: /Rule setup/, level: 3 }),
     ).toBeVisible();
@@ -100,12 +97,16 @@ test('filters rules by search, status and tag', async ({ page }) => {
     await expect(page.locator('section.rule:visible')).toHaveCount(1);
 
     await tagFilter.selectOption('');
-    const passedFilter = page.locator('button.filter[data-filter-status="passed"]');
+    const passedFilter = page.locator(
+      'button.filter[data-filter-status="passed"]',
+    );
     await passedFilter.click();
     await expect(ruleOne).toBeVisible();
     await expect(ruleTwo).toBeHidden();
     await expect(page.locator('details.scenario:visible')).toHaveCount(1);
-    await expect(page.locator('[data-scenario-name="tagged scenario"]')).toBeVisible();
+    await expect(
+      page.locator('[data-scenario-name="tagged scenario"]'),
+    ).toBeVisible();
 
     await passedFilter.click();
     await expect(page.locator('details.scenario:visible')).toHaveCount(3);
@@ -125,16 +126,17 @@ async function writeFailedTagsFixture(): Promise<{
     .trim()
     .split(/\r?\n/)
     .map((line) => JSON.parse(line) as Record<string, any>);
-  const pickle = lines.find((line) => line.pickle?.name === 'tagged scenario')
-    ?.pickle;
+  const pickle = lines.find(
+    (line) => line.pickle?.name === 'tagged scenario',
+  )?.pickle;
   const testCase = lines.find(
     (line) => line.testCase?.pickleId === pickle?.id,
   )?.testCase;
   const started = lines.find(
     (line) => line.testCaseStarted?.testCaseId === testCase?.id,
   )?.testCaseStarted;
-  const step = testCase?.testSteps.find((entry: { pickleStepId?: string }) =>
-    entry.pickleStepId,
+  const step = testCase?.testSteps.find(
+    (entry: { pickleStepId?: string }) => entry.pickleStepId,
   );
   const finished = lines.find(
     (line) =>

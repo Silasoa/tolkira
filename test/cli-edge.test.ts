@@ -100,7 +100,9 @@ describe('CLI input edge cases', () => {
     expect(none.stderr).toContain('Usage: tolkira');
 
     expect((await cli(['--json'])).code).toBe(2);
-    await expect(summarizeReport([])).rejects.toThrow('No input files provided.');
+    await expect(summarizeReport([])).rejects.toThrow(
+      'No input files provided.',
+    );
   });
 
   it('rejects an empty directory and a directory with only unsupported files', async () => {
@@ -181,7 +183,9 @@ describe('CLI input edge cases', () => {
 
     expect(run.code).toBe(1);
     expect(run.stderr).toContain('Invalid legacy JSON in');
-    expect(run.stderr).toContain('text must be a string or an array of strings');
+    expect(run.stderr).toContain(
+      'text must be a string or an array of strings',
+    );
     await expect(readFile(output, 'utf8')).rejects.toMatchObject({
       code: 'ENOENT',
     });
@@ -342,7 +346,9 @@ describe('CLI input edge cases', () => {
     );
     const messagesRun = await cli([messagesFile, '--json']);
     expect(messagesRun.code).toBe(1);
-    expect(messagesRun.stderr).toContain('Invalid Cucumber Messages on line 1 of');
+    expect(messagesRun.stderr).toContain(
+      'Invalid Cucumber Messages on line 1 of',
+    );
     expect(messagesRun.stderr).toContain('broken-status.ndjson');
     expect(messagesRun.stderr).toContain('known Cucumber status');
   });
@@ -357,7 +363,9 @@ describe('CLI input edge cases', () => {
             keyword: 'Scenario',
             type: 'scenario',
             name: 'missing',
-            steps: [{ keyword: 'Given', name: 'x', result: { status: 'passed' } }],
+            steps: [
+              { keyword: 'Given', name: 'x', result: { status: 'passed' } },
+            ],
           },
           {
             keyword: 'Scenario',
@@ -658,37 +666,33 @@ describe('CLI input edge cases', () => {
     expect(run.stderr).toBe('');
   });
 
-  it(
-    'summarizes 1000 synthetic scenarios',
-    async () => {
-      const dir = await tempDir();
-      const elements = Array.from({ length: 1000 }, (_, index) => ({
-        keyword: 'Scenario',
-        type: 'scenario',
-        name: `Scenario ${String(index).padStart(4, '0')}`,
-        steps: [
-          {
-            keyword: 'Given ',
-            name: 'a step',
-            result: { status: 'passed', duration: 1 },
-          },
-        ],
-      }));
-      const file = await writeLegacy(dir, 'big.json', [
-        { uri: 'features/big.feature', name: 'Big', elements },
-      ]);
+  it('summarizes 1000 synthetic scenarios', async () => {
+    const dir = await tempDir();
+    const elements = Array.from({ length: 1000 }, (_, index) => ({
+      keyword: 'Scenario',
+      type: 'scenario',
+      name: `Scenario ${String(index).padStart(4, '0')}`,
+      steps: [
+        {
+          keyword: 'Given ',
+          name: 'a step',
+          result: { status: 'passed', duration: 1 },
+        },
+      ],
+    }));
+    const file = await writeLegacy(dir, 'big.json', [
+      { uri: 'features/big.feature', name: 'Big', elements },
+    ]);
 
-      const run = await cli([file, '--json']);
-      expect(run.code).toBe(0);
-      const summary = parseSummary(run.stdout);
-      expect(summary.counts.scenarios.total).toBe(1000);
-      expect(summary.counts.steps.total).toBe(1000);
-      expect(summary.status).toBe('passed');
-      expect(summary.scenarios[0]?.name).toBe('Scenario 0000');
-      expect(summary.scenarios.at(-1)?.name).toBe('Scenario 0999');
-    },
-    20_000,
-  );
+    const run = await cli([file, '--json']);
+    expect(run.code).toBe(0);
+    const summary = parseSummary(run.stdout);
+    expect(summary.counts.scenarios.total).toBe(1000);
+    expect(summary.counts.steps.total).toBe(1000);
+    expect(summary.status).toBe('passed');
+    expect(summary.scenarios[0]?.name).toBe('Scenario 0000');
+    expect(summary.scenarios.at(-1)?.name).toBe('Scenario 0999');
+  }, 20_000);
 });
 
 describe('CLI JSON display URI privacy', () => {

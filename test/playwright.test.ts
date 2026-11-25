@@ -63,7 +63,8 @@ function scenario(
 ): SummaryScenario {
   const found = summary.scenarios.find(
     (entry) =>
-      entry.name === name && (feature === undefined || entry.feature === feature),
+      entry.name === name &&
+      (feature === undefined || entry.feature === feature),
   );
   if (!found) {
     throw new Error(
@@ -277,9 +278,9 @@ describe('Playwright JSON input', () => {
     expect(
       summary.scenarios.filter((entry) => entry.feature === 'beta'),
     ).toHaveLength(8);
-    expect(
-      summary.scenarios.every((entry) => !entry.name.includes('@')),
-    ).toBe(true);
+    expect(summary.scenarios.every((entry) => !entry.name.includes('@'))).toBe(
+      true,
+    );
 
     const passes = scenario(summary, 'passes with steps', 'alpha');
     expect(passes).toMatchObject({
@@ -303,9 +304,11 @@ describe('Playwright JSON input', () => {
     expect(passes.steps[2]?.text).toBe('Playwright overhead');
 
     const modelPasses = model.scenarios.find(
-      (entry) => entry.name === 'passes with steps' && entry.featureName === 'alpha',
+      (entry) =>
+        entry.name === 'passes with steps' && entry.featureName === 'alpha',
     );
-    if (!modelPasses) throw new Error('missing model scenario passes with steps');
+    if (!modelPasses)
+      throw new Error('missing model scenario passes with steps');
     const ruleText = [
       modelPasses.ruleName,
       modelPasses.rule?.name,
@@ -376,20 +379,20 @@ describe('Playwright JSON input', () => {
       .filter((uri): uri is string => typeof uri === 'string');
 
     expect(documents).toHaveLength(2);
-    expect(documents.every((uri) => /^playwright:\/\/[^/]+\/(alpha|beta)$/.test(uri))).toBe(
-      true,
-    );
     expect(
-      new Set(documents.map((uri) => uri.split('/').slice(0, 3).join('/'))).size,
+      documents.every((uri) =>
+        /^playwright:\/\/[^/]+\/(alpha|beta)$/.test(uri),
+      ),
+    ).toBe(true);
+    expect(
+      new Set(documents.map((uri) => uri.split('/').slice(0, 3).join('/')))
+        .size,
     ).toBe(1);
     expect(
       documents
         .map((uri) => uri.split('/').at(-1) ?? '')
         .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
-    ).toEqual([
-      'alpha',
-      'beta',
-    ]);
+    ).toEqual(['alpha', 'beta']);
   });
 
   it('renders the Playwright producer version in the HTML', async () => {
@@ -543,12 +546,12 @@ describe('Playwright JSON input', () => {
 
   it('labels a feature sourced from two spec files with a file count', async () => {
     const html = await renderReport(twoFilesFixture, { title: 'Two files' });
-    const featureLabels = [...html.matchAll(/<span class="featureUri">(.*?)<\/span>/g)].map(
-      (match) => match[1],
-    );
-    const matrixLabels = [...html.matchAll(/<span class="matrixUri">(.*?)<\/span>/g)].map(
-      (match) => match[1],
-    );
+    const featureLabels = [
+      ...html.matchAll(/<span class="featureUri">(.*?)<\/span>/g),
+    ].map((match) => match[1]);
+    const matrixLabels = [
+      ...html.matchAll(/<span class="matrixUri">(.*?)<\/span>/g),
+    ].map((match) => match[1]);
     const triageTitles = [
       ...html.matchAll(/<a class="triageFeature"[^>]*title="([^"]*)"/g),
     ].map((match) => match[1]);
@@ -664,7 +667,9 @@ describe('Playwright JSON input', () => {
     expect(summary.attachments.bytes).toBeGreaterThan(0);
 
     expect(html).toContain('hello from playwright');
-    expect(html).toContain('path attachment for the Playwright adapter fixture');
+    expect(html).toContain(
+      'path attachment for the Playwright adapter fixture',
+    );
     expect(html).toContain('data:image/png;base64,');
     expect(html).toContain('(image/png)');
     expect(html).toContain('text/plain');
@@ -745,7 +750,11 @@ describe('Playwright JSON input', () => {
 
   it('normalizes absolute error locations to relative paths', async () => {
     const dir = await tempDir();
-    const outside = path.join(tmpdir(), 'tolkira-outside-locations', 'sample.spec.ts');
+    const outside = path.join(
+      tmpdir(),
+      'tolkira-outside-locations',
+      'sample.spec.ts',
+    );
     const report = JSON.parse(await readFile(realRun, 'utf8')) as Record<
       string,
       unknown
@@ -761,7 +770,11 @@ describe('Playwright JSON input', () => {
         if (key === 'location' && child && typeof child === 'object') {
           const location = child as Record<string, unknown>;
           if (typeof location.file === 'string') location.file = outside;
-        } else if (key === 'errorLocation' && child && typeof child === 'object') {
+        } else if (
+          key === 'errorLocation' &&
+          child &&
+          typeof child === 'object'
+        ) {
           const location = child as Record<string, unknown>;
           if (typeof location.file === 'string') location.file = outside;
         } else {
@@ -775,7 +788,9 @@ describe('Playwright JSON input', () => {
     const summary = await summarizeReport(input);
     const html = await renderReport(input, { title: 'Locations' });
     const fails = scenario(summary, 'fails', 'alpha');
-    const message = fails.steps.find((step) => step.status === 'failed')?.message;
+    const message = fails.steps.find(
+      (step) => step.status === 'failed',
+    )?.message;
 
     expect(message).toContain('sample.spec.ts');
     expect(message).not.toContain(outside);
@@ -798,7 +813,9 @@ describe('Playwright JSON input', () => {
     const html = await renderReport(input, { title: 'CWD attachment' });
 
     expect(summary.scenarios[0]?.attachments).toBe(1);
-    expect(html).toContain('path attachment for the Playwright adapter fixture');
+    expect(html).toContain(
+      'path attachment for the Playwright adapter fixture',
+    );
   });
 
   it('skips missing, outside-tree and non-regular attachment paths', async () => {
@@ -1148,29 +1165,28 @@ describe('Playwright JSON input', () => {
     ]);
   });
 
-  it.skipIf(process.platform === 'win32' || typeof process.getuid !== 'function')(
-    'records an unreadable file inside a root as unreadable',
-    async () => {
-      if (process.getuid?.() === 0) return;
-      const dir = await tempDir();
-      const locked = path.join(dir, 'locked.png');
-      await writeFile(locked, 'locked attachment must not be read', 'utf8');
-      await chmod(locked, 0o000);
-      const source = path.join(dir, 'report.json');
+  it.skipIf(
+    process.platform === 'win32' || typeof process.getuid !== 'function',
+  )('records an unreadable file inside a root as unreadable', async () => {
+    if (process.getuid?.() === 0) return;
+    const dir = await tempDir();
+    const locked = path.join(dir, 'locked.png');
+    await writeFile(locked, 'locked attachment must not be read', 'utf8');
+    await chmod(locked, 0o000);
+    const source = path.join(dir, 'report.json');
 
-      const { envelopes, skippedAttachments } = await parsePlaywright(
-        reportWithAttachments([
-          { name: 'locked.png', contentType: 'image/png', path: 'locked.png' },
-        ]),
-        source,
-      );
+    const { envelopes, skippedAttachments } = await parsePlaywright(
+      reportWithAttachments([
+        { name: 'locked.png', contentType: 'image/png', path: 'locked.png' },
+      ]),
+      source,
+    );
 
-      expect(skippedAttachments).toBe(1);
-      expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
-        { name: 'locked.png', reason: 'unreadable' },
-      ]);
-    },
-  );
+    expect(skippedAttachments).toBe(1);
+    expect(skippedAttachmentEntriesOf(finalStarted(envelopes))).toEqual([
+      { name: 'locked.png', reason: 'unreadable' },
+    ]);
+  });
 
   it.skipIf(process.platform === 'win32')(
     'records a symlinked attachment path as not a regular file',
@@ -1347,7 +1363,11 @@ describe('Playwright JSON input', () => {
 
   it('skips URL, device and UNC attachment paths without reading them', async () => {
     const dir = await tempDir();
-    await writeFile(path.join(dir, 'note.txt'), 'safe local attachment', 'utf8');
+    await writeFile(
+      path.join(dir, 'note.txt'),
+      'safe local attachment',
+      'utf8',
+    );
     const input = await writeReport(
       dir,
       reportWithAttachments([
@@ -1406,7 +1426,9 @@ describe('Playwright JSON input', () => {
     const html = await renderReport(input, { title: 'Relative fallback' });
 
     expect(summary.scenarios[0]?.attachments).toBe(1);
-    expect(html).toContain('path attachment for the Playwright adapter fixture');
+    expect(html).toContain(
+      'path attachment for the Playwright adapter fixture',
+    );
   });
 
   it('embeds a non-empty inline body before reading its path', async () => {
@@ -1456,8 +1478,16 @@ describe('Playwright JSON input', () => {
 
   it('keeps multiple path attachments in declared order', async () => {
     const dir = await tempDir();
-    await writeFile(path.join(dir, 'first.txt'), 'first path attachment', 'utf8');
-    await writeFile(path.join(dir, 'second.txt'), 'second path attachment', 'utf8');
+    await writeFile(
+      path.join(dir, 'first.txt'),
+      'first path attachment',
+      'utf8',
+    );
+    await writeFile(
+      path.join(dir, 'second.txt'),
+      'second path attachment',
+      'utf8',
+    );
     const input = await writeReport(
       dir,
       reportWithAttachments([
@@ -1643,7 +1673,9 @@ describe('Playwright JSON input', () => {
     const absolute = path.join(realDir, 'nested', 'abs.spec.ts');
     const input = await writeReport(
       dir,
-      playwrightReport([playwrightSpec('absolute file', [passedResult()], absolute)]),
+      playwrightReport([
+        playwrightSpec('absolute file', [passedResult()], absolute),
+      ]),
     );
 
     const summary = await summarizeReport(input);
@@ -1661,7 +1693,9 @@ describe('Playwright JSON input', () => {
       dir,
       reportWithAttachments([], `long title${tags}`),
     );
-    expect((await summarizeReport(input)).scenarios[0]?.name).toBe('long title');
+    expect((await summarizeReport(input)).scenarios[0]?.name).toBe(
+      'long title',
+    );
 
     const partialDir = await tempDir();
     const partial = `long partial${tags} @`;
@@ -1669,7 +1703,9 @@ describe('Playwright JSON input', () => {
       partialDir,
       reportWithAttachments([], partial),
     );
-    expect((await summarizeReport(partialInput)).scenarios[0]?.name).toBe(partial);
+    expect((await summarizeReport(partialInput)).scenarios[0]?.name).toBe(
+      partial,
+    );
   }, 2000);
 
   it.skipIf(process.platform === 'win32')(
@@ -1709,7 +1745,11 @@ describe('Playwright JSON input', () => {
     const input = await writeReport(
       dir,
       reportWithAttachments([
-        { name: 'large', contentType: 'application/octet-stream', path: 'large.bin' },
+        {
+          name: 'large',
+          contentType: 'application/octet-stream',
+          path: 'large.bin',
+        },
       ]),
     );
     const output = path.join(dir, 'report.html');
@@ -1826,7 +1866,10 @@ describe('Playwright JSON input', () => {
       'retry.spec.ts',
       'flaky',
     );
-    const file = await writeReport(dir, playwrightReport([spec], 'retry.spec.ts'));
+    const file = await writeReport(
+      dir,
+      playwrightReport([spec], 'retry.spec.ts'),
+    );
 
     const summary = await summarizeReport(file);
     const html = await renderReport(file, { title: 'Mixed retry' });
@@ -1908,8 +1951,9 @@ describe('Playwright JSON input', () => {
         error: { message: 'failed despite the expected skip' },
       },
     ]);
-    (spec as { tests: Array<Record<string, unknown>> }).tests[0]!.expectedStatus =
-      'skipped';
+    (
+      spec as { tests: Array<Record<string, unknown>> }
+    ).tests[0]!.expectedStatus = 'skipped';
     const file = await writeReport(dir, playwrightReport([spec]));
 
     const summary = await summarizeReport(file);
@@ -2063,7 +2107,9 @@ describe('Playwright JSON input', () => {
     );
 
     expect(code).toBe(1);
-    expect(stderr).toMatch(/Invalid Playwright JSON in .*malformed-suites\.json/);
+    expect(stderr).toMatch(
+      /Invalid Playwright JSON in .*malformed-suites\.json/,
+    );
     expect(stderr).not.toContain('Unsupported input');
     await expect(readFile(output, 'utf8')).rejects.toMatchObject({
       code: 'ENOENT',

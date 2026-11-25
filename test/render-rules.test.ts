@@ -73,10 +73,7 @@ describe('parity rules rendering', () => {
     expect(first).not.toContain('No chocolates left');
     expect(first).not.toContain('@some-tag');
 
-    const secondStart = html.indexOf(
-      '<section class="rule"',
-      firstStart + 1,
-    );
+    const secondStart = html.indexOf('<section class="rule"', firstStart + 1);
     const second = sectionAt(html, secondStart);
     expect(second).toContain('@some-tag');
     expect(second).toContain('No chocolates left');
@@ -188,12 +185,18 @@ describe('parity rules rendering', () => {
 
     expect(html).not.toContain('<section class="background"');
     expect(
-      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/span><\/div>/g),
+      html.match(
+        /<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/span><\/div>/g,
+      ),
     ).toHaveLength(2);
     expect(
-      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/span><\/div>/g),
+      html.match(
+        /<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/span><\/div>/g,
+      ),
     ).toHaveLength(2);
-    expect(html.match(/<\/span> <span class="stepText">an action<\/span><\/div>/g)).toHaveLength(2);
+    expect(
+      html.match(/<\/span> <span class="stepText">an action<\/span><\/div>/g),
+    ).toHaveLength(2);
   });
 
   it('renders a feature background heading and description once', async () => {
@@ -203,8 +206,9 @@ describe('parity rules rendering', () => {
     );
     const background = envelopes
       .find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument?.feature?.children.find((child) => child.background)
-      ?.background;
+      ?.gherkinDocument?.feature?.children.find(
+        (child) => child.background,
+      )?.background;
     expect(background).toBeDefined();
     if (!background) return;
     background.name = 'Shared order';
@@ -215,10 +219,14 @@ describe('parity rules rendering', () => {
     expect(html).toContain('Background:</span> Shared order');
     expect(html).toContain('Order setup.');
     expect(
-      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/span><\/div>/g),
+      html.match(
+        /<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;eggs&quot;<\/span><\/span><\/div>/g,
+      ),
     ).toHaveLength(2);
     expect(
-      html.match(/<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/span><\/div>/g),
+      html.match(
+        /<\/span> <span class="stepText">an order for <span class="param" data-parameter-type="string">&quot;milk&quot;<\/span><\/span><\/div>/g,
+      ),
     ).toHaveLength(2);
   });
 
@@ -231,12 +239,14 @@ describe('parity rules rendering', () => {
       ?.gherkinDocument?.feature;
     expect(feature).toBeDefined();
     if (!feature) return;
-    const featureBackground = feature.children.find((child) => child.background)
-      ?.background;
+    const featureBackground = feature.children.find(
+      (child) => child.background,
+    )?.background;
     const ruleChild = feature.children.find((child) => child.rule);
     const rule = ruleChild?.rule;
-    const ruleBackground = rule?.children.find((child) => child.background)
-      ?.background;
+    const ruleBackground = rule?.children.find(
+      (child) => child.background,
+    )?.background;
     expect(featureBackground).toBeDefined();
     expect(rule).toBeDefined();
     expect(ruleBackground).toBeDefined();
@@ -308,11 +318,13 @@ describe('parity rules rendering', () => {
       ?.gherkinDocument?.feature;
     expect(feature).toBeDefined();
     if (!feature) return;
-    const featureBackground = feature.children.find((child) => child.background)
-      ?.background;
+    const featureBackground = feature.children.find(
+      (child) => child.background,
+    )?.background;
     const rule = feature.children.find((child) => child.rule)?.rule;
-    const ruleBackground = rule?.children.find((child) => child.background)
-      ?.background;
+    const ruleBackground = rule?.children.find(
+      (child) => child.background,
+    )?.background;
     expect(featureBackground).toBeDefined();
     expect(rule).toBeDefined();
     expect(ruleBackground).toBeDefined();

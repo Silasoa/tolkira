@@ -1,6 +1,10 @@
 import { constants } from 'node:fs';
 import { open, stat, type FileHandle } from 'node:fs/promises';
-import { displayUri, type SummaryScenarioIdentity, type SummaryStatus } from './summary.js';
+import {
+  displayUri,
+  type SummaryScenarioIdentity,
+  type SummaryStatus,
+} from './summary.js';
 import { compareText, oneLine } from './text.js';
 
 /** A baseline summary is one JSON document; the input cap does not apply. */
@@ -20,7 +24,8 @@ const STATUSES: ReadonlySet<string> = new Set([
 const FAILING = new Set<SummaryStatus>(['failed', 'undefined', 'ambiguous']);
 const PROTO_KEYS = ['__proto__', 'constructor', 'prototype'] as const;
 
-export type BaselineChange = 'new-failure' | 'fixed' | 'still-failing' | 'added';
+export type BaselineChange =
+  'new-failure' | 'fixed' | 'still-failing' | 'added';
 
 /** One validated baseline row; only identity, status and execution are trusted. */
 export interface BaselineScenario {
@@ -203,7 +208,10 @@ function parseScenario(
   const name = stringField(row, 'name', index, file);
   const uri = stringField(row, 'uri', index, file);
   if (typeof row.status !== 'string' || !isSummaryStatus(row.status)) {
-    fail(file, `scenarios[${index}].status is not a documented scenario status`);
+    fail(
+      file,
+      `scenarios[${index}].status is not a documented scenario status`,
+    );
   }
   if (typeof row.executed !== 'boolean') {
     fail(file, `scenarios[${index}].executed must be a boolean`);
@@ -257,10 +265,7 @@ export async function readBaseline(file: string): Promise<BaselineSummary> {
       `unsupported schema version ${excerpt(data.schemaVersion)}; expected 2`,
     );
   }
-  if (
-    typeof data.status !== 'string' ||
-    !isSummaryStatus(data.status)
-  ) {
+  if (typeof data.status !== 'string' || !isSummaryStatus(data.status)) {
     fail(file, 'status is not a documented scenario status');
   }
   if (!Array.isArray(data.scenarios)) {
@@ -387,7 +392,9 @@ function pairByKey(
     pairs.push({ base, current });
     matched.add(index);
   }
-  const unmatchedCurrent = currentRows.filter((_, index) => !matched.has(index));
+  const unmatchedCurrent = currentRows.filter(
+    (_, index) => !matched.has(index),
+  );
   return { pairs, unmatchedBase, unmatchedCurrent };
 }
 
@@ -410,10 +417,8 @@ function pairRepeated(
         unmatchedBase: baseRows,
         unmatchedCurrent: currentRows,
       };
-  const second = pairByKey(
-    first.unmatchedBase,
-    first.unmatchedCurrent,
-    (row) => displayUri(row.uri),
+  const second = pairByKey(first.unmatchedBase, first.unmatchedCurrent, (row) =>
+    displayUri(row.uri),
   );
   if (second.unmatchedBase.length > 0 || second.unmatchedCurrent.length > 0) {
     return undefined;

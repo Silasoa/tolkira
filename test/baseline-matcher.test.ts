@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { compareBaseline } from '../src/baseline.js';
-import { summarizeReport, type ReportSummary, type SummaryScenario } from '../src/index.js';
+import {
+  summarizeReport,
+  type ReportSummary,
+  type SummaryScenario,
+} from '../src/index.js';
 import type { SummaryScenarioIdentity } from '../src/summary.js';
 import { messagesFixture } from './fixtures.js';
 import {
@@ -40,7 +44,11 @@ function expectedChange(baseline: State, current: State): string | undefined {
       ? 'still-failing'
       : 'new-failure';
   }
-  if (baseline !== 'unexecuted' && FAILING.has(baseline) && current === 'passed') {
+  if (
+    baseline !== 'unexecuted' &&
+    FAILING.has(baseline) &&
+    current === 'passed'
+  ) {
     return 'fixed';
   }
   return undefined;
@@ -338,7 +346,8 @@ describe('identity', () => {
       '#2.2': 'failed',
     };
     for (const row of baseline.scenarios) {
-      if (row.name !== 'Eating cucumbers' || row.example === undefined) continue;
+      if (row.name !== 'Eating cucumbers' || row.example === undefined)
+        continue;
       row.status = baselineStatus[row.example] as BaselineSummary['status'];
     }
     baseline.scenarios.reverse();
@@ -461,9 +470,7 @@ describe('identity', () => {
       added: 0,
       ambiguous: 0,
     });
-    expect(changeOf(summary, 'pays', 'features/a.feature')).toBe(
-      'new-failure',
-    );
+    expect(changeOf(summary, 'pays', 'features/a.feature')).toBe('new-failure');
     expect(changeOf(summary, 'pays', 'features/b.feature')).toBe('fixed');
 
     const sameUriDir = await makeTempDir();
@@ -540,7 +547,9 @@ describe('identity', () => {
     const paysRows = summary.scenarios.filter((row) => row.name === 'pays');
     expect(paysRows).toHaveLength(2);
     for (const row of paysRows) {
-      expect((row as SummaryScenario & { change?: string }).change).toBeUndefined();
+      expect(
+        (row as SummaryScenario & { change?: string }).change,
+      ).toBeUndefined();
     }
   });
 
@@ -676,8 +685,22 @@ describe('repeated groups and pairing cost', () => {
         ],
       },
       [
-        identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row'),
-        identity('two', 'features/b.feature', '#1.3', 'passed', 'Outline', 'row'),
+        identity(
+          'one',
+          'features/a.feature',
+          '#1.1',
+          'failed',
+          'Outline',
+          'row',
+        ),
+        identity(
+          'two',
+          'features/b.feature',
+          '#1.3',
+          'passed',
+          'Outline',
+          'row',
+        ),
       ],
     );
 
@@ -727,9 +750,30 @@ describe('repeated groups and pairing cost', () => {
         ],
       },
       [
-        identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row'),
-        identity('two', 'features/a.feature', '#1.3', 'failed', 'Outline', 'row'),
-        identity('three', 'features/a.feature', '#1.3', 'passed', 'Outline', 'row'),
+        identity(
+          'one',
+          'features/a.feature',
+          '#1.1',
+          'failed',
+          'Outline',
+          'row',
+        ),
+        identity(
+          'two',
+          'features/a.feature',
+          '#1.3',
+          'failed',
+          'Outline',
+          'row',
+        ),
+        identity(
+          'three',
+          'features/a.feature',
+          '#1.3',
+          'passed',
+          'Outline',
+          'row',
+        ),
       ],
     );
 
@@ -769,7 +813,16 @@ describe('repeated groups and pairing cost', () => {
           },
         ],
       },
-      [identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row')],
+      [
+        identity(
+          'one',
+          'features/a.feature',
+          '#1.1',
+          'failed',
+          'Outline',
+          'row',
+        ),
+      ],
     );
 
     expect(comparison.block.counts).toMatchObject({
@@ -809,9 +862,30 @@ describe('repeated groups and pairing cost', () => {
         ],
       },
       [
-        identity('one', 'features/a.feature', '#1.1', 'failed', 'Outline', 'row'),
-        identity('two', 'features/a.feature', '#1.2', 'failed', 'Outline', 'row'),
-        identity('three', 'features/a.feature', '#1.3', 'failed', 'Outline', 'row'),
+        identity(
+          'one',
+          'features/a.feature',
+          '#1.1',
+          'failed',
+          'Outline',
+          'row',
+        ),
+        identity(
+          'two',
+          'features/a.feature',
+          '#1.2',
+          'failed',
+          'Outline',
+          'row',
+        ),
+        identity(
+          'three',
+          'features/a.feature',
+          '#1.3',
+          'failed',
+          'Outline',
+          'row',
+        ),
       ],
     );
 

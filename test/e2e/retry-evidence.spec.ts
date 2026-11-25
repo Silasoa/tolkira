@@ -63,9 +63,10 @@ test('keeps the earlier-attempts disclosure usable at 320px and 200% zoom', asyn
   const blockOverflow = await details.evaluate(
     (element) => element.scrollWidth - element.clientWidth,
   );
-  expect(blockOverflow, 'earlier block overflow at 200% text').toBeLessThanOrEqual(
-    1,
-  );
+  expect(
+    blockOverflow,
+    'earlier block overflow at 200% text',
+  ).toBeLessThanOrEqual(1);
   const box = await details.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.x, 'earlier block left edge').toBeGreaterThanOrEqual(-0.5);
@@ -82,7 +83,10 @@ test.describe('without scripting', () => {
     await page.goto(reportUrl(output()));
 
     await page.locator('details.feature summary').first().click();
-    await page.locator('details.scenario summary.scenarioButton').first().click();
+    await page
+      .locator('details.scenario summary.scenarioButton')
+      .first()
+      .click();
     const details = page.locator('details.earlierAttempts').first();
     await expect(details).toBeVisible();
     expect(await details.getAttribute('open')).toBeNull();

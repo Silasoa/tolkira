@@ -1,12 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
-import {
-  removeReport,
-  reportUrl,
-  writeInput,
-  writeReport,
-} from './helpers.js';
+import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
 const emptyStatusesFixture = messagesFixture('empty-statuses.ndjson');
 const allStatusesFixture = messagesFixture('all-statuses.ndjson');
@@ -26,7 +21,9 @@ function heading(page: Page, name: string) {
 }
 
 async function hiddenStatuses(page: Page): Promise<string[]> {
-  return page.evaluate(() => new URL(location.href).searchParams.getAll('hide'));
+  return page.evaluate(() =>
+    new URL(location.href).searchParams.getAll('hide'),
+  );
 }
 
 test('activates and deactivates the failed-only preset', async ({ page }) => {
@@ -103,7 +100,9 @@ test('activates and deactivates the failed-only preset', async ({ page }) => {
   }
 });
 
-test('a manual chip change clears the unexecuted sentinel', async ({ page }) => {
+test('a manual chip change clears the unexecuted sentinel', async ({
+  page,
+}) => {
   const { dir, output } = await writeReport(
     [emptyStatusesFixture],
     'Manual chip after preset',
@@ -288,7 +287,9 @@ test('combines the preset with a tag on failed rows', async ({ page }) => {
   }
 });
 
-test('hides and restores the source strip with the preset', async ({ page }) => {
+test('hides and restores the source strip with the preset', async ({
+  page,
+}) => {
   const { dir, output } = await writeReport(
     [allStatusesFixture, runRatioFixture],
     'Preset sources',
@@ -438,9 +439,10 @@ test('fits the preset without horizontal overflow across viewports', async ({
     const zoomedOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
-    expect(zoomedOverflow, 'overflow at 320px with 200% text').toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      zoomedOverflow,
+      'overflow at 320px with 200% text',
+    ).toBeLessThanOrEqual(1);
   } finally {
     await removeReport(dir);
   }

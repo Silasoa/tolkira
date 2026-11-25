@@ -42,9 +42,7 @@ function source(name: string): string {
 
 function localImports(name: string): string[] {
   const specs = [
-    ...source(name).matchAll(
-      /\b(?:from|import)\s*(?:\(\s*)?['"]([^'"]+)['"]/g,
-    ),
+    ...source(name).matchAll(/\b(?:from|import)\s*(?:\(\s*)?['"]([^'"]+)['"]/g),
   ].map((match) => match[1] as string);
   return specs.flatMap((spec) => {
     if (!spec.startsWith('.')) return [];
@@ -85,7 +83,9 @@ describe('render modules', () => {
   it('keeps html.ts a shell', () => {
     const html = source('html');
     expect(html.split('\n').length).toBeLessThan(100);
-    expect(html).not.toMatch(/function\s+render\w*View\b|const\s+render\w*View\b/);
+    expect(html).not.toMatch(
+      /function\s+render\w*View\b|const\s+render\w*View\b/,
+    );
   });
 
   it('keeps the generated catalog a leaf and i18n on it', () => {

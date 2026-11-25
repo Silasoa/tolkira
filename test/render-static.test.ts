@@ -84,7 +84,9 @@ function tagWithId(html: string, id: string): string {
 }
 
 function ids(html: string): Set<string> {
-  return new Set([...html.matchAll(/\sid="([^"]*)"/g)].map((match) => match[1] ?? ''));
+  return new Set(
+    [...html.matchAll(/\sid="([^"]*)"/g)].map((match) => match[1] ?? ''),
+  );
 }
 
 function hasScript(html: string): boolean {
@@ -94,7 +96,9 @@ function hasScript(html: string): boolean {
 function danglingAria(html: string): string[] {
   const known = ids(html);
   const dangling: string[] = [];
-  for (const match of html.matchAll(/\saria-(?:labelledby|controls)="([^"]*)"/g)) {
+  for (const match of html.matchAll(
+    /\saria-(?:labelledby|controls)="([^"]*)"/g,
+  )) {
     for (const token of (match[1] ?? '').split(/\s+/).filter(Boolean)) {
       if (!known.has(token)) dangling.push(token);
     }
@@ -104,8 +108,9 @@ function danglingAria(html: string): string[] {
 
 function cspDirectives(html: string): Map<string, string[]> {
   const content =
-    /<meta http-equiv="Content-Security-Policy" content="([^"]*)">/.exec(html)?.[1] ??
-    '';
+    /<meta http-equiv="Content-Security-Policy" content="([^"]*)">/.exec(
+      html,
+    )?.[1] ?? '';
   return new Map(
     content
       .split(';')
@@ -161,10 +166,9 @@ describe('static report shell', () => {
     expect(body).not.toContain('data-copy-log');
     expect(body).toContain('whoops');
 
-    expect(
-      /<input\b[^>]*\bdata-search/.test(body),
-      'no search control',
-    ).toBe(false);
+    expect(/<input\b[^>]*\bdata-search/.test(body), 'no search control').toBe(
+      false,
+    );
     expect(
       /<select\b[^>]*\bdata-tag-filter/.test(body),
       'no tag filter control',
@@ -207,7 +211,9 @@ describe('static report shell', () => {
       expect(hasAttribute(tag, 'open'), tag.slice(0, 120)).toBe(true);
     }
 
-    expect(hasAttribute(scenarioOpeningTag(html, 'Passing'), 'open')).toBe(true);
+    expect(hasAttribute(scenarioOpeningTag(html, 'Passing'), 'open')).toBe(
+      true,
+    );
     const unexecuted = scenarioOpeningTag(html, 'Blank Scenario');
     expect(hasAttribute(unexecuted, 'open')).toBe(true);
     expect(hasAttribute(unexecuted, 'data-status')).toBe(false);
@@ -360,7 +366,9 @@ describe('default report guard', () => {
     expect(script).not.toEqual(["'none'"]);
     expect(script.some((value) => value.startsWith("'sha256-"))).toBe(true);
 
-    expect(hasAttribute(scenarioOpeningTag(html, 'Failing'), 'open')).toBe(true);
+    expect(hasAttribute(scenarioOpeningTag(html, 'Failing'), 'open')).toBe(
+      true,
+    );
     const passed = scenarioOpeningTag(html, 'Passing');
     expect(hasAttribute(passed, 'open')).toBe(false);
     expect(hasAttribute(passed, 'data-status')).toBe(true);
@@ -380,7 +388,10 @@ describe('default report guard', () => {
 describe('static size seam', () => {
   it('measures the static and default bytes for the standard fixture', async () => {
     const defaults = { title: 'Static size' } satisfies RenderReportOptions;
-    const staticOptions: RenderReportOptions = { title: 'Static size', static: true };
+    const staticOptions: RenderReportOptions = {
+      title: 'Static size',
+      static: true,
+    };
     const defaultHtml = await renderReport(standardFixture, defaults);
     const staticHtml = await renderReport(standardFixture, staticOptions);
     const defaultBytes = Buffer.byteLength(defaultHtml, 'utf8');

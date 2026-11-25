@@ -137,8 +137,9 @@ describe('skipped attachment notice', () => {
       await readFile(messagesFixture('hooks.ndjson'), 'utf8'),
       'hooks.ndjson',
     );
-    const started = envelopes.find((envelope) => envelope.testCaseStarted)
-      ?.testCaseStarted;
+    const started = envelopes.find(
+      (envelope) => envelope.testCaseStarted,
+    )?.testCaseStarted;
     if (!started) throw new Error('missing testCaseStarted envelope');
     recordSkippedAttachments(started, 0, [
       { name: 'edge.png', reason: 'missing' },
@@ -223,9 +224,7 @@ describe('media data URIs in the report', () => {
           language: 'en',
           astNodeIds: ['media-scenario'],
           tags: [],
-          steps: [
-            { id: 'media-pickle-step', text: 'a step', astNodeIds: [] },
-          ],
+          steps: [{ id: 'media-pickle-step', text: 'a step', astNodeIds: [] }],
         },
       },
       {

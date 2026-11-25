@@ -53,9 +53,9 @@ function featureMatrixNames(html: string): string[] {
 }
 
 function markdownFailureTitles(markdown: string): string[] {
-  return [
-    ...markdown.matchAll(/^#### `([^`]*)` - `([^`]*)`$/gm),
-  ].map((match) => match[1] ?? '');
+  return [...markdown.matchAll(/^#### `([^`]*)` - `([^`]*)`$/gm)].map(
+    (match) => match[1] ?? '',
+  );
 }
 
 function legacyOrderFeature(name: string, status: 'passed' | 'failed') {
@@ -126,7 +126,11 @@ function tiedAttempts(): ReturnType<typeof parseMessages> {
         astNodeIds: ['tie-scenario'],
         tags: [],
         steps: [
-          { id: 'tie-pickle-step', text: 'a step', astNodeIds: ['tie-step-def'] },
+          {
+            id: 'tie-pickle-step',
+            text: 'a step',
+            astNodeIds: ['tie-step-def'],
+          },
         ],
       },
     },
@@ -190,8 +194,12 @@ describe('messages rendering', () => {
     expect(html).toContain('<h1>Tolkira test</h1>');
     expect(html).toContain('id="report-view"');
     expect(html).toContain('id="analysis-view"');
-    expect(html).toContain('id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"');
-    expect(html).toContain('id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden');
+    expect(html).toContain(
+      'id="report-view" role="tabpanel" aria-labelledby="view-report" tabindex="0"',
+    );
+    expect(html).toContain(
+      'id="analysis-view" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden',
+    );
     expect(html).toContain('aria-label="Agent summary JSON"');
     expect(html).toContain('<p class="detailLabel">Steps</p>');
     expect(html).toContain('class="stepMarker');
@@ -279,7 +287,9 @@ describe('messages rendering', () => {
   });
 
   it('renders filters only for statuses with scenarios', async () => {
-    const html = await renderReport(passedOnlyFixture, { title: 'Passed only' });
+    const html = await renderReport(passedOnlyFixture, {
+      title: 'Passed only',
+    });
 
     expect(html).toContain('data-filter-status="passed"');
     expect(html).not.toMatch(
@@ -387,8 +397,7 @@ describe('messages rendering', () => {
       .split(/\r?\n/)
       .map((line) => JSON.parse(line) as Record<string, unknown>);
     const attachment = lines.find((line) => line.attachment)?.attachment as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     if (attachment) {
       attachment.fileName = '<img src=x onerror=alert(4)>.png';
     }
@@ -463,7 +472,8 @@ describe('messages rendering', () => {
     for (const line of lines) {
       if (line.gherkinDocument) {
         line.gherkinDocument.uri = uri;
-        if (line.gherkinDocument.feature) line.gherkinDocument.feature.name = '';
+        if (line.gherkinDocument.feature)
+          line.gherkinDocument.feature.name = '';
       }
       if (line.pickle) line.pickle.uri = uri;
     }
@@ -550,7 +560,10 @@ describe('messages rendering', () => {
       );
     for (const line of lines) {
       if (line.testStepFinished) {
-        line.testStepFinished.testStepResult.duration = { seconds: -5, nanos: 0 };
+        line.testStepFinished.testStepResult.duration = {
+          seconds: -5,
+          nanos: 0,
+        };
       }
     }
 
@@ -711,97 +724,89 @@ describe('host-locale-independent report order', () => {
     }
   });
 
-  it(
-    'produces byte-identical JSON and Markdown and one fixed report order under sv_SE and de_DE',
-    async () => {
-      const repoRoot = fileURLToPath(new URL('..', import.meta.url));
-      const inputDir = await tempDir('tolkira-locale-input-');
-      for (const name of ['Zebra', 'apple', 'Äpfel']) {
-        await writeFile(
-          path.join(inputDir, `${name}.json`),
-          JSON.stringify([legacyOrderFeature(name, 'failed')]),
-          'utf8',
+  it('produces byte-identical JSON and Markdown and one fixed report order under sv_SE and de_DE', async () => {
+    const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+    const inputDir = await tempDir('tolkira-locale-input-');
+    for (const name of ['Zebra', 'apple', 'Äpfel']) {
+      await writeFile(
+        path.join(inputDir, `${name}.json`),
+        JSON.stringify([legacyOrderFeature(name, 'failed')]),
+        'utf8',
+      );
+    }
+    const outputDir = await tempDir('tolkira-locale-output-');
+    await mkdir(outputDir, { recursive: true });
+    const bundleDir = await tempDir('tolkira-locale-bundle-');
+    const bundle = path.join(bundleDir, 'cli.mjs');
+
+    await build({
+      entryPoints: [path.join(repoRoot, 'src', 'cli.ts')],
+      bundle: true,
+      platform: 'node',
+      target: 'node22',
+      format: 'esm',
+      outfile: bundle,
+      logLevel: 'silent',
+    });
+
+    const run = async (locale: string) => {
+      const htmlFile = path.join(outputDir, `${locale}.html`);
+      const markdownFile = path.join(outputDir, `${locale}.md`);
+      const result = spawnSync(
+        process.execPath,
+        [
+          bundle,
+          inputDir,
+          '--json',
+          '--ci',
+          'markdown',
+          '--ci-out',
+          markdownFile,
+          '--out',
+          htmlFile,
+        ],
+        {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          timeout: 120_000,
+          env: { ...process.env, LANG: locale, LC_ALL: locale },
+        },
+      );
+      if (result.status !== 0) {
+        throw new Error(
+          `tolkira exited ${result.status} under ${locale}: ${result.stderr}`,
         );
       }
-      const outputDir = await tempDir('tolkira-locale-output-');
-      await mkdir(outputDir, { recursive: true });
-      const bundleDir = await tempDir('tolkira-locale-bundle-');
-      const bundle = path.join(bundleDir, 'cli.mjs');
-
-      await build({
-        entryPoints: [path.join(repoRoot, 'src', 'cli.ts')],
-        bundle: true,
-        platform: 'node',
-        target: 'node22',
-        format: 'esm',
-        outfile: bundle,
-        logLevel: 'silent',
-      });
-
-      const run = async (locale: string) => {
-        const htmlFile = path.join(outputDir, `${locale}.html`);
-        const markdownFile = path.join(outputDir, `${locale}.md`);
-        const result = spawnSync(
-          process.execPath,
-          [
-            bundle,
-            inputDir,
-            '--json',
-            '--ci',
-            'markdown',
-            '--ci-out',
-            markdownFile,
-            '--out',
-            htmlFile,
-          ],
-          {
-            cwd: repoRoot,
-            encoding: 'utf8',
-            timeout: 120_000,
-            env: { ...process.env, LANG: locale, LC_ALL: locale },
-          },
-        );
-        if (result.status !== 0) {
-          throw new Error(
-            `tolkira exited ${result.status} under ${locale}: ${result.stderr}`,
-          );
-        }
-        return {
-          json: result.stdout,
-          markdown: await readFile(markdownFile, 'utf8'),
-          html: await readFile(htmlFile, 'utf8'),
-        };
+      return {
+        json: result.stdout,
+        markdown: await readFile(markdownFile, 'utf8'),
+        html: await readFile(htmlFile, 'utf8'),
       };
+    };
 
-      const swedish = await run('sv_SE.UTF-8');
-      const german = await run('de_DE.UTF-8');
-      const summary = JSON.parse(swedish.json) as {
-        scenarios: Array<{ uri: string }>;
-      };
+    const swedish = await run('sv_SE.UTF-8');
+    const german = await run('de_DE.UTF-8');
+    const summary = JSON.parse(swedish.json) as {
+      scenarios: Array<{ uri: string }>;
+    };
 
-      expect(german.json).toBe(swedish.json);
-      expect(summary.scenarios.map((scenario) => scenario.uri)).toEqual([
-        'features/Zebra.feature',
-        'features/apple.feature',
-        'features/Äpfel.feature',
-      ]);
-      expect(german.markdown).toBe(swedish.markdown);
-      expect(markdownFailureTitles(swedish.markdown)).toEqual([
-        'Zebra',
-        'apple',
-        'Äpfel',
-      ]);
-      expect(featureMatrixNames(swedish.html)).toEqual([
-        'Zebra',
-        'apple',
-        'Äpfel',
-      ]);
-      expect(tagOptions(swedish.html)).toEqual([
-        '@Zebra',
-        '@apple',
-        '@Äpfel',
-      ]);
-    },
-    180_000,
-  );
+    expect(german.json).toBe(swedish.json);
+    expect(summary.scenarios.map((scenario) => scenario.uri)).toEqual([
+      'features/Zebra.feature',
+      'features/apple.feature',
+      'features/Äpfel.feature',
+    ]);
+    expect(german.markdown).toBe(swedish.markdown);
+    expect(markdownFailureTitles(swedish.markdown)).toEqual([
+      'Zebra',
+      'apple',
+      'Äpfel',
+    ]);
+    expect(featureMatrixNames(swedish.html)).toEqual([
+      'Zebra',
+      'apple',
+      'Äpfel',
+    ]);
+    expect(tagOptions(swedish.html)).toEqual(['@Zebra', '@apple', '@Äpfel']);
+  }, 180_000);
 });

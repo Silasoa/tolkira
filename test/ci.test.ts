@@ -33,9 +33,7 @@ function emptyStatusCounts(): StatusCounts {
   };
 }
 
-function scenario(
-  overrides: Partial<SummaryScenario> = {},
-): SummaryScenario {
+function scenario(overrides: Partial<SummaryScenario> = {}): SummaryScenario {
   return {
     name: 'Scenario',
     uri: 'features/ci.feature',
@@ -248,9 +246,7 @@ describe('GitHub annotations', () => {
       'Scenario failed',
       'Scenario failed',
     ]);
-    expect(
-      errors.map((line) => line.slice(0, line.indexOf('::', 2))),
-    ).toEqual([
+    expect(errors.map((line) => line.slice(0, line.indexOf('::', 2)))).toEqual([
       '::error title=CI feature%3A Fails',
       '::error title=CI feature%3A Undefined',
       '::error title=CI feature%3A Ambiguous',
@@ -337,7 +333,9 @@ describe('GitHub annotations', () => {
 
     expect(lines).toHaveLength(2);
     expect(lines.filter((line) => line.startsWith('::error '))).toHaveLength(1);
-    expect(lines.some((line) => line.startsWith('::error title=x'))).toBe(false);
+    expect(lines.some((line) => line.startsWith('::error title=x'))).toBe(
+      false,
+    );
     expect(lines[0]).toBe(
       '::error title=CI feature%3A evil%0A%3A%3Aerror title=x%3A%3A::boom%0A::error title=y::',
     );
@@ -414,7 +412,9 @@ describe('GitHub annotations', () => {
     expect(errors[49]).toContain('Fail 49');
     expect(lines.join('\n')).not.toContain('Fail 50');
     expect(lines.join('\n')).not.toContain('Fail 54');
-    expect(lines).toContain('::notice title=Tolkira::5 more annotations omitted');
+    expect(lines).toContain(
+      '::notice title=Tolkira::5 more annotations omitted',
+    );
     const final = lines.find(
       (line) =>
         line.startsWith('::notice title=Tolkira::') &&
@@ -446,7 +446,9 @@ describe('GitHub annotations', () => {
     expect(lines.join('\n')).toContain('Skip 19');
     expect(lines.join('\n')).not.toContain('Skip 20');
     expect(lines.join('\n')).not.toContain('Skip 24');
-    expect(lines).toContain('::notice title=Tolkira::5 more annotations omitted');
+    expect(lines).toContain(
+      '::notice title=Tolkira::5 more annotations omitted',
+    );
     const final = notices.find(
       (line) =>
         line.startsWith('::notice title=Tolkira::') &&
@@ -565,32 +567,42 @@ describe('CI identity cap', () => {
     const [line = ''] = annotationLines(formatGitHubAnnotations(summary));
     const title = githubTitle(line);
 
-    expect(title).toBe(
-      `${'f'.repeat(100)}%3A ${'n'.repeat(98)}[truncated]`,
-    );
+    expect(title).toBe(`${'f'.repeat(100)}%3A ${'n'.repeat(98)}[truncated]`);
     expect(line).toContain('::boom');
   });
 
   it('keeps exactly 200 code points unchanged and cuts 201', () => {
     const exact = makeSummary([
-      scenario({ feature: 'f'.repeat(100), name: 'n'.repeat(98), status: 'failed' }),
+      scenario({
+        feature: 'f'.repeat(100),
+        name: 'n'.repeat(98),
+        status: 'failed',
+      }),
     ]);
     const over = makeSummary([
-      scenario({ feature: 'f'.repeat(100), name: 'n'.repeat(99), status: 'failed' }),
+      scenario({
+        feature: 'f'.repeat(100),
+        name: 'n'.repeat(99),
+        status: 'failed',
+      }),
     ]);
 
-    expect(githubTitle(annotationLines(formatGitHubAnnotations(exact))[0] ?? '')).toBe(
-      `${'f'.repeat(100)}%3A ${'n'.repeat(98)}`,
-    );
-    expect(githubTitle(annotationLines(formatGitHubAnnotations(over))[0] ?? '')).toBe(
-      `${'f'.repeat(100)}%3A ${'n'.repeat(98)}[truncated]`,
-    );
+    expect(
+      githubTitle(annotationLines(formatGitHubAnnotations(exact))[0] ?? ''),
+    ).toBe(`${'f'.repeat(100)}%3A ${'n'.repeat(98)}`);
+    expect(
+      githubTitle(annotationLines(formatGitHubAnnotations(over))[0] ?? ''),
+    ).toBe(`${'f'.repeat(100)}%3A ${'n'.repeat(98)}[truncated]`);
     const under = makeSummary([
-      scenario({ feature: 'f'.repeat(99), name: 'n'.repeat(98), status: 'failed' }),
+      scenario({
+        feature: 'f'.repeat(99),
+        name: 'n'.repeat(98),
+        status: 'failed',
+      }),
     ]);
-    expect(githubTitle(annotationLines(formatGitHubAnnotations(under))[0] ?? '')).toBe(
-      `${'f'.repeat(99)}%3A ${'n'.repeat(98)}`,
-    );
+    expect(
+      githubTitle(annotationLines(formatGitHubAnnotations(under))[0] ?? ''),
+    ).toBe(`${'f'.repeat(99)}%3A ${'n'.repeat(98)}`);
     expect(formatMarkdownSummary(over, { title: 'x'.repeat(200) })).toContain(
       `## ${'x'.repeat(200)}\n`,
     );
@@ -623,7 +635,9 @@ describe('CI identity cap', () => {
 
   it('caps a long skipped identity with the marker', () => {
     const name = 's'.repeat(201);
-    const summary = makeSummary([scenario({ feature: '', name, status: 'skipped' })]);
+    const summary = makeSummary([
+      scenario({ feature: '', name, status: 'skipped' }),
+    ]);
 
     const markdown = formatMarkdownSummary(summary);
 
@@ -641,7 +655,9 @@ describe('CI identity cap', () => {
       }),
     ]);
 
-    const title = githubTitle(annotationLines(formatGitHubAnnotations(summary))[0] ?? '');
+    const title = githubTitle(
+      annotationLines(formatGitHubAnnotations(summary))[0] ?? '',
+    );
     const markdown = formatMarkdownSummary(summary);
 
     expect(title).toBe(`${'a'.repeat(199)}\u{1F600}[truncated]`);
@@ -664,8 +680,12 @@ describe('CI identity cap', () => {
     const summary = makeSummary([...failed, ...skipped]);
 
     const lines = annotationLines(formatGitHubAnnotations(summary));
-    expect(lines.filter((line) => line.startsWith('::error '))).toHaveLength(50);
-    expect(lines).toContain('::notice title=Tolkira::10 more annotations omitted');
+    expect(lines.filter((line) => line.startsWith('::error '))).toHaveLength(
+      50,
+    );
+    expect(lines).toContain(
+      '::notice title=Tolkira::10 more annotations omitted',
+    );
     expect(lines.join('\n')).toContain('80 scenarios');
     expect(lines.join('\n')).toContain('55 failed');
     expect(lines.join('\n')).toContain('25 skipped');
@@ -892,9 +912,7 @@ describe('Azure DevOps annotations', () => {
         feature: 'Rate 50%, [v1]',
         name: 'line1\nline2',
         status: 'failed',
-        steps: [
-          step({ status: 'failed', message: '100% ] %AZP25\r\nnext' }),
-        ],
+        steps: [step({ status: 'failed', message: '100% ] %AZP25\r\nnext' })],
       }),
     ]);
     const output = azureOutput(summary);
@@ -930,17 +948,14 @@ describe('Azure DevOps annotations', () => {
   });
 
   it('never sets the task result or a source path', () => {
-    const output = azureOutput(
-      makeSummary([scenario({ status: 'failed' })]),
-    );
+    const output = azureOutput(makeSummary([scenario({ status: 'failed' })]));
 
     expect(output).not.toContain('##vso[task.complete');
     expect(output).not.toContain('sourcepath');
   });
 
   it('truncates before escaping so percent data survives the limit', () => {
-    const raw =
-      `${'%'.repeat(3900)}${'a'.repeat(200)}${'tail'.repeat(100)}`;
+    const raw = `${'%'.repeat(3900)}${'a'.repeat(200)}${'tail'.repeat(100)}`;
     const summary = makeSummary([
       scenario({
         feature: '',
@@ -1200,9 +1215,7 @@ describe('Markdown CI summary', () => {
     expect(markdown).toMatch(
       /5\b[^\n]{0,40}(omitted|not shown|not listed|more)/i,
     );
-    expect(formatMarkdownSummary(summary)).toBe(
-      formatMarkdownSummary(summary),
-    );
+    expect(formatMarkdownSummary(summary)).toBe(formatMarkdownSummary(summary));
   });
 
   it('truncates the raw failure message at 500 characters', () => {

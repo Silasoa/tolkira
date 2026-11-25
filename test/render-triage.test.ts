@@ -34,9 +34,9 @@ describe('triage overview', () => {
       list.indexOf('Unhappy HTML reporting'),
       list.indexOf('Behave feature'),
     );
-    const scenarios = [...unhappy.matchAll(/<h3 class="scenarioName">(.*?)<\/h3>/g)].map(
-      (match) => match[1],
-    );
+    const scenarios = [
+      ...unhappy.matchAll(/<h3 class="scenarioName">(.*?)<\/h3>/g),
+    ].map((match) => match[1]);
     expect(scenarios).toEqual([
       'Fred wants to see if steps are pending in the HTML report',
       'Fred wants to see if steps are undefined on the HTML report',
@@ -88,9 +88,12 @@ describe('triage overview', () => {
   });
 
   it('omits the index when every scenario passed', async () => {
-    const html = await renderHtml(await legacyEnvelopes('behave.json', 'behave'), {
-      title: 'Clean run',
-    });
+    const html = await renderHtml(
+      await legacyEnvelopes('behave.json', 'behave'),
+      {
+        title: 'Clean run',
+      },
+    );
 
     expect(html).not.toContain('Needs attention');
   });
@@ -128,7 +131,8 @@ describe('triage overview', () => {
           ],
         },
       ]),
-      { title: 'Mixed unknown',
+      {
+        title: 'Mixed unknown',
         provenance: new Map([
           ['features/legacy-1.feature', 'mixed.json'],
           ['features/legacy-0.feature', 'passed.json'],

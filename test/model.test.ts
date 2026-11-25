@@ -25,7 +25,10 @@ const examplesTables = fileURLToPath(
   new URL('./fixtures/messages/examples-tables.ndjson', import.meta.url),
 );
 const examplesAttachments = fileURLToPath(
-  new URL('./fixtures/messages/examples-tables-attachment.ndjson', import.meta.url),
+  new URL(
+    './fixtures/messages/examples-tables-attachment.ndjson',
+    import.meta.url,
+  ),
 );
 const hooksFixture = fileURLToPath(
   new URL('./fixtures/messages/hooks.ndjson', import.meta.url),
@@ -34,7 +37,10 @@ const globalHooksFixture = fileURLToPath(
   new URL('./fixtures/messages/global-hooks.ndjson', import.meta.url),
 );
 const globalHookAttachments = fileURLToPath(
-  new URL('./fixtures/messages/global-hooks-attachments.ndjson', import.meta.url),
+  new URL(
+    './fixtures/messages/global-hooks-attachments.ndjson',
+    import.meta.url,
+  ),
 );
 const undefinedFixture = fileURLToPath(
   new URL('./fixtures/messages/undefined.ndjson', import.meta.url),
@@ -139,8 +145,12 @@ describe('report model', () => {
     expect(model.features[0]?.description).toContain('cucumber reports');
     expect(model.scenarios[0]?.status).toBe('passed');
     expect(model.scenarios[0]?.hooks[0]?.type).toBe('Before');
-    expect(model.scenarios[0]?.steps.some((step) => step.keyword === 'Given')).toBe(true);
-    expect(model.scenarios[0]?.steps.some((step) => step.keyword === 'Hook')).toBe(false);
+    expect(
+      model.scenarios[0]?.steps.some((step) => step.keyword === 'Given'),
+    ).toBe(true);
+    expect(
+      model.scenarios[0]?.steps.some((step) => step.keyword === 'Hook'),
+    ).toBe(false);
   });
 
   it('keeps doc strings, tables and errors', async () => {
@@ -174,9 +184,8 @@ describe('report model', () => {
       .trim()
       .split(/\r?\n/)
       .map((line) => JSON.parse(line) as Record<string, unknown>);
-    const started = lines.find((line) => line.testCaseStarted)?.testCaseStarted as
-      | { id: string }
-      | undefined;
+    const started = lines.find((line) => line.testCaseStarted)
+      ?.testCaseStarted as { id: string } | undefined;
     expect(started).toBeDefined();
 
     lines.push({
@@ -206,9 +215,8 @@ describe('report model', () => {
       .trim()
       .split(/\r?\n/)
       .map((line) => JSON.parse(line) as Record<string, unknown>);
-    const started = lines.find((line) => line.testCaseStarted)?.testCaseStarted as
-      | { id: string }
-      | undefined;
+    const started = lines.find((line) => line.testCaseStarted)
+      ?.testCaseStarted as { id: string } | undefined;
     expect(started).toBeDefined();
 
     const mediaTypes = [
@@ -255,7 +263,9 @@ describe('report model', () => {
 
   it('uses the latest finished attempt for a scenario', async () => {
     const model = await modelFor(happy);
-    expect(model.scenarios.every((scenario) => scenario.attempt === 0)).toBe(true);
+    expect(model.scenarios.every((scenario) => scenario.attempt === 0)).toBe(
+      true,
+    );
   });
 
   it('keeps case-level and run-level attachments', async () => {
@@ -263,9 +273,8 @@ describe('report model', () => {
       .trim()
       .split(/\r?\n/)
       .map((line) => JSON.parse(line) as Record<string, unknown>);
-    const started = lines.find((line) => line.testCaseStarted)?.testCaseStarted as
-      | { id: string }
-      | undefined;
+    const started = lines.find((line) => line.testCaseStarted)
+      ?.testCaseStarted as { id: string } | undefined;
     expect(started).toBeDefined();
 
     lines.push({
@@ -291,7 +300,9 @@ describe('report model', () => {
     const model = buildReportModel(envelopes);
 
     expect(model.scenarios[0]?.extraAttachments).toHaveLength(1);
-    expect(model.scenarios[0]?.extraAttachments[0]?.text).toBe('case-level log');
+    expect(model.scenarios[0]?.extraAttachments[0]?.text).toBe(
+      'case-level log',
+    );
     expect(model.runAttachments).toHaveLength(1);
     expect(model.runAttachments[0]?.text).toBe('run-level log');
     expect(model.counts.attachments).toBe(3);
@@ -335,7 +346,8 @@ describe('report model', () => {
     ]);
 
     const second = model.scenarios.filter(
-      (scenario) => scenario.outline?.name === 'Eating cucumbers with <friends> friends',
+      (scenario) =>
+        scenario.outline?.name === 'Eating cucumbers with <friends> friends',
     );
     expect(second).toHaveLength(3);
     expect(second.map((scenario) => scenario.outline?.examplesName)).toEqual([
@@ -361,7 +373,11 @@ describe('report model', () => {
     expect(pickle).toBeDefined();
     if (!pickle) return;
 
-    pickle.astNodeIds = [pickle.astNodeIds[0] ?? '', 'extra-ast-id', pickle.astNodeIds[1] ?? ''];
+    pickle.astNodeIds = [
+      pickle.astNodeIds[0] ?? '',
+      'extra-ast-id',
+      pickle.astNodeIds[1] ?? '',
+    ];
     const grouped = buildReportModel(envelopes).scenarios.find(
       (scenario) => scenario.id === pickle.id,
     );
@@ -412,39 +428,45 @@ describe('report model', () => {
 
   it('tolerates omitted repeated fields in a valid Gherkin document', async () => {
     const source = await readFile(examplesTables, 'utf8');
-    const cases: Array<(envelopes: ReturnType<typeof parseMessages>) => void> = [
-      (envelopes) => {
-        const document = envelopes.find((envelope) => envelope.gherkinDocument)
-          ?.gherkinDocument;
-        const scenario = document?.feature?.children.find((child) => child.scenario)
-          ?.scenario;
-        if (!scenario) return;
-        delete (scenario as unknown as { tags?: unknown }).tags;
-        delete (scenario as unknown as { examples?: unknown }).examples;
-      },
-      (envelopes) => {
-        const document = envelopes.find((envelope) => envelope.gherkinDocument)
-          ?.gherkinDocument;
-        const scenario = document?.feature?.children.find((child) => child.scenario)
-          ?.scenario;
-        const examples = scenario?.examples?.[0];
-        if (!examples) return;
-        delete (examples as unknown as { tableBody?: unknown }).tableBody;
-        delete (examples as unknown as { tags?: unknown }).tags;
-        delete (scenario as unknown as { tags?: unknown }).tags;
-      },
-      (envelopes) => {
-        const document = envelopes.find((envelope) => envelope.gherkinDocument)
-          ?.gherkinDocument;
-        if (!document?.feature) return;
-        delete (document.feature as unknown as { tags?: unknown }).tags;
-        for (const envelope of envelopes) {
-          if (envelope.pickle) {
-            delete (envelope.pickle as unknown as { tags?: unknown }).tags;
+    const cases: Array<(envelopes: ReturnType<typeof parseMessages>) => void> =
+      [
+        (envelopes) => {
+          const document = envelopes.find(
+            (envelope) => envelope.gherkinDocument,
+          )?.gherkinDocument;
+          const scenario = document?.feature?.children.find(
+            (child) => child.scenario,
+          )?.scenario;
+          if (!scenario) return;
+          delete (scenario as unknown as { tags?: unknown }).tags;
+          delete (scenario as unknown as { examples?: unknown }).examples;
+        },
+        (envelopes) => {
+          const document = envelopes.find(
+            (envelope) => envelope.gherkinDocument,
+          )?.gherkinDocument;
+          const scenario = document?.feature?.children.find(
+            (child) => child.scenario,
+          )?.scenario;
+          const examples = scenario?.examples?.[0];
+          if (!examples) return;
+          delete (examples as unknown as { tableBody?: unknown }).tableBody;
+          delete (examples as unknown as { tags?: unknown }).tags;
+          delete (scenario as unknown as { tags?: unknown }).tags;
+        },
+        (envelopes) => {
+          const document = envelopes.find(
+            (envelope) => envelope.gherkinDocument,
+          )?.gherkinDocument;
+          if (!document?.feature) return;
+          delete (document.feature as unknown as { tags?: unknown }).tags;
+          for (const envelope of envelopes) {
+            if (envelope.pickle) {
+              delete (envelope.pickle as unknown as { tags?: unknown }).tags;
+            }
           }
-        }
-      },
-    ];
+        },
+      ];
 
     for (const mutate of cases) {
       const envelopes = parseMessages(source, examplesTables);
@@ -515,7 +537,9 @@ describe('report model', () => {
     );
 
     const model = buildReportModel(envelopes);
-    const rows = model.scenarios.filter((scenario) => scenario.id === pickle.id);
+    const rows = model.scenarios.filter(
+      (scenario) => scenario.id === pickle.id,
+    );
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.attempt).toBe(1);
@@ -694,7 +718,10 @@ describe('parity diagnostics model', () => {
 
     expect(passedStep?.status).toBe('passed');
     expect(passedStep?.definitions).toEqual([
-      { pattern: 'an implemented step', source: 'samples/undefined/undefined.ts:3' },
+      {
+        pattern: 'an implemented step',
+        source: 'samples/undefined/undefined.ts:3',
+      },
     ]);
   });
 
@@ -724,8 +751,9 @@ describe('parity diagnostics model', () => {
         mutate: (envelopes) => {
           for (const envelope of envelopes) {
             if (envelope.suggestion) {
-              (envelope.suggestion as unknown as { snippets: unknown }).snippets =
-                'not-an-array';
+              (
+                envelope.suggestion as unknown as { snippets: unknown }
+              ).snippets = 'not-an-array';
             }
           }
         },
@@ -741,7 +769,9 @@ describe('parity diagnostics model', () => {
                 envelope.stepDefinition as unknown as { pattern?: unknown }
               ).pattern;
               delete (
-                envelope.stepDefinition as unknown as { sourceReference?: unknown }
+                envelope.stepDefinition as unknown as {
+                  sourceReference?: unknown;
+                }
               ).sourceReference;
             }
           }
@@ -844,8 +874,9 @@ describe('parity rules model', () => {
     const envelopes = parseMessages(content, examplesTables);
     const scenario = envelopes
       .find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument?.feature?.children.find((child) => child.scenario)
-      ?.scenario;
+      ?.gherkinDocument?.feature?.children.find(
+        (child) => child.scenario,
+      )?.scenario;
     expect(scenario).toBeDefined();
     if (!scenario) return;
     scenario.tags = [
@@ -855,7 +886,11 @@ describe('parity rules model', () => {
     expect(examples).toBeDefined();
     if (!examples) return;
     examples.tags = [
-      { id: 'examples-tag', name: '@examples', location: { line: 1, column: 1 } },
+      {
+        id: 'examples-tag',
+        name: '@examples',
+        location: { line: 1, column: 1 },
+      },
     ];
     for (const envelope of envelopes) {
       if (envelope.pickle?.astNodeIds[0] !== scenario.id) continue;
@@ -931,9 +966,9 @@ describe('parity rules model', () => {
     const model = buildReportModel(await parseJUnitXml(content, 'basic.xml'));
     expect(model.features[0]?.backgrounds).toEqual([]);
     expect(model.scenarios.every((scenario) => !scenario.rule)).toBe(true);
-    expect(model.scenarios.every((scenario) => scenario.ownTags.length === 0)).toBe(
-      true,
-    );
+    expect(
+      model.scenarios.every((scenario) => scenario.ownTags.length === 0),
+    ).toBe(true);
   });
 });
 
@@ -1051,9 +1086,7 @@ describe('empty-run model', () => {
     const model = await messagesModelFor(emptyAllUnexecutedFixture);
 
     expect(model.scenarios).toHaveLength(2);
-    expect(model.scenarios.every((scenario) => !scenario.executed)).toBe(
-      true,
-    );
+    expect(model.scenarios.every((scenario) => !scenario.executed)).toBe(true);
     expect(model.counts.scenarios.total).toBe(0);
     expect(model.counts.scenarios.unknown).toBe(0);
     expect(model.features).toHaveLength(1);
@@ -1135,9 +1168,7 @@ describe('empty-run model', () => {
     const model = await modelFor(legacyScreenshotFixture);
 
     expect(model.scenarios.length).toBeGreaterThan(0);
-    expect(model.scenarios.every((scenario) => scenario.executed)).toBe(
-      true,
-    );
+    expect(model.scenarios.every((scenario) => scenario.executed)).toBe(true);
     expect(model.counts.scenarios.total).toBe(model.scenarios.length);
     expect(model.counts.attachments).toBe(
       model.scenarios.reduce(
@@ -1156,9 +1187,7 @@ describe('empty-run model', () => {
     const model = buildReportModel(await parseJUnitXml(content, 'basic.xml'));
 
     expect(model.scenarios.length).toBeGreaterThan(0);
-    expect(model.scenarios.every((scenario) => scenario.executed)).toBe(
-      true,
-    );
+    expect(model.scenarios.every((scenario) => scenario.executed)).toBe(true);
     expect(model.counts.scenarios.total).toBe(model.scenarios.length);
   });
 
@@ -1172,9 +1201,7 @@ describe('empty-run model', () => {
         '{"testStepFinished":{"testCaseStartedId":"tcs","testStepId":"ts","testStepResult":{"status":"PASSED","duration":{"seconds":0,"nanos":1}},"timestamp":{"seconds":1,"nanos":1}}}',
       ].join('\n');
 
-    const absent = buildReportModel(
-      parseMessages(lines(''), 'absent.ndjson'),
-    );
+    const absent = buildReportModel(parseMessages(lines(''), 'absent.ndjson'));
     const valid = buildReportModel(
       parseMessages(lines('"attempt":2,'), 'valid.ndjson'),
     );
@@ -1221,9 +1248,7 @@ describe('display URI model fallback', () => {
         testCase: {
           id: 'uri-case',
           pickleId: 'uri-pickle',
-          testSteps: [
-            { id: 'uri-step', pickleStepId: 'uri-pickle-step' },
-          ],
+          testSteps: [{ id: 'uri-step', pickleStepId: 'uri-pickle-step' }],
         },
       },
       {
@@ -1325,20 +1350,20 @@ describe('display URI model fallback', () => {
       uri: `file:///C:/Users/${USER}/proj/login.feature`,
       expected: 'proj/login.feature',
     },
-  ])('uses the display URI for a feature without an AST name: $name', ({
-    uri,
-    expected,
-  }) => {
-    const model = featurelessModel(uri);
+  ])(
+    'uses the display URI for a feature without an AST name: $name',
+    ({ uri, expected }) => {
+      const model = featurelessModel(uri);
 
-    expect(model.scenarios[0]?.featureName).toBe(expected);
-    expect(model.scenarios[0]?.featureName).not.toContain(USER);
-    expect(model.scenarios[0]?.featureName).not.toContain('/Users/');
-    expect(model.scenarios[0]?.featureName).not.toMatch(/^[a-z]:\//i);
-    // The model keeps the raw URI for provenance lookup; the report, JSON
-    // summary and copied text apply displayUri and are asserted separately.
-    expect(model.scenarios[0]?.uri).toBe(uri);
-  });
+      expect(model.scenarios[0]?.featureName).toBe(expected);
+      expect(model.scenarios[0]?.featureName).not.toContain(USER);
+      expect(model.scenarios[0]?.featureName).not.toContain('/Users/');
+      expect(model.scenarios[0]?.featureName).not.toMatch(/^[a-z]:\//i);
+      // The model keeps the raw URI for provenance lookup; the report, JSON
+      // summary and copied text apply displayUri and are asserted separately.
+      expect(model.scenarios[0]?.uri).toBe(uri);
+    },
+  );
 
   it('keeps a relative feature fallback unchanged', () => {
     const model = featurelessModel(`home/${USER}/proj/login.feature`);
@@ -1357,7 +1382,10 @@ describe('display URI model fallback', () => {
   it('normalises a legacy file URL before the model fallback', async () => {
     const content = await readFile(legacyMinimalFixture, 'utf8');
     const envelopes = parseLegacyJson(
-      content.replace('features/minimal.feature', `file:///home/${USER}/proj/login.feature`),
+      content.replace(
+        'features/minimal.feature',
+        `file:///home/${USER}/proj/login.feature`,
+      ),
       'legacy-uri.json',
       { idPrefix: 'uri' },
     );
@@ -1515,9 +1543,7 @@ describe('media attachment data URIs', () => {
         testCase: {
           id: 'media-case',
           pickleId: 'media-pickle',
-          testSteps: [
-            { id: 'media-step', pickleStepId: 'media-pickle-step' },
-          ],
+          testSteps: [{ id: 'media-step', pickleStepId: 'media-pickle-step' }],
         },
       },
       {

@@ -95,10 +95,7 @@
       }
     },
     {
-      "files": [
-        "src/stream.ts",
-        "src/compat/cucumber-html-reporter.ts"
-      ],
+      "files": ["src/stream.ts", "src/compat/cucumber-html-reporter.ts"],
       "rules": {
         "promise/no-callback-in-promise": "off"
       }

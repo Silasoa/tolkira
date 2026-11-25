@@ -13,11 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runCli } from '../src/cli.js';
-import {
-  generateReport,
-  renderReport,
-  summarizeReport,
-} from '../src/index.js';
+import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import {
   MAX_TOTAL_INPUT_BYTES,
   loadInputs,
@@ -180,7 +176,10 @@ describe('input accounting', () => {
     );
     await writeFile(
       skippedB,
-      JSON.stringify({ name: 'also-not-a-report', padding: 'y'.repeat(51 * MIB) }),
+      JSON.stringify({
+        name: 'also-not-a-report',
+        padding: 'y'.repeat(51 * MIB),
+      }),
       'utf8',
     );
     const skippedBytes =
@@ -197,7 +196,6 @@ describe('input accounting', () => {
     expect(html).toContain('Screenshot attachment');
     expect(html).toContain('1 file');
   }, 120_000);
-
 });
 
 describe('empty Messages shards in a directory scan', () => {
@@ -232,12 +230,12 @@ describe('empty Messages shards in a directory scan', () => {
     const file = path.join(dir, 'explicit.ndjson');
     await writeFile(file, '', 'utf8');
 
-    await expect(renderReport(file, { title: 'Explicit empty' })).rejects.toThrow(
-      'Input is empty:',
-    );
-    await expect(renderReport(file, { title: 'Explicit empty' })).rejects.toThrow(
-      path.basename(file),
-    );
+    await expect(
+      renderReport(file, { title: 'Explicit empty' }),
+    ).rejects.toThrow('Input is empty:');
+    await expect(
+      renderReport(file, { title: 'Explicit empty' }),
+    ).rejects.toThrow(path.basename(file));
   });
 
   it('rejects an explicit empty file deduped behind a scanned shard', async () => {
@@ -301,13 +299,11 @@ describe('empty Messages shards in a directory scan', () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-malformed-shard-'));
     tempDirs.push(dir);
     await copyFile(messages, path.join(dir, 'messages.ndjson'));
-    await writeFile(
-      path.join(dir, 'broken.ndjson'),
-      '{"meta":',
-      'utf8',
-    );
+    await writeFile(path.join(dir, 'broken.ndjson'), '{"meta":', 'utf8');
 
-    await expect(renderReport(dir, { title: 'Malformed shard' })).rejects.toThrow(
+    await expect(
+      renderReport(dir, { title: 'Malformed shard' }),
+    ).rejects.toThrow(
       /Invalid Cucumber Messages on line 1 of .*broken\.ndjson/,
     );
   });
@@ -324,8 +320,11 @@ describe('input merging', () => {
         'features/second.feature',
       ]),
     );
-    expect(summary.scenarios.filter((scenario) => scenario.uri === 'features/second.feature'))
-      .toHaveLength(2);
+    expect(
+      summary.scenarios.filter(
+        (scenario) => scenario.uri === 'features/second.feature',
+      ),
+    ).toHaveLength(2);
   });
 
   it('merges Messages and legacy JSON into one report', async () => {
@@ -383,7 +382,11 @@ describe('input merging', () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-skip-'));
     tempDirs.push(dir);
     await copyFile(messages, path.join(dir, 'messages.ndjson'));
-    await writeFile(path.join(dir, 'package.json'), '{"name":"not-a-report"}\n', 'utf8');
+    await writeFile(
+      path.join(dir, 'package.json'),
+      '{"name":"not-a-report"}\n',
+      'utf8',
+    );
     await writeFile(path.join(dir, 'numbers.json'), '[1,2,3]\n', 'utf8');
 
     const html = await renderReport(dir, { title: 'Skipped' });
@@ -556,8 +559,18 @@ describe('input merging', () => {
     if (pickle?.pickle) pickle.pickle.uri = 'features/one.feature';
 
     const provenance = provenanceFor([
-      { file: path.resolve('a.json'), bytes: 0, envelopes: one, skippedAttachments: 0 },
-      { file: path.resolve('b.json'), bytes: 0, envelopes: two, skippedAttachments: 0 },
+      {
+        file: path.resolve('a.json'),
+        bytes: 0,
+        envelopes: one,
+        skippedAttachments: 0,
+      },
+      {
+        file: path.resolve('b.json'),
+        bytes: 0,
+        envelopes: two,
+        skippedAttachments: 0,
+      },
     ]);
 
     expect(provenance.has('features/one.feature')).toBe(false);

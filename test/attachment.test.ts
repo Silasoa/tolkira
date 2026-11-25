@@ -52,15 +52,45 @@ describe('attachment bytes', () => {
   it.each<[string, string | undefined, AttachmentContentEncoding, number]>([
     ['an empty identity body', '', AttachmentContentEncoding.IDENTITY, 0],
     ['an empty base64 body', '', AttachmentContentEncoding.BASE64, 0],
-    ['a missing identity body', undefined, AttachmentContentEncoding.IDENTITY, 0],
+    [
+      'a missing identity body',
+      undefined,
+      AttachmentContentEncoding.IDENTITY,
+      0,
+    ],
     ['a missing base64 body', undefined, AttachmentContentEncoding.BASE64, 0],
     ['a padding-only base64 body', '=', AttachmentContentEncoding.BASE64, 0],
     ['an identity ASCII body', 'abc', AttachmentContentEncoding.IDENTITY, 3],
-    ['an identity two-byte UTF-8 body', 'é', AttachmentContentEncoding.IDENTITY, 2],
-    ['an identity four-byte UTF-8 body', '🚀', AttachmentContentEncoding.IDENTITY, 4],
-    ['a base64 body without padding', 'YWJj', AttachmentContentEncoding.BASE64, 3],
-    ['a base64 body with one padding character', 'YWI=', AttachmentContentEncoding.BASE64, 2],
-    ['a base64 body with two padding characters', 'YQ==', AttachmentContentEncoding.BASE64, 1],
+    [
+      'an identity two-byte UTF-8 body',
+      'é',
+      AttachmentContentEncoding.IDENTITY,
+      2,
+    ],
+    [
+      'an identity four-byte UTF-8 body',
+      '🚀',
+      AttachmentContentEncoding.IDENTITY,
+      4,
+    ],
+    [
+      'a base64 body without padding',
+      'YWJj',
+      AttachmentContentEncoding.BASE64,
+      3,
+    ],
+    [
+      'a base64 body with one padding character',
+      'YWI=',
+      AttachmentContentEncoding.BASE64,
+      2,
+    ],
+    [
+      'a base64 body with two padding characters',
+      'YQ==',
+      AttachmentContentEncoding.BASE64,
+      1,
+    ],
     [
       'a canonical base64 body whose encoded length differs from its decoded length',
       'cGF5bG9hZA==',
@@ -128,7 +158,12 @@ describe('attachment metadata', () => {
   );
 
   it.each<[string, string, string, string]>([
-    ['keeps a non-empty file name unchanged', 'image/png', 'screen.png', 'screen.png'],
+    [
+      'keeps a non-empty file name unchanged',
+      'image/png',
+      'screen.png',
+      'screen.png',
+    ],
     [
       'falls back to attachment.<ext> for an empty file name',
       'image/png',

@@ -40,11 +40,15 @@ describe('legacy JSON adapter', () => {
   it('preserves features, scenarios and attachments', async () => {
     const envelopes = await legacyEnvelopes(happy);
 
-    expect(envelopes.filter((envelope) => envelope.gherkinDocument)).toHaveLength(1);
+    expect(
+      envelopes.filter((envelope) => envelope.gherkinDocument),
+    ).toHaveLength(1);
     expect(envelopes.filter((envelope) => envelope.pickle)).toHaveLength(6);
     expect(envelopes.filter((envelope) => envelope.testCase)).toHaveLength(6);
     expect(envelopes.filter((envelope) => envelope.attachment)).toHaveLength(2);
-    expect(envelopes.filter((envelope) => envelope.testStepFinished)).toHaveLength(30);
+    expect(
+      envelopes.filter((envelope) => envelope.testStepFinished),
+    ).toHaveLength(30);
     expect(envelopes.filter((envelope) => envelope.hook)).toHaveLength(6);
 
     const document = envelopes.find(
@@ -70,11 +74,15 @@ describe('legacy JSON adapter', () => {
       ),
     ).toBe(true);
     expect(
-      tableScenario?.steps.some((step) => (step.dataTable?.rows.length ?? 0) > 0),
+      tableScenario?.steps.some(
+        (step) => (step.dataTable?.rows.length ?? 0) > 0,
+      ),
     ).toBe(true);
     expect(taggedScenario).toBeDefined();
 
-    const attachment = envelopes.find((envelope) => envelope.attachment)?.attachment;
+    const attachment = envelopes.find(
+      (envelope) => envelope.attachment,
+    )?.attachment;
     expect(attachment?.contentEncoding).toBe('BASE64');
     expect(attachment?.mediaType).toBe('text/plain');
     expect(attachment?.body).toBe('dGVzdCBkYXRhIHRvIGJlIHByaW50ZWQ=');
@@ -341,10 +349,11 @@ describe('legacy JSON adapter', () => {
       'a scenario-specific step',
     ]);
 
-    const background = envelopes.find(
-      (envelope) => envelope.gherkinDocument,
-    )?.gherkinDocument?.feature?.children.find((child) => child.background)
-      ?.background;
+    const background = envelopes
+      .find((envelope) => envelope.gherkinDocument)
+      ?.gherkinDocument?.feature?.children.find(
+        (child) => child.background,
+      )?.background;
     expect(background?.steps.map((step) => step.text)).toEqual([
       'a shared step',
     ]);
@@ -486,10 +495,9 @@ describe('legacy JSON adapter', () => {
     const steps = document?.feature?.children[0]?.scenario?.steps ?? [];
     expect(steps[0]?.docString?.content).toContain('line one');
     expect(steps[1]?.dataTable?.rows).toHaveLength(2);
-    expect(steps[1]?.dataTable?.rows[1]?.cells.map((cell) => cell.value)).toEqual([
-      'a',
-      '1',
-    ]);
+    expect(
+      steps[1]?.dataTable?.rows[1]?.cells.map((cell) => cell.value),
+    ).toEqual(['a', '1']);
   });
 
   it('keeps string-valued step text unchanged', () => {
@@ -516,9 +524,8 @@ describe('legacy JSON adapter', () => {
       'string-text.json',
     );
 
-    const content = envelopes.find(
-      (envelope) => envelope.gherkinDocument,
-    )?.gherkinDocument?.feature?.children[0]?.scenario?.steps[0]?.docString
+    const content = envelopes.find((envelope) => envelope.gherkinDocument)
+      ?.gherkinDocument?.feature?.children[0]?.scenario?.steps[0]?.docString
       ?.content;
     expect(content).toBe('line one\nline two');
   });
@@ -582,9 +589,7 @@ describe('legacy JSON adapter', () => {
                   {
                     keyword: 'Scenario',
                     name: 'Bad hook output',
-                    before: [
-                      { keyword: 'Before ', hidden: true, output },
-                    ],
+                    before: [{ keyword: 'Before ', hidden: true, output }],
                   },
                 ],
               },
@@ -786,9 +791,13 @@ describe('legacy run start time', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2031-07-08T09:10:11.000Z'));
     try {
-      const envelopes = parseLegacyJson(timedLegacy([2_000_000_000]), 'timing.json', {
-        idPrefix: 'clock',
-      });
+      const envelopes = parseLegacyJson(
+        timedLegacy([2_000_000_000]),
+        'timing.json',
+        {
+          idPrefix: 'clock',
+        },
+      );
       const starts = envelopes.flatMap((envelope) =>
         envelope.testRunStarted
           ? [envelope.testRunStarted.timestamp]
@@ -798,8 +807,11 @@ describe('legacy run start time', () => {
       );
 
       expect(starts.length).toBeGreaterThan(1);
-      expect(starts.every((timestamp) => timestamp.seconds === 0 && timestamp.nanos === 0))
-        .toBe(true);
+      expect(
+        starts.every(
+          (timestamp) => timestamp.seconds === 0 && timestamp.nanos === 0,
+        ),
+      ).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -824,10 +836,14 @@ describe('legacy run start time', () => {
 
   it('pins an explicit non-zero start time and advances the clock by durations', () => {
     const pin = new Date('2026-01-01T00:00:00.000Z');
-    const envelopes = parseLegacyJson(timedLegacy([2_000_000_000, 1]), 'timing.json', {
-      idPrefix: 'pin',
-      startedAt: pin,
-    });
+    const envelopes = parseLegacyJson(
+      timedLegacy([2_000_000_000, 1]),
+      'timing.json',
+      {
+        idPrefix: 'pin',
+        startedAt: pin,
+      },
+    );
     const runStart = envelopes.find(
       (envelope) => envelope.testRunStarted,
     )?.testRunStarted;
@@ -835,7 +851,10 @@ describe('legacy run start time', () => {
       envelope.testCaseStarted ? [envelope.testCaseStarted.timestamp] : [],
     );
 
-    expect(runStart?.timestamp).toEqual({ seconds: pin.getTime() / 1000, nanos: 0 });
+    expect(runStart?.timestamp).toEqual({
+      seconds: pin.getTime() / 1000,
+      nanos: 0,
+    });
     expect(starts).toEqual([
       { seconds: pin.getTime() / 1000, nanos: 0 },
       { seconds: pin.getTime() / 1000 + 2, nanos: 0 },

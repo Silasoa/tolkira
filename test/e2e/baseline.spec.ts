@@ -95,9 +95,15 @@ function row(page: Page, name: string): Locator {
 
 test.beforeAll(async () => {
   const old = await writeInput('old.json', OLD, 'tolkira-baseline-old-');
-  const current = await writeInput('current.json', CURRENT, 'tolkira-baseline-current-');
+  const current = await writeInput(
+    'current.json',
+    CURRENT,
+    'tolkira-baseline-current-',
+  );
   cleanup.push(old.dir, current.dir);
-  const baselineDir = await mkdtemp(path.join(tmpdir(), 'tolkira-baseline-run-'));
+  const baselineDir = await mkdtemp(
+    path.join(tmpdir(), 'tolkira-baseline-run-'),
+  );
   cleanup.push(baselineDir);
   const baseline = path.join(baselineDir, 'baseline.json');
 
@@ -177,9 +183,10 @@ test.describe('baseline comparison in the browser', () => {
       await expect(row(page, 'pays by cash').locator('summary')).toContainText(
         /fixed/i,
       );
-      expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(
-        1,
-      );
+      expect(
+        await pageOverflow(page),
+        `${width}px overflow`,
+      ).toBeLessThanOrEqual(1);
     }
   });
 
@@ -234,7 +241,9 @@ test.describe('baseline comparison in the browser', () => {
 test.describe('static report with a baseline', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('renders the panel without a script or a second main', async ({ page }) => {
+  test('renders the panel without a script or a second main', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(reportUrl(report(staticReport).output));
 

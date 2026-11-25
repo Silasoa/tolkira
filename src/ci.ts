@@ -103,9 +103,7 @@ function unexecutedCount(summary: ReportSummary): number {
 }
 
 function isEmptyRun(summary: ReportSummary): boolean {
-  return (
-    summary.counts.scenarios.total === 0 && summary.scenarios.length === 0
-  );
+  return summary.counts.scenarios.total === 0 && summary.scenarios.length === 0;
 }
 
 function nonZeroBuckets(counts: StatusCounts): string[] {
@@ -116,10 +114,7 @@ function nonZeroBuckets(counts: StatusCounts): string[] {
   return buckets;
 }
 
-function finalGitHubNotice(
-  summary: ReportSummary,
-  runFailed: boolean,
-): string {
+function finalGitHubNotice(summary: ReportSummary, runFailed: boolean): string {
   const unexecuted = unexecutedCount(summary);
   const suffix = runFailed ? '; run failed' : '';
   if (summary.counts.scenarios.total === 0) {
@@ -213,10 +208,7 @@ function azureMessage(value: string): string {
   return `${escapeAzureMessage(raw)}${marker}`;
 }
 
-function finalAzureSection(
-  summary: ReportSummary,
-  runFailed: boolean,
-): string {
+function finalAzureSection(summary: ReportSummary, runFailed: boolean): string {
   const unexecuted = unexecutedCount(summary);
   const suffix = runFailed ? '; run failed' : '';
   if (isEmptyRun(summary)) return `##[section]Tolkira: No scenarios${suffix}`;
@@ -249,8 +241,7 @@ export function formatAzureAnnotations(summary: ReportSummary): string {
         continue;
       }
       errorCount += 1;
-      const message =
-        `${scenarioIdentity(scenario)} — ${failureMessage(scenario)}`;
+      const message = `${scenarioIdentity(scenario)} — ${failureMessage(scenario)}`;
       errorLines.push(
         `##vso[task.logissue type=error]${azureMessage(message)}`,
       );
@@ -262,8 +253,7 @@ export function formatAzureAnnotations(summary: ReportSummary): string {
         continue;
       }
       warningCount += 1;
-      const message =
-        `${scenarioIdentity(scenario)} was ${scenario.status}`;
+      const message = `${scenarioIdentity(scenario)} was ${scenario.status}`;
       warningLines.push(
         `##vso[task.logissue type=warning]${azureMessage(message)}`,
       );
@@ -355,10 +345,7 @@ function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
-function markdownFailedSection(
-  summary: ReportSummary,
-  lines: string[],
-): void {
+function markdownFailedSection(summary: ReportSummary, lines: string[]): void {
   const failed = summary.scenarios.filter(
     (scenario) => scenario.executed && scenario.status === 'failed',
   );
@@ -388,10 +375,7 @@ function markdownFailedSection(
   }
 }
 
-function markdownSkippedSection(
-  summary: ReportSummary,
-  lines: string[],
-): void {
+function markdownSkippedSection(summary: ReportSummary, lines: string[]): void {
   const skipped = summary.scenarios.filter(
     (scenario) => scenario.executed && scenario.status === 'skipped',
   );

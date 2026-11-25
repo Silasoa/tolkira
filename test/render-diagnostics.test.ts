@@ -74,7 +74,9 @@ describe('parity diagnostics rendering', () => {
       title: 'Legacy ambiguous',
     });
 
-    expect(scenarioOpeningTag(html, 'Ambiguous legacy step')).toContain(' open>');
+    expect(scenarioOpeningTag(html, 'Ambiguous legacy step')).toContain(
+      ' open>',
+    );
     expect(html).toContain('data-diagnostic="ambiguous"');
     expect(html).toContain('Multiple matching step definitions found:');
     expect(html).not.toContain('class="definitions"');
@@ -138,13 +140,9 @@ describe('parity diagnostics rendering', () => {
       title: 'Escaped definitions',
     });
 
-    expect(ambiguousHtml).toContain(
-      '&lt;img src=x onerror=alert(2)&gt;',
-    );
+    expect(ambiguousHtml).toContain('&lt;img src=x onerror=alert(2)&gt;');
     expect(ambiguousHtml).not.toContain('<img src=x');
-    expect(ambiguousHtml).toContain(
-      '&quot;&gt;&lt;svg onload=alert(3)&gt;',
-    );
+    expect(ambiguousHtml).toContain('&quot;&gt;&lt;svg onload=alert(3)&gt;');
     expect(ambiguousHtml).not.toContain('<svg onload');
   });
 
@@ -180,7 +178,9 @@ describe('parity diagnostics rendering', () => {
       ambiguousHtml.match(
         /data-scenario-name="Multiple step definitions for a step"[^>]*data-search="([^"]*)"/,
       )?.[1] ?? '';
-    expect(ambiguousSearch).toContain('Multiple matching step definitions found:');
+    expect(ambiguousSearch).toContain(
+      'Multiple matching step definitions found:',
+    );
     expect(ambiguousSearch).toContain('^a (.*?) with (.*?)$');
     expect(ambiguousSearch).toContain('samples/ambiguous/ambiguous.ts:3');
   });

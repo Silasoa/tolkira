@@ -71,17 +71,16 @@ describe('Playwright retry evidence', () => {
     it('accepts exactly 10 MB of evidence and rejects one byte more', () => {
       expect(retryEvidenceFits(0, 0, MAX_RETRY_EVIDENCE_BYTES)).toBe(true);
       expect(retryEvidenceFits(0, 0, MAX_RETRY_EVIDENCE_BYTES + 1)).toBe(false);
-      expect(
-        retryEvidenceFits(0, MAX_RETRY_EVIDENCE_BYTES - 1, 1),
-      ).toBe(true);
+      expect(retryEvidenceFits(0, MAX_RETRY_EVIDENCE_BYTES - 1, 1)).toBe(true);
       expect(retryEvidenceFits(0, MAX_RETRY_EVIDENCE_BYTES, 1)).toBe(false);
     });
 
     it('accepts a final total leaving exactly 10 MB and rejects one byte less', () => {
-      const leavingExactlyTen = MAX_TOTAL_ATTACHMENT_BYTES - MAX_RETRY_EVIDENCE_BYTES;
-      expect(retryEvidenceFits(leavingExactlyTen, 0, MAX_RETRY_EVIDENCE_BYTES)).toBe(
-        true,
-      );
+      const leavingExactlyTen =
+        MAX_TOTAL_ATTACHMENT_BYTES - MAX_RETRY_EVIDENCE_BYTES;
+      expect(
+        retryEvidenceFits(leavingExactlyTen, 0, MAX_RETRY_EVIDENCE_BYTES),
+      ).toBe(true);
       expect(
         retryEvidenceFits(leavingExactlyTen + 1, 0, MAX_RETRY_EVIDENCE_BYTES),
       ).toBe(false);
@@ -89,9 +88,9 @@ describe('Playwright retry evidence', () => {
 
     it('accepts a normal image inside the evidence budget and total cap', () => {
       expect(retryEvidenceFits(1024, 0, 4096)).toBe(true);
-      expect(retryEvidenceFits(MAX_TOTAL_ATTACHMENT_BYTES - 4096, 0, 4096)).toBe(
-        true,
-      );
+      expect(
+        retryEvidenceFits(MAX_TOTAL_ATTACHMENT_BYTES - 4096, 0, 4096),
+      ).toBe(true);
     });
   });
 
@@ -246,7 +245,9 @@ describe('Playwright retry evidence', () => {
       (entry) => earlierAttemptsOf(entry) ?? [],
     );
     expect(
-      images.flatMap((entry) => entry.attachments).map((entry) => entry.fileName),
+      images
+        .flatMap((entry) => entry.attachments)
+        .map((entry) => entry.fileName),
     ).toEqual(['first.png']);
   });
 

@@ -64,7 +64,10 @@ function counts(overrides: Partial<StatusCounts> = {}): StatusCounts {
   };
 }
 
-function makeRun(index: number, overrides: Partial<HistoryRun> = {}): HistoryRun {
+function makeRun(
+  index: number,
+  overrides: Partial<HistoryRun> = {},
+): HistoryRun {
   return {
     id: `id-${String(index).padStart(4, '0')}`,
     recordedAt: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
@@ -315,7 +318,10 @@ describe('reading the history sidecar', () => {
       runs: clean.runs.map((run) => ({
         ...run,
         revision: 'abc123',
-        counts: { ...run.counts, scenarios: { ...run.counts.scenarios, extra: 9 } },
+        counts: {
+          ...run.counts,
+          scenarios: { ...run.counts.scenarios, extra: 9 },
+        },
       })),
     };
     const file = await writeRaw('noisy.json', JSON.stringify(noisy));
@@ -325,7 +331,10 @@ describe('reading the history sidecar', () => {
 
   it('ignores prototype-shaped keys without polluting Object.prototype', async () => {
     const raw = sidecar([makeRun(0)])
-      .replace('{"schemaVersion":1,', '{"__proto__":{"polluted":true},"schemaVersion":1,')
+      .replace(
+        '{"schemaVersion":1,',
+        '{"__proto__":{"polluted":true},"schemaVersion":1,',
+      )
       .replace('"features":1,', '"features":1,"__proto__":{"polluted":true},');
     const file = await writeRaw('prototype.json', raw);
 
@@ -719,14 +728,12 @@ describe('building history runs', () => {
     const base = buildHistoryRun(summary, 'Nightly build');
 
     expect(
-      buildHistoryRun({ ...summary, durationMs: summary.durationMs + 1 }, 'Nightly build').id,
-    ).not.toBe(base.id);
-    expect(
       buildHistoryRun(
-        summary,
-        'Release build',
+        { ...summary, durationMs: summary.durationMs + 1 },
+        'Nightly build',
       ).id,
     ).not.toBe(base.id);
+    expect(buildHistoryRun(summary, 'Release build').id).not.toBe(base.id);
   });
 });
 
@@ -737,7 +744,10 @@ describe('appending to the history', () => {
 
     const runs = appendHistory(base, next);
 
-    expect(runs.map((run) => run.id)).toEqual([...base.map((run) => run.id), next.id]);
+    expect(runs.map((run) => run.id)).toEqual([
+      ...base.map((run) => run.id),
+      next.id,
+    ]);
   });
 
   it('keeps one copy of an identical last run and its old timestamp', () => {
@@ -756,7 +766,10 @@ describe('appending to the history', () => {
     const first = makeRun(0);
     const second = makeRun(1);
 
-    const runs = appendHistory([first, second], { ...first, recordedAt: '2026-07-01T00:00:00.000Z' });
+    const runs = appendHistory([first, second], {
+      ...first,
+      recordedAt: '2026-07-01T00:00:00.000Z',
+    });
 
     expect(runs).toHaveLength(3);
     expect(runs.at(-1)?.id).toBe(first.id);
@@ -835,9 +848,9 @@ describe('validating the history target before writing', () => {
 
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
     expect((await stat(file)).mtimeMs).toBe(beforeStat.mtimeMs);
-    expect((await readdir(dir)).filter((name) => name.endsWith('.tmp'))).toEqual(
-      [],
-    );
+    expect(
+      (await readdir(dir)).filter((name) => name.endsWith('.tmp')),
+    ).toEqual([]);
   }
 
   it('rejects a schema-1 target whose runs are not an array', async () => {
@@ -846,10 +859,7 @@ describe('validating the history target before writing', () => {
       JSON.stringify({ schemaVersion: 1, runs: 'not-an-array' }),
     );
 
-    await expectRejectedTarget(
-      file,
-      `Cannot write history file ${file}:`,
-    );
+    await expectRejectedTarget(file, `Cannot write history file ${file}:`);
   });
 
   it('rejects a schema-2 target with one bad run entry', async () => {
@@ -861,10 +871,7 @@ describe('validating the history target before writing', () => {
       }),
     );
 
-    await expectRejectedTarget(
-      file,
-      `Cannot write history file ${file}:`,
-    );
+    await expectRejectedTarget(file, `Cannot write history file ${file}:`);
     await expect(writeHistory(file, [makeRun(9)])).rejects.toThrow(/runs\[1\]/);
   });
 
@@ -1068,9 +1075,10 @@ describe('flaky in the history sidecar', () => {
     ['a fractional', 0.5],
     ['an above-attempted', 2],
   ])('rejects %s flaky count without a rewrite', async (_, flaky) => {
-    const file = await writeRaw('invalid-flaky.json', sidecar([
-      makeRun(0, { flaky }),
-    ]));
+    const file = await writeRaw(
+      'invalid-flaky.json',
+      sidecar([makeRun(0, { flaky })]),
+    );
     const before = await readFile(file, 'utf8');
 
     await expect(readHistory(file)).rejects.toThrow(/invalid-flaky\.json/);

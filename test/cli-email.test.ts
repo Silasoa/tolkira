@@ -133,7 +133,9 @@ describe('CLI --email', () => {
     expect(withEmail.stderr).toBe('');
     expect(withEmail.stdout).toBe(baseline.stdout);
     expect(withEmail.stdout).not.toContain('Email written');
-    await expect(stat(email)).resolves.toMatchObject({ size: expect.any(Number) });
+    await expect(stat(email)).resolves.toMatchObject({
+      size: expect.any(Number),
+    });
 
     const report = path.join(dir, 'report.html');
     const emailWithOut = path.join(dir, 'email-with-out.html');
@@ -211,13 +213,7 @@ describe('CLI --email', () => {
     const email = path.join(dir, 'email-de.html');
     const englishJson = await run([fixture, '--json']);
 
-    const standalone = await run([
-      fixture,
-      '--email',
-      email,
-      '--locale',
-      'de',
-    ]);
+    const standalone = await run([fixture, '--email', email, '--locale', 'de']);
 
     expect(standalone.code, standalone.stderr).toBe(0);
     expect(standalone.stderr).toBe('');
@@ -338,13 +334,7 @@ describe('CLI --email', () => {
     expect(asLogo.code, asLogo.stderr).toBe(2);
     await expect(readFile(logo)).resolves.toEqual(logoBefore);
 
-    const asOutput = await run([
-      input,
-      '--out',
-      report,
-      '--email',
-      report,
-    ]);
+    const asOutput = await run([input, '--out', report, '--email', report]);
     expect(asOutput.code, asOutput.stderr).toBe(2);
 
     const asCiOut = await run([
@@ -384,10 +374,7 @@ describe('CLI --email', () => {
     await copyFile(fixture, path.join(inputDir, 'run.ndjson'));
     const report = path.join(dir, 'report.html');
 
-    for (const email of [
-      inputDir,
-      path.join(inputDir, 'email.html'),
-    ]) {
+    for (const email of [inputDir, path.join(inputDir, 'email.html')]) {
       const result = await run([inputDir, '--out', report, '--email', email]);
 
       expect(result.code, result.stderr).toBe(2);
@@ -425,9 +412,11 @@ describe('CLI --email', () => {
 
     expect(result.code, result.stderr).toBe(2);
     expect(result.stderr).toMatch(/--email[^\n]*input/i);
-    await expect(stat(path.join(inputDir, 'email.html'))).rejects.toMatchObject({
-      code: 'ENOENT',
-    });
+    await expect(stat(path.join(inputDir, 'email.html'))).rejects.toMatchObject(
+      {
+        code: 'ENOENT',
+      },
+    );
   });
 
   // Only these platforms fold path case; Linux treats the names as different.
@@ -447,9 +436,9 @@ describe('CLI --email', () => {
       ]);
 
       expect(result.code, result.stderr).toBe(2);
-      await expect(
-        stat(path.join(dir, 'report.html')),
-      ).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(stat(path.join(dir, 'report.html'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
     },
   );
 

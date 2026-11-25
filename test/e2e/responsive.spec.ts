@@ -140,9 +140,10 @@ test('stays usable across viewports', async ({ page }) => {
       document.documentElement.style.fontSize = '32px';
     });
 
-    expect(await pageOverflow(page), '320x700 at 200% text').toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      await pageOverflow(page),
+      '320x700 at 200% text',
+    ).toBeLessThanOrEqual(1);
     await expectWithinViewport(
       page,
       page.locator('[data-triage]'),
@@ -156,10 +157,9 @@ test('stays usable across viewports', async ({ page }) => {
     });
     const triageNameBox = await triageName.boundingBox();
     expect(triageNameBox, 'zoomed triage name has a box').not.toBeNull();
-    expect(
-      triageNameBox!.width,
-      'zoomed triage name width',
-    ).toBeGreaterThan(96);
+    expect(triageNameBox!.width, 'zoomed triage name width').toBeGreaterThan(
+      96,
+    );
     const scenarioTitle = page.locator('.scenarioName').first();
     await expect(scenarioTitle, 'zoomed scenario title').toBeVisible();
     const titleBox = await scenarioTitle.boundingBox();
@@ -231,7 +231,10 @@ test('keeps a wide Markdown table inside 320px and 200% zoom', async ({
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-wide-table-'));
   const input = path.join(dir, 'wide-table.json');
   const output = path.join(dir, 'wide-table.html');
-  const headers = Array.from({ length: 20 }, (_, index) => `Column ${index + 1}`);
+  const headers = Array.from(
+    { length: 20 },
+    (_, index) => `Column ${index + 1}`,
+  );
   const description = [
     `| ${headers.join(' | ')} |`,
     `| ${headers.map(() => '---').join(' | ')} |`,
@@ -283,9 +286,10 @@ test('keeps a wide Markdown table inside 320px and 200% zoom', async ({
       ),
       'wide table scrolls at 320',
     ).toBe(true);
-    expect(await pageOverflow(page), 'wide table 320 overflow').toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      await pageOverflow(page),
+      'wide table 320 overflow',
+    ).toBeLessThanOrEqual(1);
 
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
@@ -322,9 +326,10 @@ test('keeps a long source name inside 320px', async ({ page }) => {
 
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(pathToFileURL(output).href);
-    expect(await pageOverflow(page), 'long source overflow').toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      await pageOverflow(page),
+      'long source overflow',
+    ).toBeLessThanOrEqual(1);
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
     });
@@ -348,7 +353,9 @@ test('keeps a long source name inside 320px', async ({ page }) => {
 test('keeps CI metadata, JSON and ANSI logs inside 320px and 200% zoom', async ({
   page,
 }) => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-metadata-responsive-'));
+  const dir = await mkdtemp(
+    path.join(tmpdir(), 'tolkira-metadata-responsive-'),
+  );
   const output = path.join(dir, 'metadata-responsive.html');
 
   try {
@@ -414,37 +421,47 @@ test('keeps hooks readable at 320px and 200% zoom', async ({ page }) => {
 
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(pathToFileURL(output).href);
-    expect(await pageOverflow(page), 'hooks 320 overflow').toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), 'hooks 320 overflow').toBeLessThanOrEqual(
+      1,
+    );
     await expect(page.locator('details.hookGroup').first()).toBeVisible();
 
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
     });
-    expect(
-      await pageOverflow(page),
-      'hooks 200% overflow',
-    ).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), 'hooks 200% overflow').toBeLessThanOrEqual(
+      1,
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 });
 
 test('keeps diagnostics readable at 320px and 200% zoom', async ({ page }) => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-diagnostics-responsive-'));
+  const dir = await mkdtemp(
+    path.join(tmpdir(), 'tolkira-diagnostics-responsive-'),
+  );
   const output = path.join(dir, 'diagnostics-responsive.html');
 
   try {
     const code = await runCli(
-      [allStatusesFixture, '--out', output, '--title', 'Diagnostics responsive'],
+      [
+        allStatusesFixture,
+        '--out',
+        output,
+        '--title',
+        'Diagnostics responsive',
+      ],
       { stdout: () => undefined, stderr: () => undefined },
     );
     expect(code).toBe(0);
 
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(pathToFileURL(output).href);
-    expect(await pageOverflow(page), 'diagnostics 320 overflow').toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      await pageOverflow(page),
+      'diagnostics 320 overflow',
+    ).toBeLessThanOrEqual(1);
 
     const undefinedScenario = page.locator('[data-scenario-name="Undefined"]');
     const ambiguousScenario = page.locator('[data-scenario-name="Ambiguous"]');
@@ -462,7 +479,9 @@ test('keeps diagnostics readable at 320px and 200% zoom', async ({ page }) => {
     );
     const snippet = undefinedScenario.locator('.snippet pre');
     expect(
-      await snippet.evaluate((element) => element.scrollWidth - element.clientWidth),
+      await snippet.evaluate(
+        (element) => element.scrollWidth - element.clientWidth,
+      ),
       'snippet clipped at 320',
     ).toBeLessThanOrEqual(1);
 
@@ -484,7 +503,9 @@ test('keeps diagnostics readable at 320px and 200% zoom', async ({ page }) => {
       'ambiguous diagnostic at 200%',
     );
     expect(
-      await snippet.evaluate((element) => element.scrollWidth - element.clientWidth),
+      await snippet.evaluate(
+        (element) => element.scrollWidth - element.clientWidth,
+      ),
       'snippet clipped at 200%',
     ).toBeLessThanOrEqual(1);
   } finally {
@@ -507,9 +528,10 @@ test('keeps grouped outlines readable at 320px and 200% zoom', async ({
 
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(pathToFileURL(output).href);
-    expect(await pageOverflow(page), 'outline 320 overflow').toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      await pageOverflow(page),
+      'outline 320 overflow',
+    ).toBeLessThanOrEqual(1);
     await expectWithinViewport(
       page,
       page.locator('.outlineTitle').first(),
@@ -551,14 +573,22 @@ test('keeps rule and background headings readable at 320px and 200% zoom', async
 
   try {
     const code = await runCli(
-      [rulesOutlineBackgroundFixture, '--out', output, '--title', 'Rules responsive'],
+      [
+        rulesOutlineBackgroundFixture,
+        '--out',
+        output,
+        '--title',
+        'Rules responsive',
+      ],
       { stdout: () => undefined, stderr: () => undefined },
     );
     expect(code).toBe(0);
 
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(pathToFileURL(output).href);
-    expect(await pageOverflow(page), 'rules 320 overflow').toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), 'rules 320 overflow').toBeLessThanOrEqual(
+      1,
+    );
     await expectWithinViewport(
       page,
       page.locator('.ruleTitle').first(),
@@ -583,10 +613,9 @@ test('keeps rule and background headings readable at 320px and 200% zoom', async
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
     });
-    expect(
-      await pageOverflow(page),
-      'rules 200% overflow',
-    ).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), 'rules 200% overflow').toBeLessThanOrEqual(
+      1,
+    );
     await expectWithinViewport(
       page,
       page.locator('.ruleTitle').first(),

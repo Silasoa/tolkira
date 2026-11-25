@@ -13,15 +13,12 @@ import {
 import type { Translator } from './i18n.js';
 
 function matrixStatuses(model: ReportModel): ReportStatus[] {
-  return ALL_STATUSES.filter((status) => model.counts.scenarios[status] > 0).sort(
-    compareStatus,
-  );
+  return ALL_STATUSES.filter(
+    (status) => model.counts.scenarios[status] > 0,
+  ).sort(compareStatus);
 }
 
-export function renderFeatureMatrix(
-  model: ReportModel,
-  t: Translator,
-): string {
+export function renderFeatureMatrix(model: ReportModel, t: Translator): string {
   const statuses = matrixStatuses(model);
   const head = `<tr><th>${t.t('matrix.feature')}</th><th>${t.t('matrix.total')}</th>${statuses
     .map((status) => `<th>${statusLabel(status, t)}</th>`)

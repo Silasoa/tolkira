@@ -20,9 +20,10 @@ function githubBaseUrl(remote: string | undefined): string | undefined {
     const path = githubRepoPath(url);
     return path ? `${url.origin}${path}` : undefined;
   }
-  const scp = /^(?:[^@\s/:]+@)?github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(
-    value,
-  );
+  const scp =
+    /^(?:[^@\s/:]+@)?github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(
+      value,
+    );
   if (scp) return `https://github.com/${scp[1]}/${scp[2]}`;
   if (!/^(?:ssh|git\+ssh):\/\//i.test(value)) return undefined;
   try {
@@ -102,8 +103,6 @@ export function ciDetailRows(
     ci.branch
       ? `<dt>${t.t('ci.branch')}</dt><dd>${escapeHtml(ci.branch)}</dd>`
       : '',
-    ci.tag
-      ? `<dt>${t.t('ci.tag')}</dt><dd>${escapeHtml(ci.tag)}</dd>`
-      : '',
+    ci.tag ? `<dt>${t.t('ci.tag')}</dt><dd>${escapeHtml(ci.tag)}</dd>` : '',
   ].join('');
 }

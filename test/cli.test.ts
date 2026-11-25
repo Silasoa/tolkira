@@ -160,15 +160,7 @@ describe('CLI', () => {
     );
 
     const code = await runCli(
-      [
-        legacyFixture,
-        '--out',
-        output,
-        '--logo',
-        logo,
-        '--accent',
-        '#123456',
-      ],
+      [legacyFixture, '--out', output, '--logo', logo, '--accent', '#123456'],
       io,
     );
 

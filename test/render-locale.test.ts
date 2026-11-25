@@ -91,9 +91,7 @@ describe('German report rendering', () => {
   });
 
   it('localizes the toolbar, filters, empty state and footer', () => {
-    expect(german).toContain(
-      'placeholder="Szenario, Feature oder Tag suchen"',
-    );
+    expect(german).toContain('placeholder="Szenario, Feature oder Tag suchen"');
     expect(german).toContain('aria-label="Szenarien durchsuchen"');
     expect(german).toContain('<span>Tag</span>');
     expect(german).toContain('<option value="">Alle Tags</option>');
@@ -127,7 +125,9 @@ describe('German report rendering', () => {
     expect(german).toContain('<dt>Anhangsgröße</dt>');
     expect(german).toContain('<dt>Quelle</dt>');
     expect(german).toContain('>Laufumgebung</h2>');
-    expect(german).toContain('Nur ausgeführte Szenarien. Für alle Statusspalten scrollen.');
+    expect(german).toContain(
+      'Nur ausgeführte Szenarien. Für alle Statusspalten scrollen.',
+    );
     expect(german).toContain('aria-label="Feature-Statusmatrix"');
     expect(german).toContain('>Statusverteilung</h2>');
     expect(german).toContain(
@@ -139,7 +139,9 @@ describe('German report rendering', () => {
   });
 
   it('localizes scenario detail and attachment labels', () => {
-    expect(german).toContain('data-copy-failure>Fehlerdetails kopieren</button>');
+    expect(german).toContain(
+      'data-copy-failure>Fehlerdetails kopieren</button>',
+    );
     expect(german).toContain('<p class="detailLabel">Schritte</p>');
     expect(german).toContain('aria-label="Schritte und Hooks"');
     expect(german).toContain('aria-label="Anhang in voller Größe"');
@@ -222,7 +224,10 @@ describe('German report rendering', () => {
       expect(value.length, key).toBeGreaterThan(0);
     }
     expect(map).toEqual(
-      JSON.parse(createTranslator('de').clientMessages()) as Record<string, string>,
+      JSON.parse(createTranslator('de').clientMessages()) as Record<
+        string,
+        string
+      >,
     );
     expect(raw).not.toContain('scenarios visible');
   });
@@ -231,7 +236,9 @@ describe('German report rendering', () => {
     expect(openingTag(german, 'id="report-view"')).not.toContain('hidden');
     expect(openingTag(german, 'id="analysis-view"')).toContain('hidden');
     expect(openingTag(german, 'id="trends-view"')).toContain('hidden');
-    expect(openingTag(german, 'id="report-view"')).toContain('aria-labelledby="view-report"');
+    expect(openingTag(german, 'id="report-view"')).toContain(
+      'aria-labelledby="view-report"',
+    );
   });
 
   it('keeps English chrome out of the German report', () => {
@@ -269,7 +276,9 @@ describe('German report rendering', () => {
     expect(html).toContain('das Konto hat 1.000,00 € Guthaben');
     expect(html).toContain('ich 250,00 € überweise');
     expect(html).toContain('<span class="tag">@konto</span>');
-    expect(html).toContain('<pre class="docString">„Nicht genügend Guthaben“</pre>');
+    expect(html).toContain(
+      '<pre class="docString">„Nicht genügend Guthaben“</pre>',
+    );
   });
 
   it('renders the same German test data verbatim under the German UI', async () => {
@@ -314,8 +323,10 @@ describe('German report rendering', () => {
     const english = await renderFile(minimalFixture);
     const germanHtml = await renderFile(minimalFixture, 'de');
 
-    expect(Buffer.byteLength(germanHtml, 'utf8') - Buffer.byteLength(english, 'utf8'))
-      .toBeLessThanOrEqual(10_000);
+    expect(
+      Buffer.byteLength(germanHtml, 'utf8') -
+        Buffer.byteLength(english, 'utf8'),
+    ).toBeLessThanOrEqual(10_000);
   });
 
   it('rejects an unsupported render locale', async () => {

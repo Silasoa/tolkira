@@ -51,7 +51,11 @@ const DEFAULT_MEDIA_TYPE: MediaTypeInfo = {
 
 const MEDIA_TYPES: Record<string, MediaTypeInfo> = {
   'application/json': { extension: 'json', kind: 'text', textFormat: 'json' },
-  'application/octet-stream': { extension: 'bin', kind: 'binary', textFormat: 'plain' },
+  'application/octet-stream': {
+    extension: 'bin',
+    kind: 'binary',
+    textFormat: 'plain',
+  },
   'image/gif': { extension: 'gif', kind: 'image', textFormat: 'plain' },
   'image/jpeg': { extension: 'jpg', kind: 'image', textFormat: 'plain' },
   'image/png': { extension: 'png', kind: 'image', textFormat: 'plain' },
@@ -61,7 +65,11 @@ const MEDIA_TYPES: Record<string, MediaTypeInfo> = {
   'text/html': { extension: 'html', kind: 'text', textFormat: 'plain' },
   'text/plain': { extension: 'txt', kind: 'text', textFormat: 'plain' },
   'text/uri-list': { extension: 'txt', kind: 'text', textFormat: 'uri-list' },
-  'text/x.cucumber.log+plain': { extension: 'log', kind: 'text', textFormat: 'log' },
+  'text/x.cucumber.log+plain': {
+    extension: 'log',
+    kind: 'text',
+    textFormat: 'log',
+  },
   'video/mp4': { extension: 'mp4', kind: 'video', textFormat: 'plain' },
   'video/webm': { extension: 'webm', kind: 'video', textFormat: 'plain' },
 };

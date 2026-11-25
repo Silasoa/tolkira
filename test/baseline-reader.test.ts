@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { chmod, mkdir, readFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -79,10 +85,7 @@ function nested(levels: number): unknown {
   return value;
 }
 
-async function expectRejected(
-  content: string,
-  reason?: RegExp,
-): Promise<void> {
+async function expectRejected(content: string, reason?: RegExp): Promise<void> {
   const dir = await makeTempDir();
   const file = await writeText(dir, 'hostile-baseline.json', content);
   const output = path.join(dir, 'report.html');
@@ -283,18 +286,18 @@ const INVALID_CASES: Array<{
 ];
 
 describe('hostile baseline shapes', () => {
-  it.each(INVALID_CASES)('rejects $label with exit 1 and no write', async ({
-    content,
-    reason,
-  }) => {
-    await expectRejected(content, reason);
+  it.each(INVALID_CASES)(
+    'rejects $label with exit 1 and no write',
+    async ({ content, reason }) => {
+      await expectRejected(content, reason);
 
-    expect(
-      ({} as Record<string, unknown>).polluted,
-      'Object.prototype pollution',
-    ).toBeUndefined();
-    expect(Object.prototype).not.toHaveProperty('polluted');
-  });
+      expect(
+        ({} as Record<string, unknown>).polluted,
+        'Object.prototype pollution',
+      ).toBeUndefined();
+      expect(Object.prototype).not.toHaveProperty('polluted');
+    },
+  );
 
   it('accepts a document 64 levels deep and rejects 65', async () => {
     const dir = await makeTempDir();
@@ -331,7 +334,11 @@ describe('hostile baseline shapes', () => {
     // V8 parses multi-million-level arrays iteratively, so inject the RangeError
     // at the parse seam to exercise the reader's overflow branch.
     const dir = await makeTempDir();
-    const file = await writeText(dir, 'range-error.json', JSON.stringify(validBaseline()));
+    const file = await writeText(
+      dir,
+      'range-error.json',
+      JSON.stringify(validBaseline()),
+    );
     const parse = vi.spyOn(JSON, 'parse').mockImplementationOnce(() => {
       throw new RangeError('Maximum call stack size exceeded');
     });
@@ -536,7 +543,10 @@ describe('accepted baseline shapes', () => {
       ),
     );
     const baseline = await readBaseline(baselineFile);
-    expect(baseline.scenarios.map((row) => row.example)).toEqual(['#1.1', '#1.2']);
+    expect(baseline.scenarios.map((row) => row.example)).toEqual([
+      '#1.1',
+      '#1.2',
+    ]);
 
     const summary = await summarizeReport(file, { baseline });
     const block = baselineBlock(summary);
@@ -578,7 +588,11 @@ describe('accepted baseline shapes', () => {
       counts: { newFailures: 99 },
       notInThisRun: [{ name: 'NESTED-MARKER' }],
     };
-    const file = await writeText(dir, 'nested-baseline.json', JSON.stringify(doc));
+    const file = await writeText(
+      dir,
+      'nested-baseline.json',
+      JSON.stringify(doc),
+    );
 
     const result = await cli([input, '--baseline', file, '--json']);
 
@@ -622,9 +636,7 @@ describe('accepted baseline shapes', () => {
 
     expect(dotDotRun.code, dotDotRun.stderr).toBe(0);
     const dotDotBlock = baselineBlock(parsedSummary(dotDotRun.stdout));
-    expect(dotDotBlock.notInThisRun[0]?.uri).toBe(
-      'features/../secret.feature',
-    );
+    expect(dotDotBlock.notInThisRun[0]?.uri).toBe('features/../secret.feature');
   });
 
   it('trusts only identity and status fields', async () => {
@@ -640,7 +652,11 @@ describe('accepted baseline shapes', () => {
     scenario.attachments = 999;
     scenario.message = 'UNTRUSTED-MESSAGE';
     scenario.extra = 'UNTRUSTED-EXTRA';
-    const file = await writeText(dir, 'untrusted-fields.json', JSON.stringify(doc));
+    const file = await writeText(
+      dir,
+      'untrusted-fields.json',
+      JSON.stringify(doc),
+    );
     const output = path.join(dir, 'report.html');
 
     const result = await cli([

@@ -4,9 +4,7 @@ import { parseLegacyJson } from '../src/input/legacy.js';
 import { renderReport, summarizeReport } from '../src/index.js';
 import { behaveProducerFixture } from './fixtures.js';
 
-const behaveAttachments = behaveProducerFixture(
-  'behave-real-attachments.json',
-);
+const behaveAttachments = behaveProducerFixture('behave-real-attachments.json');
 const behaveSampleImage = behaveProducerFixture(
   'features/attachments/sample.png',
 );
@@ -52,9 +50,7 @@ describe('Behave producer fixtures', () => {
       (step) => step.name === 'a screenshot is attached',
     );
     expect(imageStep?.embeddings?.[0]?.mime_type).toBe('image/png');
-    expect(imageStep?.embeddings?.[0]?.data).toMatch(
-      /^[A-Za-z0-9+/]+={0,2}$/,
-    );
+    expect(imageStep?.embeddings?.[0]?.data).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
   });
 
   it('keeps the real Behave fixture artifacts public-safe', async () => {
@@ -135,7 +131,8 @@ describe('Behave producer fixtures', () => {
     expect(summary.attachments).toEqual({ total: 1, bytes: image.length });
 
     const failedAssertion = summary.scenarios.find(
-      (scenario) => scenario.name === 'Failed assertion with a multiline message',
+      (scenario) =>
+        scenario.name === 'Failed assertion with a multiline message',
     );
     expect(failedAssertion?.status).toBe('failed');
     expect(failedAssertion?.steps[0]?.message).toContain('first line');

@@ -184,9 +184,7 @@ test.describe('CLI --pdf', () => {
         '<html',
       );
       const info = expectA4Pdf(file, await readFile(file.pdf));
-      expect(info.text.replaceAll(/\s+/g, '')).toContain(
-        'AufgezeichneteLäufe',
-      );
+      expect(info.text.replaceAll(/\s+/g, '')).toContain('AufgezeichneteLäufe');
       expect((await readdir(file.dir)).sort()).toEqual([
         'report.html',
         'run.pdf',
@@ -242,9 +240,10 @@ test.describe('CLI --pdf', () => {
           `${info.images} embedded images`,
       );
       expect(info.pages, 'later pages').toBeGreaterThanOrEqual(2);
-      expect(info.images, 'one embedded image per screenshot').toBeGreaterThanOrEqual(
-        40,
-      );
+      expect(
+        info.images,
+        'one embedded image per screenshot',
+      ).toBeGreaterThanOrEqual(40);
       const text = info.text.replaceAll(/\s+/g, '');
       expect(text).toContain('Scenario40withscreenshot');
       expect(info.width, 'A4 width').toBeGreaterThan(590);

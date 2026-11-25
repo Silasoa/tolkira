@@ -201,7 +201,10 @@ function collectSuites(parsed: unknown): XmlNode[] {
   const root = parsed;
   if (isObject(root.testsuites)) {
     add(root.testsuites.testsuite);
-    if (root.testsuites.testsuite === undefined && root.testsuites.testcase !== undefined) {
+    if (
+      root.testsuites.testsuite === undefined &&
+      root.testsuites.testcase !== undefined
+    ) {
       suites.push({
         name: root.testsuites.name,
         testcase: root.testsuites.testcase,
@@ -260,16 +263,15 @@ function failureMessage(failure: XmlNode): string {
 }
 
 function elementFromTestcase(testcase: XmlNode, index: number): XmlNode {
-  const failures = [
-    ...asArray(testcase.failure),
-    ...asArray(testcase.error),
-  ];
+  const failures = [...asArray(testcase.failure), ...asArray(testcase.error)];
   const failure = failures[0];
   const hasFailure = failure !== undefined;
   const skipped = asArray(testcase.skipped).length > 0;
   const status = hasFailure ? 'failed' : skipped ? 'skipped' : 'passed';
   const name =
-    stringOf(testcase.name) || stringOf(testcase.classname) || `Test ${index + 1}`;
+    stringOf(testcase.name) ||
+    stringOf(testcase.classname) ||
+    `Test ${index + 1}`;
   const description = stringOf(testcase.description);
 
   const result: XmlNode = {
@@ -353,7 +355,9 @@ function featuresFromSuite(
   index: number,
 ): XmlNode[] {
   const name =
-    stringOf(suite.name) || stringOf(suite.classname) || `JUnit suite ${index + 1}`;
+    stringOf(suite.name) ||
+    stringOf(suite.classname) ||
+    `JUnit suite ${index + 1}`;
   const entries: TestcaseEntry[] = asArray(suite.testcase)
     .filter((entry) => isObject(entry))
     .map((testcase, testcaseIndex) => ({ testcase, index: testcaseIndex }));
@@ -423,12 +427,8 @@ export async function parseJUnitXml(
   // silently reshape broken XML; validate first so bad input fails clearly.
   const validation = XMLValidator.validate(content);
   if (validation !== true) {
-    const line = Number.isFinite(validation.err.line)
-      ? validation.err.line
-      : 1;
-    const column = Number.isFinite(validation.err.col)
-      ? validation.err.col
-      : 1;
+    const line = Number.isFinite(validation.err.line) ? validation.err.line : 1;
+    const column = Number.isFinite(validation.err.col) ? validation.err.col : 1;
     throw new Error(
       `Invalid JUnit XML in ${source} at line ${line}, column ${column}: ${validation.err.msg}`,
     );

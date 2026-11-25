@@ -52,7 +52,9 @@ describe('JUnit nested classes', () => {
       passed: 2,
       failed: 1,
     });
-    expect(new Set(summary.scenarios.map((scenario) => scenario.feature)).size).toBe(2);
+    expect(
+      new Set(summary.scenarios.map((scenario) => scenario.feature)).size,
+    ).toBe(2);
     expect(outer?.feature).not.toBe(nestedPass?.feature);
     expect(outer?.feature).toBe('Outer');
     expect(nestedPass?.feature).toBe('Outer$Nested');

@@ -15,9 +15,10 @@ import type { RenderReportOptions } from '../src/options.js';
 
 // The CLI tests never launch a browser: the PDF module is replaced here.
 const pdf = vi.hoisted(() => ({
-  renderPdf: vi.fn<
-    (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
-  >(),
+  renderPdf:
+    vi.fn<
+      (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
+    >(),
 }));
 vi.mock('../src/pdf.js', () => ({ renderPdf: pdf.renderPdf }));
 
@@ -33,8 +34,8 @@ const historyFixture = fileURLToPath(
 
 // Deliberately not valid UTF-8: the PDF must be written byte for byte.
 const PDF_BYTES = Buffer.from([
-  0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xff, 0xfe,
-  0x00, 0x01, 0x80, 0x7f,
+  0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xff, 0xfe, 0x00,
+  0x01, 0x80, 0x7f,
 ]);
 
 const dirs: string[] = [];

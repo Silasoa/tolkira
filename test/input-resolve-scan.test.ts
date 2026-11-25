@@ -104,7 +104,11 @@ describe('Early input warning: input resolution', () => {
     await writeFile(path.join(real, 'run.json'), LEGACY, 'utf8');
     const link = path.join(dir, 'link');
     try {
-      await symlink(real, link, process.platform === 'win32' ? 'junction' : 'dir');
+      await symlink(
+        real,
+        link,
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
     } catch {
       // Some Windows hosts cannot create junctions without extra privileges.
       context.skip('directory symlinks are not supported here');

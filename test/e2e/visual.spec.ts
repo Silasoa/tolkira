@@ -125,7 +125,13 @@ test('captures rule and background screenshots for visual review', async ({
 
   try {
     const code = await runCli(
-      [rulesOutlineBackground, '--out', output, '--title', 'Tolkira rules review'],
+      [
+        rulesOutlineBackground,
+        '--out',
+        output,
+        '--title',
+        'Tolkira rules review',
+      ],
       { stdout: () => undefined, stderr: () => undefined },
     );
     expect(code).toBe(0);
@@ -141,7 +147,13 @@ test('captures rule and background screenshots for visual review', async ({
     await capture(page, testInfo, 'rules-mobile-390');
 
     const backgroundsCode = await runCli(
-      [rulesBackgrounds, '--out', backgroundsOutput, '--title', 'Tolkira backgrounds review'],
+      [
+        rulesBackgrounds,
+        '--out',
+        backgroundsOutput,
+        '--title',
+        'Tolkira backgrounds review',
+      ],
       { stdout: () => undefined, stderr: () => undefined },
     );
     expect(backgroundsCode).toBe(0);

@@ -1,4 +1,7 @@
-import { getWorstTestStepResult, AttachmentContentEncoding } from '@cucumber/messages';
+import {
+  getWorstTestStepResult,
+  AttachmentContentEncoding,
+} from '@cucumber/messages';
 import type {
   Attachment,
   Background,
@@ -238,7 +241,9 @@ function statusOf(status: unknown): ReportStatus {
   return isReportStatus(value) ? value : 'unknown';
 }
 
-function durationMs(duration: { seconds: number; nanos: number } | undefined): number {
+function durationMs(
+  duration: { seconds: number; nanos: number } | undefined,
+): number {
   if (!duration) return 0;
   const seconds = Number.isFinite(duration.seconds) ? duration.seconds : 0;
   const nanos = Number.isFinite(duration.nanos) ? duration.nanos : 0;
@@ -349,7 +354,8 @@ function toAttachment(attachment: Attachment): ReportAttachment {
   const body = attachment.body ?? '';
   const { fileName, mediaType, kind, bytes, textFormat } =
     attachmentMetadata(attachment);
-  const isBase64 = attachment.contentEncoding === AttachmentContentEncoding.BASE64;
+  const isBase64 =
+    attachment.contentEncoding === AttachmentContentEncoding.BASE64;
 
   if (kind === 'image' || kind === 'video' || kind === 'audio') {
     return {
@@ -427,7 +433,10 @@ function emptyStatusCounts(): Record<ReportStatus, number> & { total: number } {
   };
 }
 
-function count(counts: Record<ReportStatus, number> & { total: number }, status: ReportStatus): void {
+function count(
+  counts: Record<ReportStatus, number> & { total: number },
+  status: ReportStatus,
+): void {
   counts.total += 1;
   counts[status] += 1;
 }
@@ -479,7 +488,8 @@ export function buildReportModel(
 
   for (const envelope of envelopes) {
     if (envelope.meta) {
-      const { implementation, runtime, os, cpu, protocolVersion } = envelope.meta;
+      const { implementation, runtime, os, cpu, protocolVersion } =
+        envelope.meta;
       const implementationLabel = productLabel(implementation);
       const runtimeLabel = productLabel(runtime);
       const osLabel = productLabel(os);
@@ -586,7 +596,9 @@ export function buildReportModel(
     return metadata;
   };
 
-  const featureOrder = index.featureDocuments.map((document) => document.feature);
+  const featureOrder = index.featureDocuments.map(
+    (document) => document.feature,
+  );
   const featureUris = new Map(
     index.featureDocuments.map((document) => [document.feature, document.uri]),
   );
@@ -636,7 +648,9 @@ export function buildReportModel(
         const ast = pickleStep?.astNodeIds[0];
         const data = stepData(ast ? index.steps.get(ast) : undefined);
         const stepAttachments = mapAttachments(
-          startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
+          startedAttachments.filter(
+            (attachment) => attachment.testStepId === testStep.id,
+          ),
         );
         const message = stepResultMessage(result);
         const stepSuggestions =
@@ -646,17 +660,23 @@ export function buildReportModel(
           : [];
         const stepMatches = definitionIds
           .map((id) => index.definitions.get(id))
-          .filter(
-            (definition): definition is RunStepDefinition =>
-              Boolean(definition),
+          .filter((definition): definition is RunStepDefinition =>
+            Boolean(definition),
           )
           .map(({ pattern, uri, line }) => ({
             pattern,
-            ...(uri ? (line ? { source: `${uri}:${line}` } : { source: uri }) : {}),
+            ...(uri
+              ? line
+                ? { source: `${uri}:${line}` }
+                : { source: uri }
+              : {}),
           }));
         const matchLists = testStep.stepMatchArgumentsLists ?? [];
-        const parameters: Array<{ start: number; value: string; type: string }> =
-          [];
+        const parameters: Array<{
+          start: number;
+          value: string;
+          type: string;
+        }> = [];
         if (matchLists.length === 1) {
           for (const argument of matchLists[0]?.stepMatchArguments ?? []) {
             const start = argument.group?.start;
@@ -696,7 +716,9 @@ export function buildReportModel(
       } else if (testStep.hookId) {
         const hook = index.hooks.get(testStep.hookId);
         const hookAttachments = mapAttachments(
-          startedAttachments.filter((attachment) => attachment.testStepId === testStep.id),
+          startedAttachments.filter(
+            (attachment) => attachment.testStepId === testStep.id,
+          ),
         );
         const message = stepResultMessage(result);
         hookRows.push({
@@ -760,8 +782,12 @@ export function buildReportModel(
           examplesId: outlineExample.examples.id,
           examplesKeyword: outlineExample.examples.keyword,
           examplesName: outlineExample.examples.name,
-          examplesDescription: normalizeText(outlineExample.examples.description),
-          examplesTags: (outlineExample.examples.tags ?? []).map((tag) => tag.name),
+          examplesDescription: normalizeText(
+            outlineExample.examples.description,
+          ),
+          examplesTags: (outlineExample.examples.tags ?? []).map(
+            (tag) => tag.name,
+          ),
           examplesIndex: outlineExample.examplesIndex,
           exampleIndex: outlineExample.exampleIndex,
         }
@@ -861,7 +887,10 @@ export function buildReportModel(
         scenarios.reduce((sum, scenario) => sum + scenario.durationMs, 0),
       ),
       scenarios,
-      attachments: scenarios.reduce((sum, scenario) => sum + scenario.attachments.length, 0),
+      attachments: scenarios.reduce(
+        (sum, scenario) => sum + scenario.attachments.length,
+        0,
+      ),
       ...(sourceFile ? { sourceFile } : {}),
     });
   }
@@ -874,9 +903,11 @@ export function buildReportModel(
   const orderedRunHooks = [...index.runHookStarts.values()]
     .map((start, position) => ({ start, position }))
     .sort((a, b) => {
-      const seconds = (a.start.timestamp?.seconds ?? 0) - (b.start.timestamp?.seconds ?? 0);
+      const seconds =
+        (a.start.timestamp?.seconds ?? 0) - (b.start.timestamp?.seconds ?? 0);
       if (seconds !== 0) return seconds;
-      const nanos = (a.start.timestamp?.nanos ?? 0) - (b.start.timestamp?.nanos ?? 0);
+      const nanos =
+        (a.start.timestamp?.nanos ?? 0) - (b.start.timestamp?.nanos ?? 0);
       return nanos !== 0 ? nanos : a.position - b.position;
     });
   for (const { start } of orderedRunHooks) {
@@ -896,7 +927,9 @@ export function buildReportModel(
   }
   for (const hook of runHooks) count(hookCounts, hook.status);
 
-  const attachmentRows = scenarioRows.flatMap((scenario) => scenario.attachments);
+  const attachmentRows = scenarioRows.flatMap(
+    (scenario) => scenario.attachments,
+  );
   const runAttachments = mapAttachments(index.runAttachments);
   const allAttachments = [
     ...attachmentRows,
@@ -914,7 +947,10 @@ export function buildReportModel(
       steps: stepCounts,
       hooks: hookCounts,
       attachments: allAttachments.length,
-      attachmentBytes: allAttachments.reduce((sum, attachment) => sum + attachment.bytes, 0),
+      attachmentBytes: allAttachments.reduce(
+        (sum, attachment) => sum + attachment.bytes,
+        0,
+      ),
     },
     durationMs: finiteDuration(
       scenarioRows.reduce((sum, scenario) => sum + scenario.durationMs, 0) +

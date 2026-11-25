@@ -53,7 +53,10 @@ function counts(overrides: Partial<StatusCounts> = {}): StatusCounts {
   };
 }
 
-function makeRun(index: number, overrides: Partial<HistoryRun> = {}): HistoryRun {
+function makeRun(
+  index: number,
+  overrides: Partial<HistoryRun> = {},
+): HistoryRun {
   return {
     id: `id-${String(index).padStart(4, '0')}`,
     recordedAt: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
@@ -90,12 +93,14 @@ async function writeRaw(
 }
 
 async function schemaVersion(file: string): Promise<unknown> {
-  return (JSON.parse(await readFile(file, 'utf8')) as { schemaVersion: unknown })
-    .schemaVersion;
+  return (
+    JSON.parse(await readFile(file, 'utf8')) as { schemaVersion: unknown }
+  ).schemaVersion;
 }
 
 async function storedRuns(file: string): Promise<HistoryRun[]> {
-  return (JSON.parse(await readFile(file, 'utf8')) as { runs: HistoryRun[] }).runs;
+  return (JSON.parse(await readFile(file, 'utf8')) as { runs: HistoryRun[] })
+    .runs;
 }
 
 function ids(entries: readonly HistoryRun[]): string[] {
@@ -261,8 +266,12 @@ describe('writing within a history window', () => {
       const invalid = limit as unknown as number;
 
       await expect(readHistory(file, invalid)).rejects.toThrow(/1 to 365/);
-      expect(() => appendHistory(base, makeRun(9), invalid)).toThrow(/1 to 365/);
-      await expect(writeHistory(file, base, invalid)).rejects.toThrow(/1 to 365/);
+      expect(() => appendHistory(base, makeRun(9), invalid)).toThrow(
+        /1 to 365/,
+      );
+      await expect(writeHistory(file, base, invalid)).rejects.toThrow(
+        /1 to 365/,
+      );
 
       await expect(readFile(file, 'utf8')).resolves.toBe(before);
     },
@@ -336,7 +345,11 @@ describe('history schema versions', () => {
     await writeHistory(file, appendHistory(read, makeRun(9)));
 
     expect(await schemaVersion(file)).toBe(2);
-    expect(ids(await storedRuns(file))).toEqual(['id-0000', 'id-0001', 'id-0009']);
+    expect(ids(await storedRuns(file))).toEqual([
+      'id-0000',
+      'id-0001',
+      'id-0009',
+    ]);
   });
 
   it('rejects a schema other than 1 or 2 without a rewrite', async () => {
@@ -369,11 +382,7 @@ describe('history retention', () => {
 
     const raised = await readHistory(file, 40);
     expect(raised).toHaveLength(11);
-    expect(ids(raised)).toEqual([
-      ...ids(base.slice(-9)),
-      'id-0099',
-      'id-0100',
-    ]);
+    expect(ids(raised)).toEqual([...ids(base.slice(-9)), 'id-0099', 'id-0100']);
   });
 
   it('raises within the file: 31 entries with a window of 40 store 32', async () => {
@@ -664,7 +673,10 @@ describe('history write cap', () => {
       async (dir: string) =>
         writeRaw(
           'history.json',
-          sidecar([makeRun(0)]).replace('"durationMs": 1000', '"durationMs": -1'),
+          sidecar([makeRun(0)]).replace(
+            '"durationMs": 1000',
+            '"durationMs": -1',
+          ),
           dir,
         ),
     ],
@@ -691,7 +703,9 @@ describe('generateReport history window', () => {
     });
 
     expect(generated.history).toHaveLength(5);
-    expect(ids(generated.history ?? []).slice(0, 4)).toEqual(ids(base.slice(3)));
+    expect(ids(generated.history ?? []).slice(0, 4)).toEqual(
+      ids(base.slice(3)),
+    );
     expect(generated.history?.[4]?.title).toBe('Window');
     expect(trendsRows(generated.html)).toBe(5);
     expect(hasTrends(generated.html)).toBe(true);
@@ -718,17 +732,14 @@ describe('generateReport history window', () => {
     expect(trendsRows(generated.html)).toBe(HISTORY_LIMIT);
   });
 
-  it.each([0, 366, 1.5, '10'])(
-    'rejects the historyLimit %s',
-    async (limit) => {
-      await expect(
-        generateReport(fixture, {
-          history: runs(1),
-          historyLimit: limit as unknown as number,
-        }),
-      ).rejects.toThrow(/1 to 365/);
-    },
-  );
+  it.each([0, 366, 1.5, '10'])('rejects the historyLimit %s', async (limit) => {
+    await expect(
+      generateReport(fixture, {
+        history: runs(1),
+        historyLimit: limit as unknown as number,
+      }),
+    ).rejects.toThrow(/1 to 365/);
+  });
 
   it('renders a 40-entry list as given and does not prune it', async () => {
     const html = await renderReport(fixture, { history: runs(40) });

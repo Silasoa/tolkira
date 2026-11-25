@@ -91,7 +91,9 @@ describe('cucumber-html-reporter compat', () => {
 
     const html = await readFile(output, 'utf8');
     expect(html).toContain('Happy HTML reporting');
-    expect(result.warnings.some((line) => line.includes('bad.json'))).toBe(true);
+    expect(result.warnings.some((line) => line.includes('bad.json'))).toBe(
+      true,
+    );
   });
 
   it('skips a non-feature JSON array in a directory on request', async () => {
@@ -112,7 +114,9 @@ describe('cucumber-html-reporter compat', () => {
     await expect(readFile(output, 'utf8')).resolves.toContain(
       'Happy HTML reporting',
     );
-    const sidecar = JSON.parse(await readFile(`${output}.json`, 'utf8')) as unknown[];
+    const sidecar = JSON.parse(
+      await readFile(`${output}.json`, 'utf8'),
+    ) as unknown[];
     expect(JSON.stringify(sidecar)).not.toContain('numbers.json');
   });
 
@@ -146,7 +150,9 @@ describe('cucumber-html-reporter compat', () => {
     await expect(readFile(output, 'utf8')).resolves.toContain(
       'Happy HTML reporting',
     );
-    const sidecar = JSON.parse(await readFile(`${output}.json`, 'utf8')) as unknown[];
+    const sidecar = JSON.parse(
+      await readFile(`${output}.json`, 'utf8'),
+    ) as unknown[];
     expect(JSON.stringify(sidecar)).not.toContain('not a legacy feature');
   });
 
@@ -164,7 +170,8 @@ describe('cucumber-html-reporter compat', () => {
     });
     expect(first.warnings.some((line) => line.includes('bad.json'))).toBe(true);
     expect(
-      (JSON.parse(await readFile(`${output}.json`, 'utf8')) as unknown[]).length,
+      (JSON.parse(await readFile(`${output}.json`, 'utf8')) as unknown[])
+        .length,
     ).toBe(1);
 
     await writeFile(
@@ -348,9 +355,7 @@ describe('cucumber-html-reporter compat', () => {
     });
 
     expect(result.warnings).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('metadata.Nested'),
-      ]),
+      expect.arrayContaining([expect.stringContaining('metadata.Nested')]),
     );
   });
 });

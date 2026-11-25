@@ -90,21 +90,25 @@ export interface RunIndex {
 function latestAttempt(
   candidates: readonly TestCaseStarted[],
 ): TestCaseStarted | undefined {
-  return candidates.reduce<TestCaseStarted | undefined>((current, candidate) => {
-    if (!current) return candidate;
-    const cAttempt = candidate.attempt ?? 0;
-    const currentAttempt = current.attempt ?? 0;
-    if (cAttempt > currentAttempt) return candidate;
-    if (cAttempt < currentAttempt) return current;
-    const cSeconds = candidate.timestamp?.seconds ?? 0;
-    const currentSeconds = current.timestamp?.seconds ?? 0;
-    if (cSeconds !== currentSeconds) return cSeconds > currentSeconds ? candidate : current;
-    const cNanos = candidate.timestamp?.nanos ?? 0;
-    const currentNanos = current.timestamp?.nanos ?? 0;
-    // A full attempt and timestamp tie selects the later envelope in input
-    // order, so the adapter, model and summary agree on the final start.
-    return cNanos >= currentNanos ? candidate : current;
-  }, undefined);
+  return candidates.reduce<TestCaseStarted | undefined>(
+    (current, candidate) => {
+      if (!current) return candidate;
+      const cAttempt = candidate.attempt ?? 0;
+      const currentAttempt = current.attempt ?? 0;
+      if (cAttempt > currentAttempt) return candidate;
+      if (cAttempt < currentAttempt) return current;
+      const cSeconds = candidate.timestamp?.seconds ?? 0;
+      const currentSeconds = current.timestamp?.seconds ?? 0;
+      if (cSeconds !== currentSeconds)
+        return cSeconds > currentSeconds ? candidate : current;
+      const cNanos = candidate.timestamp?.nanos ?? 0;
+      const currentNanos = current.timestamp?.nanos ?? 0;
+      // A full attempt and timestamp tie selects the later envelope in input
+      // order, so the adapter, model and summary agree on the final start.
+      return cNanos >= currentNanos ? candidate : current;
+    },
+    undefined,
+  );
 }
 
 /**
@@ -135,11 +139,7 @@ export function renderedCaseAttachments(
   );
 }
 
-function indexFeature(
-  index: RunIndex,
-  feature: Feature,
-  uri: string,
-): void {
+function indexFeature(index: RunIndex, feature: Feature, uri: string): void {
   const visit = (
     children: readonly (FeatureChild | RuleChild)[],
     rule?: Rule,
@@ -212,7 +212,9 @@ export function indexRun(envelopes: Envelope[]): RunIndex {
     if (envelope.gherkinDocument?.feature) {
       const feature = envelope.gherkinDocument.feature;
       const uri = envelope.gherkinDocument.uri ?? '';
-      if (!index.featuresByKey.has(envelope.gherkinDocument.uri ?? feature.name)) {
+      if (
+        !index.featuresByKey.has(envelope.gherkinDocument.uri ?? feature.name)
+      ) {
         index.featuresByKey.set(
           envelope.gherkinDocument.uri ?? feature.name,
           feature,

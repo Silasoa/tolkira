@@ -98,7 +98,13 @@ describe('CLI history sidecar', () => {
     const firstOut = path.join(dir, 'first.html');
     const secondOut = path.join(dir, 'second.html');
 
-    const first = await cli([messages, '--out', firstOut, '--history', history]);
+    const first = await cli([
+      messages,
+      '--out',
+      firstOut,
+      '--history',
+      history,
+    ]);
 
     expect(first.code).toBe(0);
     expect(first.stderr).toBe('');
@@ -157,11 +163,23 @@ describe('CLI history sidecar', () => {
     const firstOut = path.join(dir, 'first.html');
     const secondOut = path.join(dir, 'second.html');
 
-    const first = await cli([messages, '--out', firstOut, '--history', history]);
+    const first = await cli([
+      messages,
+      '--out',
+      firstOut,
+      '--history',
+      history,
+    ]);
     expect(first.code).toBe(0);
     const before = await readFile(history, 'utf8');
 
-    const second = await cli([messages, '--out', secondOut, '--history', history]);
+    const second = await cli([
+      messages,
+      '--out',
+      secondOut,
+      '--history',
+      history,
+    ]);
 
     expect(second.code).toBe(0);
     await expect(readFile(history, 'utf8')).resolves.toBe(before);
@@ -180,12 +198,7 @@ describe('CLI history sidecar', () => {
     expect(empty.code).toBe(2);
     expect(empty.stderr).toContain('--history requires a file path');
 
-    const withoutOut = await cli([
-      messages,
-      '--json',
-      '--history',
-      history,
-    ]);
+    const withoutOut = await cli([messages, '--json', '--history', history]);
     expect(withoutOut.code).toBe(2);
     expect(withoutOut.stderr).toContain('--history');
     expect(withoutOut.stderr).toContain('--out');
@@ -207,25 +220,22 @@ describe('CLI history sidecar', () => {
     ['invalid JSON', 'corrupt.json'],
     ['a wrong schema version', 'wrong-schema.json'],
     ['a malformed entry', 'malformed-entry.json'],
-  ])(
-    'exits 1 without writing when the file has %s',
-    async (_, fixtureName) => {
-      const dir = await tempDir();
-      const history = path.join(dir, 'history.json');
-      await copyFile(path.join(historyFixtures, fixtureName), history);
-      const before = await readFile(history, 'utf8');
-      const output = path.join(dir, 'report.html');
+  ])('exits 1 without writing when the file has %s', async (_, fixtureName) => {
+    const dir = await tempDir();
+    const history = path.join(dir, 'history.json');
+    await copyFile(path.join(historyFixtures, fixtureName), history);
+    const before = await readFile(history, 'utf8');
+    const output = path.join(dir, 'report.html');
 
-      const run = await cli([messages, '--out', output, '--history', history]);
+    const run = await cli([messages, '--out', output, '--history', history]);
 
-      expect(run.code).toBe(1);
-      expect(run.stderr).toContain('history.json');
-      await expect(readFile(history, 'utf8')).resolves.toBe(before);
-      await expect(readFile(output, 'utf8')).rejects.toMatchObject({
-        code: 'ENOENT',
-      });
-    },
-  );
+    expect(run.code).toBe(1);
+    expect(run.stderr).toContain('history.json');
+    await expect(readFile(history, 'utf8')).resolves.toBe(before);
+    await expect(readFile(output, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
 
   it('rejects a malformed supported-schema target before rendering or writing', async () => {
     const dir = await tempDir();
@@ -665,7 +675,9 @@ describe('CLI history ISO 8601 timestamps', () => {
 
       expect(run.code).toBe(1);
       expect(run.stderr).toContain(`Invalid history file ${history}:`);
-      expect(run.stderr).toContain('runs[0].recordedAt must be an ISO timestamp');
+      expect(run.stderr).toContain(
+        'runs[0].recordedAt must be an ISO timestamp',
+      );
       await expect(readFile(history, 'utf8')).resolves.toBe(before);
       await expect(readFile(output, 'utf8')).rejects.toMatchObject({
         code: 'ENOENT',

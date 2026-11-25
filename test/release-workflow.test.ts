@@ -30,7 +30,8 @@ async function workflowJobs(): Promise<Map<string, string>> {
 
 function job(jobs: Map<string, string>, name: string): string {
   const text = jobs.get(name);
-  if (text === undefined) throw new Error(`release workflow has no ${name} job`);
+  if (text === undefined)
+    throw new Error(`release workflow has no ${name} job`);
   return text;
 }
 
@@ -97,7 +98,10 @@ describe('release workflow gate', () => {
 
     expectStep(linux, 'npm run hygiene');
     expectStep(linux, 'npm run check');
-    expectStep(linux, 'npx playwright install --with-deps chromium firefox webkit');
+    expectStep(
+      linux,
+      'npx playwright install --with-deps chromium firefox webkit',
+    );
     expectStep(linux, 'npm run test:e2e');
     expect(linux).not.toContain('continue-on-error');
     expect(activeCommands(linux)).not.toContain('|| true');
@@ -153,20 +157,25 @@ describe('release workflow gate', () => {
     // dist/ is gitignored: without a build the packed tarball has no CLI.
     expect(build, 'build step').toBeGreaterThanOrEqual(0);
     expect(pack, 'pack step').toBeGreaterThan(build);
-    expect(commands.filter((command) => command === 'npm run build')).toHaveLength(1);
+    expect(
+      commands.filter((command) => command === 'npm run build'),
+    ).toHaveLength(1);
   });
 
   it('reaches the package smoke and stage step on a green tag', async () => {
     const commands = runCommands(job(await workflowJobs(), 'publish'));
     const order: Array<[string, RegExp]> = [
       ['pack', /^npm pack --pack-destination \S+$/],
-      [
-        'install',
-        /^npm install -g --prefix \S+ \S*tolkira-.*\.tgz$/,
-      ],
+      ['install', /^npm install -g --prefix \S+ \S*tolkira-.*\.tgz$/],
       ['binary', /^test -x \S+\/bin\/tolkira$/],
-      ['global help', /^\/\S+\/bin\/tolkira --help \| grep -q "Usage: tolkira"$/],
-      ['package help', /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" --help$/],
+      [
+        'global help',
+        /^\/\S+\/bin\/tolkira --help \| grep -q "Usage: tolkira"$/,
+      ],
+      [
+        'package help',
+        /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" --help$/,
+      ],
       [
         'smoke report',
         /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" test\/fixtures\/legacy\/minimal\.json --out \S+report\.html --title "Package smoke test"$/,

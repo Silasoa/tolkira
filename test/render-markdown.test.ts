@@ -14,10 +14,7 @@ const junitFixture = fileURLToPath(
   new URL('./fixtures/junit/markdown-description.xml', import.meta.url),
 );
 
-function syntheticJson(
-  featureMarkdown: string,
-  scenarioMarkdown = '',
-): string {
+function syntheticJson(featureMarkdown: string, scenarioMarkdown = ''): string {
   return JSON.stringify([
     {
       uri: 'features/synthetic-markdown.feature',
@@ -92,9 +89,7 @@ describe('safe GFM descriptions', () => {
 
     expect(html).toContain('<div class="description">');
     expect(html).not.toContain('<p class="description">');
-    expect(html).not.toMatch(
-      /\.description\s*\{[^}]*white-space:\s*pre-line/,
-    );
+    expect(html).not.toMatch(/\.description\s*\{[^}]*white-space:\s*pre-line/);
 
     expect(feature).toContain('<h3>Feature guide</h3>');
     expect(feature).toContain('<h4>Formats</h4>');
@@ -121,15 +116,11 @@ describe('safe GFM descriptions', () => {
 
     expect(feature).toMatch(/<div class="tableWrap"[^>]*role="region"/);
     expect(feature).toMatch(/<div class="tableWrap"[^>]*tabindex="0"/);
-    expect(feature).toMatch(
-      /<div class="tableWrap"[^>]*>[\s\S]*<table>/,
-    );
+    expect(feature).toMatch(/<div class="tableWrap"[^>]*>[\s\S]*<table>/);
   });
 
   it('caps description headings at h4 and starts them at h3', async () => {
-    const html = await renderSynthetic(
-      '# Top\n\n## Sub\n\n###### Deep',
-    );
+    const html = await renderSynthetic('# Top\n\n## Sub\n\n###### Deep');
     const feature = featureDescription(html);
 
     expect(feature).toContain('<h3>Top</h3>');
@@ -182,9 +173,9 @@ describe('safe GFM descriptions', () => {
     const description = scenarioDescription(html, 'Synthetic scenario');
 
     expect(description.match(/<a\b/g) ?? []).toHaveLength(3);
-    expect(description.match(/rel="noopener noreferrer nofollow"/g) ?? []).toHaveLength(
-      3,
-    );
+    expect(
+      description.match(/rel="noopener noreferrer nofollow"/g) ?? [],
+    ).toHaveLength(3);
     expect(description).toContain('href="https://example.com/a"');
     expect(description).toContain('href="http://example.com/b"');
     expect(description).toContain('href="mailto:qa@example.com"');
@@ -202,9 +193,7 @@ describe('safe GFM descriptions', () => {
     );
     const feature = featureDescription(html);
 
-    expect(feature).toContain(
-      "&lt;script&gt;alert('feature')&lt;/script&gt;",
-    );
+    expect(feature).toContain("&lt;script&gt;alert('feature')&lt;/script&gt;");
     expect(feature).toContain('&lt;b&gt;bold&lt;/b&gt;');
     expect(feature).not.toContain("<script>alert('feature')</script>");
     expect(feature).not.toContain('<img src=x');
@@ -273,9 +262,7 @@ describe('safe GFM descriptions', () => {
   });
 
   it('renders plain text and nested emphasis', async () => {
-    const plain = await renderSynthetic(
-      'Plain text without formatting.',
-    );
+    const plain = await renderSynthetic('Plain text without formatting.');
     expect(featureDescription(plain)).toContain(
       '<p>Plain text without formatting.</p>',
     );

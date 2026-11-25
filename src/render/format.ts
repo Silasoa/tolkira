@@ -41,10 +41,7 @@ export const STEP_GLYPHS: Record<ReportStatus, string> = {
   unknown: '·',
 };
 
-export function durationLabel(
-  milliseconds: number,
-  t: Translator,
-): string {
+export function durationLabel(milliseconds: number, t: Translator): string {
   return t.duration(milliseconds);
 }
 
@@ -58,7 +55,9 @@ export function sizeLabel(bytes: number, t: Translator): string {
       maximumFractionDigits: 1,
     }).format(bytes / MIB);
     // Number and unit stay on one line at 200 % text zoom.
-    return t.t('format.megabytes', { count: megabytes }).replaceAll(' ', '\u00a0');
+    return t
+      .t('format.megabytes', { count: megabytes })
+      .replaceAll(' ', '\u00a0');
   }
   return t.t('format.bytes', { count: bytes });
 }
@@ -84,9 +83,7 @@ export const ALL_STATUSES: DisplayStatus[] = [
 ];
 
 export function displayStatuses(model: ReportModel): DisplayStatus[] {
-  return ALL_STATUSES.filter(
-    (status) => model.counts.scenarios[status] > 0,
-  );
+  return ALL_STATUSES.filter((status) => model.counts.scenarios[status] > 0);
 }
 
 export function compareStatus(a: ReportStatus, b: ReportStatus): number {

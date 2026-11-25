@@ -1,6 +1,6 @@
 name: Task
 description: Scoped, actionable work with testable acceptance criteria. Ideas belong in docs/BACKLOG.md.
-title: "task: "
+title: 'task: '
 labels: [needs-triage]
 body:
   - type: markdown

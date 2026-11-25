@@ -9,12 +9,7 @@ import {
   skipNotice,
 } from '../attachments.js';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
-import {
-  removeReport,
-  reportUrl,
-  writeInput,
-  writeReport,
-} from './helpers.js';
+import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
 const xssFixture = legacyFixture('xss.json');
 const examplesAttachmentFixture = messagesFixture(
@@ -113,8 +108,12 @@ test('keeps each example attachment on its own row', async ({ page }) => {
     await expect(rows.nth(1).locator('.thumb')).toBeVisible();
     await expect(rows.nth(0).locator('.shot')).toHaveCount(1);
     await expect(rows.nth(1).locator('.shot')).toHaveCount(1);
-    await expect(rows.nth(0).locator('.rowRight')).toContainText('1 attachment');
-    await expect(rows.nth(1).locator('.rowRight')).toContainText('1 attachment');
+    await expect(rows.nth(0).locator('.rowRight')).toContainText(
+      '1 attachment',
+    );
+    await expect(rows.nth(1).locator('.rowRight')).toContainText(
+      '1 attachment',
+    );
 
     await rows.nth(0).locator('summary').click();
     await rows.nth(0).locator('.shotButton').click();
@@ -191,9 +190,10 @@ test('shows the skipped-attachment notice in the shell and on the scenario at 14
       await expect(scenario.locator('.attachmentSkipList li')).toHaveCount(1);
       await expect(scenarioWarning).not.toContainText(outside);
       const report = await noticeMetrics(page, '#report-view .runHead');
-      expect(report.overflow, `report overflow at ${width}`).toBeLessThanOrEqual(
-        1,
-      );
+      expect(
+        report.overflow,
+        `report overflow at ${width}`,
+      ).toBeLessThanOrEqual(1);
       expect(
         Math.abs(report.noticeLeft - report.headerLeft),
         `report left edge at ${width}`,

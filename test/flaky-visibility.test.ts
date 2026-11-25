@@ -2,11 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import {
-  renderEmail,
-  renderReport,
-  summarizeReport,
-} from '../src/index.js';
+import { renderEmail, renderReport, summarizeReport } from '../src/index.js';
 import { formatCiOutput } from '../src/ci.js';
 import { REPORT_CSS } from '../src/render/styles.js';
 import { scenarioOpeningTag, scenarioSummary } from './render-helpers.js';
@@ -215,7 +211,9 @@ describe('flaky visibility', () => {
     expect(withoutFlakyTag).toEqual(control);
 
     for (const format of ['markdown', 'github'] as const) {
-      expect(formatCiOutput(flaky, format)).toBe(formatCiOutput(control, format));
+      expect(formatCiOutput(flaky, format)).toBe(
+        formatCiOutput(control, format),
+      );
     }
     expect(renderEmail(flaky, { title: 'Flaky run', now: NOW })).toBe(
       renderEmail(control, { title: 'Flaky run', now: NOW }),

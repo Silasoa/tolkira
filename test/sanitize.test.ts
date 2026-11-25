@@ -57,7 +57,8 @@ describe('input sanitisation', () => {
       JSON.stringify([
         {
           name: 'Remote image feature',
-          description: 'Before ![pixel](https://tolkira-probe.invalid/pixel.png) after',
+          description:
+            'Before ![pixel](https://tolkira-probe.invalid/pixel.png) after',
           elements: [],
         },
       ]),
@@ -65,9 +66,8 @@ describe('input sanitisation', () => {
     );
 
     const sanitized = sanitizeEnvelopes(envelopes);
-    const description = sanitized.find(
-      (envelope) => envelope.gherkinDocument,
-    )?.gherkinDocument?.feature?.description;
+    const description = sanitized.find((envelope) => envelope.gherkinDocument)
+      ?.gherkinDocument?.feature?.description;
 
     expect(description).toContain('pixel');
     expect(description).not.toContain('tolkira-probe.invalid');
@@ -90,9 +90,7 @@ describe('input sanitisation', () => {
       (envelope) => envelope.gherkinDocument,
     )?.gherkinDocument?.feature?.description;
 
-    expect(description).toContain(
-      '[ref]: https://tolkira-probe.invalid/x.png',
-    );
+    expect(description).toContain('[ref]: https://tolkira-probe.invalid/x.png');
     expect(description).toContain('![pixel][ref]');
     expect(description).toContain('![angle]()');
     expect(description).not.toContain('<https://tolkira-probe.invalid/x.png>');
@@ -100,10 +98,7 @@ describe('input sanitisation', () => {
 
   it('rejects unknown and missing step statuses', () => {
     expect(() =>
-      parseMessages(
-        JSON.stringify(finishedStep('BANANA')),
-        'banana.ndjson',
-      ),
+      parseMessages(JSON.stringify(finishedStep('BANANA')), 'banana.ndjson'),
     ).toThrow('known Cucumber status');
 
     expect(() =>
@@ -179,13 +174,15 @@ describe('attachment caps', () => {
   });
 
   it('accepts an identity attachment at exactly 50 MB', () => {
-    expect(() => sanitizeEnvelopes([attachmentEnvelope(IDENTITY_50_MIB)])).not.toThrow();
+    expect(() =>
+      sanitizeEnvelopes([attachmentEnvelope(IDENTITY_50_MIB)]),
+    ).not.toThrow();
   });
 
   it('rejects an identity attachment at 50 MB + 1 with the exact message', () => {
-    expect(rejectionMessage([attachmentEnvelope(IDENTITY_50_MIB_PLUS_ONE)])).toBe(
-      'Attachment is larger than 50 MB. Use a smaller asset.',
-    );
+    expect(
+      rejectionMessage([attachmentEnvelope(IDENTITY_50_MIB_PLUS_ONE)]),
+    ).toBe('Attachment is larger than 50 MB. Use a smaller asset.');
   });
 
   it('accepts exactly 100 MB in total across attachments', () => {

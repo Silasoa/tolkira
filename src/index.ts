@@ -35,10 +35,7 @@ export {
   readHistory,
   writeHistory,
 } from './history.js';
-export type {
-  BaselineRenderOptions,
-  RenderReportOptions,
-} from './options.js';
+export type { BaselineRenderOptions, RenderReportOptions } from './options.js';
 export type { EmailOptions } from './email.js';
 export { renderEmail } from './email.js';
 export type { PdfOptions } from './pdf.js';

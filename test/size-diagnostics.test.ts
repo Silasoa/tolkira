@@ -16,7 +16,10 @@ import { renderEmail } from '../src/email.js';
 import { generateReport, renderReport, summarizeReport } from '../src/index.js';
 import { loadInputs } from '../src/input/load.js';
 import { parseMessages } from '../src/input/messages.js';
-import { buildReportModel, type ReportAttachment } from '../src/report/model.js';
+import {
+  buildReportModel,
+  type ReportAttachment,
+} from '../src/report/model.js';
 import { renderAttachment } from '../src/render/attachments.js';
 import { applyReportSize, REPORT_BYTES_MARKER } from '../src/render/details.js';
 import { escapeHtml } from '../src/render/escape.js';
@@ -172,9 +175,7 @@ async function writeSizeMessages(
         id: 'size-test-case',
         pickleId: 'size-pickle',
         testRunStartedId: 'size-run',
-        testSteps: [
-          { id: 'size-test-step', pickleStepId: 'size-pickle-step' },
-        ],
+        testSteps: [{ id: 'size-test-step', pickleStepId: 'size-pickle-step' }],
       },
     },
     {
@@ -219,7 +220,10 @@ async function writeSizeMessages(
       },
     },
   ];
-  await writeFile(file, `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`);
+  await writeFile(
+    file,
+    `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`,
+  );
   return file;
 }
 
@@ -306,9 +310,7 @@ describe('Run panel size contributors', () => {
     const list = view.slice(start, end < 0 ? view.length : end);
 
     const groups = await loadInputs(files);
-    const model = buildReportModel(
-      groups.flatMap((group) => group.envelopes),
-    );
+    const model = buildReportModel(groups.flatMap((group) => group.envelopes));
     const all = [
       ...model.scenarios.flatMap((scenario) => scenario.attachments),
       ...model.runHooks.flatMap((hook) => hook.attachments),
@@ -532,9 +534,7 @@ describe('format.bytes catalog seam', () => {
   });
 
   it('formats German exact and byte labels from the numeric count', () => {
-    expect(exactSizeLabel(MIB, deSeam)).toBe(
-      '1.048.576 Bytes (1,0\u00a0MB)',
-    );
+    expect(exactSizeLabel(MIB, deSeam)).toBe('1.048.576 Bytes (1,0\u00a0MB)');
     expect(sizeLabel(MIB - 1, deSeam)).toBe('1.048.575 Bytes');
   });
 
@@ -599,9 +599,7 @@ describe('CLI size warning', () => {
     expect(stderr).toContain(
       `report HTML is ${megabytes(Buffer.byteLength(html, 'utf8'))} MB`,
     );
-    expect(stderr).toContain(
-      `input ${megabytes(generated.inputBytes)} MB`,
-    );
+    expect(stderr).toContain(`input ${megabytes(generated.inputBytes)} MB`);
     expect(stderr).toContain(
       `attachments ${megabytes(generated.summary.attachments.bytes)} MB decoded`,
     );
@@ -629,7 +627,9 @@ describe('CLI size warning', () => {
 
 describe('size fields stay out of other outputs', () => {
   it('matches panel attachment bytes with the summary', async () => {
-    const generated = await generateReport(messages('attachments-large.ndjson'));
+    const generated = await generateReport(
+      messages('attachments-large.ndjson'),
+    );
     const view = analysisView(generated.html);
 
     expect(rowValue(view, [t.t('details.attachments')])).toBe(
@@ -641,7 +641,9 @@ describe('size fields stay out of other outputs', () => {
   });
 
   it('adds no size fields to the summary, CI or email', async () => {
-    const generated = await generateReport(messages('attachments-large.ndjson'));
+    const generated = await generateReport(
+      messages('attachments-large.ndjson'),
+    );
     const sizeFields = /inputFiles|inputBytes|reportBytes|inputSize/;
 
     expect(generated.summary.schemaVersion).toBe(2);
@@ -649,9 +651,9 @@ describe('size fields stay out of other outputs', () => {
     expect(formatCiOutput(generated.summary, 'markdown')).not.toMatch(
       sizeFields,
     );
-    expect(
-      renderEmail(generated.summary, { now: new Date(0) }),
-    ).not.toMatch(sizeFields);
+    expect(renderEmail(generated.summary, { now: new Date(0) })).not.toMatch(
+      sizeFields,
+    );
   });
 });
 

@@ -1,12 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { messagesFixture } from '../fixtures.js';
-import {
-  removeReport,
-  reportUrl,
-  writeInput,
-  writeReport,
-} from './helpers.js';
+import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
 const examplesFixture = messagesFixture('examples-tables.ndjson');
 
@@ -25,7 +20,9 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
     await expect(page.locator('section.examples')).toHaveCount(3);
     await expect(page.locator('.exampleNo')).toHaveCount(7);
     await expect(
-      page.locator('.triageScenario').filter({ hasText: 'These are failing #2.1' }),
+      page
+        .locator('.triageScenario')
+        .filter({ hasText: 'These are failing #2.1' }),
     ).toBeVisible();
 
     await page
@@ -37,10 +34,14 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
     await expect(failed.locator('summary')).toBeFocused();
 
     await expect(
-      page.locator('[data-example="#1.1"][data-scenario-name="Eating cucumbers"]'),
+      page.locator(
+        '[data-example="#1.1"][data-scenario-name="Eating cucumbers"]',
+      ),
     ).not.toHaveAttribute('open', '');
     await expect(
-      page.locator('[data-example="#2.1"][data-scenario-name="Eating cucumbers"]'),
+      page.locator(
+        '[data-example="#2.1"][data-scenario-name="Eating cucumbers"]',
+      ),
     ).toHaveAttribute('open', '');
 
     const search = page.getByRole('searchbox', { name: /Search/ });
@@ -75,14 +76,18 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
       page.locator('details.scenario:visible .exampleNo').first(),
     ).toHaveText('#1.1');
 
-    const failedFilter = page.locator('button.filter[data-filter-status="failed"]');
+    const failedFilter = page.locator(
+      'button.filter[data-filter-status="failed"]',
+    );
     await failedFilter.click();
     await expect(page.locator('details.scenario:visible')).toHaveCount(5);
     await expect(page.locator('section.outline:visible')).toHaveCount(2);
     await expect(page.locator('section.examples:visible')).toHaveCount(2);
     await failedFilter.click();
 
-    const passedFilter = page.locator('button.filter[data-filter-status="passed"]');
+    const passedFilter = page.locator(
+      'button.filter[data-filter-status="passed"]',
+    );
     await passedFilter.click();
     await expect(page.locator('details.scenario:visible')).toHaveCount(2);
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
@@ -99,8 +104,9 @@ test('does not duplicate a retried outline row', async ({ page }) => {
     .trim()
     .split(/\r?\n/)
     .map((line) => JSON.parse(line) as Record<string, any>);
-  const pickle = lines.find((line) => line.pickle?.astNodeIds?.length === 2)
-    ?.pickle;
+  const pickle = lines.find(
+    (line) => line.pickle?.astNodeIds?.length === 2,
+  )?.pickle;
   const testCase = lines.find(
     (line) => line.testCase?.pickleId === pickle?.id,
   )?.testCase;

@@ -33,7 +33,9 @@ export const BASELINE_MAX_BYTES = 10_485_760;
 
 const dirs: string[] = [];
 
-export async function makeTempDir(prefix = 'tolkira-baseline-'): Promise<string> {
+export async function makeTempDir(
+  prefix = 'tolkira-baseline-',
+): Promise<string> {
   const dir = await mkdtemp(path.join(tmpdir(), prefix));
   dirs.push(dir);
   return dir;

@@ -173,7 +173,10 @@ function validateStep(
       !isRecord(embedding) ||
       (embedding.data !== undefined && typeof embedding.data !== 'string')
     ) {
-      throw invalidLegacy(source, `${where}.embeddings entries must have string data.`);
+      throw invalidLegacy(
+        source,
+        `${where}.embeddings entries must have string data.`,
+      );
     }
     if (
       embedding.media !== undefined &&
@@ -181,13 +184,19 @@ function validateStep(
         (embedding.media.type !== undefined &&
           typeof embedding.media.type !== 'string'))
     ) {
-      throw invalidLegacy(source, `${where}.embeddings media type must be a string.`);
+      throw invalidLegacy(
+        source,
+        `${where}.embeddings media type must be a string.`,
+      );
     }
     if (
       embedding.mime_type !== undefined &&
       typeof embedding.mime_type !== 'string'
     ) {
-      throw invalidLegacy(source, `${where}.embeddings mime_type must be a string.`);
+      throw invalidLegacy(
+        source,
+        `${where}.embeddings mime_type must be a string.`,
+      );
     }
   }
   if (step.arguments !== undefined && !Array.isArray(step.arguments)) {
@@ -202,7 +211,10 @@ function validateStep(
       (typeof step.result.status !== 'string' ||
         !LEGACY_STATUSES.has(step.result.status.toLowerCase()))
     ) {
-      throw invalidLegacy(source, `${where}.result.status must be a known status.`);
+      throw invalidLegacy(
+        source,
+        `${where}.result.status must be a known status.`,
+      );
     }
     if (
       step.result.error_message !== undefined &&
@@ -219,7 +231,10 @@ function validateStep(
     typeof step.docString !== 'string' &&
     !isRecord(step.docString)
   ) {
-    throw invalidLegacy(source, `${where}.docString must be a string or object.`);
+    throw invalidLegacy(
+      source,
+      `${where}.docString must be a string or object.`,
+    );
   }
   if (step.rows !== undefined && !Array.isArray(step.rows)) {
     throw invalidLegacy(source, `${where}.rows must be an array.`);
@@ -232,7 +247,10 @@ function validateLegacyFeatures(
 ): asserts values is LegacyFeature[] {
   for (const [featureIndex, feature] of values.entries()) {
     if (!isRecord(feature)) {
-      throw invalidLegacy(source, `feature ${featureIndex + 1} must be an object.`);
+      throw invalidLegacy(
+        source,
+        `feature ${featureIndex + 1} must be an object.`,
+      );
     }
 
     if (feature.elements !== undefined && !Array.isArray(feature.elements)) {
@@ -242,9 +260,15 @@ function validateLegacyFeatures(
       );
     }
     if (feature.uri !== undefined && typeof feature.uri !== 'string') {
-      throw invalidLegacy(source, `feature ${featureIndex + 1}.uri must be a string.`);
+      throw invalidLegacy(
+        source,
+        `feature ${featureIndex + 1}.uri must be a string.`,
+      );
     }
-    if (feature.location !== undefined && typeof feature.location !== 'string') {
+    if (
+      feature.location !== undefined &&
+      typeof feature.location !== 'string'
+    ) {
       throw invalidLegacy(
         source,
         `feature ${featureIndex + 1}.location must be a string.`,
@@ -316,7 +340,10 @@ function validateLegacyFeatures(
         ...(element.after ?? []),
       ].entries()) {
         if (!isRecord(step)) {
-          throw invalidLegacy(source, `${where} hook ${stepIndex + 1} must be an object.`);
+          throw invalidLegacy(
+            source,
+            `${where} hook ${stepIndex + 1} must be an object.`,
+          );
         }
         validateStep(step, source, `${where} hook ${stepIndex + 1}`, true);
       }
@@ -351,11 +378,15 @@ function normalizeText(value: string | string[] | null | undefined): string {
 }
 
 function normalizeTags(tags: LegacyTags): LegacyTag[] {
-  return (tags ?? []).map((tag) => (typeof tag === 'string' ? { name: tag } : tag));
+  return (tags ?? []).map((tag) =>
+    typeof tag === 'string' ? { name: tag } : tag,
+  );
 }
 
 function location(line?: number, column?: number): Location {
-  return column === undefined ? { line: line ?? 1 } : { line: line ?? 1, column };
+  return column === undefined
+    ? { line: line ?? 1 }
+    : { line: line ?? 1, column };
 }
 
 // AST locations use line 1 as a placeholder, but the report now shows a pickle
@@ -446,23 +477,18 @@ function mapDataTable(
 ): DataTable {
   return {
     location: location(line),
-    rows: (rows ?? []).map(
-      (row): TableRow => ({
-        id: nextId('row'),
+    rows: (rows ?? []).map((row): TableRow => ({
+      id: nextId('row'),
+      location: location(line),
+      cells: (row.cells ?? []).map((value) => ({
         location: location(line),
-        cells: (row.cells ?? []).map((value) => ({
-          location: location(line),
-          value,
-        })),
-      }),
-    ),
+        value,
+      })),
+    })),
   };
 }
 
-function mapDocString(
-  content: string,
-  line: number | undefined,
-): DocString {
+function mapDocString(content: string, line: number | undefined): DocString {
   return {
     location: location(line),
     content,
@@ -490,10 +516,7 @@ function tableRows(
 }
 
 function isCellRows(value: unknown): value is string[][] {
-  return (
-    Array.isArray(value) &&
-    value.every((row) => Array.isArray(row))
-  );
+  return Array.isArray(value) && value.every((row) => Array.isArray(row));
 }
 
 function isCellObjectRows(
@@ -502,8 +525,7 @@ function isCellObjectRows(
   return (
     Array.isArray(value) &&
     value.every(
-      (row) =>
-        typeof row === 'object' && row !== null && !Array.isArray(row),
+      (row) => typeof row === 'object' && row !== null && !Array.isArray(row),
     )
   );
 }
@@ -578,9 +600,7 @@ function mapStep(
   return mapped;
 }
 
-function mapPickleArgument(
-  legacyStep: LegacyStep,
-): PickleStep['argument'] {
+function mapPickleArgument(legacyStep: LegacyStep): PickleStep['argument'] {
   const argument = stepArgument(legacyStep);
   if (argument.rows !== undefined) {
     return {
@@ -643,7 +663,9 @@ export function parseLegacyValue(
   options: LegacyJsonOptions = {},
 ): Envelope[] {
   if (!Array.isArray(parsed)) {
-    throw new TypeError(`Invalid legacy JSON in ${source}: expected an array of features.`);
+    throw new TypeError(
+      `Invalid legacy JSON in ${source}: expected an array of features.`,
+    );
   }
 
   validateLegacyFeatures(parsed, source);
@@ -667,7 +689,9 @@ export function parseLegacyValue(
     cpu: { name: '' },
   };
   envelopes.push({ meta });
-  envelopes.push({ testRunStarted: { id: runId, timestamp: timestamp(startedAt) } });
+  envelopes.push({
+    testRunStarted: { id: runId, timestamp: timestamp(startedAt) },
+  });
 
   let clock = timestamp(startedAt);
 
@@ -696,7 +720,9 @@ export function parseLegacyValue(
     const backgroundSteps = (backgroundElement?.steps ?? []).filter(
       (step) => !isHook(step),
     );
-    const backgroundNodes = backgroundSteps.map((step) => mapStep(step, nextId));
+    const backgroundNodes = backgroundSteps.map((step) =>
+      mapStep(step, nextId),
+    );
 
     if (backgroundElement) {
       const background: Background = {
@@ -724,7 +750,9 @@ export function parseLegacyValue(
       const scenarioTags = mapTags(element.tags, nextId).filter(
         (tag) => !featureTagNames.has(tag.name),
       );
-      const scenarioSteps = (element.steps ?? []).filter((step) => !isHook(step));
+      const scenarioSteps = (element.steps ?? []).filter(
+        (step) => !isHook(step),
+      );
       const stepNodes = scenarioSteps.map((step) => mapStep(step, nextId));
       const backgroundInline =
         backgroundSteps.length > 0 &&

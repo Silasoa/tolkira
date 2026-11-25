@@ -84,7 +84,11 @@ export async function writeAtomic(
   );
 
   try {
-    await writeFile(temp, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+    await writeFile(temp, content, {
+      encoding: 'utf8',
+      mode: 0o600,
+      flag: 'wx',
+    });
     await rename(temp, output);
   } catch (error) {
     await rm(temp, { force: true }).catch(() => undefined);

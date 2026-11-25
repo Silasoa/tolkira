@@ -109,9 +109,10 @@ test.describe('static report without scripting', () => {
       await expectStackedViews(page, true);
       await expect(page.locator('img.shot').first()).toBeVisible();
       await expect(page.locator('script')).toHaveCount(0);
-      expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(
-        1,
-      );
+      expect(
+        await pageOverflow(page),
+        `${width}px overflow`,
+      ).toBeLessThanOrEqual(1);
     }
 
     expect(
@@ -147,13 +148,19 @@ test.describe('static report without scripting', () => {
     ).toBeLessThanOrEqual(1);
   });
 
-  test('shows the full report from a bookmarked filter URL', async ({ page }) => {
+  test('shows the full report from a bookmarked filter URL', async ({
+    page,
+  }) => {
     const base = reportUrl(report(english).output);
     await page.goto(base);
     const total = await page.locator('details.scenario').count();
     expect(total).toBeGreaterThan(0);
 
-    for (const search of ['?query=no-such-scenario', '?hide=passed', '?tag=@missing']) {
+    for (const search of [
+      '?query=no-such-scenario',
+      '?hide=passed',
+      '?tag=@missing',
+    ]) {
       const url = reportUrl(report(english).output, search);
       await page.goto(url);
 

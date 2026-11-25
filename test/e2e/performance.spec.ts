@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
-
 test('loads and searches a 1,000-row non-passed report within budget', async ({
   page,
 }) => {

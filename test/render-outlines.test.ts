@@ -11,15 +11,21 @@ describe('scenario outlines', () => {
   it('renders two outlines with examples headings and numbering', async () => {
     const html = await renderMessagesFile(examplesTables);
 
-    expect(html.match(/<section class="outline" data-outline[^>]*>/g)).toHaveLength(2);
-    expect(html.match(/<section class="examples" data-examples[^>]*>/g)).toHaveLength(3);
+    expect(
+      html.match(/<section class="outline" data-outline[^>]*>/g),
+    ).toHaveLength(2);
+    expect(
+      html.match(/<section class="examples" data-examples[^>]*>/g),
+    ).toHaveLength(3);
     expect(html).toContain('Scenario Outline:</span> Eating cucumbers');
     expect(html).toContain(
       'Scenario Outline:</span> Eating cucumbers with &lt;friends&gt; friends',
     );
     expect(html).toContain('Examples:</span> These are passing');
     expect(html).toContain('Examples:</span> These are failing');
-    expect(html).toContain('<h4 class="examplesTitle"><span class="kw">Examples:</span></h4>');
+    expect(html).toContain(
+      '<h4 class="examplesTitle"><span class="kw">Examples:</span></h4>',
+    );
     expect(html.match(/class="exampleNo"/g)).toHaveLength(7);
     expect(html).toContain('class="exampleNo" aria-hidden="true">#1.1');
     expect(html).toContain('class="exampleNo" aria-hidden="true">#2.2');
@@ -31,10 +37,12 @@ describe('scenario outlines', () => {
   it('renders outline and examples metadata once and escapes it', async () => {
     const content = await readFile(examplesTables, 'utf8');
     const envelopes = parseMessages(content, examplesTables);
-    const document = envelopes.find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument;
-    const scenario = document?.feature?.children.find((child) => child.scenario)
-      ?.scenario;
+    const document = envelopes.find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument;
+    const scenario = document?.feature?.children.find(
+      (child) => child.scenario,
+    )?.scenario;
     const examples = scenario?.examples[0];
     expect(scenario).toBeDefined();
     expect(examples).toBeDefined();
@@ -43,14 +51,26 @@ describe('scenario outlines', () => {
     scenario.keyword = '<img src=x onerror=alert(1)>';
     scenario.description = '<script>outline</script>';
     scenario.tags = [
-      { id: 'outline-tag', name: '@outline-x', location: { line: 1, column: 1 } },
+      {
+        id: 'outline-tag',
+        name: '@outline-x',
+        location: { line: 1, column: 1 },
+      },
     ];
     examples.keyword = '<svg onload=alert(1)>';
     examples.name = '" onmouseover="alert(1)';
     examples.description = '<script>examples</script>';
     examples.tags = [
-      { id: 'examples-tag', name: '@examples-x', location: { line: 1, column: 1 } },
-      { id: 'examples-xss', name: '@<svg onload=alert(1)>', location: { line: 1, column: 1 } },
+      {
+        id: 'examples-tag',
+        name: '@examples-x',
+        location: { line: 1, column: 1 },
+      },
+      {
+        id: 'examples-xss',
+        name: '@<svg onload=alert(1)>',
+        location: { line: 1, column: 1 },
+      },
     ];
 
     const html = await renderHtml(envelopes, { title: 'Escaped outlines' });
@@ -98,18 +118,19 @@ describe('scenario outlines', () => {
   it('omits an unexecuted examples block and keeps its AST numbering', async () => {
     const content = await readFile(examplesTables, 'utf8');
     const envelopes = parseMessages(content, examplesTables);
-    const document = envelopes.find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument;
-    const scenario = document?.feature?.children.find((child) => child.scenario)
-      ?.scenario;
+    const document = envelopes.find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument;
+    const scenario = document?.feature?.children.find(
+      (child) => child.scenario,
+    )?.scenario;
     const rowIds = new Set(
       (scenario?.examples?.[0]?.tableBody ?? []).map((row) => row.id),
     );
     const pickleIds = new Set(
       envelopes
-        .filter(
-          (envelope) =>
-            envelope.pickle?.astNodeIds.some((id) => rowIds.has(id)),
+        .filter((envelope) =>
+          envelope.pickle?.astNodeIds.some((id) => rowIds.has(id)),
         )
         .map((envelope) => envelope.pickle?.id),
     );
@@ -162,18 +183,20 @@ describe('scenario outlines', () => {
         (match) => match[1],
       ),
     ).toEqual(['#2.1', '#2.2', '#1.1', '#1.2', '#1.3']);
-    expect(html.match(/<section class="examples" data-examples[^>]*>/g)).toHaveLength(
-      2,
-    );
+    expect(
+      html.match(/<section class="examples" data-examples[^>]*>/g),
+    ).toHaveLength(2);
   });
 
   it('omits one unexecuted row but keeps the block heading', async () => {
     const content = await readFile(examplesTables, 'utf8');
     const envelopes = parseMessages(content, examplesTables);
-    const document = envelopes.find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument;
-    const scenario = document?.feature?.children.find((child) => child.scenario)
-      ?.scenario;
+    const document = envelopes.find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument;
+    const scenario = document?.feature?.children.find(
+      (child) => child.scenario,
+    )?.scenario;
     const rowId = scenario?.examples?.[0]?.tableBody?.[0]?.id;
     expect(rowId).toBeDefined();
     if (!rowId) return;
@@ -200,10 +223,23 @@ describe('scenario outlines', () => {
         .map((envelope) => envelope.testCaseStarted?.id),
     );
     const filtered = envelopes.filter((envelope) => {
-      if (envelope.testCase && pickleIds.has(envelope.testCase.pickleId)) return false;
-      if (envelope.testCaseStarted && testCaseIds.has(envelope.testCaseStarted.testCaseId)) return false;
-      if (envelope.testCaseFinished && startedIds.has(envelope.testCaseFinished.testCaseStartedId)) return false;
-      if (envelope.testStepFinished && startedIds.has(envelope.testStepFinished.testCaseStartedId)) return false;
+      if (envelope.testCase && pickleIds.has(envelope.testCase.pickleId))
+        return false;
+      if (
+        envelope.testCaseStarted &&
+        testCaseIds.has(envelope.testCaseStarted.testCaseId)
+      )
+        return false;
+      if (
+        envelope.testCaseFinished &&
+        startedIds.has(envelope.testCaseFinished.testCaseStartedId)
+      )
+        return false;
+      if (
+        envelope.testStepFinished &&
+        startedIds.has(envelope.testStepFinished.testCaseStartedId)
+      )
+        return false;
       return true;
     });
 
@@ -221,8 +257,9 @@ describe('scenario outlines', () => {
     const envelopes = parseMessages(content, examplesTables);
     const scenario = envelopes
       .find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument?.feature?.children.find((child) => child.scenario)
-      ?.scenario;
+      ?.gherkinDocument?.feature?.children.find(
+        (child) => child.scenario,
+      )?.scenario;
     const row = scenario?.examples?.[0]?.tableBody?.[0];
     expect(row).toBeDefined();
     if (!row) return;
@@ -237,14 +274,17 @@ describe('scenario outlines', () => {
   it('groups a URI-less Gherkin document', async () => {
     const content = await readFile(examplesTables, 'utf8');
     const envelopes = parseMessages(content, examplesTables);
-    const document = envelopes.find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument;
+    const document = envelopes.find(
+      (envelope) => envelope.gherkinDocument,
+    )?.gherkinDocument;
     expect(document).toBeDefined();
     if (!document) return;
     delete (document as unknown as { uri?: string }).uri;
 
     const html = await renderHtml(envelopes, { title: 'No URI' });
-    expect(html.match(/<section class="outline" data-outline[^>]*>/g)).toHaveLength(2);
+    expect(
+      html.match(/<section class="outline" data-outline[^>]*>/g),
+    ).toHaveLength(2);
   });
 
   it('groups an outline inside a Rule', async () => {
@@ -253,7 +293,8 @@ describe('scenario outlines', () => {
     const feature = envelopes.find((envelope) => envelope.gherkinDocument)
       ?.gherkinDocument?.feature;
     const child = feature?.children.find(
-      (entry) => entry.scenario?.name === 'Eating cucumbers with <friends> friends',
+      (entry) =>
+        entry.scenario?.name === 'Eating cucumbers with <friends> friends',
     );
     expect(feature).toBeDefined();
     expect(child).toBeDefined();
@@ -276,7 +317,9 @@ describe('scenario outlines', () => {
     };
 
     const html = await renderHtml(envelopes, { title: 'Rule outline' });
-    expect(html.match(/<section class="outline" data-outline[^>]*>/g)).toHaveLength(2);
+    expect(
+      html.match(/<section class="outline" data-outline[^>]*>/g),
+    ).toHaveLength(2);
     expect(html).toContain('Rule: A rule');
   });
 
@@ -285,25 +328,32 @@ describe('scenario outlines', () => {
     const envelopes = parseMessages(content, examplesTables);
     const scenario = envelopes
       .find((envelope) => envelope.gherkinDocument)
-      ?.gherkinDocument?.feature?.children.find((child) => child.scenario)
-      ?.scenario;
+      ?.gherkinDocument?.feature?.children.find(
+        (child) => child.scenario,
+      )?.scenario;
     expect(scenario).toBeDefined();
     if (!scenario) return;
 
     scenario.examples = [];
 
     const html = await renderHtml(envelopes, { title: 'No examples' });
-    expect(html.match(/<section class="outline" data-outline[^>]*>/g)).toHaveLength(1);
+    expect(
+      html.match(/<section class="outline" data-outline[^>]*>/g),
+    ).toHaveLength(1);
     expect(html.match(/data-example="/g)).toHaveLength(3);
     expect(html.match(/<details class="scenario"/g)).toHaveLength(7);
-    expect(html.match(/data-scenario-name="Eating cucumbers"/g)).toHaveLength(4);
+    expect(html.match(/data-scenario-name="Eating cucumbers"/g)).toHaveLength(
+      4,
+    );
   });
 
   it('keeps the heading order valid', async () => {
     const html = await renderMessagesFile(examplesTables);
-    const headings = [...html.matchAll(/<(h[2-5])[^>]*class="(outlineTitle|examplesTitle|scenarioName)"/g)].map(
-      (match) => [match[1], match[2]],
-    );
+    const headings = [
+      ...html.matchAll(
+        /<(h[2-5])[^>]*class="(outlineTitle|examplesTitle|scenarioName)"/g,
+      ),
+    ].map((match) => [match[1], match[2]]);
 
     expect(headings.slice(0, 3)).toEqual([
       ['h3', 'outlineTitle'],

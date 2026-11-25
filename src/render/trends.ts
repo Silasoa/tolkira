@@ -3,12 +3,7 @@ import type { ReportStatus } from '../report/status.js';
 import type { StatusCounts } from '../summary.js';
 import { DOM_IDS } from './dom-contract.js';
 import { escapeHtml } from './escape.js';
-import {
-  dateLabel,
-  durationLabel,
-  passRate,
-  statusLabel,
-} from './format.js';
+import { dateLabel, durationLabel, passRate, statusLabel } from './format.js';
 import type { Translator } from './i18n.js';
 
 const SPARK_WIDTH = 320;
@@ -39,7 +34,8 @@ export const TRENDS_SHELL_CSS =
   '#trends-view .trendsTable .currentTag{font-size:6pt}' +
   '}';
 
-const STATUS_CLASSES: Record<string, string> = {  passed: 'pass',
+const STATUS_CLASSES: Record<string, string> = {
+  passed: 'pass',
   failed: 'fail',
   skipped: 'skipped',
   pending: 'pending',
@@ -150,7 +146,9 @@ function flakyShareLabel(run: HistoryRun, t: Translator): string {
     : t.percent(share);
 }
 
-function sparkPoints(runs: HistoryRun[]): Array<{ x: number; y: number } | null> {
+function sparkPoints(
+  runs: HistoryRun[],
+): Array<{ x: number; y: number } | null> {
   const ascending = [...runs].sort(byTime);
   const span = Math.max(ascending.length - 1, 1);
   const step = (SPARK_WIDTH - SPARK_PAD * 2) / span;
@@ -185,7 +183,9 @@ function sparkline(runs: HistoryRun[]): string {
       (entry) =>
         `<polyline class="sparkLine" points="${entry
           .map((point) => `${point.x},${point.y}`)
-          .join(' ')}" fill="none" vector-effect="non-scaling-stroke"></polyline>`,
+          .join(
+            ' ',
+          )}" fill="none" vector-effect="non-scaling-stroke"></polyline>`,
     )
     .join('');
   const circles =
@@ -202,11 +202,7 @@ function sparkline(runs: HistoryRun[]): string {
   return `<svg class="spark" viewBox="0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}" aria-hidden="true" focusable="false">${lines}${circles}</svg>`;
 }
 
-function rowMarkup(
-  run: HistoryRun,
-  current: boolean,
-  t: Translator,
-): string {
+function rowMarkup(run: HistoryRun, current: boolean, t: Translator): string {
   const counts = scenarioCounts(run);
   const { attempted } = passRate(counts);
   const status = statusOf(run, t);

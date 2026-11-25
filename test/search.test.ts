@@ -23,17 +23,12 @@ describe('tag-shaped detection', () => {
     expect(isTagExpression(query)).toBe(true);
   });
 
-  it.each([
-    '',
-    '   ',
-    'alpha',
-    'alpha @a',
-    '@a alpha',
-    '@a AND @b',
-    'and @a',
-  ])('rejects the mixed or text query %j', (query) => {
-    expect(isTagExpression(query)).toBe(false);
-  });
+  it.each(['', '   ', 'alpha', 'alpha @a', '@a alpha', '@a AND @b', 'and @a'])(
+    'rejects the mixed or text query %j',
+    (query) => {
+      expect(isTagExpression(query)).toBe(false);
+    },
+  );
 
   it('treats escaped whitespace as part of a tag and rejects a dangling escape', () => {
     expect(evaluateTagExpression('@a\\ b', ['@a b'])).toBe(true);
@@ -83,16 +78,12 @@ describe('tag expression evaluation', () => {
     expect(evaluateTagExpression('@a', ['@a'])).toBe(true);
   });
 
-  it.each([
-    '@a and',
-    '@a or',
-    'not',
-    '()',
-    '(@a',
-    '@a and ()',
-  ])('returns undefined for the invalid expression %j', (query) => {
-    expect(evaluateTagExpression(query, ['@a'])).toBeUndefined();
-  });
+  it.each(['@a and', '@a or', 'not', '()', '(@a', '@a and ()'])(
+    'returns undefined for the invalid expression %j',
+    (query) => {
+      expect(evaluateTagExpression(query, ['@a'])).toBeUndefined();
+    },
+  );
 
   it.each(['alpha @a', '@a alpha', '@a AND @b', '', '   '])(
     'returns undefined for the non-tag query %j',

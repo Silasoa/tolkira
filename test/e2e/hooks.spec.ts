@@ -12,7 +12,9 @@ import {
 
 const hooksFixture = messagesFixture('hooks.ndjson');
 const globalHooksFixture = messagesFixture('global-hooks.ndjson');
-const globalHookAttachments = messagesFixture('global-hooks-attachments.ndjson');
+const globalHookAttachments = messagesFixture(
+  'global-hooks-attachments.ndjson',
+);
 
 test('shows per-scenario hooks separately and opens passed hooks', async ({
   page,
@@ -60,8 +62,9 @@ test('shows a failed run-hook error', async ({ page }) => {
     .trim()
     .split(/\r?\n/)
     .map((line) => JSON.parse(line) as Record<string, any>);
-  const finished = lines.find((line) => line.testRunHookFinished)
-    ?.testRunHookFinished;
+  const finished = lines.find(
+    (line) => line.testRunHookFinished,
+  )?.testRunHookFinished;
   expect(finished).toBeTruthy();
   if (!finished) return;
   finished.result.status = 'FAILED';
@@ -79,7 +82,9 @@ test('shows a failed run-hook error', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    await expect(page.locator('[data-run-hooks]')).toContainText('run hook boom');
+    await expect(page.locator('[data-run-hooks]')).toContainText(
+      'run hook boom',
+    );
     await expect(
       page.locator('[data-run-hooks] .hook[data-status="failed"]'),
     ).toBeVisible();

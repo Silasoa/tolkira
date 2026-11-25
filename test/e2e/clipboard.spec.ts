@@ -27,9 +27,7 @@ test('copies failure details', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    const failed = page.locator(
-      'details[data-scenario][data-status="failed"]',
-    );
+    const failed = page.locator('details[data-scenario][data-status="failed"]');
     const copy = failed.locator('[data-copy-failure]');
     await expect(copy).toBeVisible();
     await copy.click();
@@ -86,9 +84,7 @@ test('copies parameterised failure details with the matched argument', async ({
 
   try {
     await page.goto(reportUrl(output));
-    const failed = page.locator(
-      'details[data-scenario][data-status="failed"]',
-    );
+    const failed = page.locator('details[data-scenario][data-status="failed"]');
     await expect(failed.locator('.param')).toHaveText('12');
     const copy = failed.locator('[data-copy-failure]');
     await expect(copy).toBeVisible();

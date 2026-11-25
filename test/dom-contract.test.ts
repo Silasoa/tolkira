@@ -57,9 +57,7 @@ function unescapeHtml(value: string): string {
 
 function attributesOf(openingTag: string): Map<string, string> {
   const attributes = new Map<string, string>();
-  for (const match of openingTag.matchAll(
-    /\s([a-z][\w-]*)(?:="([^"]*)")?/gi,
-  )) {
+  for (const match of openingTag.matchAll(/\s([a-z][\w-]*)(?:="([^"]*)")?/gi)) {
     attributes.set(match[1] ?? '', unescapeHtml(match[2] ?? ''));
   }
   return attributes;
@@ -120,9 +118,7 @@ describe('scenario DOM contract', () => {
 
     for (const facts of cases) {
       const encoded = encodeScenario(facts);
-      const decoded = decodeScenario(
-        sourceOf(attributesFromEntries(encoded)),
-      );
+      const decoded = decodeScenario(sourceOf(attributesFromEntries(encoded)));
 
       expect(decoded).toStrictEqual(facts);
       const names = encoded.map(([name]) => name);
@@ -161,11 +157,14 @@ describe('scenario DOM contract', () => {
     expect(scenarioVisible(facts, { ...open, tag: '@a' })).toBe(true);
     expect(scenarioVisible(facts, { ...open, tag: '@ab' })).toBe(false);
     expect(
-      scenarioVisible(facts, { ...open, expression: (tags) => tags.includes('@b') }),
+      scenarioVisible(facts, {
+        ...open,
+        expression: (tags) => tags.includes('@b'),
+      }),
     ).toBe(true);
-    expect(
-      scenarioVisible(facts, { ...open, expression: () => false }),
-    ).toBe(false);
+    expect(scenarioVisible(facts, { ...open, expression: () => false })).toBe(
+      false,
+    );
     expect(scenarioVisible(facts, { ...open, query: 'ALPHA' })).toBe(true);
     expect(scenarioVisible(facts, { ...open, query: 'missing' })).toBe(false);
     expect(
@@ -184,10 +183,7 @@ describe('scenario DOM contract', () => {
     ).toBe(true);
     const { status: _status, ...withoutStatus } = facts;
     expect(
-      scenarioVisible(
-        withoutStatus,
-        { ...open, hidden: new Set(['unknown']) },
-      ),
+      scenarioVisible(withoutStatus, { ...open, hidden: new Set(['unknown']) }),
     ).toBe(true);
   });
 
@@ -364,7 +360,10 @@ describe('rendered scenario contract', () => {
 describe('filter status styling contract', () => {
   it('colours pressed chips through the attribute the toolbar renders', async () => {
     const css = (
-      await readFile(new URL('../src/render/report.css', import.meta.url), 'utf8')
+      await readFile(
+        new URL('../src/render/report.css', import.meta.url),
+        'utf8',
+      )
     ).replaceAll('\r\n', '\n');
     expect(REPORT_CSS).toBe(
       transformSync(css, {

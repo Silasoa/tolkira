@@ -16,16 +16,14 @@ const unexecutedInput = messagesFixture('empty-all-unexecuted.ndjson');
 const MIXED_LINE =
   'Baseline: 2 new failures · 1 fixed · 3 still failing · 1 not in this run';
 
-async function markdownWith(
-  counts: {
-    newFailures?: number;
-    fixed?: number;
-    stillFailing?: number;
-    notInThisRun?: number;
-    added?: number;
-    ambiguous?: number;
-  },
-): Promise<string> {
+async function markdownWith(counts: {
+  newFailures?: number;
+  fixed?: number;
+  stillFailing?: number;
+  notInThisRun?: number;
+  added?: number;
+  ambiguous?: number;
+}): Promise<string> {
   const summary = await summarizeReport(failedInput);
   return formatCiOutput(summaryWithBaseline(summary, counts), 'markdown');
 }

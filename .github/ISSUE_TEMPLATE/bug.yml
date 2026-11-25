@@ -1,6 +1,6 @@
 name: Bug report
 description: Something is broken or produces a wrong report. See docs/agents/issue-tracker.md.
-title: "bug: "
+title: 'bug: '
 labels: [needs-triage]
 body:
   - type: textarea

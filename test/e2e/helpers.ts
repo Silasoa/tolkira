@@ -195,7 +195,9 @@ export async function writePdf(
   if (options.history !== undefined && !options.withReport) {
     throw new Error('--history requires --out, so withReport must be true');
   }
-  const dir = await mkdtemp(path.join(tmpdir(), options.prefix ?? 'tolkira-pdf-e2e-'));
+  const dir = await mkdtemp(
+    path.join(tmpdir(), options.prefix ?? 'tolkira-pdf-e2e-'),
+  );
   const pdf = path.join(dir, 'run.pdf');
   const report = options.withReport ? path.join(dir, 'report.html') : undefined;
   const args = [...inputs, '--pdf', pdf];
@@ -348,19 +350,13 @@ function decodePdfHex(hex: string, cmap: PdfCMap): string {
     index += cmap.sourceBytes
   ) {
     const code =
-      cmap.sourceBytes === 1
-        ? (bytes[index] ?? 0)
-        : bytes.readUInt16BE(index);
+      cmap.sourceBytes === 1 ? (bytes[index] ?? 0) : bytes.readUInt16BE(index);
     out += cmap.map.get(code) ?? '';
   }
   return out;
 }
 
-function pdfPageText(
-  pdf: Uint8Array,
-  latin: string,
-  page: string,
-): string {
+function pdfPageText(pdf: Uint8Array, latin: string, page: string): string {
   const resources = pdfDict(page, 'Resources');
   const fontsBlock = pdfDict(resources ?? '', 'Font');
   const fonts = new Map<string, PdfCMap | undefined>();
@@ -415,9 +411,10 @@ export function readPdf(pdf: Uint8Array): PdfInfo {
     .filter((match) => /\/Type\s*\/Page\b/.test(match[2] ?? ''))
     .map((match) => Number(match[1]));
 
-  const box = /\/MediaBox\s*\[\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*\]/.exec(
-    latin,
-  );
+  const box =
+    /\/MediaBox\s*\[\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*\]/.exec(
+      latin,
+    );
   if (!box) throw new Error('PDF has no MediaBox');
   const width = Number(box[3]) - Number(box[1]);
   const height = Number(box[4]) - Number(box[2]);

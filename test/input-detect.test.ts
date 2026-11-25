@@ -59,7 +59,8 @@ describe('input detection decision table', () => {
       },
       {
         case: 'selects JUnit for testsuites XML',
-        content: '<testsuites><testsuite name="suite"><testcase name="case"/></testsuite></testsuites>',
+        content:
+          '<testsuites><testsuite name="suite"><testcase name="case"/></testsuite></testsuites>',
         file: 'report.xml',
         explicit: true,
         kind: 'junit',
@@ -152,8 +153,7 @@ describe('input detection decision table', () => {
       },
       {
         case: 'routes a non-array suites value to Playwright validation',
-        content:
-          '{"config":{},"suites":{},"stats":{"expected":0},"errors":[]}',
+        content: '{"config":{},"suites":{},"stats":{"expected":0},"errors":[]}',
         file: 'report.json',
         explicit: true,
         kind: 'playwright',
@@ -374,16 +374,14 @@ describe('input detection decision table', () => {
       },
       {
         case: 'JUnit content wins over a Messages extension',
-        content:
-          '<testsuite name="suite"><testcase name="case"/></testsuite>',
+        content: '<testsuite name="suite"><testcase name="case"/></testsuite>',
         file: 'report.ndjson',
         explicit: true,
         kind: 'junit',
       },
       {
         case: 'JUnit content wins over a JSON extension',
-        content:
-          '<testsuite name="suite"><testcase name="case"/></testsuite>',
+        content: '<testsuite name="suite"><testcase name="case"/></testsuite>',
         file: 'report.json',
         explicit: true,
         kind: 'junit',
@@ -446,7 +444,9 @@ describe('input detection decision table', () => {
   });
 
   it('returns the parsed legacy payload for the legacy adapter', () => {
-    expect(detectInput(LEGACY, { file: 'report.json', explicit: true })).toEqual({
+    expect(
+      detectInput(LEGACY, { file: 'report.json', explicit: true }),
+    ).toEqual({
       kind: 'legacy',
       parsed: JSON.parse(LEGACY),
     });
@@ -469,31 +469,36 @@ describe('first-line parse count', () => {
   }
 
   it('parses a one-line Playwright report once', () => {
-    expect(detectInput(PLAYWRIGHT, { file: 'report.json', explicit: true }).kind)
-      .toBe('playwright');
+    expect(
+      detectInput(PLAYWRIGHT, { file: 'report.json', explicit: true }).kind,
+    ).toBe('playwright');
     expect(parseCount(PLAYWRIGHT)).toBe(1);
   });
 
   it('parses a one-line Messages envelope once', () => {
-    expect(detectInput(MESSAGES, { file: 'report.ndjson', explicit: true }).kind)
-      .toBe('messages');
+    expect(
+      detectInput(MESSAGES, { file: 'report.ndjson', explicit: true }).kind,
+    ).toBe('messages');
     expect(parseCount(MESSAGES, 'report.ndjson')).toBe(1);
   });
 
   it('does not parse the first line of a multi-line Playwright report', () => {
     const content = `{\n${PLAYWRIGHT.slice(1)}`;
 
-    expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
-      .toBe('playwright');
+    expect(
+      detectInput(content, { file: 'report.json', explicit: true }).kind,
+    ).toBe('playwright');
     expect(parseCount(content)).toBe(1);
   });
 
   it('keeps legacy and JUnit parse counts unchanged', () => {
-    expect(detectInput(LEGACY, { file: 'report.json', explicit: true }).kind)
-      .toBe('legacy');
+    expect(
+      detectInput(LEGACY, { file: 'report.json', explicit: true }).kind,
+    ).toBe('legacy');
     expect(parseCount(LEGACY)).toBe(1);
-    expect(detectInput(JUNIT, { file: 'report.xml', explicit: true }).kind)
-      .toBe('junit');
+    expect(
+      detectInput(JUNIT, { file: 'report.xml', explicit: true }).kind,
+    ).toBe('junit');
     expect(parseCount(JUNIT, 'report.xml')).toBe(0);
   });
 
@@ -523,8 +528,9 @@ describe('first-line parse count', () => {
   it('parses an envelope-key line once as a candidate and once as Playwright', () => {
     const content = '{"meta":';
 
-    expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
-      .toBe('json-validation');
+    expect(
+      detectInput(content, { file: 'report.json', explicit: true }).kind,
+    ).toBe('json-validation');
     expect(parseCount(content)).toBe(2);
   });
 
@@ -532,8 +538,9 @@ describe('first-line parse count', () => {
     const messages = `\uFEFF\n\n  ${MESSAGES}`;
     const playwright = `\uFEFF\n${PLAYWRIGHT}`;
 
-    expect(detectInput(messages, { file: 'report.ndjson', explicit: true }).kind)
-      .toBe('messages');
+    expect(
+      detectInput(messages, { file: 'report.ndjson', explicit: true }).kind,
+    ).toBe('messages');
     expect(parseCount(messages, 'report.ndjson')).toBe(1);
     expect(
       detectInput(playwright, { file: 'report.json', explicit: true }).kind,
@@ -544,8 +551,9 @@ describe('first-line parse count', () => {
   it('accepts a spaced first key', () => {
     const content = `{ "config": {"version":"1.65.0"}, "suites": [], "stats": {} }`;
 
-    expect(detectInput(content, { file: 'report.json', explicit: true }).kind)
-      .toBe('playwright');
+    expect(
+      detectInput(content, { file: 'report.json', explicit: true }).kind,
+    ).toBe('playwright');
     expect(parseCount(content)).toBe(1);
   });
 
@@ -553,8 +561,9 @@ describe('first-line parse count', () => {
     const content =
       '{"\\u006deta":{"protocolVersion":"1","implementation":{},"runtime":{},"os":{},"cpu":{}}}';
 
-    expect(detectInput(content, { file: 'report.ndjson', explicit: true }).kind)
-      .toBe('messages');
+    expect(
+      detectInput(content, { file: 'report.ndjson', explicit: true }).kind,
+    ).toBe('messages');
     expect(parseMessages(content, 'escaped.ndjson')[0]?.meta).toBeDefined();
   });
 });

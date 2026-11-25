@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { renderReport, summarizeReport, type ReportSummary } from '../src/index.js';
+import {
+  renderReport,
+  summarizeReport,
+  type ReportSummary,
+} from '../src/index.js';
 
 const byCodeUnit = (a: string | undefined, b: string | undefined): number =>
   (a ?? '') < (b ?? '') ? -1 : (a ?? '') > (b ?? '') ? 1 : 0;
@@ -129,9 +133,7 @@ describe('outline example coordinate', () => {
     >;
     const examples = rows.map((row) => row.example);
     expect([...examples].sort(byCodeUnit)).toEqual(
-      ['#1.1', '#1.2', '#2.1', '#2.2', '#1.1', '#1.2', '#1.3'].sort(
-        byCodeUnit,
-      ),
+      ['#1.1', '#1.2', '#2.1', '#2.2', '#1.1', '#1.2', '#1.3'].sort(byCodeUnit),
     );
 
     const keys = Object.keys(rows[0] ?? {});
@@ -142,9 +144,9 @@ describe('outline example coordinate', () => {
       (match) => match[1],
     );
     expect(reportLabels.sort(byCodeUnit)).toEqual(
-      examples.filter((value): value is string => value !== undefined).sort(
-        byCodeUnit,
-      ),
+      examples
+        .filter((value): value is string => value !== undefined)
+        .sort(byCodeUnit),
     );
   });
 
@@ -212,9 +214,12 @@ describe('notInThisRun', () => {
     const block = baselineBlock(summary);
 
     expect(block.counts.notInThisRun).toBe(4);
-    expect(
-      block.notInThisRun.map((row) => row.example ?? 'none'),
-    ).toEqual(['#1.2', '#1.10', 'none', '#1.1']);
+    expect(block.notInThisRun.map((row) => row.example ?? 'none')).toEqual([
+      '#1.2',
+      '#1.10',
+      'none',
+      '#1.1',
+    ]);
     expect(block.notInThisRun[2]).toMatchObject({
       feature: 'Alpha',
       name: 'one',
@@ -267,9 +272,10 @@ describe('notInThisRun', () => {
     };
 
     const summary = await summarizeWithBaseline(emptyFile, { baseline });
-    expect(
-      baselineBlock(summary).notInThisRun.map((row) => row.uri),
-    ).toEqual(['features/a.feature', 'features/b.feature']);
+    expect(baselineBlock(summary).notInThisRun.map((row) => row.uri)).toEqual([
+      'features/a.feature',
+      'features/b.feature',
+    ]);
   });
 
   it('caps the list at 50 while the count stays complete', async () => {

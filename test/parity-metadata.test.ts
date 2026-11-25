@@ -58,15 +58,15 @@ function attachmentBlock(
   nextName?: string,
 ): string {
   const start = html.indexOf(name);
-  const end = nextName ? html.indexOf(nextName, start + name.length) : html.length;
+  const end = nextName
+    ? html.indexOf(nextName, start + name.length)
+    : html.length;
   return start < 0 ? '' : html.slice(start, end < 0 ? html.length : end);
 }
 
 function ciKeys(value: unknown, path = ''): string[] {
   if (Array.isArray(value)) {
-    return value.flatMap((entry, index) =>
-      ciKeys(entry, `${path}[${index}]`),
-    );
+    return value.flatMap((entry, index) => ciKeys(entry, `${path}[${index}]`));
   }
   if (value === null || typeof value !== 'object') return [];
   return Object.entries(value).flatMap(([key, entry]) => {
@@ -285,9 +285,7 @@ describe('parity metadata rendering', () => {
     expect(header).toContain(SHORT_REVISION);
     expect(header).toContain('main');
     expect(header).toContain('v1.2.3');
-    expect(header).toMatch(
-      new RegExp(`title="${FULL_REVISION}"`),
-    );
+    expect(header).toMatch(new RegExp(`title="${FULL_REVISION}"`));
 
     const details = analysisView(html);
     expect(details).toMatch(
@@ -330,9 +328,7 @@ describe('parity metadata rendering', () => {
       expect(reportHeader(html)).toMatch(
         new RegExp(`href="${CI_REMOTE}/commit/${FULL_REVISION}"`),
       );
-      expect(reportHeader(html)).toContain(
-        `title="${FULL_REVISION}"`,
-      );
+      expect(reportHeader(html)).toContain(`title="${FULL_REVISION}"`);
     }
   });
 
@@ -438,9 +434,8 @@ describe('parity metadata rendering', () => {
   it('renders JSON above 262,144 bytes as escaped raw text', async () => {
     const file = messageFixture('attachments-presentation.ndjson');
     const envelopes = parseMessages(await readFile(file, 'utf8'), file);
-    const startedId = envelopes.find(
-      (envelope) => envelope.testCaseStarted,
-    )?.testCaseStarted?.id;
+    const startedId = envelopes.find((envelope) => envelope.testCaseStarted)
+      ?.testCaseStarted?.id;
     const testStepId = envelopes.find((envelope) => envelope.testCase)?.testCase
       ?.testSteps[0]?.id;
     expect(startedId).toBeDefined();
@@ -477,10 +472,7 @@ describe('parity metadata rendering', () => {
     const html = await renderMessages('attachments-presentation.ndjson');
     const block = attachmentBlock(html, 'links.txt', 'session.log');
 
-    for (const url of [
-      'https://example.com/one',
-      'http://example.com/two',
-    ]) {
+    for (const url of ['https://example.com/one', 'http://example.com/two']) {
       expect(block).toMatch(
         new RegExp(
           `<a (?=[^>]*href="${url}")(?=[^>]*rel="noopener noreferrer")[^>]*>`,
@@ -517,7 +509,9 @@ describe('parity metadata rendering', () => {
     expect(block).toContain('ERROR');
     expect(block).toContain('256-colour');
     expect(block).toContain('truecolour');
-    expect((block.match(/<span class="[^"]*ansi/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(
+      (block.match(/<span class="[^"]*ansi/g) ?? []).length,
+    ).toBeGreaterThanOrEqual(3);
     expect(block).toContain(
       '&lt;script&gt;window.__tolkiraXss=1&lt;/script&gt;',
     );
@@ -545,7 +539,9 @@ describe('parity metadata rendering', () => {
     const limitBlock = html.slice(limitStart, overStart);
     const overBlock = html.slice(overStart);
 
-    expect((limitBlock.match(/<span class="[^"]*ansi/g) ?? []).length).toBeGreaterThan(0);
+    expect(
+      (limitBlock.match(/<span class="[^"]*ansi/g) ?? []).length,
+    ).toBeGreaterThan(0);
     expect((overBlock.match(/<span class="[^"]*ansi/g) ?? []).length).toBe(0);
     expect(overBlock.includes('x'.repeat(64))).toBe(true);
   });
@@ -570,10 +566,7 @@ describe('parity metadata rendering', () => {
 
     const presentationFile = messageFixture('attachments-presentation.ndjson');
     const presentation = buildReportModel(
-      parseMessages(
-        await readFile(presentationFile, 'utf8'),
-        presentationFile,
-      ),
+      parseMessages(await readFile(presentationFile, 'utf8'), presentationFile),
     );
     const presentationSummary = await summarizeReport(presentationFile);
     expect(presentation.counts.attachments).toBe(
@@ -585,7 +578,9 @@ describe('parity metadata rendering', () => {
     const html = await renderMessages('attachments-presentation.ndjson');
 
     expect(html).toContain("connect-src 'none'");
-    expect(html).not.toMatch(/<(?:img|script|iframe|audio|video)[^>]+src="https?:/);
+    expect(html).not.toMatch(
+      /<(?:img|script|iframe|audio|video)[^>]+src="https?:/,
+    );
     expect(html).not.toContain('fetch(');
   });
 

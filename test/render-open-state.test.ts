@@ -20,7 +20,13 @@ describe('default open state', () => {
     });
 
     expect(featureOpeningTag(html)).toContain(' open>');
-    for (const name of ['Failing', 'Pending', 'Skipped', 'Undefined', 'Ambiguous']) {
+    for (const name of [
+      'Failing',
+      'Pending',
+      'Skipped',
+      'Undefined',
+      'Ambiguous',
+    ]) {
       expect(scenarioOpeningTag(html, name), name).toContain(' open>');
     }
     expect(scenarioOpeningTag(html, 'Passing')).not.toContain(' open>');
@@ -44,9 +50,9 @@ describe('default open state', () => {
   it('keeps passed scenarios without images collapsed', async () => {
     const html = await renderReport(minimalFixture, { title: 'Passed only' });
 
-    expect(html.match(/<details class="scenario"[^>]* open>/g) ?? []).toHaveLength(
-      0,
-    );
+    expect(
+      html.match(/<details class="scenario"[^>]* open>/g) ?? [],
+    ).toHaveLength(0);
   });
 
   it('opens non-passed legacy and JUnit rows without diagnostics', async () => {
@@ -65,7 +71,9 @@ describe('default open state', () => {
       '<div class="diagnostic" data-diagnostic="ambiguous"',
     );
 
-    const junitHtml = await renderReport(junitBasicFixture, { title: 'JUnit open' });
+    const junitHtml = await renderReport(junitBasicFixture, {
+      title: 'JUnit open',
+    });
     expect(scenarioOpeningTag(junitHtml, 'slow payment')).toContain(' open>');
     expect(junitHtml).not.toContain('<div class="diagnostic"');
   });

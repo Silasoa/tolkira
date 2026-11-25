@@ -42,7 +42,11 @@ function pageOverflow(page: Page): Promise<number> {
 test.beforeAll(async () => {
   english = await writeReport([germanInput], '', 'tolkira-locale-e2e-');
   german = await writeReport([germanInput], '', 'tolkira-locale-e2e-', 'de');
-  const historyDir = await writeReport([germanInput], '', 'tolkira-locale-history-');
+  const historyDir = await writeReport(
+    [germanInput],
+    '',
+    'tolkira-locale-history-',
+  );
   const history = path.join(historyDir.dir, 'history.json');
   await copyFile(historyFixture, history);
   germanHistory = await writeReportWithHistory(
@@ -70,7 +74,9 @@ test('keeps German usable at every gate viewport with one tab row', async ({
     await page.setViewportSize({ width, height: 800 });
     await page.goto(reportUrl(de.output));
 
-    expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(
+      1,
+    );
 
     const tabs = page.getByRole('tab');
     await expect(tabs).toHaveCount(2);
@@ -102,9 +108,10 @@ test('keeps German usable at every gate viewport with one tab row', async ({
     document.documentElement.style.fontSize = '32px';
   });
   await page.goto(reportUrl(de.output));
-  expect(await pageOverflow(page), '320px at 200% overflow').toBeLessThanOrEqual(
-    1,
-  );
+  expect(
+    await pageOverflow(page),
+    '320px at 200% overflow',
+  ).toBeLessThanOrEqual(1);
   await expect(page.getByRole('tab').first()).toHaveText('Bericht');
 });
 
@@ -210,21 +217,28 @@ test('keeps German Details and Trends usable at 320px and 200% text', async ({
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '32px';
     });
-    expect(await pageOverflow(page), `${view} at 320px/200%`).toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      await pageOverflow(page),
+      `${view} at 320px/200%`,
+    ).toBeLessThanOrEqual(1);
   }
 
   await page.setViewportSize({ width: 320, height: 700 });
   await page.goto(reportUrl(de.output));
   await page.getByRole('tab', { name: 'Details' }).click();
-  const matrixName = await page.locator('.featureTable .matrixName').first().boundingBox();
+  const matrixName = await page
+    .locator('.featureTable .matrixName')
+    .first()
+    .boundingBox();
   expect(matrixName, 'matrix feature name').not.toBeNull();
   expect(matrixName!.width, 'matrix feature name width').toBeGreaterThan(96);
   expect(
-    await page.locator('.featureTable').evaluate(
-      (table) => table.parentElement!.scrollWidth > table.parentElement!.clientWidth,
-    ),
+    await page
+      .locator('.featureTable')
+      .evaluate(
+        (table) =>
+          table.parentElement!.scrollWidth > table.parentElement!.clientWidth,
+      ),
     'matrix still scrolls in its region',
   ).toBe(true);
 

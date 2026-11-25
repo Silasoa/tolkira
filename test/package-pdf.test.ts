@@ -131,9 +131,7 @@ describe('PDF package metadata', () => {
     // The peer-present/browser-missing branch uses a fake package in a second
     // temp cwd and must map the launch error to the same guidance.
     expect(packageJob).toContain('browser_dir=$(mktemp -d)');
-    expect(packageJob).toContain(
-      'node_modules/playwright-core/package.json',
-    );
+    expect(packageJob).toContain('node_modules/playwright-core/package.json');
     expect(packageJob).toContain("Executable doesn't exist");
     expect(packageJob).toContain('assert_missing_engine "$browser_dir"');
     // The marker proves the fallback loaded the fake peer; the same guidance

@@ -23,7 +23,10 @@ afterEach(cleanupTempDirs);
 
 const MIXED_URI = 'features/checkout.feature';
 
-async function mixedRun(): Promise<{ file: string; baseline: BaselineSummary }> {
+async function mixedRun(): Promise<{
+  file: string;
+  baseline: BaselineSummary;
+}> {
   const dir = await makeTempDir();
   return {
     file: await writeLegacyRun(dir, 'mixed.json', mixedFeatures()),
@@ -41,7 +44,10 @@ async function render(
   return renderReport(file, options);
 }
 
-async function badgeRun(): Promise<{ file: string; baseline: BaselineSummary }> {
+async function badgeRun(): Promise<{
+  file: string;
+  baseline: BaselineSummary;
+}> {
   const dir = await makeTempDir();
   const file = await writeLegacyRun(dir, 'badges.json', [
     {
@@ -160,13 +166,16 @@ describe('baseline report panel', () => {
     const dir = await makeTempDir();
     const file = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
     const letters = 'abcdefghijklmno';
-    const absent: BaselineScenario[] = Array.from({ length: 15 }, (_, index) => ({
-      feature: 'Checkout',
-      name: `entry ${letters[index]}`,
-      uri: MIXED_URI,
-      status: 'failed',
-      executed: true,
-    }));
+    const absent: BaselineScenario[] = Array.from(
+      { length: 15 },
+      (_, index) => ({
+        feature: 'Checkout',
+        name: `entry ${letters[index]}`,
+        uri: MIXED_URI,
+        status: 'failed',
+        executed: true,
+      }),
+    );
     const baseline: BaselineSummary = {
       schemaVersion: 2,
       status: 'failed',
@@ -177,7 +186,9 @@ describe('baseline report panel', () => {
     const slice = panelSlice(html);
 
     for (let index = 0; index < 10; index += 1) {
-      expect(slice, `row ${letters[index]}`).toContain(`entry ${letters[index]}`);
+      expect(slice, `row ${letters[index]}`).toContain(
+        `entry ${letters[index]}`,
+      );
     }
     expect(slice).not.toContain('entry k');
     expect(slice).toContain('15');
@@ -193,13 +204,16 @@ describe('baseline report panel', () => {
   it('states the JSON cap honestly when more than 50 rows are absent', async () => {
     const dir = await makeTempDir();
     const file = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
-    const absent: BaselineScenario[] = Array.from({ length: 60 }, (_, index) => ({
-      feature: 'Checkout',
-      name: `entry ${String(index).padStart(2, '0')}`,
-      uri: MIXED_URI,
-      status: 'failed',
-      executed: true,
-    }));
+    const absent: BaselineScenario[] = Array.from(
+      { length: 60 },
+      (_, index) => ({
+        feature: 'Checkout',
+        name: `entry ${String(index).padStart(2, '0')}`,
+        uri: MIXED_URI,
+        status: 'failed',
+        executed: true,
+      }),
+    );
 
     const html = await render(file, {
       schemaVersion: 2,
@@ -268,12 +282,12 @@ describe('baseline report panel', () => {
 
     const html = await render(file, baseline);
 
-    expect(
-      scenarioSummaryFor(html, 'features/a.feature', 'pays'),
-    ).toMatch(/new failure/i);
-    expect(
-      scenarioSummaryFor(html, 'features/b.feature', 'pays'),
-    ).not.toMatch(/new failure|fixed/i);
+    expect(scenarioSummaryFor(html, 'features/a.feature', 'pays')).toMatch(
+      /new failure/i,
+    );
+    expect(scenarioSummaryFor(html, 'features/b.feature', 'pays')).not.toMatch(
+      /new failure|fixed/i,
+    );
   });
 
   it('localizes the panel and the badges in German', async () => {
@@ -311,13 +325,16 @@ describe('baseline report panel', () => {
   it('renders the German capped JSON pointer after 50 absent rows', async () => {
     const dir = await makeTempDir();
     const file = await writeLegacyRun(dir, 'mixed.json', mixedFeatures());
-    const absent: BaselineScenario[] = Array.from({ length: 60 }, (_, index) => ({
-      feature: 'Checkout',
-      name: `entry ${String(index).padStart(2, '0')}`,
-      uri: MIXED_URI,
-      status: 'failed',
-      executed: true,
-    }));
+    const absent: BaselineScenario[] = Array.from(
+      { length: 60 },
+      (_, index) => ({
+        feature: 'Checkout',
+        name: `entry ${String(index).padStart(2, '0')}`,
+        uri: MIXED_URI,
+        status: 'failed',
+        executed: true,
+      }),
+    );
 
     const html = await render(
       file,
@@ -376,10 +393,7 @@ describe('baseline report panel', () => {
     expect(slice).toMatch(/1/);
   });
 
-  function panelFor(
-    locale: string,
-    counts: Partial<BaselineCounts>,
-  ): string {
+  function panelFor(locale: string, counts: Partial<BaselineCounts>): string {
     return renderBaselinePanel(
       {
         block: {

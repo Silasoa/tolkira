@@ -32,7 +32,12 @@ function mainBounds(html: string): {
 function view(html: string, id: string): string {
   const start = html.indexOf(`id="${id}"`);
   expect(start, id).toBeGreaterThan(-1);
-  const next = ['report-view', 'analysis-view', 'trends-view', 'tolkira-lightbox']
+  const next = [
+    'report-view',
+    'analysis-view',
+    'trends-view',
+    'tolkira-lightbox',
+  ]
     .map((other) => html.indexOf(`id="${other}"`, start + 1))
     .filter((index) => index > start)
     .sort((a, b) => a - b)[0];
@@ -45,11 +50,7 @@ function runHeaders(html: string): number[] {
   );
 }
 
-function expectOnlySiteBanner(
-  html: string,
-  start: number,
-  end: number,
-): void {
+function expectOnlySiteBanner(html: string, start: number, end: number): void {
   const outside = html.slice(0, start) + html.slice(end);
   expect(outside.match(/<header\b/g) ?? []).toHaveLength(1);
   expect(outside).toContain('<header class="topbar">');

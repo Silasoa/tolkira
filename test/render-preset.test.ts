@@ -93,9 +93,11 @@ describe('failed-only preset presence', () => {
 
   it('renders no toggle for a passed-only or failed-only run', async () => {
     expect(await renderLegacy(behaveFixture)).not.toContain(PRESET_BUTTON);
-    expect(await renderHtml(await failedOnlyLegacyEnvelopes(), {
-      title: 'Failed only',
-    })).not.toContain(PRESET_BUTTON);
+    expect(
+      await renderHtml(await failedOnlyLegacyEnvelopes(), {
+        title: 'Failed only',
+      }),
+    ).not.toContain(PRESET_BUTTON);
   });
 });
 

@@ -1,4 +1,11 @@
-import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  readFile,
+  readdir,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,9 +36,10 @@ import { renderHtml } from '../src/render/html.js';
 
 // The CLI tests never launch a browser: the PDF module is replaced here.
 const pdf = vi.hoisted(() => ({
-  renderPdf: vi.fn<
-    (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
-  >(),
+  renderPdf:
+    vi.fn<
+      (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
+    >(),
 }));
 vi.mock('../src/pdf.js', () => ({ renderPdf: pdf.renderPdf }));
 
@@ -67,7 +75,9 @@ async function baselineFor(
 }
 
 async function expectMissing(file: string): Promise<void> {
-  await expect(readFile(file, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  await expect(readFile(file, 'utf8')).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
 }
 
 describe('CLI --baseline', () => {
@@ -86,13 +96,7 @@ describe('CLI --baseline', () => {
     const before = await stat(baseline);
     const report = path.join(dir, 'report.html');
 
-    const result = await cli([
-      input,
-      '--baseline',
-      baseline,
-      '--out',
-      report,
-    ]);
+    const result = await cli([input, '--baseline', baseline, '--out', report]);
 
     expect(result.code, result.stderr).toBe(0);
     expect(result.stderr).toBe('');
@@ -106,7 +110,10 @@ describe('CLI --baseline', () => {
     const after = await stat(baseline);
     expect(after.mtimeMs).toBe(before.mtimeMs);
     expect((await readFile(baseline)).equals(bytes)).toBe(true);
-    expect((await readdir(dir)).sort()).toEqual(['baseline.json', 'report.html']);
+    expect((await readdir(dir)).sort()).toEqual([
+      'baseline.json',
+      'report.html',
+    ]);
   });
 
   it('prints the JSON block between attachments and scenarios', async () => {
@@ -262,7 +269,13 @@ describe('CLI --baseline', () => {
     );
     const output = path.join(dir, 'run.pdf');
 
-    const result = await cli([current, '--baseline', baseline, '--pdf', output]);
+    const result = await cli([
+      current,
+      '--baseline',
+      baseline,
+      '--pdf',
+      output,
+    ]);
 
     expect(result.code, result.stderr).toBe(0);
     expect(result.stdout).toBe(`PDF written to ${output}\n`);
@@ -375,7 +388,13 @@ describe('CLI --baseline', () => {
     expect(second.stdout).toBe(first.stdout);
     expect(await readFile(report, 'utf8')).toBe(firstHtml);
 
-    const firstCi = await cli([current, '--baseline', baseline, '--ci', 'markdown']);
+    const firstCi = await cli([
+      current,
+      '--baseline',
+      baseline,
+      '--ci',
+      'markdown',
+    ]);
     const secondCi = await cli([
       current,
       '--baseline',
@@ -418,13 +437,7 @@ describe('CLI --baseline usage errors', () => {
     const missing = path.join(dir, 'missing-baseline.json');
     const report = path.join(dir, 'report.html');
 
-    const result = await cli([
-      input,
-      '--baseline',
-      missing,
-      '--out',
-      report,
-    ]);
+    const result = await cli([input, '--baseline', missing, '--out', report]);
 
     expect(result.code, result.stderr).toBe(1);
     expect(result.stderr).toContain('missing-baseline.json');
@@ -484,15 +497,7 @@ describe('CLI --baseline usage errors', () => {
       },
       {
         label: 'logo',
-        args: [
-          inputFile,
-          '--baseline',
-          logo,
-          '--out',
-          report,
-          '--logo',
-          logo,
-        ],
+        args: [inputFile, '--baseline', logo, '--out', report, '--logo', logo],
       },
       {
         label: '--out',
@@ -617,9 +622,7 @@ describe('baseline API', () => {
       'utf8',
     );
 
-    expect(index).toMatch(
-      /export\s+type\s*\{[^}]*\bBaselineSummary\b[^}]*\}/s,
-    );
+    expect(index).toMatch(/export\s+type\s*\{[^}]*\bBaselineSummary\b[^}]*\}/s);
     expect(index).toMatch(/\bBaselineRenderOptions\b/);
   });
 });

@@ -17,9 +17,10 @@ import { en } from '../src/i18n/catalogs.js';
 
 // The CLI tests never launch a browser: the PDF module is replaced here.
 const pdf = vi.hoisted(() => ({
-  renderPdf: vi.fn<
-    (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
-  >(),
+  renderPdf:
+    vi.fn<
+      (html: string, options?: { timeoutMs?: number }) => Promise<Uint8Array>
+    >(),
 }));
 vi.mock('../src/pdf.js', () => ({ renderPdf: pdf.renderPdf }));
 
@@ -38,8 +39,8 @@ const LOGO =
 
 // Deliberately not valid UTF-8: the PDF must be written byte for byte.
 const PDF_BYTES = Buffer.from([
-  0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xff, 0xfe,
-  0x00, 0x01, 0x80, 0x7f,
+  0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x25, 0xff, 0xfe, 0x00,
+  0x01, 0x80, 0x7f,
 ]);
 
 const INSTALL_GUIDANCE =
@@ -215,13 +216,7 @@ describe('CLI --pdf', () => {
     const output = path.join(dir, 'run.pdf');
     const baseline = await run([fixture, '--ci', 'markdown']);
 
-    const withPdf = await run([
-      fixture,
-      '--ci',
-      'markdown',
-      '--pdf',
-      output,
-    ]);
+    const withPdf = await run([fixture, '--ci', 'markdown', '--pdf', output]);
 
     expect(baseline.code, baseline.stderr).toBe(0);
     expect(withPdf.code, withPdf.stderr).toBe(0);
@@ -420,7 +415,9 @@ describe('CLI --pdf', () => {
       history,
     ]);
     expect(asHistory.code, asHistory.stderr).toBe(2);
-    expect(asHistory.stderr).toMatch(/--pdf[^\n]*--history|--history[^\n]*--pdf/i);
+    expect(asHistory.stderr).toMatch(
+      /--pdf[^\n]*--history|--history[^\n]*--pdf/i,
+    );
 
     const asEmail = await run([
       input,
@@ -485,9 +482,9 @@ describe('CLI --pdf', () => {
 
     expect(result.code, result.stderr).toBe(2);
     expect(result.stderr).toMatch(/--pdf[^\n]*input/i);
-    await expect(
-      stat(path.join(inputDir, 'run.pdf')),
-    ).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(stat(path.join(inputDir, 'run.pdf'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
   });
 
   // Only these platforms fold path case; Linux treats the names as different.
@@ -509,9 +506,9 @@ describe('CLI --pdf', () => {
       expect(result.code, result.stderr).toBe(2);
       expect(result.stderr).not.toMatch(/Unknown option/i);
       expect(result.stderr).toContain('--pdf');
-      await expect(
-        stat(path.join(dir, 'report.pdf')),
-      ).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(stat(path.join(dir, 'report.pdf'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
     },
   );
 
@@ -584,13 +581,7 @@ describe('CLI --pdf', () => {
     const history = path.join(dir, 'history.json');
     await copyFile(historyFixture, history);
 
-    const withLogo = await run([
-      fixture,
-      '--pdf',
-      output,
-      '--logo',
-      logo,
-    ]);
+    const withLogo = await run([fixture, '--pdf', output, '--logo', logo]);
     expect(withLogo.code, withLogo.stderr).toBe(2);
     expect(withLogo.stderr).not.toMatch(/Unknown option/i);
     expect(withLogo.stderr).toMatch(/--logo[^\n]*--out/i);
@@ -674,9 +665,12 @@ describe('CLI --pdf', () => {
     ]);
 
     expect(result.code, result.stderr).toBe(0);
-    expect(pdf.renderPdf).toHaveBeenCalledWith(expect.stringContaining('<html'), {
-      timeoutMs: 120_000,
-    });
+    expect(pdf.renderPdf).toHaveBeenCalledWith(
+      expect.stringContaining('<html'),
+      {
+        timeoutMs: 120_000,
+      },
+    );
 
     const max = await run([
       fixture,
@@ -696,15 +690,7 @@ describe('CLI --pdf', () => {
     const dir = await tempDir();
     const output = path.join(dir, 'run.pdf');
 
-    for (const value of [
-      '0',
-      '-5',
-      'abc',
-      '0300',
-      '2147483648',
-      '1.5',
-      '+5',
-    ]) {
+    for (const value of ['0', '-5', 'abc', '0300', '2147483648', '1.5', '+5']) {
       const result = await run([
         fixture,
         '--pdf',
@@ -745,13 +731,7 @@ describe('CLI --pdf', () => {
     const dir = await tempDir();
     const output = path.join(dir, 'run.pdf');
 
-    const result = await run([
-      fixture,
-      '--pdf',
-      output,
-      '--max-size',
-      '0.001',
-    ]);
+    const result = await run([fixture, '--pdf', output, '--max-size', '0.001']);
 
     expect(result.code, result.stderr).toBe(0);
     expect(result.stdout).toBe(`PDF written to ${output}\n`);

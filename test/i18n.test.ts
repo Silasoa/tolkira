@@ -119,7 +119,11 @@ describe('locale resolution', () => {
 describe('formatMessage', () => {
   it('interpolates named placeholders in one pass', () => {
     expect(
-      formatMessage('Hallo {name}, {count} Dateien', { name: 'Ada', count: 3 }, 'de'),
+      formatMessage(
+        'Hallo {name}, {count} Dateien',
+        { name: 'Ada', count: 3 },
+        'de',
+      ),
     ).toBe('Hallo Ada, 3 Dateien');
     expect(formatMessage('{name} & {name}', { name: 'Ada' }, 'en')).toBe(
       'Ada & Ada',
@@ -133,9 +137,13 @@ describe('formatMessage', () => {
     expect(formatMessage('{count} files', { count: 1234 }, 'en')).toBe(
       '1234 files',
     );
-    expect(formatMessage('{passed} / {attempted}', { passed: 1234, attempted: 2345 }, 'de')).toBe(
-      `${intlNumber('de', 1234)} / ${intlNumber('de', 2345)}`,
-    );
+    expect(
+      formatMessage(
+        '{passed} / {attempted}',
+        { passed: 1234, attempted: 2345 },
+        'de',
+      ),
+    ).toBe(`${intlNumber('de', 1234)} / ${intlNumber('de', 2345)}`);
   });
 
   it('reads only own parameters, never prototype members', () => {
@@ -227,10 +235,9 @@ describe('formatMessage', () => {
       'Hallo "Welt',
     ];
     for (const message of cases) {
-      expect(
-        () => formatMessage(message, { count: 1 }, 'en'),
-        message,
-      ).toThrow(/Invalid message/);
+      expect(() => formatMessage(message, { count: 1 }, 'en'), message).toThrow(
+        /Invalid message/,
+      );
     }
   });
 
@@ -303,8 +310,10 @@ describe('createTranslator', () => {
     expect(partial.t(otherKey as MessageKey)).toBe(
       englishCatalog[otherKey as MessageKey],
     );
-    const loose = (key: string, params?: Record<string, string | number>): string =>
-      partial.t(key as MessageKey, params);
+    const loose = (
+      key: string,
+      params?: Record<string, string | number>,
+    ): string => partial.t(key as MessageKey, params);
     expect(loose('missing.key')).toBe('missing.key');
     expect(loose('constructor')).toBe('constructor');
     expect(loose('__proto__')).toBe('__proto__');

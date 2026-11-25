@@ -129,7 +129,9 @@ function parseMaxSize(value: string | undefined): number {
   if (value === undefined) return DEFAULT_MAX_SIZE_MB;
   const megabytes = Number(value);
   if (!Number.isFinite(megabytes) || megabytes <= 0) {
-    throw new Error(`Invalid --max-size "${value}". Use a positive number of MB.`);
+    throw new Error(
+      `Invalid --max-size "${value}". Use a positive number of MB.`,
+    );
   }
   return megabytes;
 }
@@ -167,7 +169,9 @@ function parseCiFormat(value: string | undefined): CiFormat | undefined {
 function parseAccent(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
   if (!ACCENT_PATTERN.test(value)) {
-    throw new Error(`Invalid --accent "${value}". Use a hex colour such as #1b5e20.`);
+    throw new Error(
+      `Invalid --accent "${value}". Use a hex colour such as #1b5e20.`,
+    );
   }
   return value;
 }
@@ -216,7 +220,9 @@ function pathConflicts(
 }
 
 function errorCode(error: unknown): string | undefined {
-  return error instanceof Error && 'code' in error && typeof error.code === 'string'
+  return error instanceof Error &&
+    'code' in error &&
+    typeof error.code === 'string'
     ? error.code
     : undefined;
 }
@@ -331,7 +337,9 @@ async function readLogo(file: string): Promise<string> {
       break;
   }
   if (!valid) {
-    throw new Error(`Logo content does not match the "${extension}" extension.`);
+    throw new Error(
+      `Logo content does not match the "${extension}" extension.`,
+    );
   }
   return `data:${mime};base64,${data.toString('base64')}`;
 }
@@ -573,7 +581,10 @@ export async function runCli(
     return 2;
   }
 
-  if (output && (await outputOverwritesInput(inputs, output, parsed.values.logo))) {
+  if (
+    output &&
+    (await outputOverwritesInput(inputs, output, parsed.values.logo))
+  ) {
     io.stderr(`tolkira: --out must not overwrite an input file\n\n${USAGE}`);
     return 2;
   }
@@ -817,9 +828,7 @@ function isMainModule(): boolean {
   const entry = process.argv[1];
   if (!entry) return false;
   try {
-    return (
-      realpathSync(fileURLToPath(import.meta.url)) === realpathSync(entry)
-    );
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(entry);
   } catch {
     return false;
   }

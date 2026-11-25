@@ -11,7 +11,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../src/cli.js';
-import { HISTORY_MAX_BYTES, type HistoryRun, type StatusCounts } from '../src/index.js';
+import {
+  HISTORY_MAX_BYTES,
+  type HistoryRun,
+  type StatusCounts,
+} from '../src/index.js';
 
 const messages = fileURLToPath(
   new URL('./fixtures/messages/second.ndjson', import.meta.url),
@@ -122,7 +126,9 @@ function sparkPoints(html: string): number {
 }
 
 async function expectMissing(file: string): Promise<void> {
-  await expect(readFile(file, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  await expect(readFile(file, 'utf8')).rejects.toMatchObject({
+    code: 'ENOENT',
+  });
 }
 
 describe('CLI history window', () => {
@@ -281,7 +287,9 @@ describe('CLI history window', () => {
     const sidecar = await readSidecar(path.join(implicit, 'history.json'));
     expect(sidecar.schemaVersion).toBe(1);
     expect(sidecar.runs).toHaveLength(3);
-    expect(trendsRows(await readFile(path.join(implicit, 'report.html'), 'utf8'))).toBe(3);
+    expect(
+      trendsRows(await readFile(path.join(implicit, 'report.html'), 'utf8')),
+    ).toBe(3);
   });
 
   it.each(['0', '366', '1.5', 'abc', '05', ''])(
@@ -314,13 +322,7 @@ describe('CLI history window', () => {
     const dir = await tempDir();
     const output = path.join(dir, 'report.html');
 
-    const run = await cli([
-      messages,
-      '--out',
-      output,
-      '--history-limit',
-      '10',
-    ]);
+    const run = await cli([messages, '--out', output, '--history-limit', '10']);
 
     expect(run.code).toBe(2);
     expect(run.stderr.split('\n')[0]).toBe(
@@ -357,7 +359,9 @@ describe('CLI history window', () => {
 
     const bare = await cli([messages, '--history', history]);
     expect(bare.code).toBe(2);
-    expect(bare.stderr.split('\n')[0]).toBe('tolkira: --history requires --out');
+    expect(bare.stderr.split('\n')[0]).toBe(
+      'tolkira: --history requires --out',
+    );
     expect(bare.stdout).toBe('');
     await expectMissing(history);
   });

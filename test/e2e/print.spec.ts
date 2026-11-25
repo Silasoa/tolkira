@@ -107,7 +107,9 @@ async function dispatchPrint(page: Page, type: 'beforeprint' | 'afterprint') {
 
 async function documentOverflow(page: Page): Promise<number> {
   return page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
   );
 }
 
@@ -162,27 +164,30 @@ async function trendsPrintMetrics(page: Page): Promise<{
   statusOverflow: number;
   statusGap: number;
 }> {
-  return page.locator('#trends-view tbody tr').first().evaluate((row) => {
-    const cells = [...row.querySelectorAll('td')];
-    const title = cells[1];
-    const status = cells[2];
-    const next = cells[3];
-    const duration = cells[10];
-    if (!title || !status || !next || !duration) {
-      throw new Error('Trends row cells are missing');
-    }
-    const range = document.createRange();
-    range.selectNodeContents(duration);
-    const pill = status.querySelector('.statusText');
-    const pillBox = pill?.getBoundingClientRect();
-    const nextBox = next.getBoundingClientRect();
-    return {
-      titleWidth: title.getBoundingClientRect().width,
-      durationLines: range.getClientRects().length,
-      statusOverflow: status.scrollWidth - status.clientWidth,
-      statusGap: pillBox ? nextBox.left - pillBox.right : -1,
-    };
-  });
+  return page
+    .locator('#trends-view tbody tr')
+    .first()
+    .evaluate((row) => {
+      const cells = [...row.querySelectorAll('td')];
+      const title = cells[1];
+      const status = cells[2];
+      const next = cells[3];
+      const duration = cells[10];
+      if (!title || !status || !next || !duration) {
+        throw new Error('Trends row cells are missing');
+      }
+      const range = document.createRange();
+      range.selectNodeContents(duration);
+      const pill = status.querySelector('.statusText');
+      const pillBox = pill?.getBoundingClientRect();
+      const nextBox = next.getBoundingClientRect();
+      return {
+        titleWidth: title.getBoundingClientRect().width,
+        durationLines: range.getClientRects().length,
+        statusOverflow: status.scrollWidth - status.clientWidth,
+        statusGap: pillBox ? nextBox.left - pillBox.right : -1,
+      };
+    });
 }
 
 async function luminance(
@@ -374,9 +379,10 @@ test('prints without interactive chrome and fits the A4 tables', async ({
     '.lightbox',
   ];
   for (const selector of chrome) {
-    expect(await page.locator(selector).count(), `${selector} exists`).toBeGreaterThan(
-      0,
-    );
+    expect(
+      await page.locator(selector).count(),
+      `${selector} exists`,
+    ).toBeGreaterThan(0);
     expect(
       await page.locator(`${selector}:visible`).count(),
       `${selector} hidden in print`,
@@ -442,7 +448,9 @@ test('prints content without chrome at 320px', async ({ page }) => {
   await expect(page.locator('#report-view .shot').first()).toBeVisible();
 });
 
-test('prints from Details or Trends and restores that tab', async ({ page }) => {
+test('prints from Details or Trends and restores that tab', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: A4_WIDTH, height: 1200 });
   await page.goto(reportUrl(report(english).output));
 
@@ -509,10 +517,7 @@ test('fits wide step and description tables to the printed page', async ({
     'step table overflow',
   ).toBeLessThanOrEqual(1);
   expect(
-    await regionOverflow(
-      page,
-      '#report-view .description .tableWrap',
-    ),
+    await regionOverflow(page, '#report-view .description .tableWrap'),
     'description table overflow',
   ).toBeLessThanOrEqual(1);
   expect(await documentOverflow(page), 'document overflow').toBeLessThanOrEqual(
@@ -594,7 +599,9 @@ test('prints the light palette from a dark screen', async ({ page }) => {
   const printed = await sample();
   expect(printed.body, 'printed body stays light').toBeGreaterThan(0.8);
   expect(printed.chip, 'printed status chip stays light').toBeGreaterThan(0.7);
-  expect(printed.logPanel, 'printed ANSI panel stays light').toBeGreaterThan(0.8);
+  expect(printed.logPanel, 'printed ANSI panel stays light').toBeGreaterThan(
+    0.8,
+  );
   expect(printed.logText, 'printed ANSI ink stays dark').toBeLessThan(0.2);
 });
 
@@ -675,9 +682,7 @@ test('prints the German history report at the A4 content width', async ({
   const clientKeys = await page.evaluate(() => {
     const block = document.getElementById('tolkira-messages');
     if (!block?.textContent) return [];
-    return Object.keys(
-      JSON.parse(block.textContent) as Record<string, string>,
-    );
+    return Object.keys(JSON.parse(block.textContent) as Record<string, string>);
   });
   expect(clientKeys.filter((key) => /print/i.test(key))).toEqual([]);
 
@@ -712,9 +717,10 @@ test('prints the German history report at the A4 content width', async ({
   await expect(oldest.locator('td').nth(9), 'old Flaky share cell').toHaveText(
     '—',
   );
-  expect(await documentOverflow(page), 'German document overflow').toBeLessThanOrEqual(
-    1,
-  );
+  expect(
+    await documentOverflow(page),
+    'German document overflow',
+  ).toBeLessThanOrEqual(1);
 });
 
 test('prints the failed-only filter, its marker and full Details and Trends', async ({
@@ -787,9 +793,10 @@ test('writes a multi-page A4 PDF with the complete print state', async ({
 
   expect(pdf.subarray(0, 4).toString('latin1')).toBe('%PDF');
   const pages = pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) ?? [];
-  expect(pages.length, 'Report, Details and Trends pages').toBeGreaterThanOrEqual(
-    3,
-  );
+  expect(
+    pages.length,
+    'Report, Details and Trends pages',
+  ).toBeGreaterThanOrEqual(3);
 });
 
 test('prints the German flaky Trends columns without clipping', async ({
@@ -855,10 +862,9 @@ test('prints the German flaky Trends columns without clipping', async ({
       metrics.statusOverflow,
       'flaky Trends status overflow',
     ).toBeLessThanOrEqual(1);
-    expect(
-      metrics.statusGap,
-      'flaky Trends status gap',
-    ).toBeGreaterThanOrEqual(0);
+    expect(metrics.statusGap, 'flaky Trends status gap').toBeGreaterThanOrEqual(
+      0,
+    );
     expect(
       await documentOverflow(page),
       'flaky document overflow',

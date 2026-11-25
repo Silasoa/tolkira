@@ -2,11 +2,7 @@
 // A WeakMap keeps the skip count out of Messages, so hand-written NDJSON cannot
 // fabricate a notice.
 export type AttachmentSkipReason =
-  | 'outside'
-  | 'missing'
-  | 'unreadable'
-  | 'not-regular'
-  | 'non-local';
+  'outside' | 'missing' | 'unreadable' | 'not-regular' | 'non-local';
 
 export interface SkippedAttachment {
   name: string;

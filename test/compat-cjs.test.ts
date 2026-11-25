@@ -67,9 +67,7 @@ const tempDirs: string[] = [];
 
 beforeAll(() => {
   if (!existsSync(distIndex)) {
-    throw new Error(
-      'dist/ is missing; run `npm run build` before `npm test`',
-    );
+    throw new Error('dist/ is missing; run `npm run build` before `npm test`');
   }
 });
 
@@ -289,8 +287,7 @@ describe('compat package build', () => {
           `npm pack --json --pack-destination "${packDir}"`,
         );
         const parsed = JSON.parse(stdout) as
-          | Array<{ filename?: string }>
-          | { filename?: string };
+          Array<{ filename?: string }> | { filename?: string };
         const packed = Array.isArray(parsed) ? parsed[0] : parsed;
         if (!packed?.filename) {
           // npm stage publish runs the lifecycle with pack disabled; fall back to

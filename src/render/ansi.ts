@@ -30,7 +30,9 @@ function xtermColor(value: number): string {
 
 function rgbColor(red: number, green: number, blue: number): string {
   const channel = (value: number): string =>
-    Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0');
+    Math.max(0, Math.min(255, Math.round(value)))
+      .toString(16)
+      .padStart(2, '0');
   return `#${channel(red)}${channel(green)}${channel(blue)}`;
 }
 
@@ -119,7 +121,11 @@ function applySgr(style: AnsiStyle, raw: string): void {
         const red = Number(parts[index + 2]);
         const green = Number(parts[index + 3]);
         const blue = Number(parts[index + 4]);
-        if (Number.isFinite(red) && Number.isFinite(green) && Number.isFinite(blue)) {
+        if (
+          Number.isFinite(red) &&
+          Number.isFinite(green) &&
+          Number.isFinite(blue)
+        ) {
           const value = rgbColor(red, green, blue);
           if (foreground) {
             style.fgColor = value;
@@ -138,13 +144,13 @@ function applySgr(style: AnsiStyle, raw: string): void {
 function hasStyle(style: AnsiStyle): boolean {
   return Boolean(
     style.fgClass ||
-      style.bgClass ||
-      style.fgColor ||
-      style.bgColor ||
-      style.bold ||
-      style.dim ||
-      style.italic ||
-      style.underline,
+    style.bgClass ||
+    style.fgColor ||
+    style.bgColor ||
+    style.bold ||
+    style.dim ||
+    style.italic ||
+    style.underline,
   );
 }
 

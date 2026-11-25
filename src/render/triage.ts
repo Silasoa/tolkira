@@ -27,11 +27,10 @@ interface TriageEntry extends OrderedFeature {
   index: number;
 }
 
-function renderTriageRow({
-  feature,
-  scenarios,
-  index,
-}: TriageEntry, t: Translator): string {
+function renderTriageRow(
+  { feature, scenarios, index }: TriageEntry,
+  t: Translator,
+): string {
   const failing = executedOnly(scenarios).filter(
     (scenario) => scenario.status !== 'passed',
   );
@@ -106,12 +105,12 @@ export function renderTriage(
   return `<details class="triageBox" data-triage open><summary class="triageSummary"><span class="triageTitle">${t.t('triage.needsAttention')}</span><span class="triageSummaryLead">${lead}</span><span class="chev" aria-hidden="true"></span></summary><nav class="triage" aria-label="${t.t('triage.needsAttention')}"><h2 id="triage-heading">${t.t('triage.needsAttention')}</h2><p class="triageLead">${lead}</p><ol class="triageList">${rows}</ol>${restBlock}${remainder}</nav></details>`;
 }
 
-export function renderSourceStrip(
-  model: ReportModel,
-  t: Translator,
-): string {
+export function renderSourceStrip(model: ReportModel, t: Translator): string {
   if (model.features.some((feature) => !feature.sourceFile)) return '';
-  const groups = new Map<string, { features: ReportFeature[]; order: number }>();
+  const groups = new Map<
+    string,
+    { features: ReportFeature[]; order: number }
+  >();
   model.features.forEach((feature, index) => {
     const file = feature.sourceFile;
     if (!file) return;

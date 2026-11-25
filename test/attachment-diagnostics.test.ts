@@ -88,7 +88,7 @@ function shellNotice(html: string): string {
 
 // The report escapes the catalog notice, including its apostrophes.
 function escapedNotice(count: number): string {
-  return skipNotice(count).replaceAll('\'', '&#39;');
+  return skipNotice(count).replaceAll("'", '&#39;');
 }
 
 function skippedEntries(
@@ -228,12 +228,12 @@ describe('attachment diagnostics', () => {
     expect.soft(detail).toContain('<div class="attachmentWarning"');
     expect.soft(detail).toContain('class="attachmentSkipList"');
     expect.soft(occurrences(detail, escapedNotice(2))).toBe(1);
-    expect.soft(detail).toContain(
-      `<li><code>first</code> - ${SKIP_REASON.outside}</li>`,
-    );
-    expect.soft(detail).toContain(
-      `<li><code>second</code> - ${SKIP_REASON.outside}</li>`,
-    );
+    expect
+      .soft(detail)
+      .toContain(`<li><code>first</code> - ${SKIP_REASON.outside}</li>`);
+    expect
+      .soft(detail)
+      .toContain(`<li><code>second</code> - ${SKIP_REASON.outside}</li>`);
     expect.soft(detail).not.toContain('attachmentSkipMore');
 
     // Run-level count and notice stay, now generic and pointing at scenarios.
@@ -674,7 +674,9 @@ describe('attachment diagnostics', () => {
       '';
 
     expect(scenario).toBeDefined();
-    expect(scenario?.hooks.find((hook) => hook.status === 'failed')).toBeTruthy();
+    expect(
+      scenario?.hooks.find((hook) => hook.status === 'failed'),
+    ).toBeTruthy();
     expect(scenario?.attachments.map((entry) => entry.fileName)).toContain(
       'hook-note.txt',
     );

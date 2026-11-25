@@ -63,12 +63,8 @@ describe('metadata links', () => {
     const html = await renderWith({ 'CI run': CI_URL });
     const link = anchor(CI_URL, CI_URL);
 
-    expect(reportHeader(html)).toContain(
-      `<span><b>CI run</b> ${link}</span>`,
-    );
-    expect(analysisView(html)).toContain(
-      `<dt>CI run</dt><dd>${link}</dd>`,
-    );
+    expect(reportHeader(html)).toContain(`<span><b>CI run</b> ${link}</span>`);
+    expect(analysisView(html)).toContain(`<dt>CI run</dt><dd>${link}</dd>`);
   });
 
   it('links the normalized URL forms with the trimmed input as label', async () => {
@@ -95,11 +91,12 @@ describe('metadata links', () => {
     const html = await renderWith({
       Probe: '  \u202Ehttps://example.com/wrapped\u202C  ',
     });
-    const link = anchor('https://example.com/wrapped', 'https://example.com/wrapped');
-
-    expect(reportHeader(html)).toContain(
-      `<span><b>Probe</b> ${link}</span>`,
+    const link = anchor(
+      'https://example.com/wrapped',
+      'https://example.com/wrapped',
     );
+
+    expect(reportHeader(html)).toContain(`<span><b>Probe</b> ${link}</span>`);
     expect(analysisView(html)).toContain(`<dt>Probe</dt><dd>${link}</dd>`);
     expect(reportHeader(html)).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/);
     expect(analysisView(html)).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/);
@@ -125,12 +122,8 @@ describe('metadata links', () => {
       'https://example.com/a?x=1&amp;y=&quot;2&quot;',
     );
 
-    expect(reportHeader(html)).toContain(
-      `<span><b>Escaped</b> ${link}</span>`,
-    );
-    expect(analysisView(html)).toContain(
-      `<dt>Escaped</dt><dd>${link}</dd>`,
-    );
+    expect(reportHeader(html)).toContain(`<span><b>Escaped</b> ${link}</span>`);
+    expect(analysisView(html)).toContain(`<dt>Escaped</dt><dd>${link}</dd>`);
     expect(html).not.toContain('href="https://example.com/a?x=1&y=');
   });
 

@@ -68,9 +68,7 @@ describe('Messages attempt validation', () => {
     await expect(summarizeReport(file)).rejects.toThrow(
       'must be a non-negative safe integer',
     );
-    await expect(summarizeReport(file)).rejects.toThrow(
-      path.basename(file),
-    );
+    await expect(summarizeReport(file)).rejects.toThrow(path.basename(file));
   });
 
   it.each([

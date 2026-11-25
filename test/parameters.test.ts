@@ -17,7 +17,9 @@ async function render(): Promise<string> {
 }
 
 function testCaseFor(list: Envelope[], pickleName: string) {
-  const pickle = list.find((envelope) => envelope.pickle?.name === pickleName)?.pickle;
+  const pickle = list.find(
+    (envelope) => envelope.pickle?.name === pickleName,
+  )?.pickle;
   expect(pickle).toBeDefined();
   const testCase = list.find(
     (envelope) => envelope.testCase?.pickleId === pickle?.id,
@@ -135,7 +137,10 @@ describe('step parameter highlighting', () => {
     testCase.testSteps[0]!.stepMatchArgumentsLists = [
       {
         stepMatchArguments: [
-          { group: { start: 10, value: 'cucumbers and more' }, parameterTypeName: 'string' },
+          {
+            group: { start: 10, value: 'cucumbers and more' },
+            parameterTypeName: 'string',
+          },
         ],
       },
     ];

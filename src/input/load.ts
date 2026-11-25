@@ -223,14 +223,15 @@ export async function loadResolvedInputs(
         parseMessages(content, input.file);
         break;
       case 'playwright':
-        ({
-          envelopes: parsed,
-          skippedAttachments,
-        } = await parsePlaywrightJson(decision.parsed, input.file, {
-          idPrefix: `playwright-${index}`,
-          // One earlier image only fits a single-input report's byte budget.
-          allowRetryImages: ordered.length === 1,
-        }));
+        ({ envelopes: parsed, skippedAttachments } = await parsePlaywrightJson(
+          decision.parsed,
+          input.file,
+          {
+            idPrefix: `playwright-${index}`,
+            // One earlier image only fits a single-input report's byte budget.
+            allowRetryImages: ordered.length === 1,
+          },
+        ));
         break;
       case 'json-validation':
         invalidJson(content, input.file);
@@ -283,9 +284,7 @@ export async function loadResolvedInputs(
 
 // Test seam: adapters and model tests load one flat envelope list. Production
 // paths use loadResolvedInputs (or loadInputs) so provenance survives.
-export async function loadEnvelopes(
-  inputs: InputSource,
-): Promise<Envelope[]> {
+export async function loadEnvelopes(inputs: InputSource): Promise<Envelope[]> {
   return (await loadInputs(inputs)).flatMap((group) => group.envelopes);
 }
 

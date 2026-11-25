@@ -9,7 +9,11 @@ import { de, en } from '../src/i18n/catalogs.js';
 import { parsePlaywrightJson } from '../src/input/playwright.js';
 import { renderHtml } from '../src/render/html.js';
 import { REPORT_CSS } from '../src/render/styles.js';
-import { legacyFixture, messagesFixture, playwrightFixture } from './fixtures.js';
+import {
+  legacyFixture,
+  messagesFixture,
+  playwrightFixture,
+} from './fixtures.js';
 import {
   attemptResult,
   earlierBlocks,
@@ -142,9 +146,7 @@ describe('retry evidence rendering', () => {
     expect(REPORT_CSS).toContain('.earlierAttempts');
     const print = REPORT_CSS.slice(REPORT_CSS.indexOf('@media print'));
     expect(print).toMatch(/\.earlierAttempts[^{]*\{[^}]*break-inside:\s*avoid/);
-    expect(print).not.toMatch(
-      /\.earlierAttempts[^{]*\{[^}]*display:\s*none/,
-    );
+    expect(print).not.toMatch(/\.earlierAttempts[^{]*\{[^}]*display:\s*none/);
   });
 
   it('keeps earlier evidence out of JSON, CI, email and history', async () => {

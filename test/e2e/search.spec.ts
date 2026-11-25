@@ -15,7 +15,9 @@ test('filters by status', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    const failedFilter = page.locator('button.filter[data-filter-status="failed"]');
+    const failedFilter = page.locator(
+      'button.filter[data-filter-status="failed"]',
+    );
     await expect(failedFilter).toBeVisible();
     await expect(failedFilter).toHaveAttribute('aria-pressed', 'true');
     const pressedColour = await failedFilter.evaluate((element) => {
@@ -73,9 +75,7 @@ test('filters by tag', async ({ page }) => {
       .locator('details.feature')
       .filter({ hasText: 'Happy HTML reporting' });
     await expect(feature).toHaveAttribute('open', '');
-    await expect(
-      page.locator('details.scenario:visible[open]'),
-    ).toHaveCount(0);
+    await expect(page.locator('details.scenario:visible[open]')).toHaveCount(0);
 
     await tagFilter.selectOption('');
     await expect(page.locator('details.scenario:visible')).toHaveCount(6);
@@ -100,12 +100,10 @@ test('highlights search matches when the browser supports the Highlight API', as
     await page.goto(reportUrl(output));
     const search = page.getByRole('searchbox', { name: /Search/ });
     const supportsHighlight = await page.evaluate(() => {
-      const css = (
-        globalThis as unknown as { CSS?: { highlights?: unknown } }
-      ).CSS;
-      const HighlightCtor = (
-        globalThis as unknown as { Highlight?: unknown }
-      ).Highlight;
+      const css = (globalThis as unknown as { CSS?: { highlights?: unknown } })
+        .CSS;
+      const HighlightCtor = (globalThis as unknown as { Highlight?: unknown })
+        .Highlight;
       return Boolean(css?.highlights) && typeof HighlightCtor === 'function';
     });
 
@@ -132,7 +130,9 @@ test('highlights search matches when the browser supports the Highlight API', as
         }
       ).CSS;
       const highlight = css?.highlights?.get('tolkira-search');
-      return highlight ? Array.from(highlight).map((range) => range.toString()) : [];
+      return highlight
+        ? Array.from(highlight).map((range) => range.toString())
+        : [];
     });
     expect(rangeText).toContain('Failing');
 
@@ -184,7 +184,9 @@ test('opens a collapsed feature when searching', async ({ page }) => {
     const minimal = page.getByRole('heading', { name: 'Minimal scenario' });
     await expect(minimal).toBeHidden();
 
-    await page.getByRole('searchbox', { name: /Search/ }).fill('Minimal scenario');
+    await page
+      .getByRole('searchbox', { name: /Search/ })
+      .fill('Minimal scenario');
     await expect(minimal).toBeVisible();
     await expect(
       page.locator('details.scenario').filter({ hasText: 'Minimal scenario' }),
@@ -265,9 +267,9 @@ test('caps search auto-open at 20 newly opened rows', async ({ page }) => {
   try {
     await page.goto(reportUrl(output));
     await expect(page.locator('[data-scenario][open]')).toHaveCount(5);
-    await page.getByRole('searchbox', { name: 'Search scenarios' }).fill(
-      'Scenario',
-    );
+    await page
+      .getByRole('searchbox', { name: 'Search scenarios' })
+      .fill('Scenario');
     await expect(page.locator('[data-scenario][open]')).toHaveCount(25);
     await expect(page.locator('[data-scenario]:not([open])')).toHaveCount(5);
     await expect(page.locator('#tolkira-search-note')).toHaveText(

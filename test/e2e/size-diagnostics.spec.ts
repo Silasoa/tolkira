@@ -1,11 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import {
-  removeReport,
-  reportUrl,
-  writeInput,
-  writeReport,
-} from './helpers.js';
+import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
 const LONG_NAME = `screenshot-${'a'.repeat(160)}.png`;
 const MIB = 1024 * 1024;
@@ -114,9 +109,7 @@ function sizeMessages(largeBytes = 0): string {
         id: 'size-test-case',
         pickleId: 'size-pickle',
         testRunStartedId: 'size-run',
-        testSteps: [
-          { id: 'size-test-step', pickleStepId: 'size-pickle-step' },
-        ],
+        testSteps: [{ id: 'size-test-step', pickleStepId: 'size-pickle-step' }],
       },
     },
     {
@@ -216,7 +209,9 @@ async function metaTracks(
     .locator(selector)
     .first()
     .evaluate((element) =>
-      getComputedStyle(element).gridTemplateColumns.split(/\s+/).filter(Boolean),
+      getComputedStyle(element)
+        .gridTemplateColumns.split(/\s+/)
+        .filter(Boolean),
     );
 }
 
@@ -281,9 +276,7 @@ test('shows exact bytes with MB above 1 MiB without overflow', async ({
         .locator('xpath=following-sibling::dd[1]');
       await expect(row, `${label} report row`).toBeVisible();
       const text = (await row.textContent())?.trim() ?? '';
-      expect(text, `${label} leading count`).toMatch(
-        new RegExp(`^${bytes} `),
-      );
+      expect(text, `${label} leading count`).toMatch(new RegExp(`^${bytes} `));
       expect(text, `${label} MB`).toContain(`(${mb}\u00a0MB)`);
       await expectNoOverflow(page, label);
     };
@@ -338,9 +331,7 @@ test('stacks the German Details run panel and keeps the wide layout', async ({
     const narrowTracks = await metaTracks(page);
     expect(narrowTracks, '560px used tracks').toHaveLength(1);
     for (const track of narrowTracks) {
-      expect(track, '560px track is used px').toMatch(
-        /^-?\d+(?:\.\d+)?px$/,
-      );
+      expect(track, '560px track is used px').toMatch(/^-?\d+(?:\.\d+)?px$/);
     }
 
     const stacked = await sizeMeta.evaluate((list) => {
@@ -353,9 +344,7 @@ test('stacks the German Details run panel and keeps the wide layout', async ({
       };
     });
     expect(stacked, '560px label and value positions').toBeDefined();
-    expect(stacked!.dd, '560px value below label').toBeGreaterThan(
-      stacked!.dt,
-    );
+    expect(stacked!.dd, '560px value below label').toBeGreaterThan(stacked!.dt);
     await expectNoOverflow(page, '560px');
 
     const otherTracks = await metaTracks(
@@ -373,9 +362,7 @@ test('stacks the German Details run panel and keeps the wide layout', async ({
     const boundaryTracks = await metaTracks(page);
     expect(boundaryTracks, '561px used tracks').toHaveLength(2);
     for (const track of boundaryTracks) {
-      expect(track, '561px track is used px').toMatch(
-        /^-?\d+(?:\.\d+)?px$/,
-      );
+      expect(track, '561px track is used px').toMatch(/^-?\d+(?:\.\d+)?px$/);
     }
     expect(
       Math.abs(firstTrackShare(boundaryTracks) - 0.4),
@@ -399,9 +386,7 @@ test('stacks the German Details run panel and keeps the wide layout', async ({
     const printTracks = await metaTracks(page);
     expect(printTracks, 'A4 print used tracks').toHaveLength(2);
     for (const track of printTracks) {
-      expect(track, 'A4 print track is used px').toMatch(
-        /^-?\d+(?:\.\d+)?px$/,
-      );
+      expect(track, 'A4 print track is used px').toMatch(/^-?\d+(?:\.\d+)?px$/);
     }
     expect(
       Math.abs(firstTrackShare(printTracks) - 0.4),

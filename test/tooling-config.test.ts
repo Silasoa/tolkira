@@ -224,8 +224,7 @@ describe('curated lint', () => {
   });
 
   it('sets correctness to error and the other categories to warning', () => {
-    const categories =
-      readJson<LintConfig>('.oxlintrc.json').categories ?? {};
+    const categories = readJson<LintConfig>('.oxlintrc.json').categories ?? {};
     expect(categories['correctness']).toBe('error');
     expect(categories['suspicious']).toBe('warn');
     expect(categories['perf']).toBe('warn');
@@ -234,17 +233,11 @@ describe('curated lint', () => {
 
   it('configures the documented rule exceptions', () => {
     const rules = readJson<LintConfig>('.oxlintrc.json').rules ?? {};
-    expect(rules['vitest/valid-expect']).toEqual([
-      'error',
-      { maxArgs: 2 },
-    ]);
+    expect(rules['vitest/valid-expect']).toEqual(['error', { maxArgs: 2 }]);
     const expectExpect = rules['vitest/expect-expect'] as
-      | [string, { assertFunctionNames?: string[] }]
-      | undefined;
+      [string, { assertFunctionNames?: string[] }] | undefined;
     expect(expectExpect?.[0]).toBe('error');
-    expect(
-      [...(expectExpect?.[1]?.assertFunctionNames ?? [])].sort(),
-    ).toEqual([
+    expect([...(expectExpect?.[1]?.assertFunctionNames ?? [])].sort()).toEqual([
       'expect',
       'expectNoSidecar',
       'expectRejectedTarget',
@@ -252,8 +245,7 @@ describe('curated lint', () => {
       'validatePair',
     ]);
     const underscore = rules['eslint/no-underscore-dangle'] as
-      | [string, { allow?: string[] }]
-      | undefined;
+      [string, { allow?: string[] }] | undefined;
     expect(underscore?.[0]).toBe('warn');
     expect([...(underscore?.[1]?.allow ?? [])].sort()).toEqual([
       '__tolkiraCopied',
@@ -336,9 +328,7 @@ describe('curated lint', () => {
           entry.rules?.[rule] === 'off',
       );
 
-    expect(
-      offFor('test/**', 'typescript/no-unsafe-type-assertion'),
-    ).toBe(true);
+    expect(offFor('test/**', 'typescript/no-unsafe-type-assertion')).toBe(true);
     expect(offFor('src/stream.ts', 'promise/no-callback-in-promise')).toBe(
       true,
     );
@@ -870,9 +860,7 @@ describe('coverage threshold probe', () => {
       );
       writeFileSync(
         path.join(directory, 'control.test.ts'),
-        ["it('control', () => {", '  expect(1).toBe(1);', '});', ''].join(
-          '\n',
-        ),
+        ["it('control', () => {", '  expect(1).toBe(1);', '});', ''].join('\n'),
         'utf8',
       );
       writeFileSync(

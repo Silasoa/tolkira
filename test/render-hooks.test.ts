@@ -8,7 +8,9 @@ import { renderMessagesFile } from './render-helpers.js';
 
 const hooksFixture = messagesFixture('hooks.ndjson');
 const globalHooksFixture = messagesFixture('global-hooks.ndjson');
-const globalHookAttachments = messagesFixture('global-hooks-attachments.ndjson');
+const globalHookAttachments = messagesFixture(
+  'global-hooks-attachments.ndjson',
+);
 
 describe('hooks rendering', () => {
   it('renders per-scenario hooks separately from steps', async () => {

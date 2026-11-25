@@ -36,9 +36,7 @@ export function isFeatureLike(value: unknown): boolean {
 }
 
 type LegacySniff =
-  | { kind: 'legacy'; parsed: unknown[] }
-  | { kind: 'malformed' }
-  | undefined;
+  { kind: 'legacy'; parsed: unknown[] } | { kind: 'malformed' } | undefined;
 
 function sniffLegacy(content: string): LegacySniff {
   const trimmed = content.replace(/^\uFEFF/, '').trimStart();
@@ -118,7 +116,8 @@ export function detectInput(
   if (looksLikeMessages(content)) return { kind: 'messages' };
 
   const playwright = sniffPlaywright(content);
-  if (playwright !== undefined) return { kind: 'playwright', parsed: playwright };
+  if (playwright !== undefined)
+    return { kind: 'playwright', parsed: playwright };
 
   const extension = path.extname(identity.file).toLowerCase();
 

@@ -315,26 +315,32 @@ try {
   const maxBytes = count <= 1000 ? 5 * 1024 * 1024 : 20 * 1024 * 1024;
 
   if (summary.counts.scenarios.total !== count) {
-    throw new Error(`Expected ${count} scenarios, got ${summary.counts.scenarios.total}`);
+    throw new Error(
+      `Expected ${count} scenarios, got ${summary.counts.scenarios.total}`,
+    );
   }
   const expectedSteps = mode === 'scenarios' ? count * 3 : count;
   if (summary.counts.steps.total !== expectedSteps) {
-    throw new Error(`Expected ${expectedSteps} steps, got ${summary.counts.steps.total}`);
+    throw new Error(
+      `Expected ${expectedSteps} steps, got ${summary.counts.steps.total}`,
+    );
   }
   const html = await readFile(output, 'utf8');
   const openScenarios = (
     html.match(/<details class="scenario"[^>]* open>/g) ?? []
   ).length;
   if (mode === 'non-passed' && openScenarios !== count) {
-    throw new Error(
-      `Expected ${count} open scenarios, got ${openScenarios}.`,
-    );
+    throw new Error(`Expected ${count} open scenarios, got ${openScenarios}.`);
   }
   if (elapsedMs > maxMs) {
-    throw new Error(`Stress run took ${elapsedMs} ms, above the ${maxMs} ms budget.`);
+    throw new Error(
+      `Stress run took ${elapsedMs} ms, above the ${maxMs} ms budget.`,
+    );
   }
   if (htmlBytes > maxBytes) {
-    throw new Error(`Stress report is ${htmlBytes} bytes, above the ${maxBytes} byte budget.`);
+    throw new Error(
+      `Stress report is ${htmlBytes} bytes, above the ${maxBytes} byte budget.`,
+    );
   }
 
   console.log(

@@ -26,7 +26,10 @@ async function capture(
 async function panelBoxes(
   page: Page,
   id: string,
-): Promise<{ panel: { x: number; width: number }; shell: { x: number; width: number } }> {
+): Promise<{
+  panel: { x: number; width: number };
+  shell: { x: number; width: number };
+}> {
   const panelLocator = page.locator(`#${id}`);
   await expect(panelLocator).toBeVisible();
   const panel = await panelLocator.boundingBox();

@@ -93,10 +93,7 @@ markdown.renderer.rules.table_open = (_tokens, _index, _options, env) => {
 };
 markdown.renderer.rules.table_close = () => '</table></div>';
 
-export function renderDescription(
-  description: string,
-  t: Translator,
-): string {
+export function renderDescription(description: string, t: Translator): string {
   if (!description || !description.trim()) return '';
   return `<div class="description">${markdown.render(description, { t })}</div>`;
 }

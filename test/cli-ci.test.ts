@@ -94,13 +94,7 @@ describe('CLI CI output', () => {
     const dir = await tempDir();
     const ciFile = path.join(dir, 'nested', 'deep', 'summary.md');
 
-    const run = await cli([
-      failed,
-      '--ci',
-      'markdown',
-      '--ci-out',
-      ciFile,
-    ]);
+    const run = await cli([failed, '--ci', 'markdown', '--ci-out', ciFile]);
 
     expect(run.code).toBe(0);
     const markdown = await readFile(ciFile, 'utf8');
@@ -162,49 +156,62 @@ describe('CLI CI output', () => {
   });
 
   it('caps a long --title heading at 200 code points', async () => {
-    const run = await cli([failed, '--ci', 'markdown', '--title', 'x'.repeat(201)]);
+    const run = await cli([
+      failed,
+      '--ci',
+      'markdown',
+      '--title',
+      'x'.repeat(201),
+    ]);
 
     expect(run.code).toBe(0);
     expect(run.stdout.startsWith(`## ${'x'.repeat(200)}[truncated]\n`)).toBe(
       true,
     );
 
-    const exact = await cli([failed, '--ci', 'markdown', '--title', 'y'.repeat(200)]);
+    const exact = await cli([
+      failed,
+      '--ci',
+      'markdown',
+      '--title',
+      'y'.repeat(200),
+    ]);
     expect(exact.stdout.startsWith(`## ${'y'.repeat(200)}\n`)).toBe(true);
   });
 
-  it.skipIf(
-    process.platform === 'win32' || process.getuid?.() === 0,
-  )('reports a permission failure for --ci-out and keeps the report', async () => {
-    const dir = await tempDir();
-    const output = path.join(dir, 'report.html');
-    const ciDir = path.join(dir, 'locked');
-    await mkdir(ciDir);
-    const ciTarget = path.join(ciDir, 'summary.md');
-    await chmod(ciDir, 0o555);
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'reports a permission failure for --ci-out and keeps the report',
+    async () => {
+      const dir = await tempDir();
+      const output = path.join(dir, 'report.html');
+      const ciDir = path.join(dir, 'locked');
+      await mkdir(ciDir);
+      const ciTarget = path.join(ciDir, 'summary.md');
+      await chmod(ciDir, 0o555);
 
-    try {
-      const run = await cli([
-        failed,
-        '--out',
-        output,
-        '--ci',
-        'markdown',
-        '--ci-out',
-        ciTarget,
-      ]);
+      try {
+        const run = await cli([
+          failed,
+          '--out',
+          output,
+          '--ci',
+          'markdown',
+          '--ci-out',
+          ciTarget,
+        ]);
 
-      expect(run.code).toBe(1);
-      expect(run.stderr).toContain(`Cannot write CI output to ${ciTarget} (`);
-      expect(run.stderr).not.toContain('.tmp');
-      await expect(readFile(output, 'utf8')).resolves.toContain('<html');
-      await expect(readFile(ciTarget, 'utf8')).rejects.toMatchObject({
-        code: 'ENOENT',
-      });
-    } finally {
-      await chmod(ciDir, 0o755);
-    }
-  });
+        expect(run.code).toBe(1);
+        expect(run.stderr).toContain(`Cannot write CI output to ${ciTarget} (`);
+        expect(run.stderr).not.toContain('.tmp');
+        await expect(readFile(output, 'utf8')).resolves.toContain('<html');
+        await expect(readFile(ciTarget, 'utf8')).rejects.toMatchObject({
+          code: 'ENOENT',
+        });
+      } finally {
+        await chmod(ciDir, 0o755);
+      }
+    },
+  );
 
   it('rejects GitHub annotations bound to --ci-out before writing anything', async () => {
     const dir = await tempDir();
@@ -270,7 +277,12 @@ describe('CLI CI output', () => {
     expect(conflictError).not.toContain('--ci-out');
     expect(conflictError).toMatch(/drop/);
 
-    const markdownConflict = await cli([screenshot, '--json', '--ci', 'markdown']);
+    const markdownConflict = await cli([
+      screenshot,
+      '--json',
+      '--ci',
+      'markdown',
+    ]);
     expect(markdownConflict.code).toBe(2);
     const [markdownError] = markdownConflict.stderr.split('\n');
     expect(markdownError).toContain('--ci-out');
@@ -396,7 +408,11 @@ describe('CLI CI output', () => {
     const link = path.join(dir, 'link');
     await mkdir(real);
     try {
-      await symlink(real, link, process.platform === 'win32' ? 'junction' : 'dir');
+      await symlink(
+        real,
+        link,
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
     } catch {
       context.skip('directory symlinks are not supported here');
     }
@@ -499,13 +515,7 @@ describe('CLI CI output', () => {
   it('rejects --ci azure with --ci-out before writing anything', async () => {
     const dir = await tempDir();
     const ciFile = path.join(dir, 'summary.md');
-    const run = await cli([
-      failed,
-      '--ci',
-      'azure',
-      '--ci-out',
-      ciFile,
-    ]);
+    const run = await cli([failed, '--ci', 'azure', '--ci-out', ciFile]);
 
     expect(run.code).toBe(2);
     const [error] = run.stderr.split('\n');
@@ -544,8 +554,6 @@ describe('CLI CI output', () => {
     const run = await cli(['--help']);
 
     expect(run.code).toBe(0);
-    expect(run.stdout).toMatch(
-      /--ci <format>[^\n]*github, azure or markdown/,
-    );
+    expect(run.stdout).toMatch(/--ci <format>[^\n]*github, azure or markdown/);
   });
 });

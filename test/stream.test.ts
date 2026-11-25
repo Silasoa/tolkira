@@ -31,7 +31,9 @@ function withoutFileOrigin(html: string): string {
 }
 
 function reportRow(html: string): string | undefined {
-  return /<dt>(?:Report HTML|Bericht-HTML)<\/dt><dd>([^<]*)<\/dd>/.exec(html)?.[1];
+  return /<dt>(?:Report HTML|Bericht-HTML)<\/dt><dd>([^<]*)<\/dd>/.exec(
+    html,
+  )?.[1];
 }
 
 async function streamHtml(
@@ -92,7 +94,9 @@ describe('CucumberHtmlStream', () => {
     const html = await streamHtml('Stream logo', { logo });
 
     expect(withoutFileOrigin(html)).toBe(
-      withoutFileOrigin(await renderReport(fixture, { title: 'Stream logo', logo })),
+      withoutFileOrigin(
+        await renderReport(fixture, { title: 'Stream logo', logo }),
+      ),
     );
     expect(html).toContain('class="logo"');
   });

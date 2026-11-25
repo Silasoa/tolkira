@@ -66,7 +66,9 @@ async function writeAndMeasure(name, history) {
   const bytes = Buffer.byteLength(text, 'utf8');
   const stored = JSON.parse(text).runs.length;
   if (bytes > HISTORY_MAX_BYTES) {
-    throw new Error(`${name} is ${bytes} bytes, above the ${HISTORY_MAX_BYTES} cap.`);
+    throw new Error(
+      `${name} is ${bytes} bytes, above the ${HISTORY_MAX_BYTES} cap.`,
+    );
   }
   return { file, bytes, stored, pruned: stored < HISTORY_LIMIT_MAX };
 }
@@ -89,7 +91,10 @@ async function reportBytes(name, history, limit) {
 }
 
 try {
-  const short = await writeAndMeasure('history-365.json', buildHistory('Nightly'));
+  const short = await writeAndMeasure(
+    'history-365.json',
+    buildHistory('Nightly'),
+  );
   const titled = await writeAndMeasure(
     'history-365-title.json',
     buildHistory('T'.repeat(200)),

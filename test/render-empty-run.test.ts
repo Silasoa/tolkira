@@ -14,7 +14,9 @@ const emptyFixture = messagesFixture('empty.ndjson');
 const emptyNoneFixture = messagesFixture('empty-none.ndjson');
 const emptyMixedFixture = messagesFixture('empty-mixed.ndjson');
 const emptyStatusesFixture = messagesFixture('empty-statuses.ndjson');
-const emptyAllUnexecutedFixture = messagesFixture('empty-all-unexecuted.ndjson');
+const emptyAllUnexecutedFixture = messagesFixture(
+  'empty-all-unexecuted.ndjson',
+);
 const emptyHookOnlyFixture = messagesFixture('empty-hook-only.ndjson');
 const emptyRetryFixture = messagesFixture('empty-retry.ndjson');
 const emptyOutlineMixedFixture = messagesFixture('empty-outline-mixed.ndjson');
@@ -29,10 +31,7 @@ describe('empty-run rendering', () => {
     expect(html).toContain('0 / 0');
     const header = html.slice(
       html.indexOf('<header class="runHead">'),
-      html.indexOf(
-        '</header>',
-        html.indexOf('<header class="runHead">'),
-      ),
+      html.indexOf('</header>', html.indexOf('<header class="runHead">')),
     );
     expect(header).not.toContain('0 of 0 passed');
     expect(header).toContain(
@@ -102,7 +101,9 @@ describe('empty-run rendering', () => {
     expect(rowTag).not.toContain('data-status');
     expect(rowTag).not.toContain(' open');
     expect(rowTag).toContain('data-search=');
-    expect(rowTag).toContain('data-uri="samples/empty-mixed/empty-mixed.feature"');
+    expect(rowTag).toContain(
+      'data-uri="samples/empty-mixed/empty-mixed.feature"',
+    );
     const rowSummary = html.slice(
       html.indexOf(rowTag),
       html.indexOf('</summary>', html.indexOf(rowTag)),
@@ -169,7 +170,9 @@ describe('empty-run rendering', () => {
       html.indexOf('id="feature-list"'),
     );
     const cards = sources.split('<li class="sourceItem">');
-    const blankCard = cards.find((card) => card.includes('all-unexecuted.ndjson'));
+    const blankCard = cards.find((card) =>
+      card.includes('all-unexecuted.ndjson'),
+    );
     expect(blankCard).toBeDefined();
     expect(blankCard).toContain('1 feature · 0 scenarios');
     expect(blankCard).toContain('Unknown');
@@ -230,7 +233,9 @@ describe('empty-run rendering', () => {
     });
 
     expect(html).toContain('Examples:</span> Mixed examples');
-    expect(html.match(/<section class="examples" data-examples/g) ?? []).toHaveLength(1);
+    expect(
+      html.match(/<section class="examples" data-examples/g) ?? [],
+    ).toHaveLength(1);
     const rowTag = scenarioOpeningTag(html, 'Eat 1 cucumbers');
     expect(rowTag).toContain('data-example="#1.1"');
     expect(rowTag).not.toContain('data-status');

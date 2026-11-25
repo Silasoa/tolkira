@@ -73,7 +73,9 @@ describe('email catalog keys', () => {
       .filter((key) => key.startsWith('email.'))
       .sort();
 
-    expect(englishKeys).toEqual(expect.arrayContaining([...REQUIRED_EMAIL_KEYS]));
+    expect(englishKeys).toEqual(
+      expect.arrayContaining([...REQUIRED_EMAIL_KEYS]),
+    );
     expect(germanKeys).toEqual(englishKeys);
   });
 

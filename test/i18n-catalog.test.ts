@@ -79,7 +79,9 @@ function assertShape(
   }
   for (const [key, value] of Object.entries(target)) {
     if (typeof value !== 'string') {
-      throw new TypeError(`${file}: ${key}: target catalog values must be strings`);
+      throw new TypeError(
+        `${file}: ${key}: target catalog values must be strings`,
+      );
     }
     if (value.length === 0) {
       throw new Error(`${file}: ${key}: target value must not be empty`);
@@ -129,7 +131,8 @@ function pluralBranches(
     });
     index = close + 1;
   }
-  if (branches.length === 0) throw new Error(`${where}: plural has no branches`);
+  if (branches.length === 0)
+    throw new Error(`${where}: plural has no branches`);
   return branches;
 }
 
@@ -196,7 +199,11 @@ function scanMessage(
   return { placeholders, categories };
 }
 
-function placeholdersOf(message: string, locale: string, where: string): string[] {
+function placeholdersOf(
+  message: string,
+  locale: string,
+  where: string,
+): string[] {
   return [...new Set(scanMessage(message, locale, where).placeholders)].sort();
 }
 
@@ -210,10 +217,9 @@ function assertMessages(
     const where = `${file}: ${key}`;
     scanMessage(entry.message, 'en', where);
     scanMessage(target[key] as string, tag, where);
-    expect(
-      placeholdersOf(target[key] as string, tag, where),
-      where,
-    ).toEqual(placeholdersOf(entry.message, 'en', where));
+    expect(placeholdersOf(target[key] as string, tag, where), where).toEqual(
+      placeholdersOf(entry.message, 'en', where),
+    );
   }
 }
 
@@ -236,7 +242,9 @@ interface Shipped {
 const shipped: Shipped = { tags: [], en: {}, targets: new Map() };
 
 beforeAll(async () => {
-  const names = (await readdir(LOCALES)).filter((name) => name.endsWith('.json'));
+  const names = (await readdir(LOCALES)).filter((name) =>
+    name.endsWith('.json'),
+  );
   shipped.tags = names.map((name) => name.slice(0, -'.json'.length)).sort();
   shipped.en = await readJson<EnglishCatalog>(new URL('en.json', LOCALES));
   for (const tag of shipped.tags) {
@@ -272,9 +280,14 @@ describe('shipped catalogs', () => {
   });
 
   it('keeps every catalog sorted', () => {
-    expect(() => assertSorted(Object.keys(shipped.en), 'en.json')).not.toThrow();
+    expect(() =>
+      assertSorted(Object.keys(shipped.en), 'en.json'),
+    ).not.toThrow();
     for (const [tag, target] of shipped.targets) {
-      expect(() => assertSorted(Object.keys(target), `${tag}.json`), tag).not.toThrow();
+      expect(
+        () => assertSorted(Object.keys(target), `${tag}.json`),
+        tag,
+      ).not.toThrow();
     }
   });
 
@@ -289,7 +302,10 @@ describe('shipped catalogs', () => {
 
   it('uses only active plural categories and always other', () => {
     const plurals = Object.entries(shipped.en)
-      .filter(([, entry]) => scanMessage(entry.message, 'en', 'en').categories.length > 0)
+      .filter(
+        ([, entry]) =>
+          scanMessage(entry.message, 'en', 'en').categories.length > 0,
+      )
       .map(([key]) => key);
     expect(plurals.length).toBeGreaterThan(0);
     for (const [tag, target] of shipped.targets) {

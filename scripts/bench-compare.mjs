@@ -6,7 +6,14 @@
 // Inputs are generated deterministically by this file; no network during runs.
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -35,7 +42,8 @@ function parseArgv(argv) {
 }
 
 const cli = parseArgv(process.argv.slice(2));
-if (cli.sizes) sizes.splice(0, sizes.length, ...String(cli.sizes).split(',').map(Number));
+if (cli.sizes)
+  sizes.splice(0, sizes.length, ...String(cli.sizes).split(',').map(Number));
 const RUNS = Number(cli.runs ?? 5);
 const WARMUPS = Number(cli.warmup ?? 1);
 const WORKDIR = path.resolve(cli.workdir ?? DEFAULT_WORKDIR);
@@ -54,8 +62,10 @@ function scenarioStatus(index) {
 
 function stepStatus(scenario, stepIndex) {
   if (scenario === 'passed') return 'passed';
-  if (scenario === 'failed') return stepIndex === 0 ? 'passed' : stepIndex === 1 ? 'failed' : 'skipped';
-  if (scenario === 'undefined') return stepIndex === 0 ? 'undefined' : 'skipped';
+  if (scenario === 'failed')
+    return stepIndex === 0 ? 'passed' : stepIndex === 1 ? 'failed' : 'skipped';
+  if (scenario === 'undefined')
+    return stepIndex === 0 ? 'undefined' : 'skipped';
   return 'skipped';
 }
 
@@ -68,7 +78,8 @@ function scenarioSpec(index) {
   const name = `Scenario ${String(index + 1).padStart(4, '0')} checks order ${index + 1}`;
   const tags = [index % 3 === 0 ? '@smoke' : '@regression'];
   if (index % 25 === 0) tags.push('@attached');
-  const attached = index % 25 === 0 && (status === 'passed' || status === 'failed');
+  const attached =
+    index % 25 === 0 && (status === 'passed' || status === 'failed');
   return { index, status, name, tags, attached };
 }
 
@@ -79,17 +90,25 @@ function featureSpec(featureIndex, total) {
     index: featureIndex,
     name: `Feature ${String(featureIndex + 1).padStart(3, '0')} order handling`,
     tags: ['@feature', `@area-${featureIndex % 5}`],
-    scenarios: Array.from({ length: count }, (_, offset) => scenarioSpec(first + offset)),
+    scenarios: Array.from({ length: count }, (_, offset) =>
+      scenarioSpec(first + offset),
+    ),
   };
 }
 
 function gherkinSource(feature) {
-  const lines = [`@feature @area-${feature.index % 5}`, `Feature: ${feature.name}`, ''];
+  const lines = [
+    `@feature @area-${feature.index % 5}`,
+    `Feature: ${feature.name}`,
+    '',
+  ];
   for (const scenario of feature.scenarios) {
     lines.push(`  ${scenario.tags.join(' ')}`, `  Scenario: ${scenario.name}`);
     const keywords = ['Given ', 'When ', 'Then '];
     for (let step = 0; step < 3; step += 1) {
-      lines.push(`    ${keywords[step]}the ${['setup', 'action', 'check'][step]} for order ${scenario.index + 1} works`);
+      lines.push(
+        `    ${keywords[step]}the ${['setup', 'action', 'check'][step]} for order ${scenario.index + 1} works`,
+      );
     }
     lines.push('');
   }
@@ -101,25 +120,38 @@ function resultStatus(status) {
 }
 
 function nanos(index, step) {
-  return { seconds: 1793631530 + Math.floor(index / 100), nanos: ((index * 3 + step) % 1000) * 1_000_000 };
+  return {
+    seconds: 1793631530 + Math.floor(index / 100),
+    nanos: ((index * 3 + step) % 1000) * 1_000_000,
+  };
 }
 
 function generateMessages(total) {
   const lines = [];
   const featureTotal = featureCount(total);
-  lines.push(JSON.stringify({
-    meta: {
-      protocolVersion: '27.0.2',
-      implementation: { name: 'bench-compare', version: '1.0.0' },
-      cpu: { name: os.arch() },
-      os: { name: os.platform(), version: os.release() },
-      runtime: { name: 'node.js', version: process.version },
-    },
-  }));
+  lines.push(
+    JSON.stringify({
+      meta: {
+        protocolVersion: '27.0.2',
+        implementation: { name: 'bench-compare', version: '1.0.0' },
+        cpu: { name: os.arch() },
+        os: { name: os.platform(), version: os.release() },
+        runtime: { name: 'node.js', version: process.version },
+      },
+    }),
+  );
   for (let f = 0; f < featureTotal; f += 1) {
     const feature = featureSpec(f, total);
     const uri = `features/feature-${String(f + 1).padStart(3, '0')}.feature`;
-    lines.push(JSON.stringify({ source: { data: gherkinSource(feature), uri, mediaType: 'text/x.cucumber.gherkin+plain' } }));
+    lines.push(
+      JSON.stringify({
+        source: {
+          data: gherkinSource(feature),
+          uri,
+          mediaType: 'text/x.cucumber.gherkin+plain',
+        },
+      }),
+    );
     let line = 1;
     const children = feature.scenarios.map((scenario) => {
       const scenarioLine = line + 2;
@@ -148,106 +180,162 @@ function generateMessages(total) {
         },
       };
     });
-    lines.push(JSON.stringify({
-      gherkinDocument: {
-        feature: {
-          tags: feature.tags.map((name, tagIndex) => ({ id: `ft-${f + 1}-${tagIndex}`, name, location: { line: 1, column: 1 } })),
-          location: { line: 2, column: 1 },
-          language: 'en',
-          keyword: 'Feature',
-          name: feature.name,
-          description: '',
-          children,
-        },
-        comments: [],
-        uri,
-      },
-    }));
-    for (const scenario of feature.scenarios) {
-      lines.push(JSON.stringify({
-        pickle: {
-          id: `p-${scenario.index + 1}`,
+    lines.push(
+      JSON.stringify({
+        gherkinDocument: {
+          feature: {
+            tags: feature.tags.map((name, tagIndex) => ({
+              id: `ft-${f + 1}-${tagIndex}`,
+              name,
+              location: { line: 1, column: 1 },
+            })),
+            location: { line: 2, column: 1 },
+            language: 'en',
+            keyword: 'Feature',
+            name: feature.name,
+            description: '',
+            children,
+          },
+          comments: [],
           uri,
-          astNodeIds: [`s-${scenario.index + 1}`],
-          tags: scenario.tags.map((name, tagIndex) => ({ name, astNodeId: `t-${scenario.index + 1}-${tagIndex}` })),
-          name: scenario.name,
-          language: 'en',
-          steps: [0, 1, 2].map((step) => ({
-            id: `ps-${scenario.index + 1}-${step + 1}`,
-            text: `the ${['setup', 'action', 'check'][step]} for order ${scenario.index + 1} works`,
-            type: ['Context', 'Action', 'Outcome'][step],
-            astNodeIds: [`st-${scenario.index + 1}-${step + 1}`],
-          })),
         },
-      }));
+      }),
+    );
+    for (const scenario of feature.scenarios) {
+      lines.push(
+        JSON.stringify({
+          pickle: {
+            id: `p-${scenario.index + 1}`,
+            uri,
+            astNodeIds: [`s-${scenario.index + 1}`],
+            tags: scenario.tags.map((name, tagIndex) => ({
+              name,
+              astNodeId: `t-${scenario.index + 1}-${tagIndex}`,
+            })),
+            name: scenario.name,
+            language: 'en',
+            steps: [0, 1, 2].map((step) => ({
+              id: `ps-${scenario.index + 1}-${step + 1}`,
+              text: `the ${['setup', 'action', 'check'][step]} for order ${scenario.index + 1} works`,
+              type: ['Context', 'Action', 'Outcome'][step],
+              astNodeIds: [`st-${scenario.index + 1}-${step + 1}`],
+            })),
+          },
+        }),
+      );
     }
   }
-  lines.push(JSON.stringify({ testRunStarted: { id: 'run-1', timestamp: { seconds: 1793631530, nanos: 0 } } }));
+  lines.push(
+    JSON.stringify({
+      testRunStarted: {
+        id: 'run-1',
+        timestamp: { seconds: 1793631530, nanos: 0 },
+      },
+    }),
+  );
   let attachments = 0;
   for (let i = 0; i < total; i += 1) {
     const scenario = scenarioSpec(i);
     const status = scenario.status;
     const testCaseId = `tc-${i + 1}`;
     const startedId = `tcs-${i + 1}`;
-    lines.push(JSON.stringify({
-      testCase: {
-        testRunStartedId: 'run-1',
-        pickleId: `p-${i + 1}`,
-        id: testCaseId,
-        testSteps: [0, 1, 2].map((step) => {
-          const stepStatusName = stepStatus(status, step);
-          const testStep = {
-            id: `tst-${i + 1}-${step + 1}`,
-            pickleStepId: `ps-${i + 1}-${step + 1}`,
-            stepMatchArgumentsLists: [{ stepMatchArguments: [] }],
-          };
-          if (stepStatusName !== 'undefined') testStep.stepDefinitionIds = ['sd-1'];
-          return testStep;
-        }),
-      },
-    }));
-    lines.push(JSON.stringify({
-      testCaseStarted: { attempt: 0, testCaseId, id: startedId, timestamp: nanos(i, 0) },
-    }));
+    lines.push(
+      JSON.stringify({
+        testCase: {
+          testRunStartedId: 'run-1',
+          pickleId: `p-${i + 1}`,
+          id: testCaseId,
+          testSteps: [0, 1, 2].map((step) => {
+            const stepStatusName = stepStatus(status, step);
+            const testStep = {
+              id: `tst-${i + 1}-${step + 1}`,
+              pickleStepId: `ps-${i + 1}-${step + 1}`,
+              stepMatchArgumentsLists: [{ stepMatchArguments: [] }],
+            };
+            if (stepStatusName !== 'undefined')
+              testStep.stepDefinitionIds = ['sd-1'];
+            return testStep;
+          }),
+        },
+      }),
+    );
+    lines.push(
+      JSON.stringify({
+        testCaseStarted: {
+          attempt: 0,
+          testCaseId,
+          id: startedId,
+          timestamp: nanos(i, 0),
+        },
+      }),
+    );
     for (let step = 0; step < 3; step += 1) {
       const stepStatusName = stepStatus(status, step);
-      lines.push(JSON.stringify({
-        testStepStarted: { testCaseStartedId: startedId, testStepId: `tst-${i + 1}-${step + 1}`, timestamp: nanos(i, step) },
-      }));
-      if (scenario.attached && step === 0) {
-        attachments += 1;
-        lines.push(JSON.stringify({
-          attachment: {
-            body: TINY_PNG,
-            contentEncoding: 'BASE64',
-            mediaType: 'image/png',
+      lines.push(
+        JSON.stringify({
+          testStepStarted: {
             testCaseStartedId: startedId,
             testStepId: `tst-${i + 1}-${step + 1}`,
-            fileName: `shot-${String(i + 1).padStart(4, '0')}.png`,
+            timestamp: nanos(i, step),
           },
-        }));
+        }),
+      );
+      if (scenario.attached && step === 0) {
+        attachments += 1;
+        lines.push(
+          JSON.stringify({
+            attachment: {
+              body: TINY_PNG,
+              contentEncoding: 'BASE64',
+              mediaType: 'image/png',
+              testCaseStartedId: startedId,
+              testStepId: `tst-${i + 1}-${step + 1}`,
+              fileName: `shot-${String(i + 1).padStart(4, '0')}.png`,
+            },
+          }),
+        );
       }
-      const testStepResult = { duration: { seconds: 0, nanos: 1_000_000 + (i % 50) * 1_000_000 }, status: resultStatus(stepStatusName) };
+      const testStepResult = {
+        duration: { seconds: 0, nanos: 1_000_000 + (i % 50) * 1_000_000 },
+        status: resultStatus(stepStatusName),
+      };
       if (stepStatusName === 'failed') {
         testStepResult.message = `Expected order ${i + 1} to be accepted`;
-        testStepResult.exception = { type: 'AssertionError', message: testStepResult.message };
+        testStepResult.exception = {
+          type: 'AssertionError',
+          message: testStepResult.message,
+        };
       }
-      lines.push(JSON.stringify({
-        testStepFinished: {
-          testCaseStartedId: startedId,
-          testStepId: `tst-${i + 1}-${step + 1}`,
-          testStepResult,
-          timestamp: nanos(i, step + 1),
-        },
-      }));
+      lines.push(
+        JSON.stringify({
+          testStepFinished: {
+            testCaseStartedId: startedId,
+            testStepId: `tst-${i + 1}-${step + 1}`,
+            testStepResult,
+            timestamp: nanos(i, step + 1),
+          },
+        }),
+      );
     }
-    lines.push(JSON.stringify({
-      testCaseFinished: { testCaseStartedId: startedId, timestamp: nanos(i, 4), willBeRetried: false },
-    }));
+    lines.push(
+      JSON.stringify({
+        testCaseFinished: {
+          testCaseStartedId: startedId,
+          timestamp: nanos(i, 4),
+          willBeRetried: false,
+        },
+      }),
+    );
   }
-  lines.push(JSON.stringify({
-    testRunFinished: { testRunStartedId: 'run-1', timestamp: nanos(total, 5), success: false },
-  }));
+  lines.push(
+    JSON.stringify({
+      testRunFinished: {
+        testRunStartedId: 'run-1',
+        timestamp: nanos(total, 5),
+        success: false,
+      },
+    }),
+  );
   return { text: `${lines.join('\n')}\n`, attachments };
 }
 
@@ -261,8 +349,12 @@ function generateLegacy(total) {
       const attached = scenario.attached;
       const steps = [0, 1, 2].map((step) => {
         const status = stepStatus(scenario.status, step);
-        const result = { status, duration: 1_000_000 + (scenario.index % 50) * 1_000_000 };
-        if (status === 'failed') result.error_message = `Expected order ${scenario.index + 1} to be accepted`;
+        const result = {
+          status,
+          duration: 1_000_000 + (scenario.index % 50) * 1_000_000,
+        };
+        if (status === 'failed')
+          result.error_message = `Expected order ${scenario.index + 1} to be accepted`;
         const stepOut = {
           keyword: ['Given ', 'When ', 'Then '][step],
           name: `the ${['setup', 'action', 'check'][step]} for order ${scenario.index + 1} works`,
@@ -270,10 +362,19 @@ function generateLegacy(total) {
           result,
           arguments: [],
         };
-        if (status !== 'undefined') stepOut.match = { location: `features/steps.js:${10 + (scenario.index % 40)}` };
+        if (status !== 'undefined')
+          stepOut.match = {
+            location: `features/steps.js:${10 + (scenario.index % 40)}`,
+          };
         if (attached && step === 0) {
           counters.attachments += 1;
-          stepOut.embeddings = [{ mime_type: 'image/png', data: TINY_PNG, name: `shot-${String(scenario.index + 1).padStart(4, '0')}.png` }];
+          stepOut.embeddings = [
+            {
+              mime_type: 'image/png',
+              data: TINY_PNG,
+              name: `shot-${String(scenario.index + 1).padStart(4, '0')}.png`,
+            },
+          ];
         }
         return stepOut;
       });
@@ -299,7 +400,10 @@ function generateLegacy(total) {
       elements,
     });
   }
-  return { text: `${JSON.stringify(features, null, 2)}\n`, attachments: counters.attachments };
+  return {
+    text: `${JSON.stringify(features, null, 2)}\n`,
+    attachments: counters.attachments,
+  };
 }
 
 async function ensureFixtures(total) {
@@ -328,24 +432,45 @@ async function ensureFixtures(total) {
 }
 
 async function ensureCompetitors() {
-  const specs = Object.entries(VERSIONS).map(([name, version]) => `${name}@${version}`);
+  const specs = Object.entries(VERSIONS).map(
+    ([name, version]) => `${name}@${version}`,
+  );
   const missing = [];
   for (const [name, version] of Object.entries(VERSIONS)) {
     try {
-      const installed = JSON.parse(await readFile(path.join(WORKDIR, 'node_modules', name, 'package.json'), 'utf8'));
+      const installed = JSON.parse(
+        await readFile(
+          path.join(WORKDIR, 'node_modules', name, 'package.json'),
+          'utf8',
+        ),
+      );
       if (installed.version !== version) missing.push(name);
     } catch {
       missing.push(name);
     }
   }
   if (missing.length === 0) return;
-  console.error(`Installing competitors into ${WORKDIR} (network, before any measurement)`);
+  console.error(
+    `Installing competitors into ${WORKDIR} (network, before any measurement)`,
+  );
   await new Promise((resolve, reject) => {
-    const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm',
-      ['install', '--prefix', WORKDIR, '--no-audit', '--no-fund', '--no-package-lock', ...specs],
-      { stdio: 'inherit', shell: process.platform === 'win32' });
+    const child = spawn(
+      process.platform === 'win32' ? 'npm.cmd' : 'npm',
+      [
+        'install',
+        '--prefix',
+        WORKDIR,
+        '--no-audit',
+        '--no-fund',
+        '--no-package-lock',
+        ...specs,
+      ],
+      { stdio: 'inherit', shell: process.platform === 'win32' },
+    );
     child.on('error', reject);
-    child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`npm install exited ${code}`))));
+    child.on('exit', (code) =>
+      code === 0 ? resolve() : reject(new Error(`npm install exited ${code}`)),
+    );
   });
 }
 
@@ -380,27 +505,58 @@ const PS_SCRIPT = [
 
 function measureProcess(file, args, cwd) {
   return new Promise((resolve, reject) => {
-    const child = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', PS_SCRIPT], {
-      cwd: ROOT,
-      env: { ...process.env, BENCH_FILE: file, BENCH_ARGS_CMD: args.map((arg) => winQuote(arg)).join(' '), BENCH_CWD: cwd },
-      windowsHide: true,
-    });
+    const child = spawn(
+      'powershell.exe',
+      [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        PS_SCRIPT,
+      ],
+      {
+        cwd: ROOT,
+        env: {
+          ...process.env,
+          BENCH_FILE: file,
+          BENCH_ARGS_CMD: args.map((arg) => winQuote(arg)).join(' '),
+          BENCH_CWD: cwd,
+        },
+        windowsHide: true,
+      },
+    );
     let stdout = '';
     let stderr = '';
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
     child.on('error', reject);
     child.on('exit', (code) => {
       const line = stdout.split(/\r?\n/).find((item) => item.startsWith('{'));
-      if (!line) return reject(new Error(`Measurement wrapper failed (${code}): ${stderr || stdout}`));
-      try { resolve(JSON.parse(line)); } catch (error) { reject(error); }
+      if (!line)
+        return reject(
+          new Error(
+            `Measurement wrapper failed (${code}): ${stderr || stdout}`,
+          ),
+        );
+      try {
+        resolve(JSON.parse(line));
+      } catch (error) {
+        reject(error);
+      }
     });
   });
 }
 
 async function writeRunners() {
   await mkdir(RUNNERS, { recursive: true });
-  const pkg = (name) => pathToFileURL(path.join(WORKDIR, 'node_modules', name)).href;
+  const pkg = (name) =>
+    pathToFileURL(path.join(WORKDIR, 'node_modules', name)).href;
   const files = {
     'formatter.mjs': `
 import { createReadStream, createWriteStream } from 'node:fs';
@@ -432,7 +588,8 @@ const [jsonDir, reportPath] = process.argv.slice(2);
 await generate({ jsonDir, reportPath, reportName: 'Benchmark', openReportInBrowser: false, logging: 'silent' });
 `,
   };
-  for (const [name, body] of Object.entries(files)) await writeFile(path.join(RUNNERS, name), body);
+  for (const [name, body] of Object.entries(files))
+    await writeFile(path.join(RUNNERS, name), body);
 }
 
 function toolDefinitions() {
@@ -443,35 +600,68 @@ function toolDefinitions() {
       label: 'Tolkira 0.6.0 (Messages)',
       format: 'messages',
       entry: 'report.html',
-      command: (input, out) => ({ file: node, args: [path.join(ROOT, 'dist', 'cli.js'), input.messagesFile, '--out', path.join(out, 'report.html')] }),
+      command: (input, out) => ({
+        file: node,
+        args: [
+          path.join(ROOT, 'dist', 'cli.js'),
+          input.messagesFile,
+          '--out',
+          path.join(out, 'report.html'),
+        ],
+      }),
     },
     {
       key: 'tolkira-legacy',
       label: 'Tolkira 0.6.0 (legacy JSON)',
       format: 'legacy',
       entry: 'report.html',
-      command: (input, out) => ({ file: node, args: [path.join(ROOT, 'dist', 'cli.js'), input.legacyFile, '--out', path.join(out, 'report.html')] }),
+      command: (input, out) => ({
+        file: node,
+        args: [
+          path.join(ROOT, 'dist', 'cli.js'),
+          input.legacyFile,
+          '--out',
+          path.join(out, 'report.html'),
+        ],
+      }),
     },
     {
       key: 'ochf',
       label: '@cucumber/html-formatter 24.4.0',
       format: 'messages',
       entry: 'report.html',
-      command: (input, out) => ({ file: node, args: [path.join(RUNNERS, 'formatter.mjs'), input.messagesFile, path.join(out, 'report.html')] }),
+      command: (input, out) => ({
+        file: node,
+        args: [
+          path.join(RUNNERS, 'formatter.mjs'),
+          input.messagesFile,
+          path.join(out, 'report.html'),
+        ],
+      }),
     },
     {
       key: 'chr',
       label: 'cucumber-html-reporter 7.2.0',
       format: 'legacy',
       entry: 'report.html',
-      command: (input, out) => ({ file: node, args: [path.join(RUNNERS, 'reporter.cjs'), input.legacyFile, path.join(out, 'report.html')] }),
+      command: (input, out) => ({
+        file: node,
+        args: [
+          path.join(RUNNERS, 'reporter.cjs'),
+          input.legacyFile,
+          path.join(out, 'report.html'),
+        ],
+      }),
     },
     {
       key: 'mchr',
       label: 'multiple-cucumber-html-reporter 4.7.0',
       format: 'legacy',
       entry: 'index.html',
-      command: (input, out) => ({ file: node, args: [path.join(RUNNERS, 'multiple.mjs'), input.legacyDir, out] }),
+      command: (input, out) => ({
+        file: node,
+        args: [path.join(RUNNERS, 'multiple.mjs'), input.legacyDir, out],
+      }),
     },
   ];
 }
@@ -495,7 +685,9 @@ async function walk(dir) {
 
 async function outputBytes(dir, entry) {
   const info = await stat(dir);
-  const result = info.isDirectory() ? await walk(dir) : { total: info.size, files: 1 };
+  const result = info.isDirectory()
+    ? await walk(dir)
+    : { total: info.size, files: 1 };
   return { ...result, entryBytes: (await stat(path.join(dir, entry))).size };
 }
 
@@ -506,15 +698,31 @@ function median(values) {
 }
 
 function range(values) {
-  return { median: median(values), min: Math.min(...values), max: Math.max(...values) };
+  return {
+    median: median(values),
+    min: Math.min(...values),
+    max: Math.max(...values),
+  };
 }
 
 const MIME = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
-  '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.map': 'application/json',
-  '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.map': 'application/json',
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8',
 };
 
 function serve(root) {
@@ -522,10 +730,15 @@ function serve(root) {
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
       let file = path.join(root, decodeURIComponent(url.pathname));
-      if (!path.resolve(file).startsWith(path.resolve(root))) throw new Error('outside root');
-      if ((await stat(file)).isDirectory()) file = path.join(file, 'index.html');
+      if (!path.resolve(file).startsWith(path.resolve(root)))
+        throw new Error('outside root');
+      if ((await stat(file)).isDirectory())
+        file = path.join(file, 'index.html');
       const body = await readFile(file);
-      response.writeHead(200, { 'Content-Type': MIME[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': 'no-store' });
+      response.writeHead(200, {
+        'Content-Type': MIME[path.extname(file)] ?? 'application/octet-stream',
+        'Cache-Control': 'no-store',
+      });
       response.end(body);
     } catch {
       response.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -541,10 +754,13 @@ async function measurePage(browser, url, runs, warmups) {
   const samples = [];
   const externalRequests = { count: 0 };
   for (let run = 0; run < warmups + runs; run += 1) {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+    });
     await context.route('**/*', (route) => {
       const target = new URL(route.request().url());
-      if (target.hostname === '127.0.0.1' || target.hostname === 'localhost') return route.continue();
+      if (target.hostname === '127.0.0.1' || target.hostname === 'localhost')
+        return route.continue();
       externalRequests.count += 1;
       return route.abort();
     });
@@ -561,7 +777,10 @@ async function measurePage(browser, url, runs, warmups) {
         load: nav ? nav.loadEventEnd : null,
         heap: performance.memory ? performance.memory.usedJSHeapSize : null,
         requests: 1 + resources.length,
-        transferBytes: resources.reduce((sum, item) => sum + (item.transferSize || 0), 0),
+        transferBytes: resources.reduce(
+          (sum, item) => sum + (item.transferSize || 0),
+          0,
+        ),
         nodes: document.getElementsByTagName('*').length,
       };
     });
@@ -604,7 +823,9 @@ async function main() {
   await writeRunners();
   const fixtures = [];
   for (const size of sizes) fixtures.push(await ensureFixtures(size));
-  const tools = toolDefinitions().filter((tool) => !cli.only || String(cli.only).split(',').includes(tool.key));
+  const tools = toolDefinitions().filter(
+    (tool) => !cli.only || String(cli.only).split(',').includes(tool.key),
+  );
 
   const generation = {};
   for (const input of fixtures) {
@@ -621,26 +842,48 @@ async function main() {
           await mkdir(outDir, { recursive: true });
           const { file, args } = tool.command(input, outDir);
           const measured = await measureProcess(file, args, ROOT);
-          if (measured.exitCode !== 0) throw new Error(`${tool.key} exited ${measured.exitCode}: ${(measured.stderr || measured.stdout).slice(0, 500)}`);
-          return { wallMs: measured.wallMs, peakRss: measured.peakRss, exitCode: measured.exitCode, bytes: await outputBytes(outDir, tool.entry) };
+          if (measured.exitCode !== 0)
+            throw new Error(
+              `${tool.key} exited ${measured.exitCode}: ${(measured.stderr || measured.stdout).slice(0, 500)}`,
+            );
+          return {
+            wallMs: measured.wallMs,
+            peakRss: measured.peakRss,
+            exitCode: measured.exitCode,
+            bytes: await outputBytes(outDir, tool.entry),
+          };
         },
       };
     });
     for (const state of states) {
-      try { await state.clean(); await state.execute(); } catch (error) { state.error = String(error); }
+      try {
+        await state.clean();
+        await state.execute();
+      } catch (error) {
+        state.error = String(error);
+      }
     }
     // Rotate the tool order per round so host drift does not favour one entry point.
     for (let round = 0; round < RUNS; round += 1) {
       for (let k = 0; k < states.length; k += 1) {
         const state = states[(k + round) % states.length];
         if (state.error) continue;
-        try { await state.clean(); state.runs.push(await state.execute()); } catch (error) { state.error = String(error); }
+        try {
+          await state.clean();
+          state.runs.push(await state.execute());
+        } catch (error) {
+          state.error = String(error);
+        }
       }
     }
     for (const state of states) {
       const { tool } = state;
       if (state.error || state.runs.length === 0) {
-        generation[input.total][tool.key] = { label: tool.label, format: tool.format, error: state.error ?? 'no successful runs' };
+        generation[input.total][tool.key] = {
+          label: tool.label,
+          format: tool.format,
+          error: state.error ?? 'no successful runs',
+        };
         console.error(`${input.total} ${tool.key}: FAILED ${state.error}`);
         continue;
       }
@@ -657,7 +900,9 @@ async function main() {
         entryBytes: range(runs.map((item) => item.bytes.entryBytes)),
         files: last.bytes.files,
       };
-      console.error(`${input.total} ${tool.key}: ${median(runs.map((item) => item.wallMs))} ms, ${last.bytes.total} B`);
+      console.error(
+        `${input.total} ${tool.key}: ${median(runs.map((item) => item.wallMs))} ms, ${last.bytes.total} B`,
+      );
     }
   }
 
@@ -668,7 +913,12 @@ async function main() {
     server = await serve(OUT);
     browser = await chromium.launch({
       headless: true,
-      args: ['--enable-precise-memory-info', '--disable-background-networking', '--disable-component-update', '--no-default-browser-check'],
+      args: [
+        '--enable-precise-memory-info',
+        '--disable-background-networking',
+        '--disable-component-update',
+        '--no-default-browser-check',
+      ],
     });
     const chromiumVersion = browser.version();
     const base = `http://127.0.0.1:${server.address().port}`;
@@ -676,19 +926,30 @@ async function main() {
       lcp[size] = {};
       for (const [key, result] of Object.entries(toolResults)) {
         if (result.error) continue;
-        const urlFor = (file) => `${base}/${path.relative(OUT, file).split(path.sep).join('/')}`;
+        const urlFor = (file) =>
+          `${base}/${path.relative(OUT, file).split(path.sep).join('/')}`;
         try {
-          lcp[size][key] = summarizePage(await measurePage(browser, urlFor(result.entry), RUNS, WARMUPS));
+          lcp[size][key] = summarizePage(
+            await measurePage(browser, urlFor(result.entry), RUNS, WARMUPS),
+          );
           // The MCHR entry is an overview; its scenario content lives on feature pages.
           if (key === 'mchr') {
             try {
               const deep = await largestFeaturePage(result.entry);
-              if (deep) lcp[size][key].deep = { file: path.basename(deep), ...summarizePage(await measurePage(browser, urlFor(deep), RUNS, WARMUPS)) };
+              if (deep)
+                lcp[size][key].deep = {
+                  file: path.basename(deep),
+                  ...summarizePage(
+                    await measurePage(browser, urlFor(deep), RUNS, WARMUPS),
+                  ),
+                };
             } catch (error) {
               lcp[size][key].deep = { error: String(error) };
             }
           }
-          console.error(`${size} ${key}: FCP ${lcp[size][key].fcp.median} ms, load ${lcp[size][key].load.median} ms`);
+          console.error(
+            `${size} ${key}: FCP ${lcp[size][key].fcp.median} ms, load ${lcp[size][key].load.median} ms`,
+          );
         } catch (error) {
           lcp[size][key] = { error: String(error) };
           console.error(`${size} ${key}: browser FAILED ${String(error)}`);
@@ -701,11 +962,16 @@ async function main() {
   }
 
   const npmVersion = await new Promise((resolve) => {
-    const child = process.platform === 'win32'
-      ? spawn('cmd.exe', ['/d', '/s', '/c', 'npm --version'], { windowsHide: true })
-      : spawn('npm', ['--version']);
+    const child =
+      process.platform === 'win32'
+        ? spawn('cmd.exe', ['/d', '/s', '/c', 'npm --version'], {
+            windowsHide: true,
+          })
+        : spawn('npm', ['--version']);
     let text = '';
-    child.stdout.on('data', (chunk) => { text += chunk; });
+    child.stdout.on('data', (chunk) => {
+      text += chunk;
+    });
     child.on('close', () => resolve(text.trim()));
     child.on('error', () => resolve(null));
   });
@@ -719,13 +985,39 @@ async function main() {
     totalMemoryBytes: os.totalmem(),
     chromium: lcp.chromium ?? null,
     tools: {
-      tolkira: JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8')).version,
-      ...Object.fromEntries(await Promise.all(Object.keys(VERSIONS).map(async (name) => [
-        name, JSON.parse(await readFile(path.join(WORKDIR, 'node_modules', name, 'package.json'), 'utf8')).version,
-      ]))),
+      tolkira: JSON.parse(
+        await readFile(path.join(ROOT, 'package.json'), 'utf8'),
+      ).version,
+      ...Object.fromEntries(
+        await Promise.all(
+          Object.keys(VERSIONS).map(async (name) => [
+            name,
+            JSON.parse(
+              await readFile(
+                path.join(WORKDIR, 'node_modules', name, 'package.json'),
+                'utf8',
+              ),
+            ).version,
+          ]),
+        ),
+      ),
     },
   };
-  const report = { generatedAt: new Date().toISOString(), host: os.hostname(), protocol: { runs: RUNS, warmups: WARMUPS, viewport: [1440, 900], server: '127.0.0.1 static, Cache-Control: no-store, fresh browser context per load' }, software, fixtures, generation, browser: lcp };
+  const report = {
+    generatedAt: new Date().toISOString(),
+    host: os.hostname(),
+    protocol: {
+      runs: RUNS,
+      warmups: WARMUPS,
+      viewport: [1440, 900],
+      server:
+        '127.0.0.1 static, Cache-Control: no-store, fresh browser context per load',
+    },
+    software,
+    fixtures,
+    generation,
+    browser: lcp,
+  };
   if (RESULTS) await writeFile(RESULTS, `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));
 }

@@ -23,7 +23,11 @@ import {
   type RunIndex,
   type RunStepDefinition,
 } from './report/index-run.js';
-import { type ReportStatus, statusSeverity, worstExecutedStatus } from './report/status.js';
+import {
+  type ReportStatus,
+  statusSeverity,
+  worstExecutedStatus,
+} from './report/status.js';
 
 export const SUMMARY_SCHEMA_VERSION = 2;
 
@@ -271,9 +275,8 @@ export function summarizeIndex(
             : [];
         const stepMatches = definitionIds
           .map((id) => index.definitions.get(id))
-          .filter(
-            (definition): definition is RunStepDefinition =>
-              Boolean(definition),
+          .filter((definition): definition is RunStepDefinition =>
+            Boolean(definition),
           )
           .map(({ pattern, uri, line }) => {
             const display = displayUri(uri);
@@ -312,17 +315,23 @@ export function summarizeIndex(
       }
     }
 
-    const status = scenarioStatus(finished.map((entry) => entry.testStepResult));
+    const status = scenarioStatus(
+      finished.map((entry) => entry.testStepResult),
+    );
     const executed = finished.length > 0;
     const example = exampleCoordinate(index, pickle);
     const change = comparison?.changes.get(pickle.id);
-    const scenarioDuration = steps.reduce((sum, step) => sum + step.durationMs, 0);
+    const scenarioDuration = steps.reduce(
+      (sum, step) => sum + step.durationMs,
+      0,
+    );
     const selectedCase = index.testCases.get(started.testCaseId);
     const scenarioAttachments =
       executed && selectedCase
         ? renderedCaseAttachments(index, selectedCase, started.id)
         : [];
-    for (const attachment of scenarioAttachments) countedAttachments.add(attachment);
+    for (const attachment of scenarioAttachments)
+      countedAttachments.add(attachment);
 
     if (executed) {
       countStatus(scenarioCounts, status);

@@ -67,7 +67,9 @@ function hides(css: string, selector: string): boolean {
 
 function declaration(block: string, property: string): string | undefined {
   // The last declaration in the minified block has no trailing semicolon.
-  const match = new RegExp(`${property}\\s*:\\s*([^;{}]+)(?=[;}]|$)`).exec(block);
+  const match = new RegExp(`${property}\\s*:\\s*([^;{}]+)(?=[;}]|$)`).exec(
+    block,
+  );
   return match?.[1]?.trim();
 }
 
@@ -118,9 +120,7 @@ describe('print stylesheet', () => {
     for (const keeper of ['.shotButton', '.shot']) {
       const hidden = hideRules.some((rule) =>
         selectorParts(rule).some((part) =>
-          new RegExp(
-            `${keeper.replace('.', '\\.')}(?![\\w-])`,
-          ).test(part),
+          new RegExp(`${keeper.replace('.', '\\.')}(?![\\w-])`).test(part),
         ),
       );
       expect(hidden, `${keeper} stays visible`).toBe(false);
@@ -189,9 +189,7 @@ describe('print stylesheet', () => {
         .map((rule) => rule.declarations)
         .join(';');
 
-      expect(declarations, `${table} min-width`).toMatch(
-        /min-width\s*:\s*0/,
-      );
+      expect(declarations, `${table} min-width`).toMatch(/min-width\s*:\s*0/);
       expect(declarations, `${table} width`).toMatch(/width\s*:\s*100%/);
       expect(declarations, `${table} table-layout`).toMatch(
         layouts[table] as RegExp,
@@ -206,8 +204,7 @@ describe('print stylesheet', () => {
             (part) =>
               part.includes(table) &&
               /(?:^|[\s>])(?:th|td)(?![\w-])/.test(part),
-          ) &&
-          /(min-width\s*:\s*0|width\s*:\s*auto)/.test(rule.declarations),
+          ) && /(min-width\s*:\s*0|width\s*:\s*auto)/.test(rule.declarations),
       );
       expect(child, `${table} child widths reset`).toBeDefined();
     }

@@ -58,19 +58,19 @@ const fixtures = [
 ];
 
 describe('render characterization', () => {
-  it.each(fixtures)('keeps the $name HTML byte-identical', async ({
-    fixture,
-    sha256,
-  }) => {
-    const file = fileURLToPath(
-      new URL(`./fixtures/${fixture}`, import.meta.url),
-    );
-    const html = await renderReport(file, { title: 'Characterization' });
+  it.each(fixtures)(
+    'keeps the $name HTML byte-identical',
+    async ({ fixture, sha256 }) => {
+      const file = fileURLToPath(
+        new URL(`./fixtures/${fixture}`, import.meta.url),
+      );
+      const html = await renderReport(file, { title: 'Characterization' });
 
-    expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
-      sha256,
-    );
-  });
+      expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
+        sha256,
+      );
+    },
+  );
 
   it('keeps the outline summary minus example at the pre-change bytes', async () => {
     // Generated from 08a0449 with the same fixture and serialization:

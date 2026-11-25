@@ -58,11 +58,7 @@ test.beforeAll(async () => {
       .replaceAll('Failing scenario', longScenario),
   );
   longInputDir = input.dir;
-  long = await writeEmail(
-    [input.file],
-    'Long names',
-    'tolkira-email-long-',
-  );
+  long = await writeEmail([input.file], 'Long names', 'tolkira-email-long-');
 });
 
 test.afterAll(async () => {
@@ -83,7 +79,9 @@ test('opens the email at 600 and 320 px without overflow or remote assets', asyn
     await page.setViewportSize({ width, height: 900 });
     await page.goto(reportUrl(file.email));
 
-    expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(
+      1,
+    );
     await expect(page).toHaveTitle('Mail run — Failed');
     await expect(page.locator('h1')).toHaveText('Mail run — Failed');
 
@@ -108,9 +106,11 @@ test('opens the email at 600 and 320 px without overflow or remote assets', asyn
     );
     expect(font).toMatch(/sans-serif/i);
 
-    const metricTops = await page.locator('td.metric').evaluateAll((cells) =>
-      cells.map((cell) => Math.round(cell.getBoundingClientRect().top)),
-    );
+    const metricTops = await page
+      .locator('td.metric')
+      .evaluateAll((cells) =>
+        cells.map((cell) => Math.round(cell.getBoundingClientRect().top)),
+      );
     expect(metricTops, `${width}px metric rows`).toHaveLength(4);
     if (width === 600) {
       expect(metricTops[0]).toBe(metricTops[1]);
@@ -121,7 +121,10 @@ test('opens the email at 600 and 320 px without overflow or remote assets', asyn
     }
 
     expect(await page.locator('script').count(), 'scripts').toBe(0);
-    expect(await page.locator('img, picture, svg, image').count(), 'images').toBe(0);
+    expect(
+      await page.locator('img, picture, svg, image').count(),
+      'images',
+    ).toBe(0);
     expect(await page.locator('a[href]').count(), 'links').toBe(0);
     expect(
       await page.evaluate(() => performance.getEntriesByType('resource')),
@@ -142,7 +145,9 @@ test('writes the report and the email from one run', async () => {
   await expect(readFile(file.email, 'utf8')).resolves.toContain('<html');
 });
 
-test('states that the standalone email has no full report', async ({ page }) => {
+test('states that the standalone email has no full report', async ({
+  page,
+}) => {
   const file = emailFile(standalone);
   expect(file.report).toBeUndefined();
 
@@ -159,16 +164,19 @@ test('renders German labels and escaped test data at 600 and 320 px', async ({
   page,
 }) => {
   const file = emailFile(german);
-  const feature =
-    'Kontoeröffnung <img src=x onerror="alert(1)"> & "Zitat"';
+  const feature = 'Kontoeröffnung <img src=x onerror="alert(1)"> & "Zitat"';
 
   for (const width of [600, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(reportUrl(file.email));
 
-    expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(1);
+    expect(await pageOverflow(page), `${width}px overflow`).toBeLessThanOrEqual(
+      1,
+    );
     await expect(page).toHaveTitle('Monatsbericht — Fehlgeschlagen');
-    await expect(page.locator('h1')).toHaveText('Monatsbericht — Fehlgeschlagen');
+    await expect(page.locator('h1')).toHaveText(
+      'Monatsbericht — Fehlgeschlagen',
+    );
     await expect(page.locator('html')).toHaveAttribute('lang', 'de');
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
 

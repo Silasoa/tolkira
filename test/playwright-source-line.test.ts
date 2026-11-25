@@ -189,7 +189,8 @@ describe('Playwright source line', () => {
     }
   });
 
-  it('shows each scenario line for a multi-spec project feature', async () => {    const { envelopes } = await parsePlaywrightJson(
+  it('shows each scenario line for a multi-spec project feature', async () => {
+    const { envelopes } = await parsePlaywrightJson(
       playwrightReport(
         specSuite('movie-list.spec.ts', 'movie list', 3, 'movie-list-spec-1'),
         specSuite('details.spec.ts', 'details', 8, 'details-spec-1'),
@@ -215,9 +216,9 @@ describe('Playwright source line', () => {
 
     expect(summaryScenario?.uri).toBe('movie-list.spec.ts');
     expect(Object.keys(summaryScenario ?? {})).not.toContain('line');
-    expect(summary.scenarios.map((row) => [row.name, row.status, row.uri])).toEqual([
-      ['movie list spec', 'failed', 'movie-list.spec.ts'],
-    ]);
+    expect(
+      summary.scenarios.map((row) => [row.name, row.status, row.uri]),
+    ).toEqual([['movie list spec', 'failed', 'movie-list.spec.ts']]);
     expect(summary.counts.scenarios).toMatchObject({
       total: 1,
       failed: 1,

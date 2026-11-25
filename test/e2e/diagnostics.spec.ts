@@ -1,17 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { messagesFixture } from '../fixtures.js';
-import {
-  removeReport,
-  reportUrl,
-  writeInput,
-  writeReport,
-} from './helpers.js';
+import { removeReport, reportUrl, writeInput, writeReport } from './helpers.js';
 
 const undefinedFixture = messagesFixture('undefined.ndjson');
 const ambiguousFixture = messagesFixture('ambiguous.ndjson');
 
-test('shows undefined-step snippets and finds them by search', async ({ page }) => {
+test('shows undefined-step snippets and finds them by search', async ({
+  page,
+}) => {
   const { dir, output } = await writeReport(
     [undefinedFixture],
     'Undefined E2E',

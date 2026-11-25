@@ -120,5 +120,7 @@ export async function writeAttachmentReport(
 export function attachmentTexts(envelopes: Envelope[]): string[] {
   return envelopes
     .flatMap((envelope) => (envelope.attachment ? [envelope.attachment] : []))
-    .map((attachment) => Buffer.from(attachment.body, 'base64').toString('utf8'));
+    .map((attachment) =>
+      Buffer.from(attachment.body, 'base64').toString('utf8'),
+    );
 }

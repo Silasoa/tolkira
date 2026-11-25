@@ -260,8 +260,18 @@ function validateError(
     if (!isObject(value.location)) {
       throw invalid(source, `${where}.location must be an object.`);
     }
-    const file = optionalString(value.location, 'file', source, `${where}.location`);
-    const line = optionalNumber(value.location, 'line', source, `${where}.location`);
+    const file = optionalString(
+      value.location,
+      'file',
+      source,
+      `${where}.location`,
+    );
+    const line = optionalNumber(
+      value.location,
+      'line',
+      source,
+      `${where}.location`,
+    );
     const column = optionalNumber(
       value.location,
       'column',
@@ -382,8 +392,9 @@ function validateResult(
     result.error = validateError(value.error, source, `${where}.error`);
   }
   if (value.errors !== undefined) {
-    result.errors = arrayOf(value, 'errors', source, where).map((entry, index) =>
-      validateError(entry, source, `${where}.errors[${index}]`),
+    result.errors = arrayOf(value, 'errors', source, where).map(
+      (entry, index) =>
+        validateError(entry, source, `${where}.errors[${index}]`),
     );
   }
   if (value.steps !== undefined) {
@@ -527,7 +538,10 @@ function timestamp(milliseconds: number): Timestamp {
     : { seconds, nanos };
 }
 
-function timestampOf(value: string | undefined, fallback: Timestamp): Timestamp {
+function timestampOf(
+  value: string | undefined,
+  fallback: Timestamp,
+): Timestamp {
   if (!value) return fallback;
   const milliseconds = Date.parse(value);
   return Number.isFinite(milliseconds) ? timestamp(milliseconds) : fallback;
@@ -560,7 +574,10 @@ function location(line?: number, column?: number): Location {
 function pickleLocation(line?: number, column?: number): Location {
   const safeLine =
     typeof line === 'number' && Number.isInteger(line) && line > 0 ? line : 0;
-  return safeLine > 0 && column !== undefined && Number.isInteger(column) && column > 0
+  return safeLine > 0 &&
+    column !== undefined &&
+    Number.isInteger(column) &&
+    column > 0
     ? { line: safeLine, column }
     : { line: safeLine };
 }
@@ -673,7 +690,9 @@ function locationAlreadyPresent(part: string, at: string): boolean {
   const escaped = escapeRegExp(needle);
   // A location without a column also matches the same file and line with one.
   const column = /:\d+:\d+$/.test(needle) ? '' : '(?::\\d+)?';
-  return new RegExp(`(?:^|[^\\w:./-])${escaped}${column}(?![\\w:])`).test(normalized);
+  return new RegExp(`(?:^|[^\\w:./-])${escaped}${column}(?![\\w:])`).test(
+    normalized,
+  );
 }
 
 function errorText(
@@ -681,11 +700,14 @@ function errorText(
   inputDir: string,
 ): string | undefined {
   if (!error) return undefined;
-  const message = [error.message, error.value, error.stack]
-    .find((entry): entry is string => typeof entry === 'string' && entry.trim() !== '');
+  const message = [error.message, error.value, error.stack].find(
+    (entry): entry is string =>
+      typeof entry === 'string' && entry.trim() !== '',
+  );
   const parts: string[] = [];
   if (message) parts.push(scrubPaths(stripAnsi(message), inputDir).trim());
-  if (error.snippet) parts.push(scrubPaths(stripAnsi(error.snippet), inputDir).trim());
+  if (error.snippet)
+    parts.push(scrubPaths(stripAnsi(error.snippet), inputDir).trim());
   const at = locationText(error.location, inputDir);
   if (at && !parts.some((part) => locationAlreadyPresent(part, at))) {
     parts.push(`at ${at}`);
@@ -700,7 +722,9 @@ function resultErrorText(
   // Playwright reports the same failure in `error` and `errors[0]`, so prefer
   // the array when it has entries and fall back to the single error otherwise.
   const errors =
-    result?.errors && result.errors.length > 0 ? result.errors : [result?.error];
+    result?.errors && result.errors.length > 0
+      ? result.errors
+      : [result?.error];
   const texts: string[] = [];
   for (const error of errors) {
     const text = errorText(error, inputDir);
@@ -718,7 +742,11 @@ function flattenSteps(
   steps: PlaywrightStep[],
   depth = 0,
 ): Array<{ text: string; durationMs: number; error?: PlaywrightError }> {
-  const rows: Array<{ text: string; durationMs: number; error?: PlaywrightError }> = [];
+  const rows: Array<{
+    text: string;
+    durationMs: number;
+    error?: PlaywrightError;
+  }> = [];
   for (const step of steps) {
     // Playwright step durations are inclusive; subtract children so parent and
     // child are not counted twice by the report model.
@@ -834,7 +862,10 @@ function canonicalSteps(
   return steps;
 }
 
-function attemptSteps(result: PlaywrightResult, inputDir: string): CanonicalStep[] {
+function attemptSteps(
+  result: PlaywrightResult,
+  inputDir: string,
+): CanonicalStep[] {
   return canonicalSteps(
     result,
     result.status === 'skipped' ? 'skipped' : 'normal',
@@ -911,7 +942,10 @@ async function readAttachment(
     if (stats.size > MAX_ATTACHMENT_BYTES) {
       throw new Error('Attachment is larger than 50 MB. Use a smaller asset.');
     }
-    if (context.totalAttachmentBytes + stats.size > MAX_TOTAL_ATTACHMENT_BYTES) {
+    if (
+      context.totalAttachmentBytes + stats.size >
+      MAX_TOTAL_ATTACHMENT_BYTES
+    ) {
       throw new Error(
         'Attachments exceed 100 MB in total. Split the report or use smaller assets.',
       );
@@ -1238,7 +1272,8 @@ async function scenarioPlan(
     .filter(Boolean)
     .join(' › ');
   const rule = ruleFor(context, feature, ruleName || file);
-  const name = stripTrailingTags(spec.title) || `Test ${rule.scenarios.length + 1}`;
+  const name =
+    stripTrailingTags(spec.title) || `Test ${rule.scenarios.length + 1}`;
   const results = test.results;
   const finalIndex =
     results.length > 0
@@ -1292,7 +1327,8 @@ async function scenarioPlan(
   const tagNames: string[] = [];
   const addTag = (value: string): void => {
     const tagName = value.startsWith('@') ? value : `@${value}`;
-    if (tagName.length > 1 && !tagNames.includes(tagName)) tagNames.push(tagName);
+    if (tagName.length > 1 && !tagNames.includes(tagName))
+      tagNames.push(tagName);
   };
   for (const tag of spec.tags) addTag(tag);
   for (const annotation of test.annotations) {
@@ -1417,7 +1453,9 @@ function collectScenarios(
   const suiteFile = stripTrailingTags(suite.file ?? file);
   // The actual file named by the suite chain, if any; the fallback stays only
   // for a report where neither the spec nor a suite names a file.
-  const suiteUriFile = suite.file ? stripTrailingTags(suite.file) : inheritedFile;
+  const suiteUriFile = suite.file
+    ? stripTrailingTags(suite.file)
+    : inheritedFile;
   const jobs: Array<() => Promise<void>> = [];
 
   for (const spec of suite.specs) {
@@ -1459,10 +1497,7 @@ function collectScenarios(
   return jobs;
 }
 
-function addErrorFeature(
-  context: PlanContext,
-  errors: unknown[],
-): void {
+function addErrorFeature(context: PlanContext, errors: unknown[]): void {
   if (errors.length === 0) return;
   const feature: FeaturePlan = {
     name: 'Playwright',
@@ -1487,7 +1522,14 @@ function addErrorFeature(
       keyword: 'Scenario',
       name,
       description: '',
-      steps: [{ id: stepId, location: location(1), keyword: '', text: 'Playwright error' }],
+      steps: [
+        {
+          id: stepId,
+          location: location(1),
+          keyword: '',
+          text: 'Playwright error',
+        },
+      ],
       examples: [],
     };
     const pickleStep: PickleStep = {
@@ -1524,7 +1566,14 @@ function addErrorFeature(
         {
           attempt: 0,
           timestamp: context.runTimestamp,
-          steps: [{ text: 'Playwright error', durationMs: 0, status: FAILED, message }],
+          steps: [
+            {
+              text: 'Playwright error',
+              durationMs: 0,
+              status: FAILED,
+              message,
+            },
+          ],
           attachments: [],
           skippedAttachments: 0,
           skippedEntries: [],
@@ -1635,10 +1684,20 @@ export async function parsePlaywrightJson(
   );
 
   for (const suite of rootsSuites) {
-    const file = stripTrailingTags(suite.file ?? suite.title ?? 'playwright.spec.ts');
-    const inheritedFile = suite.file ? stripTrailingTags(suite.file) : undefined;
+    const file = stripTrailingTags(
+      suite.file ?? suite.title ?? 'playwright.spec.ts',
+    );
+    const inheritedFile = suite.file
+      ? stripTrailingTags(suite.file)
+      : undefined;
     // Await in collection order so I/O timing cannot reorder scenarios.
-    for (const job of collectScenarios(context, suite, [], file, inheritedFile)) {
+    for (const job of collectScenarios(
+      context,
+      suite,
+      [],
+      file,
+      inheritedFile,
+    )) {
       await job();
     }
   }
@@ -1685,7 +1744,10 @@ export async function parsePlaywrightJson(
             testCaseStarted: started,
           });
           let clock = attempt.timestamp;
-          const count = Math.min(attempt.steps.length, plan.testCase.testSteps.length);
+          const count = Math.min(
+            attempt.steps.length,
+            plan.testCase.testSteps.length,
+          );
           for (let index = 0; index < count; index += 1) {
             const testStep = plan.testCase.testSteps[index];
             const step = attempt.steps[index];
@@ -1755,7 +1817,8 @@ export async function parsePlaywrightJson(
     for (const envelope of feature) envelopes.push(envelope);
   }
 
-  const duration = optionalNumber(parsed.stats, 'duration', source, 'stats') ?? 0;
+  const duration =
+    optionalNumber(parsed.stats, 'duration', source, 'stats') ?? 0;
   const success = !envelopes.some(
     (envelope) => envelope.testStepFinished?.testStepResult.status === FAILED,
   );

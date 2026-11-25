@@ -57,7 +57,9 @@ test('captures default and static viewport evidence', async ({
       await expect(
         page.getByRole('heading', { name: title, level: 1 }),
       ).toBeVisible();
-      await expect(page.locator('img[src^="data:image/png"]').first()).toBeVisible();
+      await expect(
+        page.locator('img[src^="data:image/png"]').first(),
+      ).toBeVisible();
       await capture(page, engine, `${form}-1440`);
 
       await page.setViewportSize({ width: 390, height: 844 });

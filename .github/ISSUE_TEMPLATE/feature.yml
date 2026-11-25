@@ -1,6 +1,6 @@
 name: Feature request
 description: Suggest a capability or report improvement. Intake only; a spec follows before implementation.
-title: "feat: "
+title: 'feat: '
 labels: [needs-triage]
 body:
   - type: markdown

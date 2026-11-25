@@ -44,7 +44,9 @@ export function syntheticRun(
               result: {
                 status: scenario.status,
                 duration: 1,
-                ...(scenario.message ? { error_message: scenario.message } : {}),
+                ...(scenario.message
+                  ? { error_message: scenario.message }
+                  : {}),
               },
             },
           ],
@@ -114,8 +116,9 @@ export function failPickle(
   envelopes: ReturnType<typeof parseMessages>,
   name: string,
 ): void {
-  const pickle = envelopes.find((envelope) => envelope.pickle?.name === name)
-    ?.pickle;
+  const pickle = envelopes.find(
+    (envelope) => envelope.pickle?.name === name,
+  )?.pickle;
   const testCase = envelopes.find(
     (envelope) => envelope.testCase?.pickleId === pickle?.id,
   )?.testCase;
