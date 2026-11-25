@@ -1,0 +1,8 @@
+schema: spec-driven
+created: 2026-11-25
+goal: >-
+  Land the approved B-055 tooling package without changing runtime behaviour,
+  report bytes or the public API: six strict TypeScript flags, a client/server
+  tsconfig split, a curated oxlint config with --max-warnings=0, no
+  passWithNoTests, a conservative coverage threshold, and Prettier with one
+  formatting-only commit. oxlint --type-aware is evaluated and not adopted.
