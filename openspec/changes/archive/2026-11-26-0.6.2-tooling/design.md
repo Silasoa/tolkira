@@ -288,7 +288,9 @@ disabled rules, the scoped overrides, the inline-suppression set and every
 exclusion, so a silent weakening of the gate fails the suite. The test is
 a tripwire, not a lock: an agent that edits the config and the test together
 still changes behaviour, so SCR/CR review the diff against this contract and the
-spec. `skipLibCheck` stays on because it only skips dependency declarations
+spec. The scan covers the `eslint-` and `oxlint-` spellings and the `next-line`
+and `line` forms, and it is line-start only; a trailing file-level comment would
+escape it, so review stays the lock. `skipLibCheck` stays on because it only skips dependency declarations
 (speed, not own-code safety); the ten `.mjs` scripts run outside the TypeScript
 program and are a named boundary, typechecking them is a separate change.
 
@@ -413,7 +415,7 @@ version, tag, stage and publish wait for the user's approval.
 | The internal `options.d.ts` return shape changes. | Not exported from the package entry; the public entry, compat declarations and input interfaces are proven unchanged. |
 | Pinning `oxlint` exactly delays rule updates. | Deliberate: a new rule set is a reviewed bump commit, the same policy as Oxfmt. |
 | Oxfmt 0.80 is pre-1.0 and may change output between minors. | Exact pin; a bump is a reviewed commit with a re-format; the byte proof and the gate catch drift. |
-| `oxlint-tsgolint` adds a per-platform binary and 330 findings at the 6258711 measurement, 187 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 109 real fixes are part of the change. |
+| `oxlint-tsgolint` adds a per-platform binary and 330 findings at the 6258711 measurement, 187 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 108 real fixes are part of the change. |
 | Twenty-one findings sit in source that cannot be fixed without changing a report byte or a public declaration. | They stay as line-level suppressions with a reason, pinned by the gate test; the byte-identical bundle hash and the unchanged declarations prove the choice. |
 | The pedantic and type-aware fixes touch tests mechanically. | Each rule group is its own task and commit; `prefer-code-point` is reviewed per site because surrogate behaviour can differ; assertions are not weakened. |
 | `preserve-caught-error` adds a `cause` property. | Internal only; messages and stderr are unchanged and no consumer reads error keys. |
@@ -431,8 +433,8 @@ version, tag, stage and publish wait for the user's approval.
   Oxfmt config (`printWidth`, `singleQuote`, `sortImports`, `sortPackageJson`)
   and the exact `ignorePatterns`, the `.gitattributes` LF policy, the
   coverage provider/scope/thresholds, the removed `passWithNoTests`, the `check`
-  order and the exact dev-dependency pins. It also scans `src/**` for
-  suppressions: a file-level directive fails, every
+  order and the exact dev-dependency pins. It also scans `src/**` and `test/**`
+  for `.ts`/`.cts`/`.mts` suppressions: a file-level directive fails, every
   `oxlint-disable-next-line` must carry its rule and a `--` reason, and the
   exact `(file, rule)` multiset must equal the pinned set, so an added
   suppression fails the suite.

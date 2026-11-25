@@ -129,7 +129,7 @@
   `eqeqeq` (1) and the `eslint/require-await` fix in `src/cli.ts` (1). No
   assertion is weakened; re-measure the remainder.
 - [x] 3.11 Fix the type-aware findings: the `src` `no-unsafe-type-assertion`
-  casts except the six byte-pinned ones in the three browser files,
+  casts except the six byte-pinned ones in the browser files,
   `typescript/no-floating-promises` (2), `typescript/await-thenable` (2),
   `typescript/unbound-method` (2), `typescript/no-misused-spread` (2),
   `typescript/restrict-template-expressions` (2), `typescript/prefer-includes`
@@ -188,38 +188,49 @@
 
 ## 4. Verification and review
 
-- [ ] 4.1 `npm run hygiene`, `npm run check` and `npm run test:e2e` are green.
-  Record the exact counts, the tooling-step and probe-file gate time separately,
-  the unit and browser totals, the client bundle size, the coverage numbers, the
-  re-measured formatting count, the 88 strict errors and the base, pedantic and
-  type-aware lint baselines and the unchanged nine characterization hashes and
-  two golden files. Record the browser wall clock
-  and per-test duration sum with the machine, OS, core count, worker count, Node
-  and Playwright versions and the exact command, as the base runtime
-  requirement asks. State that the new test file is the justified delta in the
-  unit total. Run `npm pack --dry-run --json` for the file list and
-  `npm view tolkira@0.6.1 bin exports dependencies --json` for the published
-  metadata, and compare both with the 0.6.1 package.
-- [ ] 4.2 Independent reviewers in one batch: SCR (the spec delta and the
-  preserved gate/release requirements), CR (type and lint fixes, no assertion
-  weakened), DAR (docs and the evaluation record), SEC (dev-only dependency
-  surface, pins, no new runtime/network path), PCA (gate runtime, coverage cost,
-  formatter split, probe cost) and STR (config layout, test health, no
-  duplicated contract). UXR, CMP and ILA are not triggered because no report
-  byte changes; prove it with the hashes. A failing review spawns a fixer.
-- [ ] 4.3 Confirm no host row is required: the only PDF contact is the
-  `preserve-caught-error` `cause` addition in `src/pdf.ts`, and the compat
-  contacts are the two scoped rule overrides in
-  `src/compat/cucumber-html-reporter.ts` and `.cts`. They change no output, no
-  attachment path and no shim behaviour, and the existing PDF and e2e tests
-  cover those flows. Record that decision in the gate record.
-- [ ] 4.4 Gate record in `tasks.md`: commands, results, the strict-error and
-  lint tables, the formatting, LF, coverage and package proof, the config
-  excerpts and the reviewer outcome. Deferred findings get a backlog trigger;
-  nothing is dropped silently.
-- [ ] 4.5 Fix every review finding or record a decision with a trigger, using a
-  separate fixer rather than the implementer of record; re-run the gate after
-  fixes.
+- [x] 4.1 Green on 2026-11-26. Host: Windows 11 (10.0.26300), 12 cores,
+  Node 26.13.1, npm 10.8.2, Playwright 1.65.1, default Vitest workers.
+  `npm run hygiene`: ok (860 files, 470 commits). `npm run check`: exit 0,
+  29.8 s warm. `npm run test:e2e`: exit 0, 174.4 s, 454 passed / 8 skipped on
+  Chromium, Firefox and WebKit. Unit: 93 files, 1,796 passed / 10 skipped; the
+  new tooling file is the justified delta (30 tests, 5.2 s standalone,
+  +2.6-3.2 s inside the suite). Strict: 88 errors in 22 files before, 0 after,
+  both programs green. Lint: 335 findings at 3.4 (63 base, 156 pedantic, 116
+  type-aware), 314 fixed, 21 pinned, 0 remaining; 26 inline directives with
+  reasons, exact-pinned. Formatting: Oxfmt 0.80.0, `.oxfmtrc.json` (printWidth
+  80, singleQuote, sortImports and sortPackageJson off) with the 25-entry exact
+  ignore list; `format:check` 0.67 s warm (Prettier was 5.3 s); the protected
+  tree (generated sources, catalogs, both CSS, fixtures, both goldens; 170
+  files) is byte-identical, the nine characterization hashes and both goldens
+  are unchanged. LF: seven files renormalized; six files were reformatted
+  beyond Prettier's output. Coverage: 94.67 / 87.61 / 96.95 / 96.13 against
+  93 / 86 / 95 / 95. Bundle: 15,438 B, sha256 `c018a0c3404018a1…`, unchanged.
+  Pack: 81 entries, 664,104 B; `bin`, `exports`, `files`, `dependencies` and
+  version unchanged from 0.6.1; the published 0.6.1 tarball has 80 entries and
+  omits `docs/README.md`, recorded as B-071 and not caused by this change. Gate
+  delta: ~7 s warm, attributed to coverage (2.1-4.5), the probe file
+  (2.6-3.2), lint (1.3), typecheck (0.6) and the formatter (0.67); the base
+  >20 % rule is answered by the split.
+- [x] 4.2 Two independent batches. First: SCR, CR, DAR and STR FAIL; SEC and
+  PCA PASS. All findings were fixed in `4b8717c` (26-entry pin across
+  `src`/`test` `.ts`/`.cts`/`.mts`, exact overrides, exact check steps, client
+  graph from `tsconfig`, exact boolean assertions, mixed legacy rows, Vitest
+  5.1.1, redundant probes) or recorded (the line-start scan limit). The Oxfmt
+  switch is `b2e9da2`. Delta re-check: SCR, STR and DAR PASS; CR PASS with one
+  low residual (the `eslint-disable` spellings), closed in `d09dfcf`. UXR, CMP
+  and ILA are not triggered; the hashes prove no report byte changes.
+- [x] 4.3 No host row is required. The only PDF contact is the
+  `preserve-caught-error` `cause` addition in `src/pdf.ts`; the compat contacts
+  are the scoped rule overrides in `src/compat/cucumber-html-reporter.ts` and
+  `.cts`. They change no output, attachment path or shim behaviour, the report
+  bytes are proven unchanged and the PDF/e2e tests cover those flows.
+- [x] 4.4 Gate record: 4.1-4.3 above, design §3 (lint table, suppressions,
+  exact configs), §4 (formatting scope and LF), §6 (gate composition) and the
+  package proof. Deferred findings: B-071 (0.6.1 tarball and `docs/README.md`,
+  release, trigger before the next tag) and B-072 (tsdown, 0.7). Nothing is
+  dropped.
+- [x] 4.5 Every review finding is fixed in `4b8717c` or `d09dfcf`, or recorded
+  as the documented line-start scan limit; the gate was re-run after both.
 
 ## 5. Release boundary
 
