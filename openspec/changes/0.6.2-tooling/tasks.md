@@ -130,9 +130,9 @@
   (1), the enum comparisons and assignments (5) and
   `typescript/require-array-sort-compare` (7). Each fix
   keeps behaviour; a floating promise is awaited or explicitly handled, never
-  silenced. Review `typescript/no-base-to-string` and
-  `typescript/consistent-return` per site and fix
-  or record a scoped decision.
+  silenced. `typescript/no-base-to-string` and `typescript/consistent-return`
+  are fixed; if a site proves the rule wrong, record the deviation and update the
+  table in 1.2.
 - [ ] 3.12 Fix the `no-unnecessary-*` cleanups (about 77).
 - [ ] 3.13 Prepend `* text=auto eol=lf` to `.gitattributes` (before the fixture
   lines, so their attributes keep precedence) and renormalize the six tracked

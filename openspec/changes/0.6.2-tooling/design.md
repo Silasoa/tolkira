@@ -198,9 +198,10 @@ The config:
   in `src/render/html.ts` (the exported `renderHtml` is async for its Promise
   API);
 - off as pedantic type-aware rules that report preference or would require
-  typing the whole JSON pipeline (3,262 = 3,244 + 18): the big seven
-  `typescript/prefer-readonly-parameter-types` (1,850; every parameter readonly
-  is not a defect signal and breaks mutable APIs),
+  typing the whole JSON pipeline (3,262 = 3,203 for the big seven + 41 for
+  `prefer-nullish-coalescing` and `no-confusing-void-expression` + 18 for five
+  smaller rules): `typescript/prefer-readonly-parameter-types` (1,850; every
+  parameter readonly is not a defect signal and breaks mutable APIs),
   `typescript/strict-boolean-expressions` (372; forces explicit comparisons
   everywhere), `typescript/no-unsafe-member-access` (360),
   `typescript/no-unsafe-assignment` (272), `typescript/no-unsafe-call` (269),
@@ -233,10 +234,9 @@ type-aware findings: the 41 `src` `no-unsafe-type-assertion` casts, then
 (1), the enum comparisons and assignments (5),
 `typescript/require-array-sort-compare` (7) and the
 `typescript/no-unnecessary-*` cleanups (about 77). `typescript/no-base-to-string`
-and `typescript/consistent-return` are suspected false positives in the
-inventory; review each
-site and either fix it with a behaviour proof or record a scoped decision, never
-a silent silence.
+and `typescript/consistent-return` are counted as fixes in the 143; if a site
+proves the rule wrong, the finding moves to the 3,262 exclusion and the table is
+updated in 1.2, never silently.
 
 Script: `oxlint --type-aware --max-warnings=0 .`. Pin `oxlint` to `1.94.0` and
 `oxlint-tsgolint` to `7.0.2008` exactly, so a new minor cannot add rules or
