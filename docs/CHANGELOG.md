@@ -13,23 +13,28 @@ Keep a Changelog and the project uses semantic versioning.
 - Lint runs the maximal sensible oxlint set: correctness as error, suspicious,
   performance and pedantic as warnings, type-aware rules through the pinned
   `oxlint-tsgolint`, and `--max-warnings=0`. The 335 findings on the
-  strict-fixed tree are fixed except 14 in the four browser files that are
-  embedded in every report; those stay as per-line suppressions with a reason,
-  pinned by the gate test.
-- Prettier 3.10.1 is the formatter, landed in one formatting-only commit with a
-  `format:check` step. No generated source, report CSS, fixture, golden or
-  report byte changes.
+  strict-fixed tree are fixed except 21: 14 in the browser sources embedded in
+  every report (the bundle is pinned to the report bytes), one in the public CJS
+  declaration, one on the gate test's JSON helper, and five e2e assertions that
+  read computed CSS lengths or UTF-16 code units. All 26 inline suppressions in
+  `src/` and `test/` carry a reason and are pinned by the gate test.
+- Oxfmt 0.80.0 is the formatter (switched from Prettier before release), with a
+  `format:check` step. The formatting changes touch no generated source, report
+  CSS, golden or report byte; the only fixture edit, a `void` in the CJS compat
+  fixture, is a lint fix.
 - Unit coverage has a floor of 93 statements, 86 branches, 95 functions and 95
   lines over `src/**/*.ts` minus the embedded browser entry; `passWithNoTests`
   is gone, so an empty test selection fails.
 - The repository enforces LF checkout line endings.
-- `npm run check` remains the single local and CI gate; the added steps run
-  inside it. Dev-only dependencies: `oxlint-tsgolint` 7.0.2008, Prettier 3.10.1
-  and `@vitest/coverage-v8` 5.1.1, with `oxlint` pinned to 1.94.0.
+- `npm run check` remains the consolidated quality gate the check jobs call; the
+  added steps run inside it. Dev-only dependencies: `oxlint-tsgolint` 7.0.2008,
+  Oxfmt 0.80.0 and `@vitest/coverage-v8` 5.1.1, with `oxlint` pinned to 1.94.0
+  and `vitest` to 5.1.1.
 - No runtime dependency, CLI/API option, report byte, public input declaration,
   package entry or workflow change. Wrapped errors keep their `cause`
-  internally, and the non-exported `renderOptions()` helper has a narrower
-  return shape in `dist/options.d.ts`; neither is public API.
+  internally, and the non-exported `renderOptions()` helper has a different
+  inferred shape (five optional fields instead of required `T | undefined`);
+  neither is public API.
 
 ## [0.6.1] - 2026-11-25
 

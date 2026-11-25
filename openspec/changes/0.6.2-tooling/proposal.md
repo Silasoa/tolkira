@@ -28,9 +28,10 @@ now, before the 0.7 parity work adds code on top.
 - Remove `passWithNoTests`, so an empty or mistyped test glob fails.
 - Add a v8 coverage floor on `src/**/*.ts` with the browser entry excluded and
   the measured headroom: 93 statements, 86 branches, 95 functions, 95 lines.
-- Add Prettier with one formatting-only commit and a `format:check` gate. The
-  formatting commit touches no generated asset, CSS, fixture, golden or report
-  byte.
+- Add Oxfmt (switched from Prettier before release on 2026-11-26) with a
+  formatting-only step and a `format:check` gate. The formatting changes touch no
+  generated asset, CSS, golden or report byte; one `void` in the CJS compat
+  fixture is a lint fix, not a formatting edit.
 - Keep `npm run check` as the single local and CI gate; the added steps run
   inside it.
 
@@ -56,7 +57,7 @@ None.
 ## Impact
 
 Affected: `tsconfig.json`, a new `tsconfig.client.json`, `.oxlintrc.json`,
-`.prettierrc.json`, `.prettierignore`, `.gitattributes`, `vitest.config.ts`,
+`.oxfmtrc.json`, `.gitattributes`, `vitest.config.ts`,
 `package.json` scripts and dev dependencies, `ci.yml` (no edit expected: it
 already runs `npm run check`), 88 type-error sites in 22 files, the 335 lint
 findings (63 base, 156 pedantic, 116 type-aware; 314 fixed and 21 pinned per
@@ -66,7 +67,7 @@ OpenSpec files, one ADR and `src/render/escape.ts`). No production behaviour,
 report byte,
 public API or tarball entry point changes; the one emitted declaration diff is
 the inferred return type of the internal `renderOptions()` helper, which the
-package entry does not export. Dev-only dependencies grow by Prettier, the
+package entry does not export. Dev-only dependencies grow by Oxfmt, the
 Vitest coverage provider and the pinned type-aware lint binary; runtime
 dependencies stay unchanged.
 

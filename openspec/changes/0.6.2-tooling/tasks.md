@@ -24,10 +24,12 @@
   pedantic category with the measured exclusions, type-aware rules with the
   assertion rule scoped off in `test/**`, the five extra compiler checks, and
   `noPropertyAccessFromIndexSignature`/`erasableSyntaxOnly` left off with their
-  measured reasons; exact pins for `oxlint`, `oxlint-tsgolint` and Prettier and
-  the exact Vitest coverage peer; the coverage scope and 93/86/95/95 floors; the
+  measured reasons; exact pins for `oxlint`, `oxlint-tsgolint`, `vitest`,
+  `@vitest/coverage-v8` and the formatter (Oxfmt 0.80.0; Prettier 3.10.1 was the
+  first choice until the 2026-11-26 switch); the coverage scope and 93/86/95/95
+  floors; the
   formatting scope, the LF checkout policy and the report-byte proof; the
-  isolated formatting commit; the internal `options.d.ts` return-shape delta and
+  isolated formatting commits; the internal `options.d.ts` return-shape delta and
   the scoped public-declaration proof. The `preserve-caught-error` `cause`
   effect is declared as internal-only.
 - [x] 1.4 Confirm the approved B-055 package covers this contract and the
@@ -42,7 +44,7 @@
   list, the maximal lint plugins/categories/severities/exceptions and the
   scoped `no-unsafe-type-assertion` override, the retained and extended
   `ignorePatterns`, the `--type-aware --max-warnings=0` script, the
-  `oxlint-tsgolint` pin, the Prettier config and every ignore entry, the
+  `oxlint-tsgolint` pin, the Oxfmt config options and the exact `ignorePatterns`, the
   `.gitattributes` `* text=auto eol=lf` line, the coverage
   provider/scope/exclude/thresholds, the removed `passWithNoTests`, the `check`
   order and the exact dev-dependency pins.
@@ -63,7 +65,7 @@
   the scoped override; a warning-severity `eslint/no-shadow` finding makes
   `--max-warnings=0` exit non-zero while plain `oxlint` exits zero on it, and
   both exit zero on a clean copy; an unformatted source copy fails
-  `prettier --check <file> --config <repo>/.prettierrc.json` while a formatted
+  `oxfmt --check <file> -c <repo>/.oxfmtrc.json` while a formatted
   copy passes; a nonexistent test pattern fails when `passWithNoTests` is gone
   while a matching pattern passes; a one-file coverage run with
   `--coverage.thresholds.lines=100` fails on a 0 % control while the measured
@@ -143,9 +145,10 @@
   files with CRLF or mixed index endings: five archived OpenSpec files,
   `docs/adr/0007-optional-pdf-engine.md` and `src/render/escape.ts`
   (line-ending-only commit).
-- [x] 3.14 Add `.prettierrc.json` (single quotes, width 80), `.prettierignore`
-  with the full scope, pin Prettier 3.10.1 and add `format:check`/`format`; put
-  `format:check` in `check` before `build`. Do not commit the config alone.
+- [x] 3.14 Add `.oxfmtrc.json` (`printWidth: 80`, `singleQuote: true`,
+  `sortImports: false`, `sortPackageJson: false`, the exact `ignorePatterns`),
+  pin Oxfmt 0.80.0 and add `format:check`/`format`; put `format:check` in
+  `check` before `build`. Do not commit the config alone.
 - [x] 3.15 Format the re-measured tracked files and land the config, scripts, the
   `format:check` wiring and the formatted tree in one commit, so the gate is
   green at every commit. Rebuild assets, prove generated sources, both report
@@ -177,6 +180,11 @@
   array/object legacy table as no data table; pin `vitest` to 5.1.1; remove the
   two redundant probes; assert PNG precedence and the accurate `text.ts`
   reasons. Commit `4b8717c`.
+- [x] 3.20 Switch the formatter to Oxfmt 0.80.0 on the user's 2026-11-26
+  decision: replace the Prettier dependency, config and ignore file, reformat
+  the tree, swap the test assertions and probe, and prove the client bundle stays
+  byte-identical and `format:check` drops from 5.3 s to 0.67 s. Commit
+  `b2e9da2`.
 
 ## 4. Verification and review
 

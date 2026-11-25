@@ -4,13 +4,15 @@
 
 The approved B-055 package is a tooling change on 0.6.1. Measured on
 2026-11-25 at `e5c002a`: Windows x64, Node 26.13.1, TypeScript 7.0.2, Vitest
-5.1.1, oxlint 1.94.0 (from `^1.90.0`), esbuild 0.28.2, Prettier 3.10.1. The
-evidence lives in `docs/research/b055-lint-inventory.md` and
+5.1.1, oxlint 1.94.0 (from `^1.90.0`), esbuild 0.28.2. The formatter is Oxfmt
+0.80.0; Prettier 3.10.1 was the first choice until the user's 2026-11-26 switch.
+The evidence lives in `docs/research/b055-lint-inventory.md` and
 `docs/research/b055-tooling-plan.md`; this design turns it into the contract.
 PIR and DXR reviewed the first draft; their findings are folded in below.
 
-The gate is `npm run check` and is already the only command CI and the release
-workflow call. The change adds work inside it, so no workflow file changes.
+The gate is `npm run check`, the consolidated quality gate every check job
+calls; CI also runs hygiene, e2e, stress, bench and pack. The change adds work
+inside the gate, so no workflow file changes.
 
 ## Goals / Non-Goals
 
@@ -113,7 +115,7 @@ boundary.
 
 `tsconfig.build.json` and `tsconfig.compat-cjs.json` are untouched, so the
 emitted declarations change only where a source type changes (the internal
-`options.d.ts` helper above). Prettier does not format generated sources, so no
+`options.d.ts` helper above). Oxfmt does not format generated sources, so no
 generated file is rewritten. esbuild reads only `tsconfig.json`. No `tsc -b`:
 it would write `*.tsbuildinfo` and turn `tsconfig.json` into a solution file
 that esbuild and the build configs depend on. The typecheck script runs two
@@ -292,11 +294,18 @@ program and are a named boundary, typechecking them is a separate change.
 
 ### 4. Formatting scope
 
-`.prettierrc.json`: `{ "singleQuote": true, "printWidth": 80 }`, Prettier
-3.10.1 pinned. Everything else is 3.x default and matches `.editorconfig`.
-`endOfLine` keeps Prettier's default `lf`.
+`.oxfmtrc.json` sets `printWidth: 80`, `singleQuote: true`, `sortImports: false`
+and `sortPackageJson: false`; Oxfmt 0.80.0 is pinned exactly. Everything else is
+the Oxfmt default and matches `.editorconfig`. `endOfLine` is Oxfmt's `lf`.
 
-That default makes the check checkout-dependent: `windows-latest` runs with
+The formatter was switched from Prettier 3.10.1 to Oxfmt 0.80.0 before release
+on the user's 2026-11-26 decision: Prettier never shipped, so there is nothing
+to migrate, and one Oxc toolchain replaces two. Oxfmt is pre-1.0, so the exact
+pin matters: a bump is a reviewed commit with a re-format. Its output is
+Prettier-compatible with documented divergences; six files where it lays out
+leading-pipe unions differently are part of the switch.
+
+Oxfmt's `lf` default makes the check checkout-dependent: `windows-latest` runs with
 `core.autocrlf=true`, and `.gitattributes` currently pins only
 `test/fixtures/**`. Prepend `* text=auto eol=lf` (before the existing lines, so
 the fixture attributes keep precedence) and renormalize the seven tracked files
@@ -305,7 +314,7 @@ whose index holds CRLF or mixed line endings: five archived OpenSpec files,
 change introduced its CRLF). It is a line-ending-only commit; without it the
 Windows check job fails on every text file.
 
-`.prettierignore` excludes: `node_modules`, `dist`, `coverage`,
+`ignorePatterns` in `.oxfmtrc.json` excludes: `node_modules`, `dist`, `coverage`,
 `playwright-report`, `blob-report`, `test-results`, Playwright caches,
 `.openchamber`, `.opencode`, `.tmp`, `.cache`, `openspec/`, `test/fixtures/`,
 `docs/comparison/`, `docs/ui-loop/`, `package-lock.json`, `*.tgz`, `*.png`,
@@ -320,15 +329,19 @@ change report bytes, which the contract forbids.
 
 Blast radius is the ~156 tracked files measured at `e5c002a` (36 `src`, 109
 `test`, 7 `scripts`, 3 `.github`, 1 `tsconfig.json`). Re-measure after Red:
-`test/tooling-config.test.ts`, `tsconfig.client.json` and `.prettierrc.json`
-exist by then. Formatting all of `src` in a copy and rebuilding gives identical
+`test/tooling-config.test.ts`, `tsconfig.client.json` and `.oxfmtrc.json` exist
+by then. Formatting all of `src` in a copy and rebuilding gives identical
 report bytes for the legacy and Messages fixtures and an unchanged minified
-client bundle. Non-minified `dist/*.js` whitespace changes on the next rebuild;
-that is a formatting-only difference and the release rebuild is the documented
-point.
+client bundle; the switch reformatted six files beyond Prettier's output and
+the bundle stayed byte-identical (`c018a0c3…`). Non-minified `dist/*.js`
+whitespace changes on the next rebuild; that is a formatting-only difference
+and the release rebuild is the documented point. The branch carries two
+formatting-only commits (Prettier first, then the Oxfmt switch); the final tree
+is the Oxfmt output and no logic commit contains a reformat.
 
-Scripts: `format:check` and `format`. `format:check` runs inside `check` before
-build. The formatting is one isolated commit, never mixed with a logic change.
+Scripts: `format:check` (`oxfmt --check`) and `format` (`oxfmt`).
+`format:check` runs inside `check` before build and takes 0.67 s warm on this
+host, down from Prettier's 5.3 s. Formatting is isolated from logic changes.
 
 ### 5. Coverage and empty-suite guard
 
@@ -350,8 +363,8 @@ plain suite for local runs. The coverage run adds about three to five seconds.
 ```json
 "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
 "lint": "oxlint --type-aware --max-warnings=0 .",
-"format:check": "prettier --check .",
-"format": "prettier --write .",
+"format:check": "oxfmt --check",
+"format": "oxfmt",
 "test:coverage": "vitest run --coverage",
 "check": "npm run i18n:check && npm run assets && npm run typecheck && npm run lint && npm run format:check && npm run build && npm run test:coverage"
 ```
@@ -376,8 +389,8 @@ runtime increase is answered by that split, not waived.
 3. The lint config with the type-aware pin, the 62 base and 144 pedantic fixes
    and then the 108 type-aware fixes, `--max-warnings=0`.
 4. The LF policy in `.gitattributes` with the seven renormalized files; then
-   Prettier config, ignore, scripts and the formatting-only commit; then rebuild
-   assets and confirm no generated diff.
+   the Oxfmt config, ignore, scripts and the formatting-only commits (Prettier,
+   then the Oxfmt switch); then rebuild assets and confirm no generated diff.
 5. Coverage provider, remove `passWithNoTests`, thresholds, `test:coverage`
    and the `check` order.
 6. Docs and gate record.
@@ -395,10 +408,11 @@ version, tag, stage and publish wait for the user's approval.
 | The server project keeps DOM, so it alone would not catch `document` in server code. | Accepted: `pdf.ts` needs DOM within `page.evaluate`. The client program is the no-Node guard; the no-DOM probe fails only on `pdf.ts` and the browser entry. |
 | Formatting the ~156 baseline files obscures `git blame`. | One isolated commit, optional `.git-blame-ignore-revs`, never mixed with logic. |
 | A wrong ignore pattern changes report bytes or is reverted by the build. | The proof step runs `npm run assets` and `git diff --exit-code` on the generated files; CSS, fixtures and goldens are explicitly out of scope. |
-| Prettier's LF default fails on a CRLF checkout. | `* text=auto eol=lf` prepended in `.gitattributes`, seven tracked files renormalized, Windows job proven by CI. |
+| Oxfmt's `lf` default fails on a CRLF checkout. | `* text=auto eol=lf` prepended in `.gitattributes`, seven tracked files renormalized, Windows job proven by CI. |
 | Rebuilding `dist` after formatting changes non-minified whitespace. | Accepted and recorded; report bytes, behaviour, API and shipped file list are unchanged. |
 | The internal `options.d.ts` return shape changes. | Not exported from the package entry; the public entry, compat declarations and input interfaces are proven unchanged. |
-| Pinning `oxlint` exactly delays rule updates. | Deliberate: a new rule set is a reviewed bump commit, the same policy as Prettier. |
+| Pinning `oxlint` exactly delays rule updates. | Deliberate: a new rule set is a reviewed bump commit, the same policy as Oxfmt. |
+| Oxfmt 0.80 is pre-1.0 and may change output between minors. | Exact pin; a bump is a reviewed commit with a re-format; the byte proof and the gate catch drift. |
 | `oxlint-tsgolint` adds a per-platform binary and 330 findings at the 6258711 measurement, 187 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 109 real fixes are part of the change. |
 | Twenty-one findings sit in source that cannot be fixed without changing a report byte or a public declaration. | They stay as line-level suppressions with a reason, pinned by the gate test; the byte-identical bundle hash and the unchanged declarations prove the choice. |
 | The pedantic and type-aware fixes touch tests mechanically. | Each rule group is its own task and commit; `prefer-code-point` is reviewed per site because surrogate behaviour can differ; assertions are not weakened. |
@@ -414,7 +428,8 @@ version, tag, stage and publish wait for the user's approval.
   plugins/categories/severities/exceptions and the retained `ignorePatterns`,
   the type-aware script and the `oxlint-tsgolint` pin, the scoped
   `no-unsafe-type-assertion` override, the `--max-warnings=0` script, the
-  Prettier config and ignore entries, the `.gitattributes` LF policy, the
+  Oxfmt config (`printWidth`, `singleQuote`, `sortImports`, `sortPackageJson`)
+  and the exact `ignorePatterns`, the `.gitattributes` LF policy, the
   coverage provider/scope/thresholds, the removed `passWithNoTests`, the `check`
   order and the exact dev-dependency pins. It also scans `src/**` for
   suppressions: a file-level directive fails, every
@@ -436,7 +451,7 @@ version, tag, stage and publish wait for the user's approval.
   warning-severity
   `eslint/no-shadow` finding makes `--max-warnings=0` exit non-zero while plain
   `oxlint` exits zero on it and both exit zero on a clean copy; an unformatted
-  source copy fails `prettier --check <file> --config <repo>/.prettierrc.json`
+  source copy fails `oxfmt --check <file> -c <repo>/.oxfmtrc.json`
   while a formatted copy passes; a nonexistent test pattern fails when
   `passWithNoTests` is gone while a matching pattern passes; a one-file coverage
   run with `--coverage.thresholds.lines=100` fails on a 0 % control while the

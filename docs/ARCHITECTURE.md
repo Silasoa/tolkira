@@ -621,7 +621,7 @@ Test names, metadata, file names and attachments are untrusted input.
   `.oxlintrc.json`; a per-line suppression carries its rule and a reason and is
   pinned by `test/tooling-config.test.ts`, so a silent weakening fails the
   suite.
-- Prettier for formatting, landed in one isolated formatting-only commit;
+- Oxfmt 0.80.0 for formatting, landed in isolated formatting-only commits;
   `format:check` ignores generated sources, the report CSS, fixtures, goldens,
   Markdown and `openspec/`.
 - Vitest with a v8 coverage floor of 93 statements, 86 branches, 95 functions
@@ -632,8 +632,8 @@ Test names, metadata, file names and attachments are untrusted input.
 - `npm run check` runs i18n:check, assets, typecheck, lint, format:check, build
   and the coverage suite, in that order; CI and the release workflow call it
   unchanged.
-- Dev-only exact pins: oxlint 1.94.0, oxlint-tsgolint 7.0.2008, Prettier 3.10.1
-  and @vitest/coverage-v8 5.1.1.
+- Dev-only exact pins: oxlint 1.94.0, oxlint-tsgolint 7.0.2008, Oxfmt 0.80.0,
+  vitest 5.1.1 and @vitest/coverage-v8 5.1.1.
 - npm trusted publishing with provenance.
 
 ## Key decisions
