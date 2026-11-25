@@ -1,4 +1,4 @@
-﻿# Backlog and decision log
+# Backlog and decision log
 
 This is the durable runbook for review findings, architecture candidates and
 product ideas. Nothing is silently discarded: every finding is either **fixed**,
@@ -9,14 +9,14 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 1. A review, architecture pass or planning session produces a finding.
 2. The coordinator gives it an ID (`B-001`), an area and a priority.
 3. Choose one:
-   - **Fix now** â€” small enough for the current slice.
-   - **Issue** â€” draft it, pass the IR review, then file it on GitHub with the
+   - **Fix now** — small enough for the current slice.
+   - **Issue** — draft it, pass the IR review, then file it on GitHub with the
      `area:*` and `priority:*` labels and link it here. A spec is written
      before implementation.
-   - **Decision** â€” reject or defer with a concrete reason and a trigger for
+   - **Decision** — reject or defer with a concrete reason and a trigger for
      revisiting. This is the only allowed way to not act.
-4. Issues move through the normal workflow: IR review â†’ OpenSpec change and
-   PIR/DXR spec review â†’ TDD-Red â†’ implementer â†’ review swarm â†’ archive.
+4. Issues move through the normal workflow: IR review → OpenSpec change and
+   PIR/DXR spec review → TDD-Red → implementer → review swarm → archive.
 5. Re-check this list at every release and after every review swarm.
 
 ## How agents work
@@ -40,7 +40,7 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 
 | ID | Area | Priority | Item | Revisit trigger | Issue |
 | --- | --- | --- | --- | --- | --- |
-| B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | A producer fixture or user report carries CR-only text. | â€” |
+| B-018 | Input | P3 | CR-only text keeps CR (fast-path probe ignores CR; pre-existing) | A producer fixture or user report carries CR-only text. | — |
 | B-020 | Report | P3 | Print button: the browser print command needs no in-report UI or catalog key | A measured usability failure shows users cannot find the browser print command; it then needs a catalog key. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-021 | Report | P3 | Repeated print title/page header on pages after the first | A shared multi-page PDF or browser print needs page identity with browser headers/footers off; the PDF engine now exists, so this is a page-layout change; pair with B-022. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-022 | Report | P3 | Custom print page numbers or footer text | A shared PDF needs page numbers while the browser footer stays off (it can expose local paths); pair with B-021. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
@@ -52,11 +52,11 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-028 | Report | P3 | PDF size cap, warning or streaming | A large suite produces a PDF that exceeds a CI artifact, mail or memory limit; the five-minute deadline and print volume limits apply first. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-029 | Report | P3 | Chromium OS sandbox for PDF renders | A CI runner or container supports the Chromium OS sandbox and the PDF path processes untrusted attachments; until then the accepted `--no-sandbox` risk is documented in PDF.md. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
 | B-030 | Report | P3 | Letter/custom paper size for PDF | A user needs US Letter or a custom paper size; A4 comes from `format: 'A4'` and the 12 mm inset from `@page`, so this is a page-size option plus docs and tests. | [#13](https://github.com/Silasoa/tolkira/issues/13) |
-| B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | â€” |
-| B-050 | Report | P3 | Add a new-failure/fixed list or a local `change` filter for large runs; the panel only counts and lists absent rows | A user asks for the names of new failures or fixed scenarios in a large run; then extend the panel and pin the focus/filter behaviour. | â€” |
-| B-051 | Report | P3 | Extract the shared outline-coordinate helper duplicated in `src/summary.ts` and `src/report/model.ts` | The next change touches `src/summary.ts` or `src/report/model.ts`; then move the helper to one leaf module and keep both labels equal. | â€” |
+| B-031 | Test | P3 | Performance e2e can exceed its 10 s budget under full parallel load | The spec passes alone and on rerun; repeat CI failures or a real slowdown mean isolate the perf spec or recalibrate the budget after measuring. | — |
+| B-050 | Report | P3 | Add a new-failure/fixed list or a local `change` filter for large runs; the panel only counts and lists absent rows | A user asks for the names of new failures or fixed scenarios in a large run; then extend the panel and pin the focus/filter behaviour. | — |
+| B-051 | Report | P3 | Extract the shared outline-coordinate helper duplicated in `src/summary.ts` and `src/report/model.ts` | The next change touches `src/summary.ts` or `src/report/model.ts`; then move the helper to one leaf module and keep both labels equal. | — |
 | B-053 | Test | P3 | No container smoke: CI covers Linux, Windows and macOS runners, but not `node:22-alpine` (musl) or a slim/distroless image | Before claiming container support, or when a user reports an install or run failure in Docker, Alpine or a distroless CI image; then add install-plus-report smokes for `node:22-alpine` and `node:22-slim` and record the host. | - |
-| B-055 | Quality | P2 | Lint runs oxlint defaults only (`correctness`, with unicorn/oxc/typescript) and `strict` omits `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noUnused*` and `noImplicitReturns`; a probe finds 86 type errors in 21 files (9 src, 12 test) and about 60 real lint findings after excluding the `no-await-in-loop` and `no-array-sort` noise; `passWithNoTests` can hide a broken glob, and there is no formatter or coverage | User approved the full package on 2026-11-24 and the maximal-strictness extension on 2026-11-25: eleven compiler checks, a client/server tsconfig split, the maximal sensible oxlint config (correctness + suspicious + perf + pedantic, type-aware via pinned `oxlint-tsgolint`, documented exceptions), `--type-aware --max-warnings=0`, no `passWithNoTests`, a coverage floor, and Prettier with one isolated formatting-only commit. Re-measure every count in the change; see `openspec/changes/0.6.2-tooling`. | - |
+| B-055 | Quality | P2 | Lint runs oxlint defaults only (`correctness`, with unicorn/oxc/typescript) and `strict` omits `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noUnused*` and `noImplicitReturns`; a probe finds 86 type errors in 21 files (9 src, 12 test) and about 60 real lint findings after excluding the `no-await-in-loop` and `no-array-sort` noise; `passWithNoTests` can hide a broken glob, and there is no formatter or coverage | User approved the full package on 2026-11-24 and the maximal-strictness extension on 2026-11-25: eleven compiler checks, a client/server tsconfig split, the maximal sensible oxlint config (correctness + suspicious + perf + pedantic, type-aware via pinned `oxlint-tsgolint`, documented exceptions), `--type-aware --max-warnings=0`, no `passWithNoTests`, a coverage floor, and Prettier with one isolated formatting-only commit. Re-measure every count in the change; see `openspec/changes/0.6.2-tooling`. |
 | B-056 | Performance | P3 | At 5,000 scenarios the single-string renderer peaks at 310 MiB RSS and the report needs 1.80 s to finish loading (241,785 DOM nodes), while the official formatter peaks at 77 MiB and loads in 0.67 s; generation (604 ms) and output (10.8 MB, the smallest of the four) are competitive | Planned in the 0.7 performance pass: profile the 5,000 and 10,000 scenario render, prototype a chunked or streaming writer, and decide whether the single-string renderer stays; re-run `scripts/bench-compare.mjs` with the recorded host. A CI host or user hitting the memory or load limit moves it earlier. | - |
 | B-057 | Quality | P3 | The architecture review (`docs/research/architecture-2026-11.md`) rates 7 of 14 areas weak: status vocabulary in 8 modules, diverging sidecar readers, a 779-line CLI with a 461-line `runCli` and 38 `return 2` sites, a 14-field `RenderOptions` with double sanitising, path containment in 4 places and 12 files over 400 lines; the ponytail audit adds dead model fields and the `phase` export, copied `excerpt`/`readBounded` helpers, and unused `testRunFinished.success`; a second architecture pass (`docs/research/architecture-session-2026-11.md`) adds the server/browser filter-decision seam and the one ICU message parser, and refines the attachment ledger | After 0.6.1, one change at a time in the reviewed order: status vocabulary (S), durable sidecar reader (M), CLI plan/execute (M), report pipeline seam (M), input pipeline (L); never bundle a refactor with a behaviour or markup change. Fold the small cleanups into the sidecar and package steps; add the filter seam and message-format leaf after the input pipeline. | - |
 | B-058 | Security | P2 | A Playwright path attachment can embed any regular file under the input file's folder or the process working directory, because the report input controls the path; 0.6.1 documents the trust model and keeps the boundaries, and the audit rates it P1 | When report input can come from an untrusted source (a shared artifact, a fork PR) or a user asks for an attachment root allowlist; then add an explicit root/allowlist option as a 0.7 feature, never as a silent patch change. The 0.6.1 docs state the consequence. | - |
@@ -73,12 +73,12 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-069 | Report | P2 | A Messages input without a Gherkin feature document renders 0 features in the HTML while the JSON summary carries the scenario; the feature row needs a feature document to be built | When the next Messages or report-model change touches feature grouping; then build the feature row from the scenario's display URI and name fallback, and add a featureless-Messages fixture that asserts one feature in HTML and JSON. | - |
 | B-070 | Report | P3 | The native tag `<select>` clips a long selected label at 320 px with 200 % text zoom, so the active tag is unreadable in the control | When the next shell or 320 px change touches the tag filter; then let the selected label wrap or shorten with a `title`, and add a 320 px / 200 % browser assertion. | - |
 
-#13 is closed after #13aâ€“#13c shipped; the #13 links above are provenance, not
+#13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
 
 **PDF slice (2026-11-20).** The optional Chromium engine is done (#13c):
 `--pdf <file>`, `--pdf-timeout <ms>`, `renderPdf(html, options)`, the A4/12 mm
-archive, the report â†’ PDF â†’ email order, path validation and the install error.
+archive, the report → PDF → email order, path validation and the install error.
 The default install and runtime dependency surface, report, JSON, CI and email
 bytes are unchanged; the package gains the PDF docs. Page identity and page
 numbers are B-021/B-022, tagged PDF/accessibility is B-027, a size
@@ -113,18 +113,18 @@ the benchmark path and budget.
 at neutral copy and one catalog per language. Revisit these only when a user
 asks or a locale needs them:
 
-- **Pseudo-locale** â€” add when a translation change needs an automated
+- **Pseudo-locale** — add when a translation change needs an automated
   expansion/overflow check beyond the German viewport gate.
-- **Localized default title** â€” the title stays `Tolkira report` because it
+- **Localized default title** — the title stays `Tolkira report` because it
   feeds the history id; add only with a stable id strategy.
-- **RTL** â€” add when an RTL locale ships; `dir` is already resolved from the
+- **RTL** — add when an RTL locale ships; `dir` is already resolved from the
   locale entry but no RTL catalog or mirroring work exists.
-- **In-report switcher** â€” add only if one file must carry several locales;
+- **In-report switcher** — add only if one file must carry several locales;
   today one report holds one locale and the client bundle carries no non-English
   catalog.
-- **Select/gender** â€” add when a real string needs grammatical gender or a
+- **Select/gender** — add when a real string needs grammatical gender or a
   `select`; the formatter intentionally supports placeholders and plural only.
-- **English singular grammar in triage/health** â€” pre-existing sentences such as
+- **English singular grammar in triage/health** — pre-existing sentences such as
   `1 of 2 scenarios need attention` and the screen-reader health text
   `1 of 1 attempted scenarios passed` are deliberately left unchanged so the
   English output stays as today. Fix with the next English copy change or when a
@@ -133,14 +133,14 @@ asks or a locale needs them:
 
 ## Resolved
 
-- **B-054 Visual evidence for green e2e runs** â€” resolved on 2026-11-24 in the
+- **B-054 Visual evidence for green e2e runs** — resolved on 2026-11-24 in the
   `0.6.1-quality-pass` change, commit `cd44010`: one e2e test renders the default
   and `--static` report from `test/fixtures/messages/screenshot.ndjson` at
   1440 px, 390 px and 320 px with 200 % text, writing six PNGs per engine under
   `test-results/visual/<engine>/`; the existing `playwright-visual-*` CI
   artifacts pick them up. There are no pixel assertions, no committed image and
   no new dependency, and each form asserts its title before capture.
-- **B-049 BOM before the history sidecar** â€” resolved on 2026-11-24 in the
+- **B-049 BOM before the history sidecar** — resolved on 2026-11-24 in the
   `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073`: the shared
   bounded sidecar read strips exactly one leading U+FEFF, so `readHistory` and
   the schema peek behind `writeHistory` accept a BOM-prefixed file, and a read
@@ -148,7 +148,7 @@ asks or a locale needs them:
   the existing `not valid JSON` error. The writer emits no BOM, so its next
   successful write replaces a BOM-prefixed file with BOM-free bytes and keeps
   every run the append would keep.
-- **B-048 One main landmark around the report views** â€” resolved on 2026-11-24 in
+- **B-048 One main landmark around the report views** — resolved on 2026-11-24 in
   the `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073` and the
   landmark-wrapper follow-up: both report forms render exactly one `<main>` that
   starts before `#report-view` and closes after the last present panel, wrapping
@@ -159,7 +159,7 @@ asks or a locale needs them:
   class, IDs and the `#analysis-view, #trends-view` print page break without tab
   roles. Heading order and tab roles are unchanged, and apart from the B-039
   metadata rule the gate-viewport layout is unchanged.
-- **B-039 Details metadata at 320 px and 200 % text** â€” resolved on 2026-11-24
+- **B-039 Details metadata at 320 px and 200 % text** — resolved on 2026-11-24
   in the `0.6.1-quality-pass` change, commit `cd44010`, follow-up `1fea073`: a
   narrow container query stacks each Details metadata label above a start-aligned
   value when the shell is 10 rem or narrower, with a German override because its
@@ -167,8 +167,8 @@ asks or a locale needs them:
   stacked value column and the page does not scroll horizontally. At 100 % text
   from 320 px and at 768 px and wider the two-column, right-aligned layout is
   unchanged.
-- **B-052 README report preview** â€” resolved on 2026-11-24: `README.md` now
-  shows `docs/comparison/tolkira-0.6.0-report.png` (1440Ã—900, 47,441 bytes),
+- **B-052 README report preview** — resolved on 2026-11-24: `README.md` now
+  shows `docs/comparison/tolkira-0.6.0-report.png` (1440×900, 47,441 bytes),
   captured from the default English report of
   `test/fixtures/messages/screenshot.ndjson` in Playwright Chromium with a
   failed scenario, its error and an inline screenshot visible; viewport-only,
@@ -177,7 +177,7 @@ asks or a locale needs them:
   a baseline-panel capture needs a second input and waits for a dedicated
   baseline section or another announcement asset. The `new-shell-*` captures
   stay as they are; the preview supersedes none of them.
-- **B-040 Early input warning** â€” resolved on 2026-11-24 in the
+- **B-040 Early input warning** — resolved on 2026-11-24 in the
   `0.6-early-size-warning` change: after path validation and before parsing, the
   CLI resolves and stats the inputs once and warns on stderr when they total at
   least 50 MiB (52,428,800 bytes); the same resolved list feeds the scan and the
@@ -185,7 +185,7 @@ asks or a locale needs them:
   input cap and the post-render `--max-size` warning stay. The scan counts paths
   at scan time (identical content under two paths counts twice), while the
   post-render `input` value is content-deduped.
-- **B-042 Static no-JS mode** â€” resolved on 2026-11-24 in the
+- **B-042 Static no-JS mode** — resolved on 2026-11-24 in the
   `0.6-static-no-js` change: `--static` (with `--out` or `--pdf`) renders one
   expanded, script-free report: no `<script>`, `script-src 'none'`, every
   `<details>` open, the tab bar, lightbox, copy controls and search/filter
@@ -193,7 +193,7 @@ asks or a locale needs them:
   It is a report form, not a CSP fix; in 0.6.0 the default report without
   Trends kept its bytes and its pre-existing three `<main>` elements (B-048),
   which 0.6.1 replaced with one.
-- **B-044 Configurable history window** â€” resolved on 2026-11-23 in the
+- **B-044 Configurable history window** — resolved on 2026-11-23 in the
   `0.6-history-window` change: `--history-limit <n>` (needs `--history`) keeps
   the newest 1 to 365 aggregate runs, default 30, and bounds read, append, write
   and Trends. A window above 30 writes sidecar schema 2 (never downgraded); the
@@ -202,7 +202,7 @@ asks or a locale needs them:
   keeping the newest entry; a 0.5 reader rejects schema 2 without rewriting it.
   Lowering the window is destructive on the next successful write. See
   [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md#run-history).
-- **B-047 Zero-test JUnit document in a directory** â€” resolved on 2026-11-23 in
+- **B-047 Zero-test JUnit document in a directory** — resolved on 2026-11-23 in
   the `junit-empty-documents` change: a zero-test JUnit document (well-formed
   XML with no `<testcase>`) is skipped when it comes from a directory scan, so
   one skipped Maven suite no longer hides the rest of the run. The skip needs
@@ -214,7 +214,7 @@ asks or a locale needs them:
   `No supported report files found.` The skipped file stays in the
   `inputFiles` count, and a directory without a zero-test document renders the
   same bytes as before.
-- **B-045 Numeric `format.bytes` counts** â€” resolved on 2026-11-23 in the
+- **B-045 Numeric `format.bytes` counts** — resolved on 2026-11-23 in the
   `size-details-followups` change: `sizeLabel`, `exactSizeLabel` and the
   attachment size row pass the raw numeric byte count to `format.bytes` instead
   of a pre-formatted `t.number()` string, so a target catalog with a plural
@@ -225,7 +225,7 @@ asks or a locale needs them:
   pre-formatted-string pattern and stays deferred, because fixing it needs a
   precision-aware design. Revisit when a target catalog adds a plural branch to
   `format.megabytes`, or with the next size-formatting change.
-- **B-046 German Details stacking** â€” resolved on 2026-11-23 in the
+- **B-046 German Details stacking** — resolved on 2026-11-23 in the
   `size-details-followups` change: one narrow-only German override
   (`@media (max-width:560px){:lang(de) .sizeMeta{grid-template-columns:minmax(0,1fr)}}`)
   stacks the Details Run panel at 560 px and below, so the exact byte count no
@@ -240,7 +240,7 @@ asks or a locale needs them:
   2fr/3fr share at 561 px, 1440 px and A4 print, two tracks on another metaList
   at 560 px, and an unbroken grouped count with no horizontal overflow at
   320 px.
-- **B-041 Report-size unit consistency** â€” implemented on 2026-11-23 in the
+- **B-041 Report-size unit consistency** — implemented on 2026-11-23 in the
   `report-size-units` change: the Details Report HTML row leads with the exact
   locale-formatted byte count and, at 1 MiB and above, adds one-decimal MB in
   parentheses with a non-breaking space between number and unit; below 1 MiB it
@@ -248,7 +248,7 @@ asks or a locale needs them:
   document's UTF-8 byte length. The same non-breaking join reaches the
   neighbouring MB rows through `sizeLabel`. No schema, catalog, CSS, golden,
   email or dependency change.
-- **B-043 Earlier-attempt evidence** â€” implemented on 2026-11-22 in the
+- **B-043 Earlier-attempt evidence** — implemented on 2026-11-22 in the
   `retry-evidence` change: a retried scenario shows a collapsed `Earlier
   attempts` block with up to three earlier starts (status, duration and the
   first failure message) in the HTML only. A single-input Playwright report
@@ -257,7 +257,7 @@ asks or a locale needs them:
   earlier image. Summary schema 2, `--json`, CI, email, history, attachment
   counts/bytes and the dependency surface stay final-attempt-only. Legacy JSON
   has no earlier data.
-- **B-036 JUnit nested test classes** â€” resolved on 2026-11-22 in the
+- **B-036 JUnit nested test classes** — resolved on 2026-11-22 in the
   `host-parity-fixes` change: a `<testsuite>` with a nested-class shape (at least
   two distinct non-empty testcase classnames plus a `$` classname or a dotted
   outer prefix) becomes one feature per classname, using the classname alone as
@@ -269,7 +269,7 @@ asks or a locale needs them:
   Surefire's 15 class rows. The JSON summary schema, CI, email and dependency
   surface are unchanged; the feature total and `scenarios[].feature` names
   change.
-- **B-034 Legacy JSON hook output** â€” resolved on 2026-11-22 in the
+- **B-034 Legacy JSON hook output** — resolved on 2026-11-22 in the
   `host-parity-fixes` change: a `before`/`after` hook with a non-null string or
   string-array `output` becomes a `text/plain` attachment named
   `Before hook output` or `After hook output`, with lines joined by `\n`; null,
@@ -279,7 +279,7 @@ asks or a locale needs them:
   cucumber-html-reporter 7.2.0, which ignores hook output. The real 8.1.0 host
   fixture covers single-line outputs; the `\n` array join is covered by the
   synthetic hook-output test.
-- **B-035 Playwright JSON scenario source line** â€” implemented on 2026-11-22 in
+- **B-035 Playwright JSON scenario source line** — implemented on 2026-11-22 in
   the `playwright-source-line` change: `ReportScenario` carries the Pickle
   location line (positive integer only), and the scenario summary shows
   `displayUri(uri):line`. `featureSourceLabel` appends a line only when a feature
@@ -287,13 +287,13 @@ asks or a locale needs them:
   the file, multiple files keep `N spec files`, and no trailing colon is rendered.
   The line is not in the summary, `--json`, CI or email, and no locale or
   dependency changed.
-- **B-038 Synthetic adapter source lines** â€” fixed on 2026-11-22 in the
+- **B-038 Synthetic adapter source lines** — fixed on 2026-11-22 in the
   `playwright-source-line` change: Playwright run-error pseudo-pickles use an
   unknown line 0, and a missing or zero `spec.line`, a JUnit scenario and a
   legacy scenario without a line also stay unknown, so no `:1` is invented. AST
   placeholders are unchanged. Covered by the unit render tests for `errors.json`,
   `junit/basic.xml`, a line-less Playwright spec and legacy input.
-- **B-032 Compatibility merged JSON sidecar** â€” implemented on 2026-11-21 in the
+- **B-032 Compatibility merged JSON sidecar** — implemented on 2026-11-21 in the
   `compat-merged-json` change: a `jsonDir` run without `jsonFile` writes the
   legacy merged array to `<output>.json` after the HTML. Features merge by
   `uri` (fallback `Feature: URI Not Present`), duplicate features concatenate
@@ -305,11 +305,11 @@ asks or a locale needs them:
   path are refused before the HTML, while `ignoreBadJsonFile: true` skips an
   invalid reserved-path file and replaces the sidecar. No core CLI/API,
   report-byte or dependency change.
-- **B-037 JUnit duration semantics** â€” documented on 2026-11-22 in
+- **B-037 JUnit duration semantics** — documented on 2026-11-22 in
   `docs/JUNIT-XML.md`: `Test time` is the sum of `<testcase time>` values; suite
   wall time (Spring context and a Surefire total) is not included. No schema
   change; compare the two numbers with that difference in mind.
-- **B-010 Email HTML summary (#13b)** â€” implemented on 2026-11-20 in the
+- **B-010 Email HTML summary (#13b)** — implemented on 2026-11-20 in the
   `add-email-summary` change: opt-in `--email <file>`, a 600 px inline HTML body
   with the attempted pass rate, all non-zero statuses plus unexecuted, counts,
   duration, inline attachments and the first five failed scenarios in summary
@@ -318,20 +318,20 @@ asks or a locale needs them:
   dependency. The report, JSON and CI bytes are unchanged. `.eml`, a logo,
   metadata/snippets and a configurable cap are recorded as B-023 to B-026. The
   print and email slices are done; the PDF engine is resolved as B-019 below.
-- **B-019 PDF engine (#13c)** â€” implemented on 2026-11-20 in the
+- **B-019 PDF engine (#13c)** — implemented on 2026-11-20 in the
   `add-pdf-export` change: opt-in `--pdf <file>`, `--pdf-timeout <ms>` and
   `renderPdf(html, options)`, mandatory `page.setContent` (no temporary report),
   eager lazy images, aborted HTTP(S) subresources, A4/12 mm print CSS, one
   optional `playwright-core` peer imported dynamically (with the cwd
   `createRequire` fallback) and external in the bundle, atomic binary write,
-  report â†’ PDF â†’ email â†’ history â†’ `--ci-out` â†’ stdout order, path validation,
+  report → PDF → email → history → `--ci-out` → stdout order, path validation,
   missing-engine exit 1 and the Chromium-only limits. The default install and
   runtime dependency surface, report, JSON, CI and email bytes are unchanged; the
   package gains the PDF docs. Page identity/page numbers, tagged PDF, a size cap,
   the Chromium OS sandbox and Letter/custom paper are B-021/B-022, B-027, B-028,
-  B-029 and B-030; landscape is unscheduled. The #13aâ€“#13c slices are complete;
+  B-029 and B-030; landscape is unscheduled. The #13a–#13c slices are complete;
   #13 is closed and these remain trigger-based backlog entries.
-- **B-009 German UI and localisation** â€” implemented on 2026-11-20 in the
+- **B-009 German UI and localisation** — implemented on 2026-11-20 in the
   `add-report-localisation` change: `--locale en|de` (default `en`, `de-AT` uses
   `de` and keeps its tag), ICU JSON catalogs with a generated typed module,
   German numbers/dates/durations via `Intl`, a localized report shell and
@@ -346,29 +346,29 @@ asks or a locale needs them:
   sparkline from two runs. The one-file default is unchanged.
   [#10](https://github.com/Silasoa/tolkira/issues/10) is resolved. The change
   remains active for the archive pass.
-- **B-008 External or split-assets attachment mode** â€” decided on 2026-11-19 in
+- **B-008 External or split-assets attachment mode** — decided on 2026-11-19 in
   [ADR 0006](adr/0006-inline-attachments.md): keep one inline HTML file, reject
   remote URLs, `file:`, UNC and outside-root paths, and do not add a
   split-assets mode. Revisit only when a user cannot share a report because of
   media size or a CI artifact limit, then as a new opt-in design with its own
   ADR. [#11](https://github.com/Silasoa/tolkira/issues/11) is resolved.
-- **B-005 Split render/e2e suites and fixture helpers** â€” implemented in `main`
+- **B-005 Split render/e2e suites and fixture helpers** — implemented in `main`
   on 2026-11-19 in the `split-test-suites` change. The render suite is split by
   report flow, the browser report spec by journey, and fixture paths, report
   creation, clipboard stubs and the hostile ANSI payload share one helper.
   [#8](https://github.com/Silasoa/tolkira/issues/8) is resolved.
-- **B-006 Attachment byte consolidation** â€” implemented in `main` on 2026-11-19
+- **B-006 Attachment byte consolidation** — implemented in `main` on 2026-11-19
   in the `consolidate-attachment-bytes` change. `src/attachment.ts` owns decoded
   byte accounting, the caps, the allowlist, fallback names, kind and text
   presentation; the summary and rendered HTML are unchanged.
   [#9](https://github.com/Silasoa/tolkira/issues/9) is resolved.
-- **B-014 `stripAnsi` benchmark** â€” implemented in `main` on 2026-11-19 in the
+- **B-014 `stripAnsi` benchmark** — implemented in `main` on 2026-11-19 in the
   `benchmark-strip-ansi` change. `npm run bench:ansi` measures clean and
   escape-laden corpora against scan-only and char-append references, runs in the
   Node 22 CI check job, and keeps the fast path (about 9.6x on the clean corpus)
   with identical output. [#17](https://github.com/Silasoa/tolkira/issues/17) is
   resolved.
-- **B-012 Real Behave run with attachments and doc strings** â€” implemented on
+- **B-012 Real Behave run with attachments and doc strings** — implemented on
   2026-11-19 in the `verify-real-behave-run` change. The recorded run covers a
   multiline doc string, a data table, an inline PNG, a multiline error message
   and an `error` status; the adapter joins Behave line arrays and maps the
@@ -377,49 +377,49 @@ asks or a locale needs them:
   scenario-level hook failures without a step result remain documented limits.
   [#15](https://github.com/Silasoa/tolkira/issues/15) is resolved by this
   change.
-- **B-004 Renderer split** â€” implemented in `main` on 2026-11-19. `html.ts` is
+- **B-004 Renderer split** — implemented in `main` on 2026-11-19. `html.ts` is
   the shell, CSP and `renderHtml` assembly; `report`, `details`, `triage`,
   `matrix`, `attachments`, `ci`, `format` and `types` own the views behind a
   one-way layer test. Output stayed byte-identical against the characterization
   hashes and golden snapshots. [#7](https://github.com/Silasoa/tolkira/issues/7)
   is resolved.
-- **B-017 Playwright OSS comparison findings** â€” addressed on 2026-11-19 via
+- **B-017 Playwright OSS comparison findings** — addressed on 2026-11-19 via
   #25 (presentation clarity), #26 (attachment warning) and #27 (failed-only
   preset); remaining items have backlog decisions with triggers.
   [#24](https://github.com/Silasoa/tolkira/issues/24) is resolved.
-- **B-001 Playwright JSON adapter** â€” implemented in `main` on 2026-11-18, not
+- **B-001 Playwright JSON adapter** — implemented in `main` on 2026-11-18, not
   yet released. The native adapter covers projects, file/describe rules,
   retries, steps, attachments and run-level errors; see
   [`docs/PLAYWRIGHT-JSON.md`](PLAYWRIGHT-JSON.md).
   [#4](https://github.com/Silasoa/tolkira/issues/4) is resolved.
-- **B-002 CI annotations and Markdown/PR-step summary text** â€” implemented in
+- **B-002 CI annotations and Markdown/PR-step summary text** — implemented in
   `main` on 2026-11-18, not yet released. `--ci github` emits capped GitHub
   Actions annotations and `--ci markdown` writes deterministic summary text for
   stdout, `$GITHUB_STEP_SUMMARY`, a PR-step summary or `--ci-out`; see
   [`docs/CI.md`](CI.md). Posting a PR comment or calling a CI provider API
   remains out of scope. [#5](https://github.com/Silasoa/tolkira/issues/5) is
   resolved.
-- **B-003 Seed-Test 2.0 group sidecar** â€” resolved for Tolkira on 2026-11-13.
+- **B-003 Seed-Test 2.0 group sidecar** — resolved for Tolkira on 2026-11-13.
   The 0.3.0 smoke proved that Seed-Test owns the ~10-line sidecar pre-merge and
   needs no Tolkira change. [#6](https://github.com/Silasoa/tolkira/issues/6) is
   closed; evidence is in
   [`docs/research/seed-test-2-integration.md`](research/seed-test-2-integration.md).
-- **B-011 Generated-assets build seam** â€” decision retained; #14 closed. Keep
+- **B-011 Generated-assets build seam** — decision retained; #14 closed. Keep
   the current convention until a second consumer or a stale-output incident.
-- **B-013 JUnit suite-level output** â€” decided: suite-level output stays
+- **B-013 JUnit suite-level output** — decided: suite-level output stays
   intentionally unattached; `docs/JUNIT-XML.md` documents it and fixtures
   cover both producer shapes. #16 closed.
-- **B-015 Node 20 support policy** â€” decided and implemented: Node 22 is the
+- **B-015 Node 20 support policy** — decided and implemented: Node 22 is the
   floor (ADR 0002, `docs/COMPATIBILITY.md`); CI covers 22, 24 and 26. #18
   closed.
-- **B-016 Public repo hygiene** â€” audit complete; #20 closed. Removed the
+- **B-016 Public repo hygiene** — audit complete; #20 closed. Removed the
   tracked `model.diff`, added Playwright, cache, editor and swap patterns to
   `.gitignore`, added `docs/README.md` and linked it from `README.md`,
   `CONTRIBUTING.md` and `llms.txt`, archived three unreferenced research notes,
   added the issue/backlog/commit workflow and `npm run hygiene` with CI, and
   replaced the `.opencode` copies with `.agents` skills in `e93b677`.
   Comparison images are kept by decision.
-- **Backlog tracker #19** â€” closed; `docs/BACKLOG.md` is the single open-work
+- **Backlog tracker #19** — closed; `docs/BACKLOG.md` is the single open-work
   ledger, GitHub issues are the work items.
 
 ## Decisions (do not re-open without a trigger)
@@ -506,7 +506,7 @@ asks or a locale needs them:
   scenario-level hook failure without a step result can render as passed. It is
   documented in `docs/LIMITATIONS.md`. Trigger: a user reports a Behave hook
   failure rendered as passed, or before claiming full Behave hook support.
-- **MB label for 1024Â² units.** `format.megabytes` divides by 1 MiB but labels
+- **MB label for 1024² units.** `format.megabytes` divides by 1 MiB but labels
   the value `MB`; Allure labels the same binary unit `MiB`. The default en/de
   text is frozen by 0.5.1, and a rename changes every size string. Trigger: a
   user reports the mismatch, or a units/vocabulary pass touches the size labels;

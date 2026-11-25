@@ -1,4 +1,4 @@
-﻿# Design
+# Design
 
 ## Context
 
@@ -82,8 +82,8 @@ The proof in task 3.3 is scoped to that.
 Two compiler checks stay off, each with a measured reason:
 
 - `noPropertyAccessFromIndexSignature`: 364 findings, all bracket-access
-  rewrites. It is purely syntactic â€” under `noUncheckedIndexedAccess` the type
-  is already `T | undefined` either way â€” so it buys consistency, not safety,
+  rewrites. It is purely syntactic — under `noUncheckedIndexedAccess` the type
+  is already `T | undefined` either way — so it buys consistency, not safety,
   at the cost of the JSON-heavy readers.
 - `erasableSyntaxOnly`: two sites, both deliberate (a parameter property in
   `src/stream.ts` and the `export =` namespace in the public CJS compatibility
@@ -133,19 +133,24 @@ config:
 | --- | --- |
 | Every non-nursery category | 30,905 |
 | Pedantic over the base categories | 3,063 |
-| After the documented exclusions and config | 217 |
-| â€” of which the base fixes | 62 |
-| â€” of which the pedantic fixes | 155 |
+| After the documented exclusions and config | 218 |
+| — of which the base fixes | 62 |
+| — of which the pedantic fixes | 156 |
 | Type-aware over the base categories | 330 |
-| â€” assertion casts scoped off in `test/**` | 187 |
-| â€” fixed: 41 `src` assertion casts plus 102 other | 143 |
+| — assertion casts scoped off in `test/**` | 187 |
+| — fixed: 41 `src` assertion casts plus 102 other | 143 |
 | Pedantic type-aware rules excluded (see below) | 3,262 |
+
+The 3,063 → 218 drop is the exclusion list plus 292 configuration findings:
+`vitest/valid-expect` (281, `maxArgs: 2`), `vitest/expect-expect` (4, the five
+assertion names) and `eslint/no-underscore-dangle` (7, the two probe globals).
+The 218 is measured with the final config on the tracked tree.
 
 Most of the 30,905 are preference rules (`one-var` 4,965,
 `no-magic-numbers` 4,823, `sort-keys` 2,184), which is why the set is curated by
 category and documented exception instead of "all". Task 1.2 re-measures after
 Red; the new test file must be lint-clean under the final config and changes
-some rule counts (`no-conditional-in-test` 363 â†’ 382).
+some rule counts (`vitest/no-conditional-in-test` 363 → 382).
 
 The config:
 
@@ -157,50 +162,61 @@ The config:
   local assertion names; `eslint/no-underscore-dangle` allowing the two probe
   globals; `typescript/no-unsafe-type-assertion` off in `test/**` only, because
   the suite builds malformed inputs with deliberate casts (187 of the 330
-  type-aware findings). The 41 `src` casts are fixed; a probe proves the same
-  cast fails in a `src`-shaped module, so the scope is the tests and not the
-  rule;
-- off globally as threshold rules with no defect signal: `max-lines` (76),
-  `max-lines-per-function` (304), `max-depth` (17), `max-statements` (0) and
-  `max-dependencies` (16; `import/max-dependencies`);
+  type-aware findings). The 41 `src` casts are fixed; the probe in 2.2 and the
+  Tests list runs the same cast in a `src`-shaped and a `test`-shaped temp tree,
+  so the scope is the tests and not the rule;
+- explicitly on because they are not in the enabled categories:
+  `eslint/no-redeclare`, `eslint/no-promise-executor-return`, `eslint/eqeqeq`
+  (1 each);
+- off globally as threshold rules with no defect signal: `eslint/max-lines`
+  (76), `eslint/max-lines-per-function` (304), `eslint/max-depth` (17),
+  `eslint/max-statements` (0) and `import/max-dependencies` (16);
 - off globally as preference or modernization without a defect signal:
-  `require-unicode-regexp` (956, 118 of them in `src`; every pattern would need
-  its own Unicode review â€” revisit on a Unicode defect), `escape-case` (109),
-  `no-useless-undefined` (77), `no-negated-condition` (32),
-  `explicit-length-check` (22), `prefer-dom-node-dataset` (14),
-  `prefer-query-selector` (12), `prefer-single-call` (11),
-  `prefer-top-level-await` (4), `prefer-at` (3), `no-hex-escape` (3),
-  `prefer-dom-node-append` (1), `prefer-import-meta-properties` (1);
-- off globally as deliberate design: `no-await-in-loop` (355; sequential input
-  loading and ordered Playwright steps, where `Promise.all` would change
-  ordering, peak memory and error precedence), `no-conditional-in-test` (363;
-  cross-engine and environment guards), `no-array-sort` (69; every site sorts a
-  locally built array and `toSorted()` adds allocation),
-  `require-await` (41; the flagged functions are async for the Playwright and
-  Vitest interfaces), `unicorn/consistent-function-scoping` (36; colocated
-  fixtures), `vitest/no-conditional-expect` (17; paired branches),
+  `eslint/require-unicode-regexp` (956, 118 of them in `src`; every pattern
+  would need its own Unicode review — revisit on a Unicode defect),
+  `unicorn/escape-case` (109), `unicorn/no-useless-undefined` (77),
+  `eslint/no-negated-condition` and `unicorn/no-negated-condition` (32),
+  `unicorn/explicit-length-check` (22), `unicorn/prefer-dom-node-dataset` (14),
+  `unicorn/prefer-query-selector` (12), `unicorn/prefer-single-call` (11),
+  `unicorn/prefer-top-level-await` (4), `unicorn/prefer-at` (3),
+  `unicorn/no-hex-escape` (3), `unicorn/prefer-dom-node-append` (1),
+  `unicorn/prefer-import-meta-properties` (1);
+- off globally as deliberate design: `eslint/no-await-in-loop` (355;
+  sequential input loading and ordered Playwright steps, where `Promise.all`
+  would change ordering, peak memory and error precedence),
+  `vitest/no-conditional-in-test` (363; cross-engine and environment guards),
+  `unicorn/no-array-sort` (69; every site sorts a locally built array and
+  `toSorted()` adds allocation), `unicorn/consistent-function-scoping` (36;
+  colocated fixtures), `vitest/no-conditional-expect` (17; paired branches),
   `oxc/no-map-spread` (8; cold paths, clearest form),
   `unicorn/prefer-set-has` (1; false positive, the value is a string);
 - per-file off: `promise/no-callback-in-promise` in `src/stream.ts` and
   `src/compat/cucumber-html-reporter.ts` (4; Node callback contract);
   `eslint/no-shadow` in `src/compat/cucumber-html-reporter.cts` (the public CJS
-  type names the `export =` namespace must redeclare);
+  type names the `export =` namespace must redeclare); `eslint/require-await` in
+  `test/**` (39; async is required by the Playwright and Vitest interfaces) and
+  in `src/render/html.ts` (the exported `renderHtml` is async for its Promise
+  API);
 - off as pedantic type-aware rules that report preference or would require
-  typing the whole JSON pipeline (3,262): `typescript/prefer-readonly-parameter-types`
-  (1,850; every parameter readonly is not a defect signal and breaks mutable
-  APIs), `typescript/strict-boolean-expressions` (372; forces explicit
-  comparisons everywhere), `typescript/no-unsafe-member-access` (360),
+  typing the whole JSON pipeline (3,262 = 3,244 + 18): the big seven
+  `typescript/prefer-readonly-parameter-types` (1,850; every parameter readonly
+  is not a defect signal and breaks mutable APIs),
+  `typescript/strict-boolean-expressions` (372; forces explicit comparisons
+  everywhere), `typescript/no-unsafe-member-access` (360),
   `typescript/no-unsafe-assignment` (272), `typescript/no-unsafe-call` (269),
-  `typescript/no-unsafe-return` (44), `typescript/no-unsafe-argument` (36) â€”
+  `typescript/no-unsafe-return` (44), `typescript/no-unsafe-argument` (36) —
   together the `no-unsafe-*` family (981) is the "type the whole JSON pipeline"
   change, not a lint-gate fix; `typescript/prefer-nullish-coalescing` (21),
-  `typescript/no-confusing-void-expression` (20) and 18 smaller
-  preference rules.
+  `typescript/no-confusing-void-expression` (20) and five smaller rules (18):
+  `typescript/switch-exhaustiveness-check` (3), `typescript/no-deprecated` (3),
+  `typescript/prefer-promise-reject-errors` (3), `typescript/strict-void-return`
+  (4) and `typescript/require-await` (5). `typescript/prefer-includes` (1) is
+  fixed instead of excluded.
 
 Fix the 62 base findings as before: rename 19 shadowed bindings, add
 `vi.fn<...>` type arguments (21), add `{ cause }` (11), add a stable throw
 message to 8 assertions, spy on `localeCompare` instead of assigning to the
-prototype (2), and return the discarded code in `cli.ts` (1). Then fix the 155
+prototype (2), and return the discarded code in `cli.ts` (1). Then fix the 156
 pedantic findings: `unicorn/prefer-string-replace-all` (98),
 `unicorn/prefer-code-point` (20; surrogate-pair correctness),
 `unicorn/no-array-callback-reference` (11),
@@ -208,14 +224,17 @@ pedantic findings: `unicorn/prefer-string-replace-all` (98),
 `unicorn/prefer-type-error` (4), `eslint/no-loop-func` (4),
 `unicorn/no-object-as-default-parameter` (2; shared mutable defaults),
 `unicorn/new-for-builtins` (2), `eslint/no-redeclare` (1),
-`eslint/no-promise-executor-return` (1) and `eqeqeq` (1). Finally fix the 143
+`eslint/no-promise-executor-return` (1), `eqeqeq` (1) and the `require-await`
+fix in `src/cli.ts` (1). Finally fix the 143
 type-aware findings: the 41 `src` `no-unsafe-type-assertion` casts, then
 `typescript/no-floating-promises` (2), `typescript/await-thenable` (2),
 `typescript/unbound-method` (2), `typescript/no-misused-spread` (2),
-`typescript/restrict-template-expressions` (2), the enum comparisons and
-assignments (5), `typescript/require-array-sort-compare` (7) and the
-`typescript/no-unnecessary-*` cleanups (about 77). `no-base-to-string` and
-`consistent-return` are suspected false positives in the inventory; review each
+`typescript/restrict-template-expressions` (2), `typescript/prefer-includes`
+(1), the enum comparisons and assignments (5),
+`typescript/require-array-sort-compare` (7) and the
+`typescript/no-unnecessary-*` cleanups (about 77). `typescript/no-base-to-string`
+and `typescript/consistent-return` are suspected false positives in the
+inventory; review each
 site and either fix it with a behaviour proof or record a scoped decision, never
 a silent silence.
 
@@ -365,7 +384,10 @@ version, tag, stage and publish wait for the user's approval.
   the wrong reason); a temporary browser-graph module that reads `process`
   fails the client program while a DOM-only copy passes (temp config lists the
   five repo files plus the module); a floating promise in a temporary module
-  fails the type-aware lint while an awaited copy passes; a warning-severity
+  fails the type-aware lint while an awaited copy passes; a temporary tree with
+  `src/unsafe.ts` and `test/unsafe.ts` holding the same unsafe cast fails for
+  the `src` file and passes for the `test` file under the scoped override; a
+  warning-severity
   `eslint/no-shadow` finding makes `--max-warnings=0` exit non-zero while plain
   `oxlint` exits zero on it and both exit zero on a clean copy; an unformatted
   source copy fails `prettier --check <file> --config <repo>/.prettierrc.json`

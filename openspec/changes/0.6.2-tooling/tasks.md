@@ -1,4 +1,4 @@
-﻿# Tasks
+# Tasks
 
 ## 1. Gate
 
@@ -19,7 +19,7 @@
   of the change, and that `tsconfig.build.json` and esbuild are untouched.
 - [ ] 1.3 Record the decisions before Red: conditional spreads instead of
   widening the public optional input types; the ternary object form where a bag
-  has one optional field; the user's 2026-11-25 maximal-sensible decision â€” the
+  has one optional field; the user's 2026-11-25 maximal-sensible decision — the
   pedantic category with the measured exclusions, type-aware rules with the
   assertion rule scoped off in `test/**`, the five extra compiler checks, and
   `noPropertyAccessFromIndexSignature`/`erasableSyntaxOnly` left off with their
@@ -57,7 +57,9 @@
   `tsconfig.client.json` and lists the five repo files plus the module); a
   floating promise in a temporary module fails the type-aware lint while an
   awaited copy passes, and an awaited non-thenable fails while a thenable
-  passes; a warning-severity `eslint/no-shadow` finding makes
+  passes; a temporary tree with `src/unsafe.ts` and `test/unsafe.ts` holding the
+  same unsafe cast fails for the `src` file and passes for the `test` file under
+  the scoped override; a warning-severity `eslint/no-shadow` finding makes
   `--max-warnings=0` exit non-zero while plain `oxlint` exits zero on it, and
   both exit zero on a clean copy; an unformatted source copy fails
   `prettier --check <file> --config <repo>/.prettierrc.json` while a formatted
@@ -114,18 +116,22 @@
 - [ ] 3.9 Fix `unicorn/prefer-code-point` (20), reviewed per site because
   surrogate-pair behaviour can differ; keep any `charCodeAt` that asserts a code
   unit and record why.
-- [ ] 3.10 Fix the small pedantic group: `no-array-callback-reference` (11),
-  `prefer-number-coercion` (6), `no-inner-declarations` (5),
-  `prefer-type-error` (4), `no-loop-func` (4),
-  `no-object-as-default-parameter` (2), `new-for-builtins` (2),
-  `no-redeclare` (1), `no-promise-executor-return` (1) and `eqeqeq` (1). No
+- [ ] 3.10 Fix the small pedantic group: `unicorn/no-array-callback-reference`
+  (11), `unicorn/prefer-number-coercion` (6), `eslint/no-inner-declarations`
+  (5), `unicorn/prefer-type-error` (4), `eslint/no-loop-func` (4),
+  `unicorn/no-object-as-default-parameter` (2), `unicorn/new-for-builtins` (2),
+  `eslint/no-redeclare` (1), `eslint/no-promise-executor-return` (1),
+  `eqeqeq` (1) and the `eslint/require-await` fix in `src/cli.ts` (1). No
   assertion is weakened; re-measure the remainder.
 - [ ] 3.11 Fix the type-aware findings: the 41 `src` `no-unsafe-type-assertion`
-  casts, floating promises (2), `await-thenable` (2), `unbound-method` (2),
-  `no-misused-spread` (2), `restrict-template-expressions` (2), the enum
-  comparisons and assignments (5) and `require-array-sort-compare` (7). Each fix
+  casts, `typescript/no-floating-promises` (2), `typescript/await-thenable` (2),
+  `typescript/unbound-method` (2), `typescript/no-misused-spread` (2),
+  `typescript/restrict-template-expressions` (2), `typescript/prefer-includes`
+  (1), the enum comparisons and assignments (5) and
+  `typescript/require-array-sort-compare` (7). Each fix
   keeps behaviour; a floating promise is awaited or explicitly handled, never
-  silenced. Review `no-base-to-string` and `consistent-return` per site and fix
+  silenced. Review `typescript/no-base-to-string` and
+  `typescript/consistent-return` per site and fix
   or record a scoped decision.
 - [ ] 3.12 Fix the `no-unnecessary-*` cleanups (about 77).
 - [ ] 3.13 Prepend `* text=auto eol=lf` to `.gitattributes` (before the fixture
