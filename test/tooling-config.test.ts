@@ -57,6 +57,19 @@ function readText(relativePath: string): string {
   return readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
+function trackedSourceFiles(): string[] {
+  const result = spawnSync('git', ['ls-files', '-z', '--', 'src'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) {
+    throw new Error(`git ls-files failed: ${result.stderr}`);
+  }
+  return (result.stdout ?? '')
+    .split('\0')
+    .filter((file) => file.endsWith('.ts'));
+}
+
 function packageBin(name: string, binary = name): string {
   const pkg = readJson<{ bin?: string | Record<string, string> }>(
     path.join('node_modules', name, 'package.json'),
@@ -209,7 +222,7 @@ describe('curated lint', () => {
     }
   });
 
-  it('loads the seven curated plugins', () => {
+  it('loads the seven plugins', () => {
     const config = readJson<LintConfig>('.oxlintrc.json');
     const expected = [
       'import',
@@ -262,7 +275,7 @@ describe('curated lint', () => {
 
   it('disables the documented threshold, preference and deliberate rules', () => {
     const rules = readJson<LintConfig>('.oxlintrc.json').rules ?? {};
-    for (const rule of [
+    const offRules = [
       'eslint/max-lines',
       'eslint/max-lines-per-function',
       'eslint/max-depth',
@@ -303,9 +316,16 @@ describe('curated lint', () => {
       'typescript/prefer-promise-reject-errors',
       'typescript/strict-void-return',
       'typescript/require-await',
-    ]) {
+    ];
+    for (const rule of offRules) {
       expect(rules[rule], rule).toBe('off');
     }
+    const configured = Object.entries(rules)
+      .filter(([, value]) => value === 'off')
+      .map(([rule]) => rule)
+      .sort();
+    expect(configured).toEqual([...offRules].sort());
+    expect(rules).not.toHaveProperty('eslint/require-await');
   });
 
   it('scopes the four documented per-file exceptions', () => {
@@ -348,6 +368,46 @@ describe('curated lint', () => {
   it('runs lint type-aware at zero warnings', () => {
     const scripts = readJson<PackageJson>('package.json').scripts ?? {};
     expect(scripts['lint']).toBe('oxlint --type-aware --max-warnings=0 .');
+  });
+});
+
+describe('lint suppressions', () => {
+  it('keeps every suppression inline with a reason and pins the map', () => {
+    const found: string[] = [];
+    for (const file of trackedSourceFiles()) {
+      const lines = readText(file).split(/\r?\n/);
+      lines.forEach((line, index) => {
+        const where = `${file}:${index + 1}`;
+        expect(line, where).not.toMatch(/^\s*\/\* oxlint-disable /);
+        expect(line, where).not.toMatch(/^\s*\/\/ oxlint-disable /);
+        if (!line.includes('oxlint-disable-next-line')) return;
+        expect(line, where).toMatch(
+          /^\s*\/\/ oxlint-disable-next-line \S+ -- \S.*$/,
+        );
+        const rule = /oxlint-disable-next-line (\S+) -- /.exec(line)?.[1];
+        if (rule !== undefined) found.push(`${file} ${rule}`);
+      });
+    }
+    expect(found.sort()).toEqual(
+      [
+        'src/render/client-i18n.ts typescript/no-unnecessary-type-conversion',
+        'src/render/client-i18n.ts unicorn/prefer-string-replace-all',
+        'src/render/client-i18n.ts unicorn/prefer-string-replace-all',
+        'src/render/client-i18n.ts unicorn/prefer-string-replace-all',
+        'src/render/dom-contract.ts typescript/no-unsafe-type-assertion',
+        'src/render/report-client.ts eslint/no-inner-declarations',
+        'src/render/report-client.ts eslint/no-inner-declarations',
+        'src/render/report-client.ts eslint/no-loop-func',
+        'src/render/report-client.ts typescript/no-unsafe-type-assertion',
+        'src/render/report-client.ts typescript/no-unsafe-type-assertion',
+        'src/render/report-client.ts typescript/no-unsafe-type-assertion',
+        'src/render/report-client.ts typescript/no-unsafe-type-assertion',
+        'src/render/report-client.ts typescript/no-unsafe-type-assertion',
+        'src/render/report-client.ts unicorn/prefer-string-replace-all',
+        'src/text.ts no-control-regex',
+        'src/text.ts no-control-regex',
+      ].sort(),
+    );
   });
 });
 
