@@ -229,8 +229,9 @@ and is covered by real producer fixtures.
   unmatched remainder. A group that cannot be reduced to unique rows is
   ambiguous and makes no claim. Both passes use a key-to-index map, so the
   matcher is linear in the rows; a 20,000 by 20,000 repeated outline compares in
-  well under 100 ms. It returns one comparison: the seven-count summary block and
-  a change map keyed by pickle id.
+  well under a second (the test bounds it at 500 ms to tolerate slow CI hosts). It
+  returns one comparison: the seven-count summary block and a change map keyed by
+  pickle id.
 - `src/summary.ts` type-imports the comparison type only; the comparison is
   built once in `src/run.ts`. `src/baseline.ts` imports `displayUri` from the
   summary module, so the runtime dependency points one way and there is no

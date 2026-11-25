@@ -828,7 +828,7 @@ describe('repeated groups and pairing cost', () => {
     expect(comparison.changes.size).toBe(0);
   });
 
-  it('pairs 20k repeated outline rows in well under 100 ms', () => {
+  it('pairs 20k repeated outline rows without a quadratic blow-up', () => {
     const scenarios = Array.from({ length: 20_000 }, (_, index) => ({
       feature: 'Perf',
       name: 'row',
@@ -852,7 +852,10 @@ describe('repeated groups and pairing cost', () => {
     expect(comparison.block.counts.ambiguous).toBe(0);
     expect(comparison.block.counts.other).toBe(20_000);
     expect(comparison.changes.size).toBe(0);
-    expect(elapsed).toBeLessThan(100);
+    // A quadratic matcher takes minutes here; 500 ms tolerates slow CI runners
+    // after the former 100 ms bound flaked at 102 ms (run 45626157919,
+    // check-windows).
+    expect(elapsed).toBeLessThan(500);
   });
 });
 
