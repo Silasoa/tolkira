@@ -63,6 +63,19 @@ turning a rule or category off without changing the contract fails the suite.
 - **AND** the fixture casts in `test/**` do not trip the assertion rule
 - **AND** the same cast in a `src`-shaped module still fails
 
+### Requirement: Pin inline suppressions
+
+A file-level suppression SHALL NOT be used. A per-line suppression SHALL be
+`oxlint-disable-next-line` with the rule name and a reason, and the gate test
+SHALL pin the exact set, so an added suppression fails the suite without a
+contract change.
+
+#### Scenario: Inline suppressions are pinned
+
+- **WHEN** a source line suppresses a lint rule
+- **THEN** it uses `oxlint-disable-next-line` with the rule name and a reason
+- **AND** a file-level suppression or an unpinned addition fails the gate test
+
 ### Requirement: Check formatting without changing output
 
 The gate SHALL verify formatting with one pinned formatter and config. The

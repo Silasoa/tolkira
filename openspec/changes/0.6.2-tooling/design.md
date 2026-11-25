@@ -127,30 +127,32 @@ repo root; keep its existing `ignorePatterns` (`dist/**`, `node_modules/**`,
 `playwright-report/**`, `test-results/**`, `.opencode/**`) and add `coverage/**`
 and `.openchamber/**`, so the gate does not lint its own output. Measured on the
 tracked tree at `6258711` (before the Red file) on 2026-11-25, with a temporary
-config:
+config, and re-measured at task 3.4 with the final config on the tree after the
+88 strict fixes:
 
 | Stage | Findings |
 | --- | --- |
-| Every non-nursery category | 30,905 |
-| Pedantic over the base categories | 3,063 |
-| After the documented exclusions and config | 218 |
-| — of which the base fixes | 62 |
-| — of which the pedantic fixes | 156 |
-| Type-aware over the base categories | 330 |
-| — assertion casts scoped off in `test/**` | 187 |
-| — fixed: 41 `src` assertion casts plus 102 other | 143 |
-| Pedantic type-aware rules excluded (see below) | 3,262 |
+| Every non-nursery category (at 6258711) | 30,905 |
+| Pedantic over the base categories (at 6258711) | 3,063 |
+| Final config after the strict fixes (3.4) | 335 |
+| — base | 63 |
+| — pedantic | 156 |
+| — type-aware | 116 |
+| Pinned per line in the byte-pinned browser files | 14 |
+| Fixed | 321 |
 
-The 3,063 → 218 drop is the exclusion list plus 292 configuration findings:
-`vitest/valid-expect` (281, `maxArgs: 2`), `vitest/expect-expect` (4, the five
-assertion names) and `eslint/no-underscore-dangle` (7, the two probe globals).
-The 218 is measured with the final config on the tracked tree.
+The contract estimate at `6258711` was 218 + 330 = 361. The strict fixes changed
+inferred types and removed 27 type-aware findings; one strict fix introduced a
+`no-shadow` finding, so the base count is 63. The 3,063 → 219 drop is the
+exclusion list plus 292 configuration findings: `vitest/valid-expect` (281,
+`maxArgs: 2`), `vitest/expect-expect` (4, the five assertion names) and
+`eslint/no-underscore-dangle` (7, the two probe globals).
 
 Most of the 30,905 are preference rules (`one-var` 4,965,
 `no-magic-numbers` 4,823, `sort-keys` 2,184), which is why the set is curated by
-category and documented exception instead of "all". Task 1.2 re-measures after
-Red; the new test file must be lint-clean under the final config and changes
-some rule counts (`vitest/no-conditional-in-test` 363 → 382).
+category and documented exception instead of "all". The new test file is
+lint-clean under the final config (`vitest/no-conditional-in-test` 363 → 382 at
+6258711).
 
 The config:
 
@@ -161,10 +163,10 @@ The config:
 - `vitest/valid-expect` with `maxArgs: 2`; `vitest/expect-expect` with the five
   local assertion names; `eslint/no-underscore-dangle` allowing the two probe
   globals; `typescript/no-unsafe-type-assertion` off in `test/**` only, because
-  the suite builds malformed inputs with deliberate casts (187 of the 330
-  type-aware findings). The 41 `src` casts are fixed; the probe in 2.2 and the
-  Tests list runs the same cast in a `src`-shaped and a `test`-shaped temp tree,
-  so the scope is the tests and not the rule;
+  the suite builds malformed inputs with deliberate casts. The `src` casts are
+  fixed except the six byte-pinned ones; the probe in 2.2 and the Tests list
+  runs the same cast in a `src`-shaped and a `test`-shaped temp tree, so the
+  scope is the tests and not the rule;
 - explicitly on because they are not in the enabled categories:
   `eslint/no-redeclare`, `eslint/no-promise-executor-return`, `eslint/eqeqeq`
   (1 each);
@@ -214,36 +216,56 @@ The config:
   (4) and `typescript/require-await` (5). `typescript/prefer-includes` (1) is
   fixed instead of excluded.
 
-Fix the 62 base findings as before: rename 19 shadowed bindings, add
+Fix the 63 base and 149 pedantic findings: rename 19 shadowed bindings, add
 `vi.fn<...>` type arguments (21), add `{ cause }` (11), add a stable throw
 message to 8 assertions, spy on `localeCompare` instead of assigning to the
-prototype (2), and return the discarded code in `cli.ts` (1). Then fix the 156
-pedantic findings: `unicorn/prefer-string-replace-all` (98),
-`unicorn/prefer-code-point` (20; surrogate-pair correctness),
-`unicorn/no-array-callback-reference` (11),
+prototype (2), return the discarded code in `cli.ts` (1), then the pedantic
+groups below. Then fix the 109 type-aware findings. Fourteen findings stay as
+line-level suppressions in the four browser files whose source is embedded in
+every report, where the bundle is pinned byte-identical:
+
+- `client-i18n.ts`: 3 `unicorn/prefer-string-replace-all`, 1
+  `typescript/no-unnecessary-type-conversion`;
+- `report-client.ts`: 1 `unicorn/prefer-string-replace-all`, 2
+  `eslint/no-inner-declarations`, 1 `eslint/no-loop-func`, 5
+  `typescript/no-unsafe-type-assertion`;
+- `dom-contract.ts`: 1 `typescript/no-unsafe-type-assertion`.
+
+Six assertion sites in those files were fixed byte-neutrally instead (a
+non-null assertion or a removed redundant cast; types erase at build), and
+`npm run assets` proves `src/render/client-bundle.ts` stays byte-identical.
+Every suppression is `oxlint-disable-next-line` with its rule and a reason; a
+file-level header is not allowed, and `test/tooling-config.test.ts` pins the
+exact set including the two pre-existing `no-control-regex` lines in
+`src/text.ts`, so a new suppression fails the suite.
+
+The pedantic group counts below are from the `6258711` measurement:
+`unicorn/prefer-string-replace-all` (98), `unicorn/prefer-code-point` (20;
+surrogate-pair correctness), `unicorn/no-array-callback-reference` (11),
 `unicorn/prefer-number-coercion` (6), `eslint/no-inner-declarations` (5),
 `unicorn/prefer-type-error` (4), `eslint/no-loop-func` (4),
 `unicorn/no-object-as-default-parameter` (2; shared mutable defaults),
 `unicorn/new-for-builtins` (2), `eslint/no-redeclare` (1),
 `eslint/no-promise-executor-return` (1), `eqeqeq` (1) and the `require-await`
-fix in `src/cli.ts` (1). Finally fix the 143
-type-aware findings: the 41 `src` `no-unsafe-type-assertion` casts, then
-`typescript/no-floating-promises` (2), `typescript/await-thenable` (2),
-`typescript/unbound-method` (2), `typescript/no-misused-spread` (2),
-`typescript/restrict-template-expressions` (2), `typescript/prefer-includes`
-(1), the enum comparisons and assignments (5),
-`typescript/require-array-sort-compare` (7) and the
+fix in `src/cli.ts` (1).
+
+The type-aware group counts, same measurement: `typescript/no-floating-promises`
+(2), `typescript/await-thenable` (2), `typescript/unbound-method` (2),
+`typescript/no-misused-spread` (2), `typescript/restrict-template-expressions`
+(2), `typescript/prefer-includes` (1), the enum comparisons and assignments
+(5), `typescript/require-array-sort-compare` (7) and the
 `typescript/no-unnecessary-*` cleanups (about 77). `typescript/no-base-to-string`
-and `typescript/consistent-return` are counted as fixes in the 143; if a site
-proves the rule wrong, the finding moves to the 3,262 exclusion and the table is
-updated in 1.2, never silently.
+and `typescript/consistent-return` are fixed; if a site proves the rule wrong,
+the finding moves to the 3,262 exclusion and the table is updated in 1.2, never
+silently.
 
 Script: `oxlint --type-aware --max-warnings=0 .`. Pin `oxlint` to `1.94.0` and
 `oxlint-tsgolint` to `7.0.2008` exactly, so a new minor cannot add rules or
 warnings to the gate without a deliberate bump. The type-aware pass measured
 2.45 s on the maximal set; the gate-time record uses the final config.
-`test/tooling-config.test.ts` asserts the categories, the scoped override and
-every exclusion, so a silent weakening of the gate fails the suite. The test is
+`test/tooling-config.test.ts` asserts the categories, the exact set of globally
+disabled rules, the scoped overrides, the inline-suppression set and every
+exclusion, so a silent weakening of the gate fails the suite. The test is
 a tripwire, not a lock: an agent that edits the config and the test together
 still changes behaviour, so SCR/CR review the diff against this contract and the
 spec. `skipLibCheck` stays on because it only skips dependency declarations
@@ -259,10 +281,11 @@ program and are a named boundary, typechecking them is a separate change.
 That default makes the check checkout-dependent: `windows-latest` runs with
 `core.autocrlf=true`, and `.gitattributes` currently pins only
 `test/fixtures/**`. Prepend `* text=auto eol=lf` (before the existing lines, so
-the fixture attributes keep precedence) and renormalize the six tracked files
-whose index holds CRLF or mixed line endings: five archived OpenSpec files and
-`docs/adr/0007-optional-pdf-engine.md`. It is a line-ending-only commit; without
-it the Windows check job fails on every text file.
+the fixture attributes keep precedence) and renormalize the seven tracked files
+whose index holds CRLF or mixed line endings: five archived OpenSpec files,
+`docs/adr/0007-optional-pdf-engine.md` and `src/render/escape.ts` (the tooling
+change introduced its CRLF). It is a line-ending-only commit; without it the
+Windows check job fails on every text file.
 
 `.prettierignore` excludes: `node_modules`, `dist`, `coverage`,
 `playwright-report`, `blob-report`, `test-results`, Playwright caches,
@@ -332,9 +355,9 @@ runtime increase is answered by that split, not waived.
 1. Strict flags and the 88 fixes (src first, then tests), green under
    `tsc --noEmit`.
 2. The client project and the typecheck script.
-3. The lint config with the type-aware pin, the 62 base fixes and then the
-   pedantic and type-aware fixes, `--max-warnings=0`.
-4. The LF policy in `.gitattributes` with the six renormalized files; then
+3. The lint config with the type-aware pin, the 63 base and 149 pedantic fixes
+   and then the 109 type-aware fixes, `--max-warnings=0`.
+4. The LF policy in `.gitattributes` with the seven renormalized files; then
    Prettier config, ignore, scripts and the formatting-only commit; then rebuild
    assets and confirm no generated diff.
 5. Coverage provider, remove `passWithNoTests`, thresholds, `test:coverage`
@@ -354,11 +377,12 @@ version, tag, stage and publish wait for the user's approval.
 | The server project keeps DOM, so it alone would not catch `document` in server code. | Accepted: `pdf.ts` needs DOM within `page.evaluate`. The client program is the no-Node guard; the no-DOM probe fails only on `pdf.ts` and the browser entry. |
 | Formatting the ~156 baseline files obscures `git blame`. | One isolated commit, optional `.git-blame-ignore-revs`, never mixed with logic. |
 | A wrong ignore pattern changes report bytes or is reverted by the build. | The proof step runs `npm run assets` and `git diff --exit-code` on the generated files; CSS, fixtures and goldens are explicitly out of scope. |
-| Prettier's LF default fails on a CRLF checkout. | `* text=auto eol=lf` prepended in `.gitattributes`, six tracked files renormalized, Windows job proven by CI. |
+| Prettier's LF default fails on a CRLF checkout. | `* text=auto eol=lf` prepended in `.gitattributes`, seven tracked files renormalized, Windows job proven by CI. |
 | Rebuilding `dist` after formatting changes non-minified whitespace. | Accepted and recorded; report bytes, behaviour, API and shipped file list are unchanged. |
 | The internal `options.d.ts` return shape changes. | Not exported from the package entry; the public entry, compat declarations and input interfaces are proven unchanged. |
 | Pinning `oxlint` exactly delays rule updates. | Deliberate: a new rule set is a reviewed bump commit, the same policy as Prettier. |
-| `oxlint-tsgolint` adds a per-platform binary and 330 findings, 187 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 143 real fixes are part of the change. |
+| `oxlint-tsgolint` adds a per-platform binary and 330 findings at the 6258711 measurement, 187 of them assertion casts in fixtures. | Dev-only exact pin; the assertion rule is scoped off in `test/**`; the 109 real fixes are part of the change. |
+| Fourteen findings sit in browser source that is embedded in every report. | Fixing them changes every report byte, so they stay as line-level suppressions with a reason, pinned by the gate test; the byte-identical bundle hash proves the choice. |
 | The pedantic and type-aware fixes touch tests mechanically. | Each rule group is its own task and commit; `prefer-code-point` is reviewed per site because surrogate behaviour can differ; assertions are not weakened. |
 | `preserve-caught-error` adds a `cause` property. | Internal only; messages and stderr are unchanged and no consumer reads error keys. |
 | Removing `passWithNoTests` breaks an ad-hoc mistyped `vitest run`. | Intended; every package script names a real file or the full glob. |
@@ -374,7 +398,11 @@ version, tag, stage and publish wait for the user's approval.
   `no-unsafe-type-assertion` override, the `--max-warnings=0` script, the
   Prettier config and ignore entries, the `.gitattributes` LF policy, the
   coverage provider/scope/thresholds, the removed `passWithNoTests`, the `check`
-  order and the exact dev-dependency pins.
+  order and the exact dev-dependency pins. It also scans `src/**` for
+  suppressions: a file-level directive fails, every
+  `oxlint-disable-next-line` must carry its rule and a `--` reason, and the
+  exact `(file, rule)` multiset must equal the pinned set, so an added
+  suppression fails the suite.
 - Behavioural probes, each with a positive control: a temporary TypeScript file
   that violates `noUncheckedIndexedAccess` (the two-line form
   `const first = values[0]; first.toUpperCase()` yields TS18048; the chained

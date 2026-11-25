@@ -2,7 +2,7 @@
 
 ## 1. Gate
 
-- [ ] 1.1 PIR + DXR over this proposal, the `test-infrastructure` delta and the
+- [x]  PIR + DXR over this proposal, the `test-infrastructure` delta and the
   design. Check every base requirement that names the gate, Windows CI, the
   release workflow, characterization hashes and the public API for a
   contradiction, and check ADR 0002 and ADR 0004. Fold blockers into the
@@ -10,14 +10,15 @@
   blockers (the "uncommitted release candidate" sentence and the
   `unicorn/no-useless-spread` finding from single-property spreads) and all
   accepted should-fix items are folded in. Re-check the revised contract.
-- [ ] 1.2 Re-confirm the seams and counts on the contract commit: 88 strict
-  errors in 22 files, the 62 base lint findings in 27 files, the pedantic and
-  type-aware sets, the five-file browser graph and the coverage baseline. The
-  formatting count is the `e5c002a` baseline of 156 tracked files; re-measure it
-  after Red, when the new test file and configs exist. Confirm no runtime
-  dependency, CLI/API option, report byte, entry point or workflow edit is part
-  of the change, and that `tsconfig.build.json` and esbuild are untouched.
-- [ ] 1.3 Record the decisions before Red: conditional spreads instead of
+- [x]  Re-confirm the seams and counts on the contract commit: 88 strict
+  errors in 22 files, the re-measured lint baseline at 3.4 (335 findings: 63
+  base, 156 pedantic, 116 type-aware; 14 pinned per line and 321 fixed), the
+  five-file browser graph and the coverage baseline. The formatting count is
+  re-measured after Red, when the new test file and configs exist. Confirm no
+  runtime dependency, CLI/API option, report byte, entry point or workflow edit
+  is part of the change, and that `tsconfig.build.json` and esbuild are
+  untouched.
+- [x]  Record the decisions before Red: conditional spreads instead of
   widening the public optional input types; the ternary object form where a bag
   has one optional field; the user's 2026-11-25 maximal-sensible decision — the
   pedantic category with the measured exclusions, type-aware rules with the
@@ -29,14 +30,14 @@
   isolated formatting commit; the internal `options.d.ts` return-shape delta and
   the scoped public-declaration proof. The `preserve-caught-error` `cause`
   effect is declared as internal-only.
-- [ ] 1.4 Confirm the approved B-055 package covers this contract and the
+- [x]  Confirm the approved B-055 package covers this contract and the
   version stays 0.6.1. Draft the GitHub issue (area:test, priority:p2), run IR,
   fix blockers and post it; `docs/BACKLOG.md` B-055 stays the local intake
   record and the issue references this change.
 
 ## 2. TDD-Red
 
-- [ ] 2.1 Add `test/tooling-config.test.ts`: assert the eleven flags, the two
+- [x]  Add `test/tooling-config.test.ts`: assert the eleven flags, the two
   typecheck programs, the client program's `types: []`, `lib` and five-file
   list, the maximal lint plugins/categories/severities/exceptions and the
   scoped `no-unsafe-type-assertion` override, the retained and extended
@@ -45,7 +46,7 @@
   `.gitattributes` `* text=auto eol=lf` line, the coverage
   provider/scope/exclude/thresholds, the removed `passWithNoTests`, the `check`
   order and the exact dev-dependency pins.
-- [ ] 2.2 Add the behavioural probes in the same file, each with its positive
+- [x]  Add the behavioural probes in the same file, each with its positive
   control and an explicit 30 s/40 s timeout: a temporary TypeScript file that
   violates `noUncheckedIndexedAccess` (the two-line
   `const first = values[0]; first.toUpperCase()` form; the chained call is
@@ -68,7 +69,7 @@
   `--coverage.thresholds.lines=100` fails on a 0 % control while the measured
   file passes. Use a temp directory outside the repo and resolve the repo
   binaries from the repo root; skip a probe only with a written reason.
-- [ ] 2.3 Confirm RED for 2.1 and 2.2 while the existing suite stays green. No
+- [x]  Confirm RED for 2.1 and 2.2 while the existing suite stays green. No
   existing test is deleted, skipped or weakened. ISTQB: decision tables over
   flag present/absent, warning present/absent, floating/awaited, formatted/
   unformatted, test matched/empty, coverage above/below; boundary at a single
@@ -76,7 +77,7 @@
 
 ## 3. Implement
 
-- [ ] 3.1 Enable the eleven strict checks in `tsconfig.json` and fix the source
+- [x]  Enable the eleven strict checks in `tsconfig.json` and fix the source
   errors: index guards/defaults, `override` on the two stream methods,
   conditional spreads for TS2375, the ternary object for the two single-field
   `formatCiOutput` bags, hoisted calls for `productLabel` and `timestampIso`,
@@ -86,45 +87,48 @@
   the email call sites. `tsc --noEmit` green in `src`; the public entry
   declaration is unchanged and the only declaration diff is the internal
   `options.d.ts` return shape.
-- [ ] 3.2 Fix the test-side type errors: the `happyFeatures()` tuple return
+- [x]  Fix the test-side type errors: the `happyFeatures()` tuple return
   with an empty-fixture throw (keeps all 16 call sites), index guards in the
   sidecar and Playwright tests, `_doc` unused parameters, `vi.fn`-adjacent
   index reads, `test/stream.test.ts:43` and the truly absent status fixture.
   `tsc --noEmit` green over `test`.
-- [ ] 3.3 Add `tsconfig.client.json` with `types: []` and the five-file
+- [x]  Add `tsconfig.client.json` with `types: []` and the five-file
   browser graph; change `typecheck` to the two-project command. Prove the client
   program fails on a Node global and stays green on the current graph; prove
   `dist/index.d.ts`, the public input declarations, both compat declarations
   and the client esbuild bundle are unchanged, and that the `dist/options.d.ts`
   diff is limited to the five helper fields.
-- [ ] 3.4 Extend `.oxlintrc.json` with the maximal plugins, categories
+- [x]  Extend `.oxlintrc.json` with the maximal plugins, categories
   (correctness error; suspicious, perf and pedantic warn), the type-aware script
   and pin, the exceptions, the scoped `no-unsafe-type-assertion` override and
   the retained plus extended ignore patterns; pin `oxlint` to 1.94.0 and
   `oxlint-tsgolint` to 7.0.2008 and run with `--type-aware
-  --max-warnings=0`. Assert the config in the tooling test.
-- [ ] 3.5 Rename the 19 shadowed bindings. No assertion changes; the test suite
+  --max-warnings=0`. Assert the config in the tooling test. Record the
+  final-config baseline on the strict-fixed tree: 335 findings (63 base, 156
+  pedantic, 116 type-aware).
+- [x]  Rename the 19 shadowed bindings. No assertion changes; the test suite
   stays green after the rename-only commit.
-- [ ] 3.6 Add `vi.fn<...>` type arguments (21) and a stable throw message to 8
+- [x]  Add `vi.fn<...>` type arguments (21) and a stable throw message to 8
   `require-to-throw-message` assertions. No assertion is loosened.
-- [ ] 3.7 Add `{ cause }` to the 11 `preserve-caught-error` sites, spy on
+- [x]  Add `{ cause }` to the 11 `preserve-caught-error` sites, spy on
   `localeCompare` instead of assigning to the prototype (2), and return the
   discarded code in `cli.ts` (1). Extend one existing error-path test to assert
   the wrapped error keeps its cause.
-- [ ] 3.8 Fix `unicorn/prefer-string-replace-all` (98): a global regex
+- [x]  Fix `unicorn/prefer-string-replace-all` (98): a global regex
   `replace` becomes `replaceAll`, same match set. Re-measure after the group.
-- [ ] 3.9 Fix `unicorn/prefer-code-point` (20), reviewed per site because
+- [x]  Fix `unicorn/prefer-code-point` (20), reviewed per site because
   surrogate-pair behaviour can differ; keep any `charCodeAt` that asserts a code
   unit and record why.
-- [ ] 3.10 Fix the small pedantic group: `unicorn/no-array-callback-reference`
+- [x]  Fix the small pedantic group: `unicorn/no-array-callback-reference`
   (11), `unicorn/prefer-number-coercion` (6), `eslint/no-inner-declarations`
   (5), `unicorn/prefer-type-error` (4), `eslint/no-loop-func` (4),
   `unicorn/no-object-as-default-parameter` (2), `unicorn/new-for-builtins` (2),
   `eslint/no-redeclare` (1), `eslint/no-promise-executor-return` (1),
   `eqeqeq` (1) and the `eslint/require-await` fix in `src/cli.ts` (1). No
   assertion is weakened; re-measure the remainder.
-- [ ] 3.11 Fix the type-aware findings: the 41 `src` `no-unsafe-type-assertion`
-  casts, `typescript/no-floating-promises` (2), `typescript/await-thenable` (2),
+- [x]  Fix the type-aware findings: the `src` `no-unsafe-type-assertion`
+  casts except the six byte-pinned ones in the four browser files,
+  `typescript/no-floating-promises` (2), `typescript/await-thenable` (2),
   `typescript/unbound-method` (2), `typescript/no-misused-spread` (2),
   `typescript/restrict-template-expressions` (2), `typescript/prefer-includes`
   (1), the enum comparisons and assignments (5) and
@@ -133,30 +137,37 @@
   silenced. `typescript/no-base-to-string` and `typescript/consistent-return`
   are fixed; if a site proves the rule wrong, record the deviation and update the
   table in 1.2.
-- [ ] 3.12 Fix the `no-unnecessary-*` cleanups (about 77).
-- [ ] 3.13 Prepend `* text=auto eol=lf` to `.gitattributes` (before the fixture
-  lines, so their attributes keep precedence) and renormalize the six tracked
-  files with CRLF or mixed index endings: five archived OpenSpec files and
-  `docs/adr/0007-optional-pdf-engine.md` (line-ending-only commit).
-- [ ] 3.14 Add `.prettierrc.json` (single quotes, width 80), `.prettierignore`
+- [x]  Fix the `no-unnecessary-*` cleanups (about 77).
+- [x]  Prepend `* text=auto eol=lf` to `.gitattributes` (before the fixture
+  lines, so their attributes keep precedence) and renormalize the seven tracked
+  files with CRLF or mixed index endings: five archived OpenSpec files,
+  `docs/adr/0007-optional-pdf-engine.md` and `src/render/escape.ts`
+  (line-ending-only commit).
+- [x]  Add `.prettierrc.json` (single quotes, width 80), `.prettierignore`
   with the full scope, pin Prettier 3.10.1 and add `format:check`/`format`; put
   `format:check` in `check` before `build`. Do not commit the config alone.
-- [ ] 3.15 Format the re-measured tracked files and land the config, scripts, the
+- [x]  Format the re-measured tracked files and land the config, scripts, the
   `format:check` wiring and the formatted tree in one commit, so the gate is
   green at every commit. Rebuild assets, prove generated sources, both report
   CSS files, fixtures and goldens are unchanged, and render the legacy and
   Messages fixtures before and after to compare bytes.
-- [ ] 3.16 Add `@vitest/coverage-v8` exactly 5.1.1, remove `passWithNoTests`,
+- [x]  Add `@vitest/coverage-v8` exactly 5.1.1, remove `passWithNoTests`,
   add the coverage scope/exclude/thresholds and `test:coverage`, and put it last
   in `check`. Prove an empty test selection fails and the measured suite passes
   the floor.
-- [ ] 3.17 Docs: `docs/CHANGELOG.md` (tooling only, no runtime change, the
+- [x] 3.17 Docs: `docs/CHANGELOG.md` (tooling only, no runtime change, the
   dev-only dependencies, the public input declarations unchanged, the internal
   `options.d.ts` diff, the `cause` effect), `docs/ARCHITECTURE.md` (gate
   composition, the two typecheck programs, the maximal lint set and the LF
   policy) and `CONTRIBUTING.md`/`AGENTS.md` if they name the old scripts.
   Record the `oxlint --type-aware` decision and the pinned binary in
   `docs/BACKLOG.md`. Do not bump the version.
+- [x]  Scope the byte-pinned browser findings per line: remove the four
+  file-level headers, keep 14 `oxlint-disable-next-line` entries with rule and
+  reason (plus the two pre-existing `no-control-regex` lines), fix six assertion
+  sites byte-neutrally, restore `eslint/require-await` to the two per-file
+  overrides, pin the exact global `off` set and the inline-suppression set in the
+  tooling test, and prove `src/render/client-bundle.ts` stays byte-identical.
 
 ## 4. Verification and review
 
