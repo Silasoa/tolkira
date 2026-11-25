@@ -154,7 +154,12 @@ function validateStep(
     );
   }
   // Only hook output is mapped; non-hook output is ignored, and null is absent.
-  if (hook && step.output != null && !isTextValue(step.output)) {
+  if (
+    hook &&
+    step.output !== null &&
+    step.output !== undefined &&
+    !isTextValue(step.output)
+  ) {
     throw invalidLegacy(
       source,
       `${where}.output must be a string or an array of strings.`,
@@ -620,7 +625,7 @@ export function parseLegacyValue(
   options: LegacyJsonOptions = {},
 ): Envelope[] {
   if (!Array.isArray(parsed)) {
-    throw new Error(`Invalid legacy JSON in ${source}: expected an array of features.`);
+    throw new TypeError(`Invalid legacy JSON in ${source}: expected an array of features.`);
   }
 
   validateLegacyFeatures(parsed, source);
@@ -667,8 +672,8 @@ export function parseLegacyValue(
       children: [],
     };
 
-    const backgroundElement = (legacyFeature.elements ?? []).find(
-      isBackgroundElement,
+    const backgroundElement = (legacyFeature.elements ?? []).find((element) =>
+      isBackgroundElement(element),
     );
     const backgroundSteps = (backgroundElement?.steps ?? []).filter(
       (step) => !isHook(step),

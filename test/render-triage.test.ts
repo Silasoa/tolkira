@@ -159,8 +159,8 @@ describe('triage overview', () => {
 
     expect(summary.scenarios.map((scenario) => scenario.feature)).toEqual([
       'Behave feature',
-      ...Array(6).fill('Happy HTML reporting'),
-      ...Array(4).fill('Unhappy HTML reporting'),
+      ...Array.from({ length: 6 }, () => 'Happy HTML reporting'),
+      ...Array.from({ length: 4 }, () => 'Unhappy HTML reporting'),
     ]);
   });
 

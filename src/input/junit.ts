@@ -47,7 +47,10 @@ function textOf(value: unknown): string {
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return String(value);
   if (Array.isArray(value)) {
-    return value.map(textOf).filter(Boolean).join('\n');
+    return value
+      .map((entry) => textOf(entry))
+      .filter(Boolean)
+      .join('\n');
   }
   if (isObject(value)) {
     if (typeof value['#text'] === 'string') return value['#text'];
@@ -106,7 +109,7 @@ function checkEntityReferences(fragment: string, source: string): void {
     if (!XML_ENTITIES.has(entity)) {
       let code: number | undefined;
       if (/^#\d+$/.test(entity)) {
-        code = Number.parseInt(entity.slice(1), 10);
+        code = Number(entity.slice(1));
       } else if (/^#x[0-9a-fA-F]+$/.test(entity)) {
         code = Number.parseInt(entity.slice(2), 16);
       }
@@ -240,7 +243,7 @@ function singleRecognizedRoot(parsed: unknown): boolean {
 // An attribute named `testcase` can false-positive here; that throws instead of
 // skipping, which is the safe direction.
 function containsTestcase(node: unknown): boolean {
-  if (Array.isArray(node)) return node.some(containsTestcase);
+  if (Array.isArray(node)) return node.some((entry) => containsTestcase(entry));
   if (!isObject(node)) return false;
   return Object.entries(node).some(
     ([key, value]) => key === 'testcase' || containsTestcase(value),
@@ -352,7 +355,7 @@ function featuresFromSuite(
   const name =
     stringOf(suite.name) || stringOf(suite.classname) || `JUnit suite ${index + 1}`;
   const entries: TestcaseEntry[] = asArray(suite.testcase)
-    .filter(isObject)
+    .filter((entry) => isObject(entry))
     .map((testcase, testcaseIndex) => ({ testcase, index: testcaseIndex }));
   const byClass = new Map<string, TestcaseEntry[]>();
 
@@ -393,7 +396,7 @@ const xmlEntityDecoder = {
       const code = name.startsWith('#x')
         ? Number.parseInt(name.slice(2), 16)
         : name.startsWith('#')
-          ? Number.parseInt(name.slice(1), 10)
+          ? Number(name.slice(1))
           : undefined;
       return code === undefined
         ? (XML_ENTITIES.get(name) ?? whole)

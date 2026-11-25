@@ -104,7 +104,7 @@ function requireStepResult(
   }
   for (const part of ['seconds', 'nanos']) {
     if (typeof result.duration[part] !== 'number') {
-      throw new Error(
+      throw new TypeError(
         `Invalid Cucumber Messages on line ${line} of ${source}: "${key}.${field}.duration.${part}" must be a number.`,
       );
     }
@@ -182,7 +182,7 @@ function validatePayload(
     case 'testRunFinished':
       requireObject(payload, 'timestamp', key, source, line);
       if (typeof payload.success !== 'boolean') {
-        throw new Error(
+        throw new TypeError(
           `Invalid Cucumber Messages on line ${line} of ${source}: "testRunFinished.success" must be a boolean.`,
         );
       }

@@ -544,7 +544,9 @@ export function buildReportModel(
       const attachments: ReportAttachment[] = [];
       if (!earlierImageUsed && status === 'failed') {
         const image = mapAttachments(
-          (index.caseAttachments.get(start.id) ?? []).filter(isRetryEvidence),
+          (index.caseAttachments.get(start.id) ?? []).filter((entry) =>
+            isRetryEvidence(entry),
+          ),
         ).find((candidate) => candidate.kind === 'image');
         if (
           image &&

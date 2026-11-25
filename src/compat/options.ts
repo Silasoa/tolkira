@@ -180,7 +180,7 @@ export async function resolveInputs(
       const parsed: unknown = JSON.parse(
         stripBom(await readFile(file, 'utf8')),
       );
-      if (!Array.isArray(parsed) || !parsed.every(isFeatureLike)) {
+      if (!Array.isArray(parsed) || !parsed.every((entry) => isFeatureLike(entry))) {
         throw new Error('not a feature array');
       }
       valid.push(file);

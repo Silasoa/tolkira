@@ -221,7 +221,10 @@ async function metaTracks(
 }
 
 function firstTrackShare(tracks: string[]): number {
+  // Grid tracks are computed CSS lengths with a px suffix, not plain numbers.
+  // oxlint-disable-next-line unicorn/prefer-number-coercion -- parseFloat reads the numeric prefix
   const first = Number.parseFloat(tracks[0] ?? '0');
+  // oxlint-disable-next-line unicorn/prefer-number-coercion -- parseFloat reads the numeric prefix
   const second = Number.parseFloat(tracks[1] ?? '0');
   return first / (first + second);
 }

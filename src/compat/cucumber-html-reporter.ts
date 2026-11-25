@@ -49,7 +49,7 @@ async function readFeatures(
   } catch {
     return undefined;
   }
-  if (!Array.isArray(parsed) || !parsed.every(isFeatureLike)) {
+  if (!Array.isArray(parsed) || !parsed.every((entry) => isFeatureLike(entry))) {
     return undefined;
   }
   return parsed as Record<string, unknown>[];

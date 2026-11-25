@@ -47,6 +47,7 @@ interface RunResult {
   error: Error | undefined;
 }
 
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- callers declare the parsed shape; the helper cannot infer it
 function readJson<T>(relativePath: string): T {
   const source = readFileSync(path.join(repoRoot, relativePath), 'utf8');
   return JSON.parse(source) as T;

@@ -251,8 +251,11 @@ test('shows the skipped-attachment notice in the shell and on the scenario at 14
       if (!notice) return null;
       const rect = notice.getBoundingClientRect();
       const style = getComputedStyle(notice);
+      // Computed CSS lengths carry a px suffix, which Number() rejects.
       const lineHeight =
+        // oxlint-disable-next-line unicorn/prefer-number-coercion -- computed CSS lengths carry px
         Number.parseFloat(style.lineHeight) ||
+        // oxlint-disable-next-line unicorn/prefer-number-coercion -- computed CSS lengths carry px
         Number.parseFloat(style.fontSize) * 1.5;
       return {
         overflow: document.documentElement.scrollWidth - window.innerWidth,

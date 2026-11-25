@@ -605,32 +605,33 @@ if (lightbox) {
   );
   let lightboxTrigger: HTMLElement | null = null;
   let previousOverflow = '';
-  function closeDialog(): void {
+  const closeDialog = (): void => {
     if (typeof dialog.close === 'function') dialog.close();
     else {
       dialog.removeAttribute('open');
       restoreLightbox();
     }
-  }
-  function restoreLightbox(): void {
+  };
+  const restoreLightbox = (): void => {
     document.documentElement.style.overflow = previousOverflow;
     lightboxTrigger?.focus();
     lightboxTrigger = null;
-  }
+  };
+  const openLightbox = (button: HTMLButtonElement): void => {
+    const image = button.querySelector<HTMLImageElement>('img');
+    if (!image || !lightboxImage) return;
+    lightboxImage.src = image.src;
+    lightboxImage.alt = image.alt;
+    lightboxTrigger = button;
+    previousOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+  };
   for (const button of document.querySelectorAll<HTMLButtonElement>(
     '.shotButton',
   )) {
-    button.addEventListener('click', () => {
-      const image = button.querySelector<HTMLImageElement>('img');
-      if (!image || !lightboxImage) return;
-      lightboxImage.src = image.src;
-      lightboxImage.alt = image.alt;
-      lightboxTrigger = button;
-      previousOverflow = document.documentElement.style.overflow;
-      document.documentElement.style.overflow = 'hidden';
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-      else dialog.setAttribute('open', '');
-    });
+    button.addEventListener('click', () => openLightbox(button));
   }
   closeLightbox?.addEventListener('click', closeDialog);
   dialog.addEventListener('click', (event) => {

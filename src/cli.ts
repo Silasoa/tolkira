@@ -80,6 +80,11 @@ export interface CliIO {
   stderr: (text: string) => void;
 }
 
+const DEFAULT_IO: CliIO = {
+  stdout: (text) => process.stdout.write(text),
+  stderr: (text) => process.stderr.write(text),
+};
+
 function parseCliArgs(argv: string[]) {
   return parseArgs({
     args: argv,
@@ -191,7 +196,7 @@ async function conflictsWithInputs(
   return false;
 }
 
-async function pathConflicts(
+function pathConflicts(
   file: string,
   inputs: string[],
   logo: string | undefined,
@@ -201,12 +206,12 @@ async function pathConflicts(
   email: string | undefined,
   peer: string | undefined,
 ): Promise<boolean> {
-  if (output && samePath(file, output)) return true;
-  if (pdfPath && samePath(file, pdfPath)) return true;
-  if (ciOut && samePath(file, ciOut)) return true;
-  if (email && samePath(file, email)) return true;
-  if (peer && samePath(file, peer)) return true;
-  if (logo && samePath(file, logo)) return true;
+  if (output && samePath(file, output)) return Promise.resolve(true);
+  if (pdfPath && samePath(file, pdfPath)) return Promise.resolve(true);
+  if (ciOut && samePath(file, ciOut)) return Promise.resolve(true);
+  if (email && samePath(file, email)) return Promise.resolve(true);
+  if (peer && samePath(file, peer)) return Promise.resolve(true);
+  if (logo && samePath(file, logo)) return Promise.resolve(true);
   return conflictsWithInputs(file, inputs);
 }
 
@@ -327,10 +332,7 @@ async function readLogo(file: string): Promise<string> {
 
 export async function runCli(
   argv: string[],
-  io: CliIO = {
-    stdout: (text) => process.stdout.write(text),
-    stderr: (text) => process.stderr.write(text),
-  },
+  io: CliIO = DEFAULT_IO,
 ): Promise<number> {
   let parsed: ReturnType<typeof parseCliArgs>;
 

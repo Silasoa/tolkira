@@ -15,6 +15,7 @@ function generate(
   return promise;
 }
 
+// oxlint-disable-next-line eslint/no-redeclare -- the public CJS type names must merge with the export = value
 const compat = { generate };
 
 namespace compat {

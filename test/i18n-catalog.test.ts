@@ -79,7 +79,7 @@ function assertShape(
   }
   for (const [key, value] of Object.entries(target)) {
     if (typeof value !== 'string') {
-      throw new Error(`${file}: ${key}: target catalog values must be strings`);
+      throw new TypeError(`${file}: ${key}: target catalog values must be strings`);
     }
     if (value.length === 0) {
       throw new Error(`${file}: ${key}: target value must not be empty`);

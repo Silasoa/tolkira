@@ -6,7 +6,9 @@ import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { sanitizeEnvelopes } from '../src/input/sanitize.js';
 
-function finishedStep(status: string, duration: unknown = { seconds: 0, nanos: 1 }) {
+const DEFAULT_DURATION = { seconds: 0, nanos: 1 };
+
+function finishedStep(status: string, duration: unknown = DEFAULT_DURATION) {
   return {
     testStepFinished: {
       testCaseStartedId: 'started-1',

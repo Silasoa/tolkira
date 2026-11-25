@@ -46,7 +46,7 @@ function sniffLegacy(content: string): LegacySniff {
   try {
     const parsed: unknown = JSON.parse(trimmed);
     if (!Array.isArray(parsed)) return undefined;
-    return parsed.every(isFeatureLike)
+    return parsed.every((entry) => isFeatureLike(entry))
       ? { kind: 'legacy', parsed }
       : undefined;
   } catch {

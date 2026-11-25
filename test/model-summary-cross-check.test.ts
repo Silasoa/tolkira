@@ -64,9 +64,9 @@ const cases: CrossCheckCase[] = [
     'empty-none',
     'empty-outline-mixed',
     'empty-unexecuted-attachment',
-  ].map(messagesCase),
+  ].map((entry) => messagesCase(entry)),
   ...['happy', 'failed', 'screenshot', 'empty', 'missing-result', 'behave'].map(
-    legacyCase,
+    (entry) => legacyCase(entry),
   ),
   {
     name: 'junit/basic',

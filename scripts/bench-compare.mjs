@@ -253,8 +253,9 @@ function generateMessages(total) {
 
 function generateLegacy(total) {
   const features = [];
-  let attachments = 0;
+  const counters = { attachments: 0 };
   for (let f = 0; f < featureCount(total); f += 1) {
+    const featureNumber = f + 1;
     const feature = featureSpec(f, total);
     const elements = feature.scenarios.map((scenario) => {
       const attached = scenario.attached;
@@ -271,13 +272,13 @@ function generateLegacy(total) {
         };
         if (status !== 'undefined') stepOut.match = { location: `features/steps.js:${10 + (scenario.index % 40)}` };
         if (attached && step === 0) {
-          attachments += 1;
+          counters.attachments += 1;
           stepOut.embeddings = [{ mime_type: 'image/png', data: TINY_PNG, name: `shot-${String(scenario.index + 1).padStart(4, '0')}.png` }];
         }
         return stepOut;
       });
       return {
-        id: `feature-${f + 1};scenario-${scenario.index + 1}`,
+        id: `feature-${featureNumber};scenario-${scenario.index + 1}`,
         keyword: 'Scenario',
         type: 'scenario',
         name: scenario.name,
@@ -298,7 +299,7 @@ function generateLegacy(total) {
       elements,
     });
   }
-  return { text: `${JSON.stringify(features, null, 2)}\n`, attachments };
+  return { text: `${JSON.stringify(features, null, 2)}\n`, attachments: counters.attachments };
 }
 
 async function ensureFixtures(total) {
@@ -381,7 +382,7 @@ function measureProcess(file, args, cwd) {
   return new Promise((resolve, reject) => {
     const child = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', PS_SCRIPT], {
       cwd: ROOT,
-      env: { ...process.env, BENCH_FILE: file, BENCH_ARGS_CMD: args.map(winQuote).join(' '), BENCH_CWD: cwd },
+      env: { ...process.env, BENCH_FILE: file, BENCH_ARGS_CMD: args.map((arg) => winQuote(arg)).join(' '), BENCH_CWD: cwd },
       windowsHide: true,
     });
     let stdout = '';
@@ -531,18 +532,20 @@ function serve(root) {
       response.end('not found');
     }
   });
-  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve(server));
+  });
 }
 
 async function measurePage(browser, url, runs, warmups) {
   const samples = [];
-  let externalRequests = 0;
+  const externalRequests = { count: 0 };
   for (let run = 0; run < warmups + runs; run += 1) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     await context.route('**/*', (route) => {
       const target = new URL(route.request().url());
       if (target.hostname === '127.0.0.1' || target.hostname === 'localhost') return route.continue();
-      externalRequests += 1;
+      externalRequests.count += 1;
       return route.abort();
     });
     const page = await context.newPage();
@@ -565,7 +568,7 @@ async function measurePage(browser, url, runs, warmups) {
     await context.close();
     if (run >= warmups) samples.push(metrics);
   }
-  return { samples, externalRequests };
+  return { samples, externalRequests: externalRequests.count };
 }
 
 function summarizePage({ samples, externalRequests }) {

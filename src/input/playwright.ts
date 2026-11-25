@@ -1021,7 +1021,13 @@ async function attachmentsForResult(
 }> {
   const planned: PlannedAttachment[] = [];
   const skippedEntries: SkippedAttachment[] = [];
-  let skipped = 0;
+  const skipped = { count: 0 };
+  const noteSkip = (name: string, reason: AttachmentSkipReason): void => {
+    skipped.count += 1;
+    if (skippedEntries.length < MAX_SKIP_ENTRIES) {
+      skippedEntries.push({ name: displayAttachmentName(name), reason });
+    }
+  };
 
   for (const attachment of result.attachments) {
     if (
@@ -1045,15 +1051,7 @@ async function attachmentsForResult(
     const file = await resolveAttachmentPath(
       attachment.path,
       context,
-      (reason) => {
-        skipped += 1;
-        if (skippedEntries.length < MAX_SKIP_ENTRIES) {
-          skippedEntries.push({
-            name: displayAttachmentName(attachment.name),
-            reason,
-          });
-        }
-      },
+      (reason) => noteSkip(attachment.name, reason),
     );
     if (!file) continue;
     planned.push({
@@ -1086,7 +1084,7 @@ async function attachmentsForResult(
     }
   }
 
-  return { attachments: planned, skipped, skippedEntries };
+  return { attachments: planned, skipped: skipped.count, skippedEntries };
 }
 
 // A read that races past a cap omits only the optional evidence; the final

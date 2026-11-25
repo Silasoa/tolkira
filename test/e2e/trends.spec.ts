@@ -140,7 +140,9 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
 
     // The old contract pinned one `nowrap` row and a fixed bar height; the
     // decided contract is that no tab is clipped at 320 px or 200% text.
-    async function expectTabsVisibleAndAnchor(label: string): Promise<void> {
+    const expectTabsVisibleAndAnchor = async (
+      label: string,
+    ): Promise<void> => {
       const tabs = page.getByRole('tab');
       const boxes = await tabs.evaluateAll((elements) =>
         elements.map((element) => {
@@ -184,9 +186,9 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
           return target ? target.y - (bar!.y + bar!.height) : -999;
         }, `${label} anchor below the bar`)
         .toBeGreaterThanOrEqual(-1);
-    }
+    };
 
-    async function expectTwoTabsInside(label: string): Promise<void> {
+    const expectTwoTabsInside = async (label: string): Promise<void> => {
       const tabs = page.getByRole('tab');
       await expect(tabs, label).toHaveCount(2);
       const boxes = await tabs.evaluateAll((elements) =>
@@ -206,7 +208,7 @@ test('shows every tab at 320 and 200% text zoom and keeps an anchored scenario v
         await pageOverflow(page),
         `${label} overflow`,
       ).toBeLessThanOrEqual(1);
-    }
+    };
 
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(url);
@@ -484,7 +486,7 @@ test('keeps a 365-run Trends shell readable at 320 and 200% text', async ({
       .first();
     const spark = page.locator('#trends-view .spark');
 
-    async function expectDenseShell(label: string): Promise<void> {
+    const expectDenseShell = async (label: string): Promise<void> => {
       await expect(page.locator('#trends-view tbody tr')).toHaveCount(365);
       await expect(page.locator('#trends-view .sparkPoint')).toHaveCount(0);
       await expect(
@@ -543,7 +545,7 @@ test('keeps a 365-run Trends shell readable at 320 and 200% text', async ({
         `${label} current tag on the date line`,
       ).toBeLessThan(line!.dateBottom);
       await expect(spark).toBeVisible();
-    }
+    };
 
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto(url);
