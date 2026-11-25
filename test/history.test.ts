@@ -353,7 +353,7 @@ describe('reading the history sidecar', () => {
     const before = await readFile(file, 'utf8');
 
     await expect(readHistory(file)).rejects.toThrow(
-      new RegExp(path.basename(file).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      new RegExp(path.basename(file).replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
   });
@@ -467,7 +467,7 @@ describe('reading the history sidecar', () => {
     const before = await readFile(file, 'utf8');
 
     await expect(readHistory(file)).rejects.toThrow(
-      new RegExp(path.basename(file).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      new RegExp(path.basename(file).replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
     await expect(readFile(file, 'utf8')).resolves.toBe(before);
   });

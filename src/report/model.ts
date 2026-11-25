@@ -279,7 +279,7 @@ function timestampIso(
 }
 
 function normalizeText(value: string | undefined): string {
-  return (value ?? '').replace(/\r\n/g, '\n');
+  return (value ?? '').replaceAll('\r\n', '\n');
 }
 
 function productLabel(

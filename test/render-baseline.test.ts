@@ -291,7 +291,7 @@ describe('baseline report panel', () => {
     expect(slice).not.toContain('Baseline status:');
     expect(slice).not.toContain('New failures');
     expect(slice).not.toContain('Not in this run');
-    const text = slice.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+    const text = slice.replaceAll(/<[^>]*>/g, ' ').replaceAll(/\s+/g, ' ');
     for (const count of ['2', '1', '3', '1']) {
       expect(text, `panel count ${count}`).toContain(count);
     }

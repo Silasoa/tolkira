@@ -50,18 +50,18 @@ const RUN_FAILED_ANNOTATION = `::error title=Tolkira::${RUN_FAILED_MESSAGE}`;
 
 function escapeGitHubProperty(value: string): string {
   return value
-    .replace(/%/g, '%25')
-    .replace(/\r/g, '%0D')
-    .replace(/\n/g, '%0A')
-    .replace(/:/g, '%3A')
-    .replace(/,/g, '%2C');
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A')
+    .replaceAll(':', '%3A')
+    .replaceAll(',', '%2C');
 }
 
 function escapeGitHubMessage(value: string): string {
   return value
-    .replace(/%/g, '%25')
-    .replace(/\r/g, '%0D')
-    .replace(/\n/g, '%0A');
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A');
 }
 
 function truncateCodePoints(text: string, limit: number): string {
@@ -197,10 +197,10 @@ export function formatGitHubAnnotations(summary: ReportSummary): string {
 
 function escapeAzureMessage(value: string): string {
   return value
-    .replace(/%/g, '%AZP25')
-    .replace(/\r/g, '%0D')
-    .replace(/[\n\u2028\u2029\u0085]/g, '%0A')
-    .replace(/]/g, '%5D');
+    .replaceAll('%', '%AZP25')
+    .replaceAll('\r', '%0D')
+    .replaceAll(/[\n\u2028\u2029\u0085]/g, '%0A')
+    .replaceAll(']', '%5D');
 }
 
 // The truncation marker is presentation, not input data, so it stays readable.
@@ -299,13 +299,13 @@ function longestBacktickRun(text: string): number {
 // ANSI, controls and any line ending would end the code span and let the
 // dynamic text become active Markdown.
 function inlineText(value: string): string {
-  return stripAnsi(value).replace(/[\r\n\u2028\u2029]+/g, ' ');
+  return stripAnsi(value).replaceAll(/[\r\n\u2028\u2029]+/g, ' ');
 }
 
 const MARKDOWN_SPECIALS = /[\\`*_[\]<>|!#]/g;
 
 function markdownText(value: string): string {
-  return inlineText(value).replace(MARKDOWN_SPECIALS, '\\$&');
+  return inlineText(value).replaceAll(MARKDOWN_SPECIALS, '\\$&');
 }
 
 function codeSpan(text: string): string {

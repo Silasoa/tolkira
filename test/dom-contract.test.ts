@@ -49,7 +49,7 @@ const HTML_ENTITIES: Record<string, string> = {
 };
 
 function unescapeHtml(value: string): string {
-  return value.replace(
+  return value.replaceAll(
     /&(amp|lt|gt|quot|#39);/g,
     (_, entity: string) => HTML_ENTITIES[entity] ?? '',
   );
@@ -365,7 +365,7 @@ describe('filter status styling contract', () => {
   it('colours pressed chips through the attribute the toolbar renders', async () => {
     const css = (
       await readFile(new URL('../src/render/report.css', import.meta.url), 'utf8')
-    ).replace(/\r\n/g, '\n');
+    ).replaceAll('\r\n', '\n');
     expect(REPORT_CSS).toBe(
       transformSync(css, {
         loader: 'css',

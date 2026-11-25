@@ -33,12 +33,12 @@ async function tempDir(prefix = 'tolkira-render-attachment-'): Promise<string> {
 
 function decodeText(html: string): string {
   return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&');
+    .replaceAll(/<[^>]*>/g, '')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&quot;', '"')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&');
 }
 
 function warningMarkup(html: string): string | undefined {

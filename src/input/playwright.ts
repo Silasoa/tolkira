@@ -606,7 +606,7 @@ function isInside(root: string, target: string): boolean {
 
 function relativeFile(file: string, inputDir: string): string {
   if (!path.isAbsolute(file)) {
-    const normalized = file.replace(/\\/g, '/').replace(/^\.\//, '');
+    const normalized = file.replaceAll('\\', '/').replace(/^\.\//, '');
     return normalized || path.basename(file);
   }
   const resolved = path.resolve(file);
@@ -618,7 +618,7 @@ function relativeFile(file: string, inputDir: string): string {
       relative !== '..' &&
       !relative.startsWith(`..${path.sep}`)
     ) {
-      return relative.replace(/\\/g, '/');
+      return relative.replaceAll('\\', '/');
     }
   }
   return path.basename(file);
@@ -641,7 +641,7 @@ const ABSOLUTE_LOCAL_PATH =
   /(?:(?<![A-Za-z0-9_])[A-Za-z]:[\\/]|(?<![A-Za-z0-9_/])\/(?:Users|home|tmp|var|opt|etc|usr|private|mnt|srv|root|workspace|builds|app|data|github)\/)[^\s"'<>|]+/g;
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function rootPattern(root: string): RegExp | undefined {
@@ -662,14 +662,14 @@ function scrubPaths(text: string, inputDir: string): string {
     const pattern = rootPattern(root);
     if (pattern) scrubbed = scrubbed.replace(pattern, '');
   }
-  return scrubbed.replace(ABSOLUTE_LOCAL_PATH, (match) =>
-    path.basename(match.replace(/\\/g, '/')),
+  return scrubbed.replaceAll(ABSOLUTE_LOCAL_PATH, (match) =>
+    path.basename(match.replaceAll('\\', '/')),
   );
 }
 
 function locationAlreadyPresent(part: string, at: string): boolean {
-  const normalized = part.replace(/\\/g, '/');
-  const needle = at.replace(/\\/g, '/');
+  const normalized = part.replaceAll('\\', '/');
+  const needle = at.replaceAll('\\', '/');
   const escaped = escapeRegExp(needle);
   // A location without a column also matches the same file and line with one.
   const column = /:\d+:\d+$/.test(needle) ? '' : '(?::\\d+)?';
@@ -862,8 +862,8 @@ const MAX_EARLIER_ATTEMPTS = 3;
 // carry its own visible path after the terminator.
 function displayAttachmentName(name: string): string {
   const stripped = stripBidiControls(stripAnsi(name));
-  const base = stripped.replace(/\\/g, '/').split('/').at(-1) ?? '';
-  const collapsed = base.replace(/\s+/g, ' ').trim();
+  const base = stripped.replaceAll('\\', '/').split('/').at(-1) ?? '';
+  const collapsed = base.replaceAll(/\s+/g, ' ').trim();
   let displayed = '';
   let length = 0;
   for (const character of collapsed) {

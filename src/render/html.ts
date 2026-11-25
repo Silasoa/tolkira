@@ -37,7 +37,7 @@ function csp(hashes: string[]): string {
 }
 
 function inlineScript(code: string): string {
-  return `<script>${code.replace(/<\/script/gi, '<\\/script')}</script>`;
+  return `<script>${code.replaceAll(/<\/script/gi, '<\\/script')}</script>`;
 }
 
 function tabBar(historyLength: number, t: Translator): string {

@@ -256,7 +256,7 @@ function clearHighlights(): void {
 }
 
 function escapeRegex(value: string): string {
-  return value.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+  return value.replaceAll(/[\\^$.*+?()[\]{}|]/g, '\\$&');
 }
 
 function highlightSearch(): void {

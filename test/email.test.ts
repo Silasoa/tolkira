@@ -89,20 +89,20 @@ function render(summary: ReportSummary, options: EmailOptions = {}): string {
 }
 
 function flat(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
+  return value.replaceAll(/\s+/g, ' ').trim();
 }
 
 function plainText(html: string): string {
   return flat(
     html
-      .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&middot;/g, '·')
-      .replace(/&amp;/g, '&'),
+      .replaceAll(/<style\b[\s\S]*?<\/style>/gi, ' ')
+      .replaceAll(/<[^>]*>/g, ' ')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&middot;', '·')
+      .replaceAll('&amp;', '&'),
   );
 }
 
@@ -113,7 +113,7 @@ function heading(html: string): string {
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** Accepts "3 features" and "Features: 3" so the template stays free. */

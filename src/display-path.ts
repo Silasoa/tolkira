@@ -23,7 +23,7 @@ function decodeSegment(segment: string): string {
 }
 
 export function analyzePath(uri: string): PathAnalysis {
-  let path = uri.replace(/\\/g, '/');
+  let path = uri.replaceAll('\\', '/');
   if (/^file:/i.test(path)) {
     const rest = path.slice('file:'.length);
     if (rest.startsWith('//')) {
@@ -47,7 +47,7 @@ export function analyzePath(uri: string): PathAnalysis {
   path = path.replace(/^\/([a-z]:\/)/i, '$1');
   // A URL-escaped separator still separates the parts for the absolute check
   // and the home rule; the path text itself stays as written.
-  const splitPath = path.replace(/%2f|%5c/gi, '/');
+  const splitPath = path.replaceAll(/%2f|%5c/gi, '/');
   const absolute = DRIVE.test(splitPath) || splitPath.startsWith('/');
   if (!absolute) return { absolute, path, parts: [] };
 

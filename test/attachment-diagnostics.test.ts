@@ -88,7 +88,7 @@ function shellNotice(html: string): string {
 
 // The report escapes the catalog notice, including its apostrophes.
 function escapedNotice(count: number): string {
-  return skipNotice(count).replace(/'/g, '&#39;');
+  return skipNotice(count).replaceAll('\'', '&#39;');
 }
 
 function skippedEntries(

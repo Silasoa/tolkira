@@ -589,7 +589,7 @@ function resultOf(legacyStep: LegacyStep, scale = 1): TestStepResult {
 }
 
 function isLikelyBase64(value: string): boolean {
-  const compact = value.replace(/\s/g, '');
+  const compact = value.replaceAll(/\s/g, '');
   return (
     compact.length > 0 &&
     compact.length % 4 === 0 &&

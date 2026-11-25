@@ -168,7 +168,7 @@ function reportNote(options: EmailOptions, t: Translator): string {
   if (!options.reportName) return t.t('email.reportMissing');
   // Published names may use either separator; keep only the basename and cap it.
   const name = clampText(
-    path.basename(options.reportName.replace(/\\/g, '/')),
+    path.basename(options.reportName.replaceAll('\\', '/')),
   );
   if (!name) return t.t('email.reportMissing');
   return t.t('email.reportNote', { name });

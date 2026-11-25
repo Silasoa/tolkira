@@ -27,7 +27,7 @@ export function createClientFormatter(lang: string): ClientFormatter {
     lang: tag,
     number,
     format(template, params = {}) {
-      const withPlurals = template.replace(
+      const withPlurals = template.replaceAll(
         PLURAL,
         (_match, name: string, body: string) => {
           const numeric = Number(Object.hasOwn(params, name) ? params[name] : 0);
@@ -38,10 +38,10 @@ export function createClientFormatter(lang: string): ClientFormatter {
           }
           const selected =
             branches[rules.select(value)] ?? branches.other ?? '';
-          return selected.replace(/#/g, number(value));
+          return selected.replaceAll('#', number(value));
         },
       );
-      return withPlurals.replace(PARAM, (_match, name: string) => {
+      return withPlurals.replaceAll(PARAM, (_match, name: string) => {
         if (!Object.hasOwn(params, name)) return '';
         const value = params[name];
         return typeof value === 'number' ? number(value) : String(value ?? '');

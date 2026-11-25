@@ -40,7 +40,7 @@ export function baselineBadge(
 // Baseline text is untrusted: strip terminal controls and bidi marks, collapse
 // whitespace, then escape. Scoped to the panel so default report bytes stay put.
 function panelText(value: string): string {
-  return stripBidiControls(stripAnsi(value)).replace(/\s+/g, ' ').trim();
+  return stripBidiControls(stripAnsi(value)).replaceAll(/\s+/g, ' ').trim();
 }
 
 function countItem(value: number, key: MessageKey, t: Translator): string {

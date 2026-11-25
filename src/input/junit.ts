@@ -389,7 +389,7 @@ const xmlEntityDecoder = {
   addInputEntities: () => {},
   reset: () => {},
   decode(value: string): string {
-    return value.replace(XML_ENTITY_REFERENCE, (whole, name: string) => {
+    return value.replaceAll(XML_ENTITY_REFERENCE, (whole, name: string) => {
       const code = name.startsWith('#x')
         ? Number.parseInt(name.slice(2), 16)
         : name.startsWith('#')

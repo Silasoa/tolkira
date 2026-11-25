@@ -139,7 +139,7 @@ function expectA4Pdf(file: PdfFile, bytes: Uint8Array) {
   // The print archive embeds screenshot pixels, not just their file names.
   expect(info.images, 'embedded screenshots').toBeGreaterThan(0);
 
-  const text = info.text.replace(/\s+/g, '');
+  const text = info.text.replaceAll(/\s+/g, '');
   expect(text).toContain('Fehlgeschlagen');
   expect(text).toContain('SzenarienmitErgebnissen');
   expect(text).toContain('Laufdetails');
@@ -184,7 +184,7 @@ test.describe('CLI --pdf', () => {
         '<html',
       );
       const info = expectA4Pdf(file, await readFile(file.pdf));
-      expect(info.text.replace(/\s+/g, '')).toContain(
+      expect(info.text.replaceAll(/\s+/g, '')).toContain(
         'AufgezeichneteLäufe',
       );
       expect((await readdir(file.dir)).sort()).toEqual([
@@ -245,7 +245,7 @@ test.describe('CLI --pdf', () => {
       expect(info.images, 'one embedded image per screenshot').toBeGreaterThanOrEqual(
         40,
       );
-      const text = info.text.replace(/\s+/g, '');
+      const text = info.text.replaceAll(/\s+/g, '');
       expect(text).toContain('Scenario40withscreenshot');
       expect(info.width, 'A4 width').toBeGreaterThan(590);
       expect(info.width, 'A4 width').toBeLessThan(600);

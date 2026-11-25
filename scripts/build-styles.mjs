@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { transformSync } from 'esbuild';
 
 function minify(source) {
-  return transformSync(source.replace(/\r\n/g, '\n'), {
+  return transformSync(source.replaceAll('\r\n', '\n'), {
     loader: 'css',
     minify: true,
     target: 'esnext',

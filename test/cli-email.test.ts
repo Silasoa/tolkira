@@ -59,14 +59,14 @@ async function run(argv: string[]) {
 
 function plainText(html: string): string {
   return html
-    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/<style\b[\s\S]*?<\/style>/gi, ' ')
+    .replaceAll(/<[^>]*>/g, ' ')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&amp;', '&')
+    .replaceAll(/\s+/g, ' ')
     .trim();
 }
 
@@ -565,7 +565,7 @@ describe('CLI --email', () => {
 
       expect(result.code, result.stderr).toBe(0);
       expect(result.stdout).toBe(
-        `Email written to ${email.replace(/\n/g, ' ')}\n`,
+        `Email written to ${email.replaceAll('\n', ' ')}\n`,
       );
     },
   );

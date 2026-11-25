@@ -115,7 +115,7 @@ function expectTableCount(
   label: string,
   value: number | string,
 ): void {
-  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escaped = label.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
   expect(markdown, `${label} row`).toMatch(
     new RegExp(`\\|[ \\t]*${escaped}[ \\t]*\\|[ \\t]*${value}[ \\t]*\\|`),
   );

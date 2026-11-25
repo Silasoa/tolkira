@@ -33,7 +33,7 @@ const bytes = (text) => Buffer.byteLength(text);
 const results = [];
 try {
   for (const fixture of fixtures) {
-    const stem = path.basename(fixture).replace(/\W+/g, '-');
+    const stem = path.basename(fixture).replaceAll(/\W+/g, '-');
     const baselineFile = path.join(dir, `${stem}-baseline.json`);
     const baseline = JSON.parse(await cli([fixture, '--json']));
     // Flip one status and drop one row so the panel shows a badge and a list.

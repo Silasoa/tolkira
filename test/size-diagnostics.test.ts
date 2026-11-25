@@ -58,7 +58,7 @@ function analysisView(html: string): string {
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** The dd of the first matching dt label, or undefined when no row exists. */

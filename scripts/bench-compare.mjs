@@ -350,7 +350,7 @@ async function ensureCompetitors() {
 
 function winQuote(value) {
   if (!/[\s"]/.test(value)) return value;
-  return `"${value.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
+  return `"${value.replaceAll(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
 }
 
 const PS_SCRIPT = [

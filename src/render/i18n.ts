@@ -62,7 +62,7 @@ const ANSI_ESCAPE = new RegExp(
 
 function cleanTag(tag: string): string {
   let cleaned = '';
-  for (const character of tag.replace(ANSI_ESCAPE, '')) {
+  for (const character of tag.replaceAll(ANSI_ESCAPE, '')) {
     const code = character.codePointAt(0) ?? 0;
     if (code >= 0x20 && code !== 0x7f) cleaned += character;
   }
@@ -253,7 +253,7 @@ function formatNodes(
   let output = '';
   for (const node of nodes) {
     if (node.type === 'text') {
-      output += hash === undefined ? node.value : node.value.replace(/#/g, hash);
+      output += hash === undefined ? node.value : node.value.replaceAll('#', hash);
       continue;
     }
     if (node.type === 'param') {
@@ -300,7 +300,7 @@ export interface Translator {
 }
 
 function escapeJson(json: string): string {
-  return json.replace(
+  return json.replaceAll(
     /[<>&\u2028\u2029]/g,
     (character) =>
       `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,

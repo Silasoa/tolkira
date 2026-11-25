@@ -27,9 +27,9 @@ const RAW_IMAGE_TAG = /<img\b[^>]*>/gi;
 function stripRemoteImages(value: string | undefined): string {
   if (typeof value !== 'string') return '';
   return value
-    .replace(REMOTE_ANGLE_IMAGE, '![$1]()')
-    .replace(REMOTE_MARKDOWN_IMAGE, '![$1]()')
-    .replace(RAW_IMAGE_TAG, '');
+    .replaceAll(REMOTE_ANGLE_IMAGE, '![$1]()')
+    .replaceAll(REMOTE_MARKDOWN_IMAGE, '![$1]()')
+    .replaceAll(RAW_IMAGE_TAG, '');
 }
 
 function sanitizeScenario(scenario: Scenario): void {

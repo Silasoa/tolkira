@@ -8,7 +8,7 @@ import { BASELINE_CSS, REPORT_CSS } from '../src/render/styles.js';
 async function sourceCss(): Promise<string> {
   return (
     await readFile(new URL('../src/render/report.css', import.meta.url), 'utf8')
-  ).replace(/\r\n/g, '\n');
+  ).replaceAll('\r\n', '\n');
 }
 
 /** Balanced-brace blocks whose header matches the pattern. */
@@ -74,7 +74,7 @@ describe('embedded report stylesheet', () => {
   it('appends the minified baseline stylesheet as a separate constant', async () => {
     const source = (
       await readFile(new URL('../src/render/baseline.css', import.meta.url), 'utf8')
-    ).replace(/\r\n/g, '\n');
+    ).replaceAll('\r\n', '\n');
     const minified = transformSync(source, {
       loader: 'css',
       minify: true,

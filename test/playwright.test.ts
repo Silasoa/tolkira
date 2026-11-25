@@ -592,7 +592,7 @@ describe('Playwright JSON input', () => {
       (summary.scenarios.find((entry) => entry.name === name)?.steps ?? [])
         .map((step) => step.message ?? '')
         .join('\n');
-    const normalized = (text: string): string => text.replace(/\\/g, '/');
+    const normalized = (text: string): string => text.replaceAll('\\', '/');
     const occurrences = (text: string, token: string): number =>
       text.split(token).length - 1;
 

@@ -61,7 +61,7 @@ async function richEnvelopes() {
 
 /** The document without the inline stylesheet, for control and markup checks. */
 function markup(html: string): string {
-  return html.replace(/<style\b[\s\S]*?<\/style>/gi, '');
+  return html.replaceAll(/<style\b[\s\S]*?<\/style>/gi, '');
 }
 
 function openingTags(html: string, name: string): string[] {
@@ -72,7 +72,7 @@ function openingTags(html: string, name: string): string[] {
 
 /** Attribute presence with quoted values removed, so scenario text cannot match. */
 function hasAttribute(tag: string, name: string): boolean {
-  const withoutValues = tag.replace(/"[^"]*"/g, '""');
+  const withoutValues = tag.replaceAll(/"[^"]*"/g, '""');
   return new RegExp(`\\s${name}(?=[\\s>=])`).test(withoutValues);
 }
 

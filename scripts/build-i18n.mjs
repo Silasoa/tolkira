@@ -38,7 +38,7 @@ for (const tag of tags) {
 }
 
 const identifier = (tag) => {
-  const sanitized = tag.replace(/[^A-Za-z0-9_$]/g, '_');
+  const sanitized = tag.replaceAll(/[^A-Za-z0-9_$]/g, '_');
   return /^[A-Za-z_$]/.test(sanitized) ? sanitized : `_${sanitized}`;
 };
 
