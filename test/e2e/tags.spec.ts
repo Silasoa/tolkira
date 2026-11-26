@@ -324,15 +324,9 @@ test('repeats the header and keeps rows whole in print', async ({ page }) => {
       return {
         headDisplay: head ? getComputedStyle(head).display : '',
         rowBreak: row ? getComputedStyle(row).breakInside : '',
-        headRule: headCell
-          ? getComputedStyle(headCell).borderBottomWidth
-          : '',
-        bodyRule: bodyCell
-          ? getComputedStyle(bodyCell).borderBottomWidth
-          : '',
-        lastRule: lastCell
-          ? getComputedStyle(lastCell).borderBottomWidth
-          : '',
+        headRule: headCell ? getComputedStyle(headCell).borderBottomWidth : '',
+        bodyRule: bodyCell ? getComputedStyle(bodyCell).borderBottomWidth : '',
+        lastRule: lastCell ? getComputedStyle(lastCell).borderBottomWidth : '',
         lastHeadRule: lastHead
           ? getComputedStyle(lastHead).borderBottomWidth
           : '',
