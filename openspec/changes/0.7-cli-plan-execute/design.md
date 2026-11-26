@@ -545,8 +545,9 @@ edited except for a genuine import change, which this design does not expect.
 
 ### Slice 1c — added messages and precedence (`test/cli-plan.test.ts`)
 
-- Single-defect messages 32–35: invalid metadata, max-size, accent and logo.
-  The path-collision messages 24–31 are pinned in Slice 2 (2.3), not here.
+- Single-defect messages 32–34: invalid metadata, max-size and accent. The
+  path-collision messages 24–31 and the logo message 35 are pinned in Slice 2
+  (2.3), not here.
 - Cross-family precedence, both directions: early scalar errors beat a later
   path collision (`--pdf <path> --pdf-timeout abc`, invalid `--locale` with a
   valid surface, invalid `--ci`, `--history <path> --history-limit abc`, each
@@ -554,12 +555,13 @@ edited except for a genuine import change, which this design does not expect.
   collision (`--pdf-timeout 5` without `--pdf` plus a colliding `--out`); path
   errors beat later `--meta`/`--max-size`/`--accent` parsing (a manifest
   collision plus an invalid `--meta`).
-- Precedence pairs that involve 24–35: manifest collision vs invalid
-  `--meta`, history collision vs out collision, out collision vs logo,
-  ci-out collision vs email collision, email collision vs pdf collision.
-- Parse order inside the shared catch (rows 32–35): one argv with an invalid
-  `--meta`, `--max-size`, `--accent` and `--logo` reports `--meta` first, then
-  max-size, accent and logo.
+- Precedence pairs that involve 24–34: manifest collision vs invalid
+  `--meta`, history collision vs out collision,
+  ci-out collision vs email collision, email collision vs pdf collision. The
+  out-collision-vs-logo pair is in 2.3.
+- Parse order inside the shared catch (rows 32–34): one argv with an invalid
+  `--meta`, `--max-size` and `--accent` reports `--meta` first, then max-size,
+  then accent; the logo step of that order is in 2.3.
 - `--meta` forms: `=x` is a usage error, `k=` keeps an empty value, `k=v=w`
   keeps `v=w`, and `--meta k=1 --meta k=2` keeps the last value (`{ k: '2' }`).
 - `--max-size` equivalence classes: `1e3`, `0x10` and `" 5 "` are accepted by
@@ -584,7 +586,8 @@ edited except for a genuine import change, which this design does not expect.
 - `samePath` with UNC paths and trailing separators (platform-guarded).
 - Logo validation: missing file, unsupported extension, >2 MB, wrong magic per
   extension, valid PNG/JPEG/GIF/WebP/SVG with XML declaration and BOM-free
-  handling; exact messages.
+  handling; exact messages. The four-way parse order `--meta` → `--max-size` →
+  `--accent` → `--logo` and the out-collision-vs-logo pair also live here.
 
 ### Slice 3 — execute (`test/cli-execute.test.ts`)
 
@@ -667,8 +670,9 @@ recorded in 1.1 and only read here.
 | 22 | `<input> --json --baseline b.json` (no `--out`) ★ | summary JSON + baseline, exit 0 |
 | 23 | `<input> --ci markdown --ci-out ci.md` (no `--out`) ★ | summary Markdown file, exit 0 |
 
-- The eight ★ rows through `runCli` with exact code/stdout/stderr (the
-  permanent mode × stdout cross-product).
+- The eight ★ rows are permanent in 2.5a with exact code/stdout/stderr (the
+  mode × stdout cross-product); the gate reuses those recorded results instead
+  of running them twice.
 - Built-CLI equivalence from a temporary esbuild bundle of `src/cli.ts` (the
   `render-report` pattern): rows 1, 2, 3 and row 5 (bare usage, pinned as the
   single usage-failure probe everywhere) return the pinned bytes and exit

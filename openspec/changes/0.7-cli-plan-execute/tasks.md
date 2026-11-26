@@ -37,16 +37,18 @@ PIR/DXR blockers are closed.
   stdout policy, exit policy, help/version/capabilities actions and purity.
   RED until 3.4/3.5. ≤2h. The checks 1–23 message table stays in 2.1a, not a
   second copy here.
-- [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 32–35 (path
-  collisions 24–31 are pinned in 2.3), the metadata → max-size → accent → logo
-  order in one argv, `--meta` `=x`/`k=`/`k=v=w` plus last-wins, the
-  `--max-size` classes and the same- and cross-family precedence pairs that
-  involve 24–35.
+- [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 32–34 (path
+  collisions 24–31 and the logo message 35 are pinned in 2.3), the
+  metadata → max-size → accent order, `--meta` `=x`/`k=`/`k=v=w` plus
+  last-wins, the `--max-size` classes and the same- and cross-family
+  precedence pairs that involve 24–34.
   The `--pdf-timeout`/`--history-limit` boundary forms stay in 2.1a. RED for
   the full plan API; the expected strings are the baseline. ≤2h.
 - [ ] 2.3 `test/cli-plan-paths.test.ts`: identity, containment, peer
-  collisions, manifest relative expressibility, logo validation; platform
-  guards for case folding, junctions and cross-drive. RED.
+  collisions (messages 24–31), manifest relative expressibility, logo
+  validation (message 35), the four-way `--meta` → `--max-size` → `--accent` →
+  `--logo` order, out collision vs logo; platform guards for case folding,
+  junctions and cross-drive. RED.
 - [ ] 2.4 `test/cli-execute.test.ts`: summary/generate branches, resolved input
   once, option-object equality, the mode-split failure table, warning order,
   manifest ledger. RED because `executePlan` does not exist.
@@ -137,9 +139,10 @@ PIR/DXR blockers are closed.
   and `openspec/changes/0.7-cli-plan-execute/**`. No renderer, summary, email,
   PDF, history, baseline, input or output module changed.
 - [ ] 4.6 Run the one-time gate and record it in this change: the 23-row
-  matrix in design "Slice 4" (the eight ★ rows are also permanent), through
-  `test/cli-equivalence-gate.test.ts` (commit it for the run, then remove it
-  after recording; `npx vitest run test/cli-equivalence-gate.test.ts`), and
+  matrix in design "Slice 4" through `test/cli-equivalence-gate.test.ts` (the
+  15 non-★ rows rerun; the eight ★ results come from 2.5a; commit the file for
+  the run, then remove it after recording; `npx vitest run
+  test/cli-equivalence-gate.test.ts`), and
   the 1.1 comparison on the same host: report, email, history, ci-out and
   manifest bytes exactly; PDF through the same pinned Chromium with only
   `/CreationDate`, `/ModDate` and `/ID` normalized. Record the line counts per
