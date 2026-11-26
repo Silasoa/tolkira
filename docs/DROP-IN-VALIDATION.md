@@ -499,6 +499,43 @@ Attachment parity 18 / 498 B. Limits: Chromium only for this row; the artifact
 has no absolute or file-URL URIs and no failing scenario, so the display-URI
 rule and copied failure text were not exercised there.
 
+**`0.7-tag-overview` host check (2026-11-26, pre-release tarball).** The change
+touches the report shell only (a Details tag overview); the input adapters are
+unchanged, so the five required rows reused the producer artifacts recorded for
+`0.6.1-hardening` instead of re-running the host suites. Seed-Test pin `ce2cad8`
+(AI branch): story 9,782 B, 1 feature / 3 scenarios (2 passed, 1 failed),
+12 step rows, 1 attachment 5,234 B, report 90,559 B, static 71,172 B, tag panel
+3 rows with the failing tag first; group 17,989 B, 2 features / 4 scenarios
+(3 passed, 1 failed), 16 step rows, 2 attachments 10,468 B, report 109,258 B,
+static 89,638 B, panel 4 rows. Cucumber-js `@cucumber/cucumber@13.3.0`:
+`out.json` 3,302 B and `out.ndjson` 9,974 B, both 1 feature / 2 scenarios
+(1 passed, 1 failed) / 5 steps / 2 inline PNGs 140 B, summaries byte-identical
+(2,191 B), reports 72,411 / 72,687 B, static 53,157 / 53,433 B; untagged, so no
+panel, no `.tagTable` and no tag CSS. Playwright movies-app pin `5d2cdf0`
+(host 1.62.1, 232,903 B): 3 features / 123 scenarios (121 passed, 2 skipped),
+236 step rows, 4 attachments 161 B, report 283,833 B, static 265,303 B, panel
+6 rows (`@agent` 58/0/0, `@mocking` 4/0/0, `@fixme` 1/0/1, `@iframe` 1/0/0,
+`@movies` 1/0/0, `@skip` 1/0/1). Spring PetClinic pin `500158f` (18 XMLs
+937,554 B): 20 features / 79 scenarios (77 passed, 2 skipped), 79 step rows,
+28 attachments 67,901 B, report 277,629 B, static 259,466 B; untagged, and the
+zero-test `PostgresIntegrationTests` document appears in neither JSON nor HTML.
+Cucumber-JVM pin `f71480f`, module `calculator-java-junit-jupiter` (14,760 B):
+3 features / 8 scenarios / 8 passed, 36 step rows + 18 hooks, 18 attachments
+498 B, report 96,017 B, static 77,466 B, one `@foo` row 6/0/0 (a duplicate tag
+on one scenario dedupes). Every case: Chromium at 1440x900, 390x844 and
+320x700 at 200 % text, print media and static; one `<main>`, no console or page
+error, no http(s) request, no page-level horizontal overflow; the named
+focusable tag region appears only with a tag panel, the panel is visible in
+print and the table scrolls inside the wrapper at 320 px. No host exceeds 50
+tags, so the cap sentence is correctly absent; unit and e2e cover that path.
+The first pass ran on the pre-fix tarball (680,584 B, SHA-256 `8705B2AD...`);
+the final pre-release tarball (`tolkira-0.6.1.tgz`, 680,642 B, SHA-256
+`A1CB4936CE6D39A89E1DC9D3A03C958119CAB07D847841843B4D227222086EAC`) was
+re-rendered for all seven inputs: every report matches the validated file except
+the intended `tbody ` selector (+12 B) and the self-reported report size, and
+the untagged reports are byte-identical. Limits: Chromium only, print checked by
+media emulation, host suites not re-run.
+
 **Approved exception - producer payload (2026-11-25).** The display-URI rule is
 scoped to the URIs Tolkira renders itself. Two rows miss the literal "no local
 user name in report/JSON/copied text" wording only through text the producer

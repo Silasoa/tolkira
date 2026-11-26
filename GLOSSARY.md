@@ -230,8 +230,9 @@ written last and atomically with mode `0600`, and its artifact paths are
 relative to the manifest file except the absolute cross-drive fallback.
 
 **Capabilities document** — the input-free `tolkira --capabilities` JSON
-document (schema 1) with the version, Node range, accepted inputs, file outputs,
-CI formats, summary schema, locales, limits, defaults and exit codes. It is
+document (schema 1) with the version, Node range, accepted inputs, file outputs
+and JSON summary, CI formats, summary schema, locales, limits, defaults and exit
+codes. It is
 deterministic, under 4,096 bytes and sourced from the enforcing constants.
 
 **Aggregate id** — the SHA-256 in a history run. It hashes the aggregates,

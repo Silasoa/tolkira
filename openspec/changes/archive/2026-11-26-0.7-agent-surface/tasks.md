@@ -57,14 +57,20 @@
 ## 5. Reviews
 
 - [x] 5.1 Run SCR, CR, DAR, PSA and SEC blind and in parallel.
-- [ ] 5.2 Fix every finding with a separate fixer or record a decision with a
-  trigger; re-run the gate; delta re-check the reviewers.
+- [x] 5.2 Fix every finding with a separate fixer or record a decision with a
+  trigger; re-run the gate; delta re-check the reviewers. The structure fix
+  moved version/phase to a leaf, corrected the input order and pinned the
+  constants and manifest boundaries; SEC's cross-drive finding is fixed; PSA's
+  snippet findings and DAR's wording residuals are fixed and re-checked PASS.
 
 ## 6. Gate and archive
 
-- [ ] 6.1 `npm run hygiene` and `npm run check` are green; confirm the report,
+- [x] 6.1 `npm run hygiene` and `npm run check` are green; confirm the report,
   summary, CI and email bytes are unchanged (no report-level change, so e2e is
-  not required; prove it with the characterization/bundle hash).
+  not required; prove it with the characterization/bundle hash). 2026-11-26:
+  check 1,863 passed / 10 skipped, coverage 94.82/87.83/97.01/96.26; report,
+  summary, CI and email bytes unchanged; the moved characterization pins belong
+  to the tag change, and the client bundle stays 15,438 B.
 - [x] 6.2 `npm run package:check` packs the snippet; record the entry count.
   86 entries on 2026-11-26 with `docs/AGENT-SNIPPET.md` and docs/README.md.
 - [ ] 6.3 Archive the change, sync the cli-api spec, push. No version bump,

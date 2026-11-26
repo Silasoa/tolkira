@@ -40,22 +40,30 @@
 ## 4. Reviews
 
 - [x] 4.1 Run SCR, CR, DAR, UXR, CMP and ILA blind and in parallel.
-- [ ] 4.2 Fix every finding with a separate fixer or record a decision with a
-  trigger; re-run the gate; delta re-check the reviewers.
+- [x] 4.2 Fix every finding with a separate fixer or record a decision with a
+  trigger; re-run the gate; delta re-check the reviewers. ILA PASS; UXR found a
+  header-rule regression in the first fix (fixed in `73a9ccb`, re-check PASS);
+  PSA found three snippet/doc residuals (fixed in `cf006a1`, re-check PASS);
+  DAR found residual wording and the missing `json-summary` (fixed, final
+  re-check).
 
 ## 5. Host validation
 
-- [ ] 5.1 Run the report-shell rows 1-5 in `docs/DROP-IN-VALIDATION.md` on
+- [x] 5.1 Run the report-shell rows 1-5 in `docs/DROP-IN-VALIDATION.md` on
   their pinned hosts; check the tag panel (or its absence on tagless JUnit),
   320/1440 px, 200 % text and print.
-- [ ] 5.2 Record host, pin and result here; a red host blocks or needs a
-  written, user-approved exception.
+- [x] 5.2 Record host, pin and result here; a red host blocks or needs a
+  written, user-approved exception. All five rows PASS; the record is in
+  `docs/DROP-IN-VALIDATION.md` under `0.7-tag-overview`, including the
+  final-tarball equivalence.
 
 ## 6. Gate and archive
 
 - [x] 6.1 `npm run hygiene`, `npm run check` and `npm run test:e2e` are green;
-  record counts and runtime.
-- [ ] 6.2 Update `docs/CHANGELOG.md` (Unreleased) and `docs/BACKLOG.md`
+  record counts and runtime. 2026-11-26: check 1,863 passed / 10 skipped,
+  coverage 94.82/87.83/97.01/96.26; three-engine e2e 478 passed / 8 skipped
+  (1.5 min).
+- [x] 6.2 Update `docs/CHANGELOG.md` (Unreleased) and `docs/BACKLOG.md`
   (B-059 resolved, B-060/B-061 already resolved).
 - [ ] 6.3 Archive the change, sync the report-rendering spec, push. No version
   bump, tag, stage or publish.
