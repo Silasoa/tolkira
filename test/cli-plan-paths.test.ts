@@ -825,13 +825,25 @@ describe('planCli logo validation', () => {
     ).toBe('Unsupported logo type ".txt". Use PNG, JPEG, GIF, WebP or SVG.');
   });
 
-  it('rejects a logo larger than 2 MB', async () => {
+  it('accepts a logo of exactly 2 MB and rejects one byte more', async () => {
     const dir = await tempDir();
-    const logo = await writeLogo(
+    const atLimit = Buffer.alloc(2 * 1024 * 1024);
+    PNG.copy(atLimit);
+    const limitLogo = await writeLogo(dir, 'limit.png', atLimit);
+    const overLogo = await writeLogo(
       dir,
-      'large.png',
+      'over.png',
       Buffer.alloc(2 * 1024 * 1024 + 1),
     );
+
+    const plan = await runPlan([
+      fixture,
+      '--out',
+      path.join(dir, 'report.html'),
+      '--logo',
+      limitLogo,
+    ]);
+    expect(plan.logoDataUri).toMatch(/^data:image\/png;base64,/);
 
     expect(
       await failure([
@@ -839,7 +851,7 @@ describe('planCli logo validation', () => {
         '--out',
         path.join(dir, 'report.html'),
         '--logo',
-        logo,
+        overLogo,
       ]),
     ).toBe('Logo is larger than 2 MB.');
   });
