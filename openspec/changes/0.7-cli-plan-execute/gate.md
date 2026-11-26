@@ -18,7 +18,7 @@ after the review-fix commit `88b9f74`.
 
 | Task | Command | Result |
 | --- | --- | --- |
-| 4.1 | `npx vitest run` over the 12 existing `cli-*` files, the five new files, `capabilities` and `inputs` at `88b9f74` | 19 files, 495 passed, 4 skipped |
+| 4.1 | `npx vitest run` over the 12 pre-existing CLI suites (including `cli.test.ts`, which does not match `cli-*`), the five new files, `capabilities` and `inputs` at `88b9f74`; re-measured at `7d0579e` | 19 files, 495 passed, 4 skipped |
 | 4.6 | `npx vitest run test/cli-equivalence-gate.test.ts` at `88b9f74` | **17 passed** (15 non-★ rows + 2 baseline comparisons) |
 | 4.2 | `npm run check` | green; 103 files, 2089 passed, 11 skipped; coverage 95.07 % stmts, 88.32 % branch, 97.04 % funcs, 96.47 % lines |
 | 4.3 | `npm run test:e2e` | 478 passed, 8 skipped (1.9 min); no browser change |

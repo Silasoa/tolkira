@@ -599,6 +599,8 @@ describe('built CLI from a temporary esbuild bundle', () => {
   }
 
   it('returns the pinned bytes and exit codes for --help, --version, --capabilities and bare usage', async () => {
+    // The version and capabilities rows change at a release: re-pin both
+    // intentionally when the version or the capabilities document changes.
     const rows = [
       [
         ['--help'],

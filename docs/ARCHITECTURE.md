@@ -527,8 +527,8 @@ src/cli.ts                  entry: USAGE, DEFAULT_IO, CliIO re-export, runCli, m
   fixed sequence (summary: email, CI file, manifest; generate: report, PDF,
   email, history, CI file, manifest), builds the manifest ledger from the
   writes that actually happened and returns `plan.exitCodes`. `plan.writes`
-  declares that order and must mirror it; the permanent tests assert the
-  declared order against the order actually executed. Usage formatting stays
+  declares that order and must mirror it; the permanent tests pin the
+  declared order and the executed order independently. Usage formatting stays
   in `cli.ts`.
 - Usage and validation failures (exit 2) are planned in `plan.ts`; input,
   history/baseline read, render and write failures (exit 1) are caught in

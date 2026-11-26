@@ -724,7 +724,8 @@ Stop conditions — stop and return to the design/user if any holds:
 - the plan/execute boundary needs a new catch, a new validation, a new
   message, or a reordered check to compile;
 - total line growth exceeds +20% (about 1,190 lines) or a module other than
-  `cli.ts` exceeds 430 lines;
+  `cli.ts` exceeds the 430-line soft budget (measured: 427; the `planOptions`
+  seam split is deferred as B-079);
 - the write-order or failure-point table cannot be reproduced without adding
   a hook or abstraction.
 
