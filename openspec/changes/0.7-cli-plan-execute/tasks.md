@@ -6,12 +6,13 @@
   fixed fixtures (`test/fixtures/messages/screenshot.ndjson` plus
   `test/fixtures/history/two-runs.json`), with a frozen clock and English
   (`--locale en`): one generate run with report + PDF + email + history +
-  ci-out + manifest, one summary run with email + ci-out + manifest, and the
-  four process outputs `--help`, `--version`, `--capabilities` and one usage
-  failure. Record every artifact's bytes/SHA-256 and `{ code, stdout, stderr }`.
-  The PDF baseline uses the pinned host Chromium (record the `playwright-core`
-  and Chromium versions), never the `cli-pdf` mock; the mock stays a permanent
-  unit seam. The reference must not be regenerated after the split.
+  `--ci markdown --ci-out` + manifest, one summary run with email +
+  `--ci markdown --ci-out` + manifest, and the four process outputs `--help`,
+  `--version`, `--capabilities` and one usage failure. Record every artifact's
+  bytes/SHA-256 and `{ code, stdout, stderr }`. The PDF baseline uses the
+  pinned host Chromium (record the `playwright-core` and Chromium versions),
+  never the `cli-pdf` mock; the mock stays a permanent unit seam. The reference
+  must not be regenerated after the split.
 - [ ] 1.2 Re-run the existing CLI suite (`npx vitest run test/cli*.test.ts
   test/capabilities.test.ts test/inputs.test.ts`: the 12 CLI files plus
   `capabilities`, `inputs` and the shared helpers) on the baseline commit and
@@ -34,17 +35,11 @@ PIR/DXR blockers are closed.
   stdout policy, exit policy, help/version/capabilities actions and purity.
   RED until 3.4/3.5. ≤2h. The checks 1–23 message table stays in 2.1a, not a
   second copy here.
-- [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 24–35,
-  including bare usage, the metadata → max-size → accent → logo order in one
-  argv, repeated `--meta` last-wins and the
-  `--max-size`/`--pdf-timeout`/`--history-limit` equivalence classes. RED for
+- [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 24–35, the
+  metadata → max-size → accent → logo order in one argv, repeated `--meta`
+  last-wins, the `--max-size` classes and the cross-family precedence pairs.
+  The `--pdf-timeout`/`--history-limit` boundary forms stay in 2.1a. RED for
   the full plan API; the expected strings are the baseline. ≤2h.
-- [ ] 2.2a `test/cli-plan.test.ts`: two-defect precedence table, same-family
-  and cross-family in both directions (early scalar/dependency over later path
-  collision; path over `--meta`/`--max-size`/`--accent`). RED. ≤2h.
-- [ ] 2.2b `test/cli-plan.test.ts`: boundary values for
-  `--history-limit`/`--pdf-timeout`/`--max-size`/`--meta`/`--ci`/`--accent`
-  named in `design.md`. RED. ≤2h.
 - [ ] 2.3 `test/cli-plan-paths.test.ts`: identity, containment, peer
   collisions, manifest relative expressibility, logo validation; platform
   guards for case folding, junctions and cross-drive. RED.
@@ -69,14 +64,15 @@ PIR/DXR blockers are closed.
 - [ ] 3.1a First implementation commit, part 1: add `src/cli/args.ts` with
   `parseCliArgs`, `parseMetadata`, `parseMaxSize`, `parsePdfTimeout`,
   `parseHistoryLimit`, `parseCiFormat` and `parseAccent` moved verbatim;
-  `src/cli.ts` imports them. Covered by the parser cases of 2.1a; green on the
-  existing CLI suite. ≤2h.
+  `src/cli.ts` imports them. Green on the existing CLI suite; 2.1a turns green
+  at 3.1b. ≤2h.
 - [ ] 3.1b First implementation commit, part 2 (the fallback stop point): add
   `src/cli/plan.ts` with the internal `CliOptions` type and `planOptions(argv)`
   covering checks 1–23; `src/cli.ts` calls it and continues with the current
-  path checks. About 300 lines (~211 pre-path + ~92 parsers). Green on 2.1a,
-  the existing CLI suite and the 2.5 control; 2.1b/2.1c and 2.2 stay RED until
-  3.4/3.5. Commit here; stop if a later step breaks identity. ≤2h.
+  path checks. About 300 lines across 3.1a/3.1b (~92 parsers + ~211 pre-path
+  plus imports and types). Green on 2.1a, the existing CLI suite and the 2.5
+  control; 2.1b/2.1c stay RED until 3.4/3.5, 2.3 until 3.2/3.3 and
+  2.4 until 3.6. Commit here; stop if a later step breaks identity. ≤2h.
 - [ ] 3.2 Add `src/cli/logo.ts`: move `MAX_LOGO_BYTES`, `LOGO_MIME` and
   `readLogo` verbatim. Covered by 2.3.
 - [ ] 3.3 Add `src/cli/paths.ts`: move `isInside`, `conflictsWithInputs`,
@@ -85,10 +81,10 @@ PIR/DXR blockers are closed.
 - [ ] 3.4 Add the exported `CliPlan` type and the module-private `CliAction`,
   `CliPlanResult`, `CliOutputKind` and `CliConfirmationKind`; complete
   `planCli` over `planOptions` with checks 24–31 (path collisions and manifest
-  relative expressibility). No new message. Covered by 2.2a/2.3. ≤2h.
+  relative expressibility). No new message. Covered by 2.1c/2.3. ≤2h.
 - [ ] 3.5 Complete `planCli` with checks 32–35 (metadata/max-size/accent,
   logo), the plan construction (`mode`, `writes`, `stdout`, `exitCodes`) and
-  the `cli.ts` switch to `planCli`. Covered by 2.1a/2.1b/2.2a/2.2b. ≤2h.
+  the `cli.ts` switch to `planCli`. Covered by 2.1b/2.1c. ≤2h.
 - [ ] 3.6a Add `src/cli/execute.ts`: `CliIO`, `executePlan`, `errorCode`,
   resolve once, the summary/generate branches and the read failures. Covered
   by 2.4. ≤2h.
@@ -135,16 +131,17 @@ PIR/DXR blockers are closed.
   `GLOSSARY.md`, `scripts/package-check.mjs`, `test/package-manifest.test.ts`
   and `openspec/changes/0.7-cli-plan-execute/**`. No renderer, summary, email,
   PDF, history, baseline, input or output module changed.
-- [ ] 4.6 Run the one-time gate and record it in this change: the ~20-row argv
-  matrix listed in design "Slice 4" plus the eight mode×stdout rows, through a
-  temporary uncommitted `test/cli-equivalence-gate.test.ts`
-  (`npx vitest run test/cli-equivalence-gate.test.ts`), and the 1.1 comparison
-  on the same host: report, email, history, ci-out and manifest bytes exactly;
-  PDF through the same pinned Chromium with only `/CreationDate`, `/ModDate`
-  and `/ID` normalized. Record the line counts per module, the delta against
-  the baseline, the `dist/cli.js`/`.map` and `dist/cli.d.ts` deltas, the
-  bundle size delta and the exact commands/results. Stop and escalate if a
-  stop condition in `design.md` was hit.
+- [ ] 4.6 Run the one-time gate and record it in this change: the 23-row
+  matrix in design "Slice 4" (the eight ★ rows are also permanent), through
+  `test/cli-equivalence-gate.test.ts` (commit it for the run, then remove it
+  after recording; `npx vitest run test/cli-equivalence-gate.test.ts`), and
+  the 1.1 comparison on the same host: report, email, history, ci-out and
+  manifest bytes exactly; PDF through the same pinned Chromium with only
+  `/CreationDate`, `/ModDate` and `/ID` normalized. Record the line counts per
+  module, the delta against the baseline, the `dist/cli.js`/`.map` and
+  `dist/cli.d.ts` deltas, the bundle size delta and the exact
+  commands/results. Stop and escalate if a stop condition in `design.md` was
+  hit.
 - [ ] 4.7 Run the post-implementation review set: SCR, CR, DAR, STR and SEC
   (path checks and file writes moved). PCA is not triggered unless the bundle
   grows more than 2%; a failing review spawns a fixer, then re-review.

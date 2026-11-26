@@ -225,9 +225,11 @@ export async function planCli(argv: string[]): Promise<CliPlanResult>;
 
 The first-commit `planOptions` returns the internal `CliOptions`: the
 validated values from checks 1–23 (inputs, output paths, flags, parsed
-scalars, locale and CI format) before any path check or metadata/logo read,
-or the same `message`/`usage` failure shape. `CliOptions` never crosses the
-execute seam; `planCli` builds `CliPlan` from it.
+scalars, locale and CI format) before any path check or metadata/logo read.
+It is exported for `test/cli-plan-options.test.ts`; its result is the named
+`CliOptionsResult = { ok: true; options: CliOptions } | { ok: false; kind:
+'message'; message: string } | { ok: false; kind: 'usage' }`. `CliOptions`
+never crosses the execute seam; `planCli` builds `CliPlan` from it.
 
 The plan carries options and policy. It must **not** carry:
 
@@ -499,30 +501,43 @@ Two workers: TDD-Red writes the failing tests from this design; the
 implementer makes them green without weakening them. Existing CLI tests are not
 edited except for a genuine import change, which this design does not expect.
 
-### Slice 1 — plan unit (`test/cli-plan.test.ts`)
+### Slice 1a — options (`test/cli-plan-options.test.ts`, checks 1–23)
 
-- Plan shape and defaults for every flag: mode, paths, `json`, `ci`, title
-  (including empty), locale (`de-AT` keeps its tag), metadata merge, accent,
-  logo data URI, `static`, `maxSizeMb` (default 10), `pdfTimeout`,
-  `historyLimit`, baseline path, `writes`, `stdout`, `exitCodes`.
+- `planOptions` shape/defaults for the checks 1–23 values: inputs, output
+  paths, `json`, `ci`, title (including empty), locale (`de-AT` keeps its
+  tag), `static`, `pdfTimeout`, `historyLimit` and the baseline path.
+  Metadata, max-size, accent and logo are not part of `CliOptions`.
 - Action precedence: parse error vs help; help vs version; version vs
   capabilities; capabilities alone vs capabilities plus input/valid flag;
   unknown flag still fails at `parseArgs`.
-- Purity: a valid `planCli` call creates no file/directory, prints nothing and
-  does not mutate argv.
-- Decision table for single usage defects: every message string in the
-  existing suite, pinned exactly, including bare usage.
-- Precedence pairs (two defects, first one must win): at least
-  `--out=`+`--pdf=`, `--manifest=`+`--static`, `--static`+`--pdf-timeout`,
-  `--pdf-timeout`+`--email=`, `--locale`+`--ci`, `--ci`+`--ci-out=`,
-  `--json --ci`+`--baseline`, no-input/no-output vs earlier/later checks,
-  manifest collision vs invalid `--meta`, history collision vs out collision,
-  out collision vs logo, ci-out collision vs email collision, email collision
-  vs pdf collision.
-- Boundary values: `--history-limit` 1, 365, 0, 366, `01`, `1.5`, `abc`, `''`;
-  `--pdf-timeout` 1, 2,147,483,647, 2,147,483,648, `0`, `01`; `--max-size`
-  `0`, negative, `Infinity`, `NaN`, tiny positive; `--meta` `=x`, `k=`,
-  `k=v=w`, repeat; `--ci` case and unknown; `--accent` valid/invalid forms.
+- Purity: a valid `planOptions` call creates no file/directory, prints
+  nothing and does not mutate argv.
+- Single-defect messages 1–23, pinned exactly, including bare usage.
+- Precedence pairs within 1–23: `--out=`+`--pdf=`, `--manifest=`+`--static`,
+  `--static`+`--pdf-timeout`, `--pdf-timeout`+`--email=`, `--locale`+`--ci`,
+  `--ci`+`--ci-out=`, `--json --ci`+`--baseline`, no-input/no-output vs
+  earlier/later checks.
+- Boundary values owned by 1–23: `--history-limit` 1, 365, 0, 366, `01`,
+  `1.5`, `abc`, `''`; `--pdf-timeout` 1, 2,147,483,647, 2,147,483,648, `0`,
+  `01`; `--ci` case and unknown.
+
+### Slice 1b — full plan (`test/cli-plan.test.ts`)
+
+- Full `CliPlan` shape/defaults for every flag: mode, paths, `json`, `ci`,
+  title (including empty), locale, metadata merge, accent, logo data URI,
+  `static`, `maxSizeMb` (default 10), `pdfTimeout`, `historyLimit`, baseline
+  path, `writes`, `stdout`, `exitCodes`.
+- The four actions through `planCli` and purity (no file/directory, no
+  output, no argv mutation).
+- Write order and stdout policy: the `writes` list per mode; machine bytes
+  win; a standalone `--ci` owns stdout; `--ci-out` frees it; the manifest
+  line is suppressed by `--json`/stdout-CI; summary confirmations are email,
+  manifest.
+
+### Slice 1c — added messages and precedence (`test/cli-plan.test.ts`)
+
+- Single-defect messages 24–35: path collisions and manifest relative
+  expressibility (with Slice 2), metadata/max-size/accent and logo.
 - Cross-family precedence, both directions: early scalar errors beat a later
   path collision (`--pdf <path> --pdf-timeout abc`, invalid `--locale` with a
   valid surface, invalid `--ci`, `--history <path> --history-limit abc`, each
@@ -530,14 +545,17 @@ edited except for a genuine import change, which this design does not expect.
   collision (`--pdf-timeout 5` without `--pdf` plus a colliding `--out`); path
   errors beat later `--meta`/`--max-size`/`--accent` parsing (a manifest
   collision plus an invalid `--meta`).
+- Precedence pairs that involve 24–35: manifest collision vs invalid
+  `--meta`, history collision vs out collision, out collision vs logo,
+  ci-out collision vs email collision, email collision vs pdf collision.
 - Parse order inside the shared catch (rows 32–35): one argv with an invalid
   `--meta`, `--max-size`, `--accent` and `--logo` reports `--meta` first, then
   max-size, accent and logo.
 - `--meta k=1 --meta k=2` keeps the last value (`{ k: '2' }`).
 - `--max-size` equivalence classes: `1e3`, `0x10` and `" 5 "` are accepted by
   `Number()`; `""`, `0`, negative, `NaN` and `Infinity` are usage errors.
-- `--pdf-timeout` and `--history-limit` reject `-1`, `+1`, `1e3`, `" 1"`, `0`
-  and `01` as usage errors; 1 and the maximum are accepted.
+- The `--pdf-timeout`/`--history-limit` boundary forms stay in 1a; they are
+  not repeated here.
 
 ### Slice 2 — plan paths and logo (`test/cli-plan-paths.test.ts`)
 
@@ -567,10 +585,10 @@ edited except for a genuine import change, which this design does not expect.
   pass-through.
 - Resolved input once: `resolveInputFiles` is called once and its result is
   the object handed to `generateReportFromResolved`/`summarizeRunFromResolved`.
-- Failure-point state table, split by mode. Summary order: email → ci-out →
-  manifest → stdout. Generate order: generate → report → PDF → email →
-  history → max-size warning → attachment warning → ci-out → manifest →
-  stdout.
+- Failure-point state table, split by mode. Summary order: summarize → email
+  → ci-out → manifest → stdout. Generate order: generate → report → PDF →
+  email → history → max-size warning → attachment warning → ci-out → manifest
+  → stdout.
 
   | Mode | Failed step | Prior writes stay | Later steps | stdout |
   | --- | --- | --- | --- | --- |
@@ -598,16 +616,46 @@ edited except for a genuine import change, which this design does not expect.
 ### Slice 4 — compact end-to-end equivalence (`test/cli-equivalence.test.ts`)
 
 The permanent file is compact: it covers only what the 12 existing CLI files do
-not pin — the mode × stdout cross-product, the built-CLI spawn and the
-file-set/determinism checks. The full ~20-row matrix and the baseline artifact
-comparison are the one-time gate recorded in task 4.6, not a duplicate
-permanent suite.
+not pin — the mode × stdout cross-product (the ★ rows below), the built-CLI
+spawn and the file-set/determinism checks. The full matrix and the baseline
+artifact comparison are the one-time gate (task 4.6), not a duplicate
+permanent suite. The gate file is committed for the run and removed after the
+result is recorded; the rows below and the recorded outputs are the audit
+trail.
 
-- Mode × stdout rows through `runCli` with exact code/stdout/stderr:
-  generate+`--ci github` (stdout), generate+`--ci azure`,
-  generate+`--ci markdown --ci-out`, generate+`--json --baseline`,
-  summary+`--ci github`, summary+`--json --baseline`,
-  summary+`--ci markdown --ci-out`, and `--json`+`--manifest` suppression.
+#### One-time gate matrix (task 4.6)
+
+All rows use the 1.1 fixtures, frozen clock and English locale. `r`, `e`,
+`ci`, `h`, `m` and `b` are gate-output paths; `b` is the 1.1 baseline fixture.
+
+| # | argv | expected |
+| --- | --- | --- |
+| 1 | `--help` | USAGE, exit 0 |
+| 2 | `--version` | version line, exit 0 |
+| 3 | `--capabilities` | capabilities JSON, exit 0 |
+| 4 | `--capabilities <input>` | usage error, exit 2 |
+| 5 | no args | bare usage, exit 2 |
+| 6 | `<input> --json` | summary JSON, exit 0 |
+| 7 | `<input> --out r.html` | report + confirmation, exit 0 |
+| 8 | `<input> --out r.html --json` | JSON, report confirmation suppressed, exit 0 |
+| 9 | `<input> --pdf r.pdf` | real Chromium PDF + confirmation, exit 0 |
+| 10 | `<input> --email e.html` | summary email + confirmation, exit 0 |
+| 11 | `<input> --out r.html --ci github` ★ | GitHub body on stdout, no confirmation, exit 0 |
+| 12 | `<input> --out r.html --ci azure` ★ | Azure body on stdout, exit 0 |
+| 13 | `<input> --out r.html --ci markdown --ci-out ci.md` ★ | Markdown file + confirmation, exit 0 |
+| 14 | `<input> --out r.html --history h.json` | report + history, exit 0 |
+| 15 | `<input> --out r.html --json --baseline b.json` ★ | JSON with the earlier baseline, exit 0 |
+| 16 | `<input> --out r.html --manifest m.json` | report + manifest confirmation, exit 0 |
+| 17 | `<input> --out r.html --json --manifest m.json` ★ | JSON wins, manifest line suppressed, exit 0 |
+| 18 | `<input> --out r.html --static` | static report, exit 0 |
+| 19 | `<input> --out r.html --locale de` | German report, exit 0 |
+| 20 | `<input> --out r.html --ci nope` | usage error, exit 2 |
+| 21 | `<input> --ci github` (no `--out`) ★ | summary + GitHub body on stdout, exit 0 |
+| 22 | `<input> --json --baseline b.json` (no `--out`) ★ | summary JSON + baseline, exit 0 |
+| 23 | `<input> --ci markdown --ci-out ci.md` (no `--out`) ★ | summary Markdown file, exit 0 |
+
+- The eight ★ rows through `runCli` with exact code/stdout/stderr (the
+  permanent mode × stdout cross-product).
 - Built-CLI equivalence from a temporary esbuild bundle of `src/cli.ts` (the
   `render-report` pattern): `--help`, `--version`, `--capabilities` and one
   usage failure return the pinned bytes and exit codes. `npm test` does not
@@ -674,7 +722,7 @@ at-least-one, logo/history empty checks and the history-limit value).
 metadata/logo reads and execution. About 300 lines (~211 pre-path + ~92
 parsers, plus imports and types). The slice is green on the existing CLI suite,
 the 2.5 equivalence control and `test/cli-plan-options.test.ts` (2.1a) for
-checks 1–23; the full-plan tests (2.1b/2.1c/2.2), path tests and execute tests
+checks 1-23; the full-plan tests (2.1b/2.1c), path tests and execute tests
 stay RED until 3.3–3.5/3.6. If a later step breaks byte identity, stop at
 3.1b and return to the design/user; that commit then stands as the fallback
 with only 2.1a and the equivalence control, while the later tests are dropped
@@ -727,7 +775,7 @@ ledger and the execute/equivalence test slices.
    test.
 10. **Coverage and suite bloat.** The permanent equivalence file stays compact:
     mode × stdout cross-product, built-CLI spawn and file-set/determinism; the
-    full ~20-row matrix is the one-time gate in task 4.6. The existing 12 CLI
+    full 23-row matrix is the one-time gate in task 4.6. The existing 12 CLI
     files are not edited. Mitigation: intended scopes only; STR reviews test
     health.
 11. **Cross-platform tests.** Case folding, junctions and cross-drive paths
