@@ -25,14 +25,15 @@ produces:
 - the same exit code (0 success, 1 input/render/write failure, 2 usage);
 - the same stdout bytes and the same stderr bytes, including warnings,
   confirmations and the `tolkira: ` prefix;
-- the same files, with the same bytes, in the same order;
+- the same CLI-written files, with the same bytes, in the same order;
 - the same atomic-write behaviour and the same failure points (no partial
   file, `.tmp` name never printed);
 - the same POSIX file mode: `writeAtomic` writes new files with 0600, so the
   tests assert it on POSIX and skip it on Windows;
 - the accepted package delta: exactly five internal declarations in
-  `dist/cli/{args,execute,logo,paths,plan}.d.ts`; public entries, exports and
-  runtime bytes unchanged;
+  `dist/cli/{args,execute,logo,paths,plan}.d.ts`; `dist/cli.d.ts` changes only
+  by the `CliIO` re-export; `dist/cli.js` and its map are rebuilt and their
+  size delta is recorded; `dist/index.*` stays unchanged;
 - the same help, version and capabilities bytes and the same precedence
   (`parseArgs` error → help → version → capabilities → everything else);
 - the same public API: no new export from `src/index.ts`, `dist/index.d.ts`
@@ -53,17 +54,20 @@ Proof:
    point.
 4. New equivalence tests pin exact stdout/stderr/exit codes and compare CLI
    artifacts with the direct API seams that produce them; the one-time gate
-   (task 4.6) compares real CLI report/email/PDF bytes to the 1.1 baseline on
-   the same host.
+   (task 4.6) compares real CLI report, email, history, ci-out and manifest
+   bytes to the 1.1 baseline on the same host, and the PDF through the same
+   pinned host Chromium with only its embedded date/ID fields normalized.
 5. A process check confirms the diff touches only `src/cli*`, the CLI tests,
    the two package-surface pins and docs — no renderer, summary, email, PDF,
    history or baseline module.
 
-Report HTML, email and PDF bytes are compared once, in the one-time gate, to
-the 1.1 baseline on the same host: the CLI must emit the same bytes. The
-permanent equivalence tests still compare option objects and API seams
-(`renderReport`, `renderEmail`, `renderPdf`) and use no cross-Node or
-cross-Intl goldens.
+Report, email, history, ci-out and manifest bytes are compared once, in the
+one-time gate, to the 1.1 baseline on the same host. The PDF is produced by
+the pinned host Chromium; the gate compares it after normalizing only the
+engine's embedded `/CreationDate`, `/ModDate` and `/ID` fields, so a page or
+content difference still blocks. The permanent equivalence tests still compare
+option objects and API seams (`renderReport`, `renderEmail`, `renderPdf`) and
+use no cross-Node or cross-Intl goldens.
 
 ## Goals / Non-Goals
 
@@ -148,10 +152,11 @@ without a `tolkira: ` line; it stays that way.
 
 ## The plan type
 
-`CliOutputKind` and `CliConfirmationKind` stay module-private (no `export`);
-only `plan.ts` uses them and knip would flag an unused export. `CliPlan`,
-`CliAction` and `CliPlanResult` are exported for `cli.ts`; `execute.ts`
-imports only the `CliPlan` type.
+`CliOutputKind`, `CliConfirmationKind`, `CliAction` and `CliPlanResult` stay
+module-private (no `export`); only `plan.ts` and its tests use them and knip
+would flag an unused export. `CliPlan` is the only exported plan type:
+`execute.ts` imports it, and `planCli`'s private return type is still emitted
+into the module's `.d.ts` without an export.
 
 ```ts
 type CliOutputKind =
@@ -204,19 +209,25 @@ export interface CliPlan {
   exitCodes: { readonly success: 0; readonly failure: 1 };
 }
 
-export type CliAction =
+type CliAction =
   | { kind: 'help' }
   | { kind: 'version' }
   | { kind: 'capabilities' }
   | { kind: 'run'; plan: CliPlan };
 
-export type CliPlanResult =
+type CliPlanResult =
   | { ok: true; action: CliAction }
   | { ok: false; kind: 'message'; message: string }
   | { ok: false; kind: 'usage' };
 
 export async function planCli(argv: string[]): Promise<CliPlanResult>;
 ```
+
+The first-commit `planOptions` returns the internal `CliOptions`: the
+validated values from checks 1–23 (inputs, output paths, flags, parsed
+scalars, locale and CI format) before any path check or metadata/logo read,
+or the same `message`/`usage` failure shape. `CliOptions` never crosses the
+execute seam; `planCli` builds `CliPlan` from it.
 
 The plan carries options and policy. It must **not** carry:
 
@@ -512,9 +523,11 @@ edited except for a genuine import change, which this design does not expect.
   `--pdf-timeout` 1, 2,147,483,647, 2,147,483,648, `0`, `01`; `--max-size`
   `0`, negative, `Infinity`, `NaN`, tiny positive; `--meta` `=x`, `k=`,
   `k=v=w`, repeat; `--ci` case and unknown; `--accent` valid/invalid forms.
-- Cross-family precedence, both directions: early scalar/dependency errors beat
-  a later path collision (`--pdf-timeout abc`, invalid `--locale`, invalid
-  `--ci`, invalid `--history-limit`, each with a colliding `--out`); path
+- Cross-family precedence, both directions: early scalar errors beat a later
+  path collision (`--pdf <path> --pdf-timeout abc`, invalid `--locale` with a
+  valid surface, invalid `--ci`, `--history <path> --history-limit abc`, each
+  plus a colliding `--out`); an early dependency error also beats a later path
+  collision (`--pdf-timeout 5` without `--pdf` plus a colliding `--out`); path
   errors beat later `--meta`/`--max-size`/`--accent` parsing (a manifest
   collision plus an invalid `--meta`).
 - Parse order inside the shared catch (rows 32–35): one argv with an invalid
@@ -561,6 +574,7 @@ edited except for a genuine import change, which this design does not expect.
 
   | Mode | Failed step | Prior writes stay | Later steps | stdout |
   | --- | --- | --- | --- | --- |
+  | summary | summarize | none | email, ci-out, manifest absent | empty |
   | summary | email | none | ci-out, manifest absent | empty |
   | summary | ci-out | email | manifest absent | empty |
   | summary | manifest | email, ci-out | — | empty |
@@ -594,9 +608,11 @@ permanent suite.
   generate+`--ci markdown --ci-out`, generate+`--json --baseline`,
   summary+`--ci github`, summary+`--json --baseline`,
   summary+`--ci markdown --ci-out`, and `--json`+`--manifest` suppression.
-- Built-CLI spawn after `npm run build`: `node dist/cli.js --help`,
-  `--version`, `--capabilities` and one usage failure return the pinned bytes
-  and exit codes.
+- Built-CLI equivalence from a temporary esbuild bundle of `src/cli.ts` (the
+  `render-report` pattern): `--help`, `--version`, `--capabilities` and one
+  usage failure return the pinned bytes and exit codes. `npm test` does not
+  build, so the permanent test must not depend on `dist`; the real
+  `node dist/cli.js` spawn belongs to 4.4.
 - Machine-byte proof: `--json` stdout equals
   `${JSON.stringify(await summarizeReport(inputs), null, 2)}\n`; Markdown
   stdout/file equals `formatCiOutput(summary, 'markdown', { title })`; the
@@ -647,20 +663,23 @@ Stop conditions — stop and return to the design/user if any holds:
 - the write-order or failure-point table cannot be reproduced without adding
   a hook or abstraction.
 
-First implementation commit (unconditional, and also the fallback): add
-`src/cli/args.ts` and `src/cli/plan.ts` with `planOptions(argv)` and the
-partial `CliOptions` type covering checks 1–23 — the contiguous block that ends
-before the filesystem path checks (parse, help/version/capabilities, empty
-paths, option dependencies, `--pdf-timeout`, locale, CI, `--history-limit`,
+First implementation slice (unconditional, and also the fallback), split into
+two ≤2-hour commits (tasks 3.1a/3.1b): add `src/cli/args.ts` with the parsers
+moved verbatim, then `src/cli/plan.ts` with `planOptions(argv)` and the
+`CliOptions` type covering checks 1–23 — the contiguous block that ends before
+the filesystem path checks (parse, help/version/capabilities, empty paths,
+option dependencies, `--pdf-timeout`, locale, CI, `--history-limit`,
 at-least-one, logo/history empty checks and the history-limit value).
 `src/cli.ts` calls it and then continues with the current path checks,
 metadata/logo reads and execution. About 300 lines (~211 pre-path + ~92
-parsers, plus imports and types). This commit is green on the full CLI suite
-and the 2.5 equivalence control; the later slices build on it. If a later step
-breaks byte identity, stop at this green extract and return to the
-design/user; the extract then stands as the fallback, and the follow-up gets
-the path plan, execute split, write ledger and the execute/equivalence test
-slices.
+parsers, plus imports and types). The slice is green on the existing CLI suite,
+the 2.5 equivalence control and `test/cli-plan-options.test.ts` (2.1a) for
+checks 1–23; the full-plan tests (2.1b/2.1c/2.2), path tests and execute tests
+stay RED until 3.3–3.5/3.6. If a later step breaks byte identity, stop at
+3.1b and return to the design/user; that commit then stands as the fallback
+with only 2.1a and the equivalence control, while the later tests are dropped
+from that branch. The follow-up gets the path plan, execute split, write
+ledger and the execute/equivalence test slices.
 
 ## Risks
 
@@ -698,12 +717,14 @@ slices.
    catch. Do not add a catch around them; only the metadata/max-size/accent/
    logo block maps to exit 2.
 9. **Bundle/type surface.** Accept exactly five new internal declarations,
-   `dist/cli/{args,execute,logo,paths,plan}.d.ts` (+5 tarball entries); public
-   entries and runtime bytes must stay unchanged. `scripts/package-check.mjs`
-   pins them as required entries and `test/package-manifest.test.ts` pins the
-   same list; its 80-entry npm-12 fixture derives fillers as
-   `80 - (packedPaths.length - 1)` so the shape check follows the list.
-   Mitigation: `npm run package:check` and the manifest test.
+   `dist/cli/{args,execute,logo,paths,plan}.d.ts` (+5 tarball entries); the
+   rebuilt `dist/cli.js`/`.map` and the `dist/cli.d.ts` `CliIO` re-export are
+   recorded, while `dist/index.*` and the CLI-observable bytes stay fixed.
+   `scripts/package-check.mjs` pins the five as required entries and
+   `test/package-manifest.test.ts` pins the same list; its 80-entry npm-12
+   fixture derives fillers as `80 - (packedPaths.length - 1)` so the shape
+   check follows the list. Mitigation: `npm run package:check` and the manifest
+   test.
 10. **Coverage and suite bloat.** The permanent equivalence file stays compact:
     mode × stdout cross-product, built-CLI spawn and file-set/determinism; the
     full ~20-row matrix is the one-time gate in task 4.6. The existing 12 CLI

@@ -83,8 +83,9 @@ the observable contract; this change preserves it.
   the main-module guard, about 100 lines.
 - New: `src/cli/args.ts`, `src/cli/logo.ts`, `src/cli/paths.ts`,
   `src/cli/plan.ts`, `src/cli/execute.ts`.
-- New tests: `test/cli-plan.test.ts`, `test/cli-plan-paths.test.ts`,
-  `test/cli-execute.test.ts`, `test/cli-equivalence.test.ts`.
+- New tests: `test/cli-plan-options.test.ts`, `test/cli-plan.test.ts`,
+  `test/cli-plan-paths.test.ts`, `test/cli-execute.test.ts`,
+  `test/cli-equivalence.test.ts`.
 - Existing tests do not change their imports: 26 files import `runCli`, namely
   24 test files (20 unit/integration, 4 e2e specs) plus the two shared helpers
   `test/baseline-helpers.ts` and `test/e2e/helpers.ts`.
@@ -94,8 +95,9 @@ the observable contract; this change preserves it.
 - No new dependency, build-script, package-export or bin change. The esbuild
   entry and shebang stay. The declaration build emits exactly five new internal
   files, `dist/cli/{args,execute,logo,paths,plan}.d.ts`; the tarball gains
-  exactly those five entries, and `dist/index.d.ts`, the public entries and the
-  runtime bytes stay unchanged.
+  exactly those five entries. `dist/index.*` and the CLI-observable bytes stay
+  unchanged; the rebuilt `dist/cli.js`/`.map` and the `dist/cli.d.ts` `CliIO`
+  re-export are recorded in the change.
 - This is part of 0.7.0. `package.json` keeps its current version in this
   change; there is no bump, changelog, tag, stage or publish.
 - Documented risk: usage-error precedence, path identity semantics and the
