@@ -347,8 +347,9 @@ Command at `e35454f1fe05477147b868b19d5cbc72a730497a`:
 npx vitest run test/cli*.test.ts test/capabilities.test.ts test/inputs.test.ts
 ```
 
-The Windows host expanded the glob to the 12 `test/cli*.test.ts` files plus
-`test/capabilities.test.ts` and `test/inputs.test.ts`.
+The Windows host does not expand the glob for a native command, so the same
+12 `test/cli*.test.ts` files plus `test/capabilities.test.ts` and
+`test/inputs.test.ts` were passed explicitly.
 
 Result: **14 test files passed, 269 tests passed, 3 skipped, 0 failed.**
 Duration 4.19 s on the host above.
