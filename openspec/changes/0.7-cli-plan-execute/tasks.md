@@ -19,10 +19,10 @@
   test/capabilities.test.ts test/inputs.test.ts`: the 12 CLI files plus
   `capabilities`, `inputs` and the shared helpers) on the baseline commit and
   record the green result as the control for 4.1; no test is edited.
-- [ ] 1.3 Run the pre-implementation PIR + DXR on this proposal and design;
-  fix blockers in the contract before any code. After these fixes, re-run the
-  same reviewers as a delta check over the contract diff and record the result
-  in this change; no code until that delta is closed.
+- [x] 1.3 Run the pre-implementation PIR + DXR on this proposal and design;
+  fix blockers in the contract before any code. Five delta rounds closed
+  (`f73a7b4`, `21ebded`, `33782c9`, `05ff933`, `88d79af`, `3904040`); PIR and
+  DXR both PASS on `3904040`. No code until the user approves this contract.
 
 Implementation does not start until the user approves this contract and the
 PIR/DXR blockers are closed.

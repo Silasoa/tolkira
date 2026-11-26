@@ -809,5 +809,11 @@ corrected counts and per-site table, the split-report-renderer precedent, the
 one-time byte gate, the mode-split failure table, the unconditional first
 extract, the ISTQB pairs, the 0600/tarball delta, the five pinned declarations,
 the built-CLI spawn, the mode × stdout matrix, the architecture-doc rules, the
-stop conditions and the compact equivalence suite. A PIR/DXR delta re-check
-runs after these fixes; implementation waits for that and the user's approval.
+stop conditions and the compact equivalence suite.
+
+Five delta rounds followed (`f73a7b4`, `21ebded`, `33782c9`, `05ff933`,
+`88d79af`, `3904040`). They closed shape-level blockers: private plan types, a
+built-CLI spawn without a build, the `planOptions` result arm and raw flag
+values, the `b.json` baseline, the 23-row gate matrix with one owner per test,
+the PDF gate and the scoped bundle/tarball claims. PIR and DXR both returned
+PASS on `3904040`; implementation waits for the user's approval.
