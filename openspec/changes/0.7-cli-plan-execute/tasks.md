@@ -38,10 +38,9 @@ PIR/DXR blockers are closed.
   RED until 3.4/3.5. ≤2h. The checks 1–23 message table stays in 2.1a, not a
   second copy here.
 - [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 32–34 (path
-  collisions 24–31 and the logo message 35 are pinned in 2.3), the
-  metadata → max-size → accent order, `--meta` `=x`/`k=`/`k=v=w` plus
-  last-wins, the `--max-size` classes and the same- and cross-family
-  precedence pairs that involve 24–34.
+  collisions 24–31, the logo message 35 and the four-way parse order are in
+  2.3), `--meta` `=x`/`k=`/`k=v=w` plus last-wins, the `--max-size` classes
+  and the same- and cross-family precedence pairs that involve 24–34.
   The `--pdf-timeout`/`--history-limit` boundary forms stay in 2.1a. RED for
   the full plan API; the expected strings are the baseline. ≤2h.
 - [ ] 2.3 `test/cli-plan-paths.test.ts`: identity, containment, peer

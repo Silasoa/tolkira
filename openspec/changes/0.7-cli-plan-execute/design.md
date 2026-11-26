@@ -559,9 +559,6 @@ edited except for a genuine import change, which this design does not expect.
   `--meta`, history collision vs out collision,
   ci-out collision vs email collision, email collision vs pdf collision. The
   out-collision-vs-logo pair is in 2.3.
-- Parse order inside the shared catch (rows 32–34): one argv with an invalid
-  `--meta`, `--max-size` and `--accent` reports `--meta` first, then max-size,
-  then accent; the logo step of that order is in 2.3.
 - `--meta` forms: `=x` is a usage error, `k=` keeps an empty value, `k=v=w`
   keeps `v=w`, and `--meta k=1 --meta k=2` keeps the last value (`{ k: '2' }`).
 - `--max-size` equivalence classes: `1e3`, `0x10` and `" 5 "` are accepted by
