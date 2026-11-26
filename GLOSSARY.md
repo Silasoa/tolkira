@@ -232,9 +232,11 @@ relative to the manifest file except the absolute cross-drive fallback.
 **CLI plan / execute** — the internal CLI seam. `planCli(argv)` validates argv
 and filesystem facts into a `CliPlan` (mode, paths, options, write order, stdout
 ownership, exit policy) or a structured usage failure, and never writes or
-prints. `executePlan(plan, io)` owns all reads, writes, warnings and stdout and
-returns 0 or 1; usage formatting and the help/version/capabilities actions stay
-in `src/cli.ts`. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+prints; the `--help`/`--version`/`--capabilities` action arm has no plan.
+`executePlan(plan, io)` owns all reads, writes, warnings and stdout, returns 0
+or 1 and writes the fixed sequence that `plan.writes` mirrors; usage formatting
+and the action bytes stay in `src/cli.ts`. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 **Capabilities document** — the input-free `tolkira --capabilities` JSON
 document (schema 1) with the version, Node range, accepted inputs, file outputs

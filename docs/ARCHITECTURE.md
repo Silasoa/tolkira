@@ -520,15 +520,24 @@ src/cli.ts                  entry: USAGE, DEFAULT_IO, CliIO re-export, runCli, m
   structured usage failure. It never writes, prints, mutates argv or uses the
   network. It reads filesystem metadata and the logo because the usage contract
   needs those checks; moving them behind execution would reorder observable
-  errors.
+  errors. It also resolves `--help`, `--version` and `--capabilities`; `cli.ts`
+  prints those bytes without a `CliPlan`.
 - `executePlan` owns all reads, writes, warnings and stdout. It resolves the
-  inputs once, reads history and baseline before the first write, follows
-  `plan.writes`, builds the manifest ledger from the writes that actually
-  happened and returns `plan.exitCodes`. Usage formatting stays in `cli.ts`.
-- Adding an output means: add the plan slot and usage checks, add it to
-  `plan.writes` in writing order, add its confirmation policy to
-  `plan.stdout.confirmations`, add it to the manifest ledger, then extend the
-  plan/execute and equivalence test matrix.
+  inputs once, reads history and baseline before the first write, writes the
+  fixed sequence (summary: email, CI file, manifest; generate: report, PDF,
+  email, history, CI file, manifest), builds the manifest ledger from the
+  writes that actually happened and returns `plan.exitCodes`. `plan.writes`
+  declares that order and must mirror it; the permanent tests assert the
+  declared order against the order actually executed. Usage formatting stays
+  in `cli.ts`.
+- Usage and validation failures (exit 2) are planned in `plan.ts`; input,
+  history/baseline read, render and write failures (exit 1) are caught in
+  `execute.ts`.
+- Adding an output means: add the plan slot and usage checks, add the write
+  call in `execute.ts` in the fixed sequence, add it to `plan.writes` in
+  writing order, add its confirmation policy to `plan.stdout.confirmations`,
+  add it to the manifest ledger, then extend the plan/execute and equivalence
+  test matrix.
 
 ### `src/index`
 
