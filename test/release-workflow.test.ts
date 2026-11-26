@@ -147,25 +147,28 @@ describe('release workflow gate', () => {
     expect(activeCommands(publish)).not.toContain('--depth');
   });
 
-  it('builds the package before packing it from a clean checkout', async () => {
+  it('builds and packs once through the package check', async () => {
     const commands = runCommands(job(await workflowJobs(), 'publish'));
-    const build = commands.indexOf('npm run build');
-    const pack = commands.findIndex((command) =>
-      /^npm pack --pack-destination \S+$/.test(command),
+    // dist/ is gitignored: the package check builds before it packs.
+    const check = commands.indexOf(
+      'TOLKIRA_PACK_DIR=/tmp/pack npm run package:check',
     );
-
-    // dist/ is gitignored: without a build the packed tarball has no CLI.
-    expect(build, 'build step').toBeGreaterThanOrEqual(0);
-    expect(pack, 'pack step').toBeGreaterThan(build);
+    expect(check, 'package check step').toBeGreaterThanOrEqual(0);
+    expect(commands.indexOf('npm ci')).toBeLessThan(check);
+    // One pack source: no second build or pack step in the publish job.
+    expect(commands).not.toContain('npm run build');
+    expect(commands.filter((command) => /^npm pack\b/.test(command))).toEqual(
+      [],
+    );
     expect(
-      commands.filter((command) => command === 'npm run build'),
+      commands.filter((command) => command.endsWith('npm run package:check')),
     ).toHaveLength(1);
   });
 
   it('reaches the package smoke and stage step on a green tag', async () => {
     const commands = runCommands(job(await workflowJobs(), 'publish'));
     const order: Array<[string, RegExp]> = [
-      ['pack', /^npm pack --pack-destination \S+$/],
+      ['package check', /^TOLKIRA_PACK_DIR=\/tmp\/pack npm run package:check$/],
       ['install', /^npm install -g --prefix \S+ \S*tolkira-.*\.tgz$/],
       ['binary', /^test -x \S+\/bin\/tolkira$/],
       [
@@ -184,7 +187,10 @@ describe('release workflow gate', () => {
         'smoke output',
         /^test -s \S+report\.html && grep -q "Minimal feature" \S+report\.html$/,
       ],
-      ['stage', /^npm stage publish \. --provenance --access public$/],
+      [
+        'stage',
+        /^npm stage publish \/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz --provenance --access public$/,
+      ],
     ];
     let previous = -1;
     for (const [label, pattern] of order) {
