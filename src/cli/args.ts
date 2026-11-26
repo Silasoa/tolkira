@@ -35,7 +35,9 @@ export function parseCliArgs(argv: string[]) {
   } as const);
 }
 
-export function parseMetadata(values: string[] | undefined): Record<string, string> {
+export function parseMetadata(
+  values: string[] | undefined,
+): Record<string, string> {
   const metadata: Record<string, string> = {};
   for (const entry of values ?? []) {
     const separator = entry.indexOf('=');
@@ -69,7 +71,9 @@ export function parsePdfTimeout(value: string | undefined): number | undefined {
   return Number(value);
 }
 
-export function parseHistoryLimit(value: string | undefined): number | undefined {
+export function parseHistoryLimit(
+  value: string | undefined,
+): number | undefined {
   if (value === undefined) return undefined;
   // Leading zeros, signs, fractions and whitespace are usage errors, not aliases.
   if (!/^[1-9]\d*$/.test(value) || Number(value) > HISTORY_LIMIT_MAX) {

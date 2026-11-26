@@ -116,6 +116,8 @@ function message(error: unknown): CliOptionsResult {
 }
 
 export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
+  // The planning seam is asynchronous even while its checks are synchronous.
+  await Promise.resolve();
   let parsed: ReturnType<typeof parseCliArgs>;
 
   try {
@@ -159,11 +161,19 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
   const manifest = parsed.values.manifest;
 
   if (report === '') {
-    return { ok: false, kind: 'message', message: '--out requires a file path' };
+    return {
+      ok: false,
+      kind: 'message',
+      message: '--out requires a file path',
+    };
   }
 
   if (pdf === '') {
-    return { ok: false, kind: 'message', message: '--pdf requires a file path' };
+    return {
+      ok: false,
+      kind: 'message',
+      message: '--pdf requires a file path',
+    };
   }
 
   if (baseline === '') {
@@ -222,7 +232,12 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
     }
   }
 
-  if (locale !== undefined && !report && email === undefined && pdf === undefined) {
+  if (
+    locale !== undefined &&
+    !report &&
+    email === undefined &&
+    pdf === undefined
+  ) {
     return {
       ok: false,
       kind: 'message',
@@ -269,9 +284,7 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
     return {
       ok: false,
       kind: 'message',
-      message:
-        `--json and --ci ${ci} both write to stdout; ` +
-        `${alternative}`,
+      message: `--json and --ci ${ci} both write to stdout; ` + alternative,
     };
   }
 
@@ -360,18 +373,14 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
       static: parsed.values.static ?? false,
       ...(pdfTimeout === undefined ? {} : { pdfTimeout }),
       ...(historyLimit === undefined ? {} : { historyLimit }),
-      ...(parsed.values.meta === undefined
-        ? {}
-        : { meta: parsed.values.meta }),
+      ...(parsed.values.meta === undefined ? {} : { meta: parsed.values.meta }),
       ...(parsed.values['max-size'] === undefined
         ? {}
         : { maxSize: parsed.values['max-size'] }),
       ...(parsed.values.accent === undefined
         ? {}
         : { accent: parsed.values.accent }),
-      ...(parsed.values.logo === undefined
-        ? {}
-        : { logo: parsed.values.logo }),
+      ...(parsed.values.logo === undefined ? {} : { logo: parsed.values.logo }),
     },
   };
 }

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { samePath } from '../output.js';
 
 /** True when `file` names `parent` or sits inside it, even when `file` is missing. */
-export function isInside(parent: string, file: string): boolean {
+function isInside(parent: string, file: string): boolean {
   let current = path.resolve(file);
   for (;;) {
     if (samePath(current, parent)) return true;

@@ -59,19 +59,20 @@ export async function runCli(
     );
     return 2;
   }
-  switch (planned.action.kind) {
-    case 'help':
-      io.stdout(USAGE);
-      return 0;
-    case 'version':
-      io.stdout(`${version}\n`);
-      return 0;
-    case 'capabilities':
-      io.stdout(capabilitiesJson());
-      return 0;
-    case 'run':
-      return executePlan(planned.action.plan, io);
+  const action = planned.action;
+  if (action.kind === 'help') {
+    io.stdout(USAGE);
+    return 0;
   }
+  if (action.kind === 'version') {
+    io.stdout(`${version}\n`);
+    return 0;
+  }
+  if (action.kind === 'capabilities') {
+    io.stdout(capabilitiesJson());
+    return 0;
+  }
+  return executePlan(action.plan, io);
 }
 
 function isMainModule(): boolean {

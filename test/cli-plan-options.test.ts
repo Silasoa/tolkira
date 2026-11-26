@@ -145,8 +145,8 @@ describe('planOptions shape and defaults', () => {
     const values = await options([fixture, '--out', report]);
 
     expect(values).toMatchObject({ inputs: [fixture], report });
-    expect(Boolean(values.json)).toBe(false);
-    expect(Boolean(values.static)).toBe(false);
+    expect(values.json).toBe(false);
+    expect(values.static).toBe(false);
     expect(values.pdf).toBeUndefined();
     expect(values.email).toBeUndefined();
     expect(values.history).toBeUndefined();

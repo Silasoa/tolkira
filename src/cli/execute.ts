@@ -7,15 +7,14 @@ import {
 import { readBaseline, type BaselineSummary } from '../baseline.js';
 import { formatCiOutput } from '../ci.js';
 import { renderEmail, type EmailOptions } from '../email.js';
-import {
-  readHistory,
-  writeHistory,
-  type HistoryRun,
-} from '../history.js';
+import { readHistory, writeHistory, type HistoryRun } from '../history.js';
 import { resolveInputFiles, scanInputBytes } from '../input/load.js';
 import { writeAtomic } from '../output.js';
 import { renderPdf } from '../pdf.js';
-import { generateReportFromResolved, summarizeRunFromResolved } from '../run.js';
+import {
+  generateReportFromResolved,
+  summarizeRunFromResolved,
+} from '../run.js';
 import type { ReportSummary } from '../summary.js';
 import { oneLine } from '../text.js';
 import {
@@ -123,10 +122,7 @@ async function writePdf(
   }
 }
 
-function ciTextFor(
-  summary: ReportSummary,
-  plan: CliPlan,
-): string | undefined {
+function ciTextFor(summary: ReportSummary, plan: CliPlan): string | undefined {
   return plan.ci !== undefined
     ? formatCiOutput(
         summary,
@@ -176,10 +172,7 @@ function printMachine(
   }
 }
 
-export async function executePlan(
-  plan: CliPlan,
-  io: CliIO,
-): Promise<number> {
+export async function executePlan(plan: CliPlan, io: CliIO): Promise<number> {
   try {
     const resolvedInputs = await resolveInputFiles(plan.inputs);
     let scannedBytes: number | undefined;
