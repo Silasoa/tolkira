@@ -135,6 +135,7 @@ describe('packed manifest', () => {
       'package/stray.txt',
       'package/coverage/index.html',
       'package/docs/OTHER.md',
+      'package/LICENSE/evil',
     ];
     for (const unexpected of unexpectedPaths) {
       const relative = unexpected.slice('package/'.length);
@@ -169,11 +170,17 @@ describe('packed manifest', () => {
   });
 
   it('does not require a glob entry as a literal path', () => {
-    const withGlob = {
-      files: ['dist', 'docs/*.md', ...docsFiles, ...rootFiles],
-    };
+    const withGlob = { files: ['dist', 'docs/*.md', ...rootFiles] };
     const errors = verifyPackList(packedPaths, withGlob);
-    expect(errors.some((error) => error.includes('docs/*.md'))).toBe(false);
+    expect(errors).toEqual([]);
+  });
+
+  it('treats a dotted directory as a directory when its contents are packed', () => {
+    const dotted = {
+      files: ['dist', 'assets/v1.2', ...docsFiles, ...rootFiles],
+    };
+    const paths = [...packedPaths, 'package/assets/v1.2/x.png'];
+    expect(verifyPackList(paths, dotted)).toEqual([]);
   });
 
   it('rejects an empty pack list', () => {

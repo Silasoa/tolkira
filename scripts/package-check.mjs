@@ -51,24 +51,28 @@ function relativePath(packedPath) {
     : packedPath;
 }
 
-// Literal files are required in the tarball; globs and directories are not.
-function listedFiles(packageJson) {
-  return (packageJson.files ?? []).filter(
-    (entry) =>
-      !globCharacters.test(entry) &&
-      !entry.endsWith('/') &&
-      path.extname(entry) !== '',
+// Globs allow their matches; an entry is a directory only when its contents
+// are packed and it is not a known file (LICENSE is extensionless).
+function classifyEntries(packageJson, present) {
+  const knownFiles = new Set([
+    ...requiredRootFiles,
+    ...requiredDocsFiles,
+    ...requiredEntryFiles,
+  ]);
+  const files = packageJson.files ?? [];
+  const globs = files.filter((entry) => globCharacters.test(entry));
+  const entries = files.filter(
+    (entry) => !globCharacters.test(entry) && !entry.endsWith('/'),
   );
-}
-
-// Directories such as "dist" are packed by their contents, not as one entry.
-function directoryEntries(packageJson) {
-  return (packageJson.files ?? []).filter(
+  const directories = entries.filter(
     (entry) =>
-      !globCharacters.test(entry) &&
-      !entry.endsWith('/') &&
-      path.extname(entry) === '',
+      !knownFiles.has(entry) &&
+      !present.has(entry) &&
+      [...present].some((file) => file.startsWith(`${entry}/`)),
   );
+  const directorySet = new Set(directories);
+  const literals = entries.filter((entry) => !directorySet.has(entry));
+  return { globs, directories, literals, knownFiles };
 }
 
 export function packEntries(packed) {
@@ -88,22 +92,30 @@ export function verifyPackList(paths, packageJson) {
       path.posix.isAbsolute(relative) ||
       path.win32.isAbsolute(relative) ||
       relative.includes('\\') ||
-      relative.split('/').includes('..') ||
-      normalized.startsWith('..')
+      relative.split('/').includes('..')
     ) {
       errors.push(`unsafe path in tarball: ${entry}`);
       continue;
     }
     present.add(normalized);
   }
-  const directories = directoryEntries(packageJson);
-  const allowed = new Set([
+  const { globs, directories, literals, knownFiles } = classifyEntries(
+    packageJson,
+    present,
+  );
+  const required = new Set([
     ...requiredRootFiles,
     ...requiredDocsFiles,
-    ...listedFiles(packageJson),
     ...requiredEntryFiles,
+    ...literals.filter(
+      (entry) =>
+        knownFiles.has(entry) ||
+        present.has(entry) ||
+        path.extname(entry) !== '',
+    ),
   ]);
-  for (const file of allowed) {
+  const allowed = new Set([...required, ...literals]);
+  for (const file of required) {
     if (!present.has(file)) {
       errors.push(`missing required path: ${file}`);
     }
@@ -119,7 +131,8 @@ export function verifyPackList(paths, packageJson) {
     const inAllowedDirectory = directories.some((directory) =>
       file.startsWith(`${directory}/`),
     );
-    if (!allowed.has(file) && !inAllowedDirectory) {
+    const matchesGlob = globs.some((glob) => path.matchesGlob(file, glob));
+    if (!allowed.has(file) && !inAllowedDirectory && !matchesGlob) {
       errors.push(`unexpected path in tarball: ${file}`);
     }
   }

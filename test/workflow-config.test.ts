@@ -100,6 +100,9 @@ describe('release artifact', () => {
     const publish = jobBlock(release, 'publish');
     expect(publish).not.toBe('');
     expect(publish).toContain('TOLKIRA_VERSION');
+    expect(publish).toContain(
+      `echo "TOLKIRA_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"`,
+    );
     expect(publish).toContain('tolkira-$TOLKIRA_VERSION.tgz');
     expect(release).not.toMatch(/npm stage publish \./);
   });
@@ -141,6 +144,7 @@ describe('workflow lint job', () => {
     expect(block).toContain(
       '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8',
     );
+    expect(block).toContain('sha256sum -c -');
     expect(block).toContain('zizmor==1.33.1');
     expect(block).toContain('--offline');
     expect(block).toContain('--persona=regular');
@@ -149,6 +153,8 @@ describe('workflow lint job', () => {
 
 describe('dependabot', () => {
   it('waits seven days before opening an update for both entries', () => {
+    expect(dependabot).toContain('package-ecosystem: npm');
+    expect(dependabot).toContain('package-ecosystem: github-actions');
     const entries = dependabot.split(/^ {2}- package-ecosystem:/m).slice(1);
     expect(entries.length).toBeGreaterThan(0);
     for (const entry of entries) {
