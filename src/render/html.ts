@@ -1,9 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { Envelope } from '@cucumber/messages';
-import { sanitizeEnvelopes } from '../input/sanitize.js';
-import { indexRun } from '../report/index-run.js';
+import { buildLoadedRun, type LoadedRun } from '../loaded-run.js';
+import { runRenderOptions, type RenderReportOptions } from '../options.js';
 import { buildReportModel } from '../report/model.js';
-import { summarizeIndex } from '../summary.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { CLIENT_SCRIPT } from './client-bundle.js';
 import { DOM_IDS } from './dom-contract.js';
@@ -15,9 +14,6 @@ import { renderReportView } from './report.js';
 import { BASELINE_CSS, REPORT_CSS } from './styles.js';
 import { TAG_TABLE_CSS } from './tags.js';
 import { renderTrendsView, TRENDS_SHELL_CSS } from './trends.js';
-import type { RenderOptions } from './types.js';
-
-export type { RenderOptions } from './types.js';
 
 function inlineScriptHashes(html: string): string[] {
   const hashes = new Set<string>();
@@ -51,29 +47,26 @@ function tabBar(historyLength: number, t: Translator): string {
   return `<div class="views" role="tablist" aria-label="${t.t('report.views')}"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="${DOM_IDS.reportView}">${t.t('report.tab')}</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="${DOM_IDS.analysisView}">${t.t('details.tab')}</button>${historyLength >= 2 ? `<button class="view" id="view-trends" type="button" role="tab" data-view="trends" aria-selected="false" aria-controls="${DOM_IDS.trendsView}">${t.t('trends.tab')}</button>` : ''}</div>`;
 }
 
-export async function renderHtml(
-  envelopes: Envelope[],
-  options: RenderOptions,
+export async function renderRun(
+  run: LoadedRun,
+  options: RenderReportOptions = {},
 ): Promise<string> {
-  const t = createTranslator(options.locale);
-  const safeEnvelopes = sanitizeEnvelopes(envelopes);
-  const index = options.index ?? indexRun(safeEnvelopes);
-  const model = buildReportModel(safeEnvelopes, options.provenance, index);
-  const summary = options.summary ?? summarizeIndex(index, options.comparison);
-  const history = Array.isArray(options.history) ? options.history : [];
-  const staticMode = options.static === true;
-  const logo = isLogoDataUri(options.logo)
-    ? `<img class="logo" src="${escapeHtml(options.logo)}" alt="">`
+  const viewOptions = runRenderOptions(run, options);
+  const t = createTranslator(viewOptions.locale);
+  const model = buildReportModel(run.envelopes, run.provenance, run.index);
+  const history = Array.isArray(viewOptions.history) ? viewOptions.history : [];
+  const staticMode = viewOptions.static === true;
+  const logo = isLogoDataUri(viewOptions.logo)
+    ? `<img class="logo" src="${escapeHtml(viewOptions.logo)}" alt="">`
     : '';
-  const accent = isValidAccent(options.accent)
-    ? `:root{--accent:${options.accent}}`
+  const accent = isValidAccent(viewOptions.accent)
+    ? `:root{--accent:${viewOptions.accent}}`
     : '';
-  // German labels are longer than their English counterparts; the scoped
-  // rules keep the shell inside 320px without touching the English layout.
+  // German labels are longer; scoped rules keep the shell inside 320px.
   const localeCss = localeShellCss(t);
   const clientScript = staticMode ? '' : inlineScript(CLIENT_SCRIPT);
   const printScript = staticMode ? '' : inlineScript(PRINT_SCRIPT);
-  const skipped = options.skippedAttachments ?? 0;
+  const skipped = run.skippedAttachments;
   const notice =
     skipped > 0
       ? `<div class="noticeShell"><div class="attachmentWarning" role="note">${escapeHtml(t.t('report.attachmentSkipNotice', { count: skipped }))} ${escapeHtml(t.t(staticMode ? 'report.attachmentSkipWhereStatic' : 'report.attachmentSkipWhere'))}</div></div>`
@@ -91,7 +84,14 @@ export async function renderHtml(
   const lightbox = staticMode
     ? ''
     : `<dialog class="lightbox" id="${DOM_IDS.lightbox}" aria-label="${t.t('lightbox.label')}"><button class="lightboxClose" type="button" data-lightbox-close>${t.t('lightbox.close')}</button><img alt=""></dialog>`;
-  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div>${staticMode ? '' : tabBar(history.length, t)}</div></header><p class="sr" id="${DOM_IDS.copyLive}" aria-live="polite"></p>${notice}<main>${renderReportView(model, options, t, staticMode)}${renderAnalysisView(model, options, summary, t, staticMode)}${trends}</main>${lightbox}${messages}${clientScript}${printScript}`;
-  const html = `<!doctype html>\n<html lang="${escapeHtml(t.lang)}" dir="${t.dir}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(inlineScriptHashes(body))}\n<style>${REPORT_CSS}${accent}${localeCss}${trends ? TRENDS_SHELL_CSS : ''}${options.comparison ? BASELINE_CSS : ''}${tagTableCss}</style>\n</head>\n<body>${body}</body>\n</html>`;
+  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div>${staticMode ? '' : tabBar(history.length, t)}</div></header><p class="sr" id="${DOM_IDS.copyLive}" aria-live="polite"></p>${notice}<main>${renderReportView(model, viewOptions, t, staticMode)}${renderAnalysisView(model, viewOptions, run.summary, t, staticMode)}${trends}</main>${lightbox}${messages}${clientScript}${printScript}`;
+  const html = `<!doctype html>\n<html lang="${escapeHtml(t.lang)}" dir="${t.dir}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(viewOptions.title)}</title>\n${csp(inlineScriptHashes(body))}\n<style>${REPORT_CSS}${accent}${localeCss}${trends ? TRENDS_SHELL_CSS : ''}${viewOptions.comparison ? BASELINE_CSS : ''}${tagTableCss}</style>\n</head>\n<body>${body}</body>\n</html>`;
   return applyReportSize(html, t);
+}
+
+export async function renderHtml(
+  envelopes: Envelope[],
+  options: RenderReportOptions = {},
+): Promise<string> {
+  return renderRun(buildLoadedRun(envelopes), options);
 }

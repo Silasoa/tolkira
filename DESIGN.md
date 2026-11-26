@@ -119,7 +119,7 @@ describe the viewport, not the font.
 
 ### Renderer modules
 
-- `html.ts` - shell, CSP and `renderHtml` assembly.
+- `html.ts` - shell, CSP, `renderRun` trusted entry and `renderHtml` wrapper.
 - `print-script.ts` - static `beforeprint`/`afterprint` lifecycle, imported only
   by `html.ts` and emitted as a second CSP-hashed inline script outside the
   interactive client bundle.
@@ -135,7 +135,8 @@ describe the viewport, not the font.
 - `attachments.ts` - image, text, video, log and file rendering.
 - `ci.ts` - CI header and detail rows.
 - `format.ts` - status, duration, date, bar, count, health and tag helpers.
-- `types.ts` - `RenderOptions`, `DisplayStatus` and `OrderedFeature`.
+- `types.ts` - view-facing `RenderOptions`, `DisplayStatus` and
+  `OrderedFeature`.
 - `i18n.ts` - locale resolution, catalogs, translator and locale-aware number,
   percent, duration and date helpers; caches `Intl` formatters per translator.
 - `client-i18n.ts` - browser formatter for the embedded `client.*` block, with
@@ -149,7 +150,7 @@ CLI-side and do not join the renderer layer order.
 
 ### Localisation
 
-The visible shell is rendered from `src/i18n/locales/<locale>.json`. `renderHtml`
+The visible shell is rendered from `src/i18n/locales/<locale>.json`. `renderRun`
 resolves `locale` once, sets `<html lang>` and `dir`, and passes one translator
 to every view. One report carries one locale; there is no in-report switcher.
 All visible counts are locale-formatted (English report digits stay raw; the

@@ -1,5 +1,7 @@
 import type { BaselineSummary } from './baseline.js';
 import type { HistoryRun } from './history.js';
+import type { LoadedRun } from './loaded-run.js';
+import type { RenderOptions } from './render/types.js';
 
 export interface RenderReportOptions {
   title?: string;
@@ -28,5 +30,19 @@ export function renderOptions(options: RenderReportOptions) {
     ...(options.accent === undefined ? {} : { accent: options.accent }),
     ...(options.locale === undefined ? {} : { locale: options.locale }),
     ...(options.static === undefined ? {} : { static: options.static }),
+  };
+}
+
+/** The view options for a loaded run; a missing run fact stays absent. */
+export function runRenderOptions(
+  run: LoadedRun,
+  options: RenderReportOptions,
+): RenderOptions {
+  return {
+    ...renderOptions(options),
+    ...(options.history === undefined ? {} : { history: options.history }),
+    ...(run.comparison === undefined ? {} : { comparison: run.comparison }),
+    ...(run.inputFiles === undefined ? {} : { inputFiles: run.inputFiles }),
+    ...(run.inputBytes === undefined ? {} : { inputBytes: run.inputBytes }),
   };
 }

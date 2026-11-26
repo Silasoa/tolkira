@@ -4,7 +4,8 @@ import { readHistory, type HistoryRun } from '../src/history.js';
 import { renderReport } from '../src/index.js';
 import { parseMessages } from '../src/input/messages.js';
 import { parsePlaywrightJson } from '../src/input/playwright.js';
-import { renderHtml } from '../src/render/html.js';
+import { buildLoadedRun } from '../src/loaded-run.js';
+import { renderHtml, renderRun } from '../src/render/html.js';
 import type { RenderOptions } from '../src/render/types.js';
 import type { RenderReportOptions } from '../src/options.js';
 import { fixturePath, messagesFixture, playwrightFixture } from './fixtures.js';
@@ -233,16 +234,14 @@ describe('static report shell', () => {
   });
 
   it('points the skip notice at the report instead of a tab', async () => {
-    const envelopes = await messages('empty.ndjson');
-    const staticHtml = await renderHtml(envelopes, {
+    const run = buildLoadedRun(await messages('empty.ndjson'), {
+      skippedAttachments: 1,
+    });
+    const staticHtml = await renderRun(run, {
       title: 'Static skip',
       static: true,
-      skippedAttachments: 1,
     });
-    const defaultHtml = await renderHtml(envelopes, {
-      title: 'Default skip',
-      skippedAttachments: 1,
-    });
+    const defaultHtml = await renderRun(run, { title: 'Default skip' });
 
     expect(staticHtml).toContain('See the affected scenarios in the report.');
     expect(staticHtml).not.toContain('on the Report tab');

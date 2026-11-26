@@ -327,8 +327,9 @@ tolkira test-results/ --ci markdown --baseline previous.json
   wrong baseline produces spurious counts, not a crash.
 - The report and summary embed baseline feature/scenario names and URIs, escaped
   like current-run text, but never the baseline path. The file has no baseline
-  title or timestamp; the two artifacts are linked by the command. `renderHtml`
-  and `CucumberHtmlStream` keep their current-run options.
+  title or timestamp; the two artifacts are linked by the command.
+  `renderHtml`/`renderRun` and `CucumberHtmlStream` keep their current-run
+  options.
 - Keep the baseline path separate from the current `--json` redirect:
   `--json > baseline.json` truncates the file before Tolkira starts when the
   same path is also passed to `--baseline`. The CLI cannot detect that shell
@@ -553,8 +554,9 @@ before it is read; the 100 MB total cap applies to the unique loaded content
 after dedupe and skip and reports
 `Inputs exceed 100 MB in total. Split the run into smaller inputs or reduce the attachment payload.`
 The Details Run
-panel shows the input row only when both values are present; direct `renderHtml`
-callers and `CucumberHtmlStream` omit them, so their panel omits that row. The
+panel shows the input row only when both values are present; a direct render
+(`renderHtml`, or `renderRun` without supplied counts) and `CucumberHtmlStream`
+omit them, so their panel omits that row. The
 same panel shows the exact final report HTML bytes and the three largest
 attachments by decoded bytes. At 1 MiB and above the report row adds one-decimal
 MB in parentheses after the exact bytes. These are contributors, not a sum.
@@ -573,9 +575,10 @@ fields are additive.
 `baseline` is the validated `BaselineSummary` projection, never a path; the CLI
 is the only file reader. `generateReport`, `renderReport` and `summarizeReport`
 accept it and build the comparison once. The exported `BaselineRenderOptions`
-extends `RenderReportOptions` with that field. `renderHtml` and
-`CucumberHtmlStream` do not take a baseline in 0.6.0: they keep
-`RenderOptions`/`RenderReportOptions`, an unknown `baseline` key is ignored, and
+extends `RenderReportOptions` with that field. The render entries (`renderRun`
+over a loaded run and the `renderHtml` wrapper) and `CucumberHtmlStream` do not
+take a baseline in 0.6.0: they keep `RenderReportOptions`, an unknown `baseline`
+key is ignored, and
 the stream keeps its same-input-same-HTML contract. Read a baseline with your own
 file handling and validate it before passing the projection; the exported type
 carries `schemaVersion`, the overall status and the scenario
@@ -1250,7 +1253,7 @@ and uses the same display URI for an unnamed feature's heading; the summary
   per suite and variant and compare the merged run for shards; a wrong baseline
   produces spurious counts, not a crash. Keep the baseline in a separate path
   from the current `--json` redirect and cache it as a CI artifact. The report
-  becomes a two-run artifact (baseline + current). `renderHtml` and
+  becomes a two-run artifact (baseline + current). The render entries and
   `CucumberHtmlStream` do not accept a baseline in 0.6.0.
 - `--capabilities` is input-free and read-only. The manifest is opt-in, has no
   timestamp or input path, and its artifact paths are relative to the manifest

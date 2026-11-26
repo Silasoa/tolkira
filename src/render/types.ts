@@ -1,9 +1,7 @@
 import type { BaselineComparison } from '../baseline.js';
 import type { HistoryRun } from '../history.js';
-import type { RunIndex } from '../report/index-run.js';
 import type { ReportFeature, ReportScenario } from '../report/model.js';
 import type { ReportStatus } from '../report/status.js';
-import type { ReportSummary } from '../summary.js';
 
 export interface RenderOptions {
   title: string;
@@ -16,16 +14,11 @@ export interface RenderOptions {
   history?: HistoryRun[];
   /** Script-free report: stacked views, open details, no dead controls. */
   static?: boolean;
-  /** Precomputed baseline comparison; the renderer never reads a file. */
+  /** Filled by `renderRun` from the loaded run; absent when it has none. */
   comparison?: BaselineComparison;
-  summary?: ReportSummary;
-  provenance?: Map<string, string>;
-  /** Index already built from the sanitized envelopes; internal fast path. */
-  index?: RunIndex;
-  /** Path attachments skipped because they resolve outside every allowed root. */
-  skippedAttachments?: number;
-  /** Unique processed input files and their total bytes; absent for direct renders. */
+  /** Filled by `renderRun` from the loaded run; absent omits the input row. */
   inputFiles?: number;
+  /** Filled by `renderRun` from the loaded run; absent omits the input row. */
   inputBytes?: number;
 }
 

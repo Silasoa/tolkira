@@ -174,8 +174,10 @@ and is covered by real producer fixtures.
 - Renderer module map (top to bottom; a module imports only lower layers, and
   same-layer modules never import each other — `report.ts`, `details.ts` and
   `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `tags.ts`,
-  `attachments.ts` and `ci.ts`): `html.ts` owns the shell, CSP and `renderHtml`
-  assembly; `report.ts` owns the report header, toolbar, features, scenarios,
+  `attachments.ts` and `ci.ts`): `html.ts` owns the shell, CSP, `renderRun` (the
+  trusted entry over a loaded run) and the `renderHtml` wrapper that builds one
+  loaded run and delegates; `report.ts` owns the report header, toolbar,
+  features, scenarios,
   steps, hooks and feature-row chrome; `details.ts` owns the Details header,
   run/environment panels and analysis layout; `trends.ts` owns the Trends header,
   the recorded-runs table and the sparkline; `triage.ts` owns the
@@ -185,8 +187,9 @@ and is covered by real producer fixtures.
   the CI header and detail rows; `baseline.ts` owns the comparison panel and the
   row badges, and joins the precomputed change map by pickle id; `format.ts` owns
   status, duration, date, bar, count, health, pass-rate and tag helpers;
-  `types.ts` owns `RenderOptions` (including the optional `history` list,
-  `static` flag and internal comparison), `DisplayStatus` and `OrderedFeature`.
+  `types.ts` owns the view-facing `RenderOptions` (`renderRun` fills
+  `comparison` and both input counts from the loaded run), `DisplayStatus` and
+  `OrderedFeature`.
   Two shared foundation modules carry localisation:
   `i18n.ts` owns locale resolution, the catalog translator and locale-aware
   number/percent/duration/date helpers, caching `Intl` formatters per translator;
@@ -203,7 +206,7 @@ and is covered by real producer fixtures.
   union plus `Record<MessageKey, string>` catalogs, no runtime JSON import);
   `npm run assets` runs it. Adding a left-to-right locale is mostly a data step:
   drop in the JSON file, then update the CLI usage line and any test that names
-  the supported list; an RTL locale also needs a `DIRECTIONS` entry. `renderHtml`
+  the supported list; an RTL locale also needs a `DIRECTIONS` entry. `renderRun`
   resolves `options.locale` once, sets `<html lang>`/`dir`, passes one translator
   to every view and always embeds the active `client.*` messages as an inert JSON
   block. The browser bundle contains no non-English catalog. See
@@ -222,7 +225,7 @@ and is covered by real producer fixtures.
   and the pure visibility decisions used by both the templates and the client.
   `scripts/build-search.mjs` bundles
   `report-client.ts` and its helpers into one `CLIENT_SCRIPT` artifact in
-  `src/render/client-bundle.ts`; `renderHtml` hashes both inline scripts into
+  `src/render/client-bundle.ts`; `renderRun` hashes both inline scripts into
   the CSP. `npm run assets` regenerates the generated modules.
 - Adds a small shell: visible title, optional logo and accent colour, system
   dark mode.
@@ -397,9 +400,10 @@ and is covered by real producer fixtures.
 ### `src/run`
 
 - Internal load/render/history assembly for a list the caller already resolved:
-  `loadResolvedInputs` reads and parses the resolved files, `indexRun` builds the
-  report index, and the summary, attachment totals and history come from that one
-  run.
+  `loadResolvedInputs` reads and parses the resolved files, then one
+  `buildLoadedRun` (`src/loaded-run.ts`) sanitises the envelopes, builds the
+  report index and the summary and applies the optional baseline comparison.
+  Attachment totals, provenance and the input counts travel on the loaded run.
 - `generateReportFromResolved`, `renderReportFromResolved`,
   `summarizeRunFromResolved` and `summarizeReportFromResolved` are the internal
   entry points for a resolved list; the CLI drives `generateReportFromResolved`
@@ -575,10 +579,10 @@ re-resolving through the path-based public functions.
 
 `BaselineRenderOptions extends RenderReportOptions` with
 `baseline?: BaselineSummary`; `generateReport`, `renderReport` and
-`summarizeReport` accept it, build one comparison and never read a file.
-`renderHtml` and `CucumberHtmlStream` keep `RenderOptions`/
-`RenderReportOptions` and ignore a `baseline` key, so the stream's
-same-input-same-HTML contract is unchanged. The package exports both
+`summarizeReport` accept it, build one comparison and never read a file. The
+render entries (`renderRun` over a loaded run and the `renderHtml` wrapper) and
+`CucumberHtmlStream` keep `RenderReportOptions` and ignore a `baseline` key, so
+the stream's same-input-same-HTML contract is unchanged. The package exports both
 `BaselineSummary` and `BaselineRenderOptions`.
 
 ## Security

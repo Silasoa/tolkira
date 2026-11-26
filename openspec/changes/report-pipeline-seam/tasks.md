@@ -1,4 +1,4 @@
-# Tasks — report pipeline seam
+# Tasks â€” report pipeline seam
 
 ## 1. Contract and pre-implementation review
 
@@ -17,7 +17,7 @@
 
 ## 2. TDD-Red
 
-- [ ] 2.1 Write `test/loaded-run.test.ts` against the target API: builder
+- [x] 2.1 Write `test/loaded-run.test.ts` against the target API: builder
   returns sanitised envelopes, index and summary for empty, single and
   multi-file inputs; `baseline` produces a comparison and a summary with the
   comparison; `provenance`, `skippedAttachments`, `inputFiles` and
@@ -25,7 +25,7 @@
   input counts absent (the input row must stay omitted), while
   `skippedAttachments` is `0`; a complete object literal is rejected by the
   brand at type level.
-- [ ] 2.2 Write `test/render-seam.test.ts`: AC2 spy proof (`vi.mock(...,
+- [x] 2.2 Write `test/render-seam.test.ts`: AC2 spy proof (`vi.mock(...,
   { spy: true })`) that `renderRun` calls no sanitise/index/summary and
   `renderHtml` calls the builder exactly once; AC3 sanitise call count on the
   remote-image case; AC4 `@ts-expect-error` for every internal fact on
@@ -36,72 +36,72 @@
   the file path; the extra `baseline` key is still ignored; an
   empty run renders the empty report and omits the input row; two history runs
   render Trends and one does not; a run comparison wins over a caller value.
-- [ ] 2.3 Migrate the fact-passing direct tests to `buildLoadedRun` +
+- [x] 2.3 Migrate the fact-passing direct tests to `buildLoadedRun` +
   `renderRun`: `test/render-empty-run.test.ts`, `test/render-source-strip.test.ts`,
   `test/render-triage.test.ts` (provenance),
   `test/render-static.test.ts` (skipped attachment), and drop the supplied
   `summary` key in `test/parity-metadata.test.ts`. Keep every assertion; only
   the construction changes.
-- [ ] 2.4 Run the new and migrated tests and record the red state: the new
+- [x] 2.4 Run the new and migrated tests and record the red state: the new
   files fail on the missing API, the migrated files fail to typecheck, and no
   existing assertion was deleted.
 
 ## 3. Implementation
 
-- [ ] 3.1 Add `src/loaded-run.ts` with the branded `LoadedRun`,
+- [x] 3.1 Add `src/loaded-run.ts` with the branded `LoadedRun`,
   `LoadedRunFacts` and `buildLoadedRun`; move `sanitizeEnvelopes`, `indexRun`,
   `compareBaseline` and `summarizeIndex` into the builder. Keep the module
   under 120 lines.
-- [ ] 3.2 Add `renderRun(run, options)` to `src/render/html.ts` and reduce
+- [x] 3.2 Add `renderRun(run, options)` to `src/render/html.ts` and reduce
   `renderHtml` to the wrapper. The shell, CSP, view calls, CSS conditions and
   `applyReportSize` order stay unchanged. `renderRun` applies `renderOptions`
   once, merges `run.comparison` and the input counts only when present, and
   passes `run.summary`.
-- [ ] 3.3 Narrow `src/render/types.ts`: remove `index`, `summary`,
+- [x] 3.3 Narrow `src/render/types.ts`: remove `index`, `summary`,
   `provenance` and `skippedAttachments`; keep the view-facing fields plus
   `comparison`, `inputFiles` and `inputBytes` (documented as filled by
   `renderRun`, absent when the run has no value).
-- [ ] 3.4 Switch `src/run.ts` to `buildLoadedRun` + `renderRun`; drop the
+- [x] 3.4 Switch `src/run.ts` to `buildLoadedRun` + `renderRun`; drop the
   moved imports and the duplicate fact spread. `GeneratedReport`,
   `summarizeRunFromResolved` and `summarizeReportFromResolved` keep their
   values.
-- [ ] 3.5 Switch `src/stream.ts` to `buildLoadedRun` + `renderRun` on flush.
-- [ ] 3.6 Make the Red tests green without deleting, skipping or loosening an
+- [x] 3.5 Switch `src/stream.ts` to `buildLoadedRun` + `renderRun` on flush.
+- [x] 3.6 Make the Red tests green without deleting, skipping or loosening an
   assertion; add any missing test the implementation reveals. Do not touch
   CSS, client scripts, markup, i18n catalogs, summary schema, baseline,
   history, email, PDF or CI modules.
 
 ## 4. Verification and gate
 
-- [ ] 4.1 Run the focused suite: `npx vitest run test/loaded-run.test.ts
+- [x] 4.1 Run the focused suite: `npx vitest run test/loaded-run.test.ts
   test/render-seam.test.ts test/render-*.test.ts test/run.test.ts
   test/stream.test.ts test/parity-metadata.test.ts
   test/size-diagnostics.test.ts`. All green, no edited expectations beyond the
   migration.
-- [ ] 4.2 Run `npm run hygiene` and `npm run check` (i18n, assets, typecheck,
+- [x] 4.2 Run `npm run hygiene` and `npm run check` (i18n, assets, typecheck,
   lint, knip, format, build, coverage). Coverage floors unchanged.
-- [ ] 4.3 Run `npm run test:e2e`; the report shell must stay unchanged in all
+- [x] 4.3 Run `npm run test:e2e`; the report shell must stay unchanged in all
   three engines.
-- [ ] 4.3b Run host row 2 (official `@cucumber/cucumber@13.3.0`, legacy JSON
+- [x] 4.3b Run host row 2 (official `@cucumber/cucumber@13.3.0`, legacy JSON
   and Messages) on the local build; compare counts, attachments, responsive
   layout at 1440 and 390 and external requests. Record host, pin, artifact
   sizes and result in `gate.md`. If it cannot run locally, record the blocker
   for user decision, not an assumed exception.
-- [ ] 4.4 Run `npm run package:check`: `dist/index.d.ts` and `dist/cli.d.ts`
+- [x] 4.4 Run `npm run package:check`: `dist/index.d.ts` and `dist/cli.d.ts`
   byte-identical, `dist/index.js` free of export changes, tarball gains at
   most one `dist/loaded-run.d.ts`, CLI-observable bytes checked. Record the
   tarball entry count.
-- [ ] 4.5 Verify byte parity explicitly: for one mixed fixture compare
+- [x] 4.5 Verify byte parity explicitly: for one mixed fixture compare
   `renderReport` with the direct `renderRun` path; compare the CLI report, JSON
   summary, CI file, history and manifest bytes with the pre-change build; run
   the characterization hashes. Stop on any difference.
-- [ ] 4.6 Verify the diff surface: `src/loaded-run.ts`, `src/run.ts`,
+- [x] 4.6 Verify the diff surface: `src/loaded-run.ts`, `src/run.ts`,
   `src/stream.ts`, `src/render/html.ts`, `src/render/types.ts`, the affected
   render tests, `docs/ARCHITECTURE.md`, `docs/AGENT-INTERFACE.md`, `DESIGN.md`,
   `GLOSSARY.md` if needed and `openspec/changes/report-pipeline-seam/**`. No
   CSS, client script, markup, i18n, summary, baseline, history, email, PDF or
   CI module changed.
-- [ ] 4.7 Record `gate.md`: commands, counts, coverage, bundle and tarball
+- [x] 4.7 Record `gate.md`: commands, counts, coverage, bundle and tarball
   deltas, byte-parity evidence, line counts and the PIR/DXR verdicts.
 
 ## 5. Reviews

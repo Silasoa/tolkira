@@ -551,7 +551,7 @@ describe('parity metadata rendering', () => {
     const envelopes = parseMessages(await readFile(file, 'utf8'), file);
     const model = buildReportModel(envelopes);
     const summary = await summarizeReport(file);
-    const html = await renderHtml(envelopes, { title: 'Counts', summary });
+    const html = await renderHtml(envelopes, { title: 'Counts' });
 
     expect(model.counts.scenarios).toEqual(summary.counts.scenarios);
     expect(model.counts.steps.total).toBe(

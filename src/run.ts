@@ -1,9 +1,4 @@
-import type { Envelope } from '@cucumber/messages';
-import {
-  compareBaseline,
-  type BaselineComparison,
-  type BaselineSummary,
-} from './baseline.js';
+import type { BaselineSummary } from './baseline.js';
 import {
   appendHistory,
   buildHistoryRun,
@@ -15,19 +10,14 @@ import {
   provenanceFor,
   type ResolvedInputs,
 } from './input/load.js';
-import { sanitizeEnvelopes } from './input/sanitize.js';
+import { buildLoadedRun, type LoadedRun } from './loaded-run.js';
 import {
   renderOptions,
   type BaselineRenderOptions,
   type RenderReportOptions,
 } from './options.js';
-import { indexRun, type RunIndex } from './report/index-run.js';
-import { renderHtml } from './render/html.js';
-import {
-  scenarioIdentities,
-  summarizeIndex,
-  type ReportSummary,
-} from './summary.js';
+import { renderRun } from './render/html.js';
+import type { ReportSummary } from './summary.js';
 
 export interface GeneratedReport {
   html: string;
@@ -47,42 +37,25 @@ export interface GenerateReportOptions extends BaselineRenderOptions {
   historyLimit?: number;
 }
 
-interface LoadedRun {
-  envelopes: Envelope[];
-  index: RunIndex;
-  summary: ReportSummary;
-  comparison?: BaselineComparison;
-  skippedAttachments: number;
-  inputFiles: number;
-  inputBytes: number;
-  provenance?: Map<string, string>;
-}
-
 async function loadRun(
   resolved: ResolvedInputs,
   baseline?: BaselineSummary,
 ): Promise<LoadedRun> {
   const groups = await loadResolvedInputs(resolved);
-  const envelopes = sanitizeEnvelopes(
+  const provenance = groups.length > 1 ? provenanceFor(groups) : undefined;
+  return buildLoadedRun(
     groups.flatMap((group) => group.envelopes),
+    {
+      ...(baseline === undefined ? {} : { baseline }),
+      ...(provenance === undefined ? {} : { provenance }),
+      skippedAttachments: groups.reduce(
+        (sum, group) => sum + group.skippedAttachments,
+        0,
+      ),
+      inputFiles: groups.length,
+      inputBytes: groups.reduce((sum, group) => sum + group.bytes, 0),
+    },
   );
-  const index = indexRun(envelopes);
-  const comparison = baseline
-    ? compareBaseline(baseline, scenarioIdentities(index))
-    : undefined;
-  return {
-    envelopes,
-    index,
-    summary: summarizeIndex(index, comparison),
-    ...(comparison === undefined ? {} : { comparison }),
-    skippedAttachments: groups.reduce(
-      (sum, group) => sum + group.skippedAttachments,
-      0,
-    ),
-    inputFiles: groups.length,
-    inputBytes: groups.reduce((sum, group) => sum + group.bytes, 0),
-    ...(groups.length > 1 ? { provenance: provenanceFor(groups) } : {}),
-  };
 }
 
 function render(
@@ -90,16 +63,9 @@ function render(
   options: RenderReportOptions,
   history: HistoryRun[] | undefined,
 ): Promise<string> {
-  return renderHtml(run.envelopes, {
-    ...renderOptions(options),
+  return renderRun(run, {
+    ...options,
     ...(history === undefined ? {} : { history }),
-    ...(run.comparison === undefined ? {} : { comparison: run.comparison }),
-    summary: run.summary,
-    index: run.index,
-    ...(run.provenance === undefined ? {} : { provenance: run.provenance }),
-    skippedAttachments: run.skippedAttachments,
-    inputFiles: run.inputFiles,
-    inputBytes: run.inputBytes,
   });
 }
 
@@ -122,8 +88,8 @@ export async function generateReportFromResolved(
     html: await render(run, options, history),
     summary: run.summary,
     skippedAttachments: run.skippedAttachments,
-    inputFiles: run.inputFiles,
-    inputBytes: run.inputBytes,
+    inputFiles: run.inputFiles ?? 0,
+    inputBytes: run.inputBytes ?? 0,
     ...(history === undefined ? {} : { history }),
   };
 }

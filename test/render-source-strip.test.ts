@@ -1,7 +1,8 @@
 import type { Envelope } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
 import { createTranslator } from '../src/render/i18n.js';
-import { renderHtml } from '../src/render/html.js';
+import { buildLoadedRun } from '../src/loaded-run.js';
+import { renderRun } from '../src/render/html.js';
 import { renderSourceStrip } from '../src/render/triage.js';
 import { buildReportModel } from '../src/report/model.js';
 import { legacyEnvelopes, syntheticRun } from './render-helpers.js';
@@ -23,9 +24,8 @@ describe('source strip', () => {
 
   it('renders one card per input, worst first', async () => {
     const envelopes = await mixedEnvelopes();
-    const html = await renderHtml(envelopes, {
+    const html = await renderRun(buildLoadedRun(envelopes, { provenance }), {
       title: 'Sources',
-      provenance,
     });
     const strip = html.slice(
       html.indexOf('class="sources"'),
@@ -48,36 +48,39 @@ describe('source strip', () => {
   });
 
   it('escapes hostile source file names', async () => {
-    const html = await renderHtml(await mixedEnvelopes(), {
-      title: 'Hostile source',
-      provenance: new Map([
-        ['features/behave.feature', '"><img src=x onerror=alert(1)>.json'],
-        ['features/unhappy.feature', 'unhappy.json'],
-        ['features/happy.feature', 'failed.json'],
-      ]),
-    });
+    const html = await renderRun(
+      buildLoadedRun(await mixedEnvelopes(), {
+        provenance: new Map([
+          ['features/behave.feature', '"><img src=x onerror=alert(1)>.json'],
+          ['features/unhappy.feature', 'unhappy.json'],
+          ['features/happy.feature', 'failed.json'],
+        ]),
+      }),
+      { title: 'Hostile source' },
+    );
 
     expect(html).not.toContain('<img src=x');
     expect(html).toContain('&lt;img src=x');
   });
 
   it('omits the strip when provenance is incomplete', async () => {
-    const html = await renderHtml(await mixedEnvelopes(), {
-      title: 'Partial sources',
-      provenance: new Map([['features/happy.feature', 'failed.json']]),
-    });
+    const html = await renderRun(
+      buildLoadedRun(await mixedEnvelopes(), {
+        provenance: new Map([['features/happy.feature', 'failed.json']]),
+      }),
+      { title: 'Partial sources' },
+    );
 
     expect(html).not.toContain('class="sources"');
     expect(html).not.toContain('class="featureSource"');
   });
 
   it('omits the strip for a single input file', async () => {
-    const html = await renderHtml(
-      await legacyEnvelopes('behave.json', 'behave'),
-      {
-        title: 'Single source',
+    const html = await renderRun(
+      buildLoadedRun(await legacyEnvelopes('behave.json', 'behave'), {
         provenance: new Map([['features/behave.feature', 'behave.json']]),
-      },
+      }),
+      { title: 'Single source' },
     );
 
     expect(html).not.toContain('class="sources"');
@@ -201,10 +204,10 @@ describe('source strip', () => {
         `source-${index + 1}.json`,
       ]),
     );
-    const html = await renderHtml(run, {
-      title: 'Many sources',
-      provenance: sourceMap,
-    });
+    const html = await renderRun(
+      buildLoadedRun(run, { provenance: sourceMap }),
+      { title: 'Many sources' },
+    );
 
     expect(html.match(/class="sourceItem"/g) ?? []).toHaveLength(6);
     expect(html).toContain('15 more inputs');

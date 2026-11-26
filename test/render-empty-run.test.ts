@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { renderReport } from '../src/index.js';
 import { parseMessages } from '../src/input/messages.js';
-import { renderHtml } from '../src/render/html.js';
+import { buildLoadedRun } from '../src/loaded-run.js';
+import { renderRun } from '../src/render/html.js';
 import { messagesFixture } from './fixtures.js';
 import {
   featureList,
@@ -154,16 +155,18 @@ describe('empty-run rendering', () => {
       await readFile(emptyMixedFixture, 'utf8'),
       emptyMixedFixture,
     );
-    const html = await renderHtml([...allUnexecuted, ...mixed], {
-      title: 'Sources',
-      provenance: new Map([
-        [
-          'samples/empty-all-unexecuted/empty-all-unexecuted.feature',
-          'all-unexecuted.ndjson',
-        ],
-        ['samples/empty-mixed/empty-mixed.feature', 'mixed.ndjson'],
-      ]),
-    });
+    const html = await renderRun(
+      buildLoadedRun([...allUnexecuted, ...mixed], {
+        provenance: new Map([
+          [
+            'samples/empty-all-unexecuted/empty-all-unexecuted.feature',
+            'all-unexecuted.ndjson',
+          ],
+          ['samples/empty-mixed/empty-mixed.feature', 'mixed.ndjson'],
+        ]),
+      }),
+      { title: 'Sources' },
+    );
 
     const sources = html.slice(
       html.indexOf('class="sources"'),

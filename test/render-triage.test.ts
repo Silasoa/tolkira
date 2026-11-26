@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { renderHtml } from '../src/render/html.js';
+import { buildLoadedRun } from '../src/loaded-run.js';
+import { renderHtml, renderRun } from '../src/render/html.js';
 import { buildReportModel } from '../src/report/model.js';
 import { summarizeEnvelopes } from '../src/summary.js';
 import {
@@ -117,27 +118,29 @@ describe('triage overview', () => {
   });
 
   it('treats a passed and unknown feature as needing attention', async () => {
-    const html = await renderHtml(
-      syntheticRun([
-        {
-          name: 'Passed feature',
-          scenarios: [{ name: 'ok', status: 'passed' }],
-        },
-        {
-          name: 'Mixed feature',
-          scenarios: [
-            { name: 'passes', status: 'passed' },
-            { name: 'unknown', status: 'unknown' },
-          ],
-        },
-      ]),
-      {
-        title: 'Mixed unknown',
-        provenance: new Map([
-          ['features/legacy-1.feature', 'mixed.json'],
-          ['features/legacy-0.feature', 'passed.json'],
+    const html = await renderRun(
+      buildLoadedRun(
+        syntheticRun([
+          {
+            name: 'Passed feature',
+            scenarios: [{ name: 'ok', status: 'passed' }],
+          },
+          {
+            name: 'Mixed feature',
+            scenarios: [
+              { name: 'passes', status: 'passed' },
+              { name: 'unknown', status: 'unknown' },
+            ],
+          },
         ]),
-      },
+        {
+          provenance: new Map([
+            ['features/legacy-1.feature', 'mixed.json'],
+            ['features/legacy-0.feature', 'passed.json'],
+          ]),
+        },
+      ),
+      { title: 'Mixed unknown' },
     );
 
     const names = [...featureList(html).matchAll(/<h2>(.*?)<\/h2>/g)].map(

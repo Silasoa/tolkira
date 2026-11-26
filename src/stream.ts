@@ -1,7 +1,8 @@
 import { Transform, type TransformCallback } from 'node:stream';
 import type { Envelope } from '@cucumber/messages';
-import { renderOptions, type RenderReportOptions } from './options.js';
-import { renderHtml } from './render/html.js';
+import { buildLoadedRun } from './loaded-run.js';
+import type { RenderReportOptions } from './options.js';
+import { renderRun } from './render/html.js';
 
 /**
  * A `CucumberHtmlStream`-shaped adapter for Cucumber Messages. It collects
@@ -25,12 +26,7 @@ export class CucumberHtmlStream extends Transform {
   }
 
   override _flush(callback: TransformCallback): void {
-    renderHtml(this.envelopes, {
-      ...renderOptions(this.options),
-      ...(this.options.history === undefined
-        ? {}
-        : { history: this.options.history }),
-    }).then(
+    renderRun(buildLoadedRun(this.envelopes), this.options).then(
       (html) => callback(null, html),
       (error: unknown) =>
         callback(error instanceof Error ? error : new Error(String(error))),
