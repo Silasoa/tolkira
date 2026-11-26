@@ -1,5 +1,4 @@
 import { realpathSync } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -38,16 +37,12 @@ import {
   parseMetadata,
 } from './cli/args.js';
 import { planOptions } from './cli/plan.js';
-
-const MAX_LOGO_BYTES = 2 * 1024 * 1024;
-const LOGO_MIME: Record<string, string> = {
-  '.gif': 'image/gif',
-  '.jpeg': 'image/jpeg',
-  '.jpg': 'image/jpeg',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-};
+import { readLogo } from './cli/logo.js';
+import {
+  cannotExpressRelative,
+  conflictsWithInputs,
+  pathConflicts,
+} from './cli/paths.js';
 
 const USAGE = `Usage: tolkira <input...> [--out <file>] [--pdf <file>] [--email <file>] [options]
 
@@ -91,63 +86,6 @@ const DEFAULT_IO: CliIO = {
   stdout: (text) => process.stdout.write(text),
   stderr: (text) => process.stderr.write(text),
 };
-
-/** True when `file` names `parent` or sits inside it, even when `file` is missing. */
-function isInside(parent: string, file: string): boolean {
-  let current = path.resolve(file);
-  for (;;) {
-    if (samePath(current, parent)) return true;
-    const next = path.dirname(current);
-    if (next === current) return false;
-    current = next;
-  }
-}
-
-/** True when `file` would replace or join any input, file or directory. */
-async function conflictsWithInputs(
-  file: string,
-  inputs: string[],
-): Promise<boolean> {
-  for (const input of inputs) {
-    if (samePath(file, input)) return true;
-    const info = await stat(input).catch(() => undefined);
-    if (info?.isDirectory() && isInside(input, file)) return true;
-  }
-  return false;
-}
-
-function pathConflicts(
-  file: string,
-  inputs: string[],
-  logo: string | undefined,
-  output: string | undefined,
-  pdfPath: string | undefined,
-  ciOut: string | undefined,
-  email: string | undefined,
-  peer: string | undefined,
-): Promise<boolean> {
-  if (output && samePath(file, output)) return Promise.resolve(true);
-  if (pdfPath && samePath(file, pdfPath)) return Promise.resolve(true);
-  if (ciOut && samePath(file, ciOut)) return Promise.resolve(true);
-  if (email && samePath(file, email)) return Promise.resolve(true);
-  if (peer && samePath(file, peer)) return Promise.resolve(true);
-  if (logo && samePath(file, logo)) return Promise.resolve(true);
-  return conflictsWithInputs(file, inputs);
-}
-
-/** A relative artifact path with no form relative to the manifest directory. */
-function cannotExpressRelative(
-  manifestFile: string,
-  artifact: string,
-): boolean {
-  if (path.isAbsolute(artifact)) return false;
-  return path.isAbsolute(
-    path.relative(
-      path.dirname(path.resolve(manifestFile)),
-      path.resolve(artifact),
-    ),
-  );
-}
 
 function errorCode(error: unknown): string | undefined {
   return error instanceof Error &&
@@ -238,51 +176,6 @@ async function writePdf(
       { cause: error },
     );
   }
-}
-
-async function readLogo(file: string): Promise<string> {
-  const extension = path.extname(file).toLowerCase();
-  const mime = LOGO_MIME[extension];
-  if (!mime) {
-    throw new Error(
-      `Unsupported logo type "${extension}". Use PNG, JPEG, GIF, WebP or SVG.`,
-    );
-  }
-  const info = await stat(file);
-  if (info.size > MAX_LOGO_BYTES) {
-    throw new Error('Logo is larger than 2 MB.');
-  }
-  const data = await readFile(file);
-  let valid = false;
-  switch (extension) {
-    case '.png':
-      valid = data.subarray(0, 8).toString('hex') === '89504e470d0a1a0a';
-      break;
-    case '.jpg':
-    case '.jpeg':
-      valid = data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
-      break;
-    case '.gif':
-      valid = data.subarray(0, 4).toString('ascii') === 'GIF8';
-      break;
-    case '.webp':
-      valid =
-        data.subarray(0, 4).toString('ascii') === 'RIFF' &&
-        data.subarray(8, 12).toString('ascii') === 'WEBP';
-      break;
-    case '.svg':
-      valid =
-        /^\s*(?:<\?xml[\s\S]*?\?>\s*)?(?:<!DOCTYPE[\s\S]*?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg\b/i.test(
-          data.toString('utf8', 0, 1024),
-        );
-      break;
-  }
-  if (!valid) {
-    throw new Error(
-      `Logo content does not match the "${extension}" extension.`,
-    );
-  }
-  return `data:${mime};base64,${data.toString('base64')}`;
 }
 
 export async function runCli(
