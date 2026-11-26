@@ -1,0 +1,170 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+
+function readText(relativePath: string): string {
+  return readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
+const ci = readText('.github/workflows/ci.yml');
+const release = readText('.github/workflows/release.yml');
+const dependabot = readText('.github/dependabot.yml');
+
+const pinnedUse =
+  /^\s*(?:-\s*)?uses:\s+[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*@[0-9a-f]{40}\s+#\s+v\d+\.\d+\.\d+\s*$/;
+
+function actionUses(workflow: string): string[] {
+  return workflow
+    .split(/\r?\n/)
+    .filter((line) => /^\s*(?:-\s*)?uses:\s+/.test(line))
+    .filter((line) => !/^\s*(?:-\s*)?uses:\s+\.\//.test(line));
+}
+
+function isPinnedUse(line: string): boolean {
+  return pinnedUse.test(line);
+}
+
+// Slice a job from its two-space `name:` line to the next job declaration.
+function jobBlock(workflow: string, name: string): string {
+  const lines = workflow.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === `  ${name}:`);
+  if (start === -1) return '';
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^ {2}[A-Za-z0-9_-]+:\s*$/.test(lines[index] ?? '')) {
+      end = index;
+      break;
+    }
+  }
+  return lines.slice(start, end).join('\n');
+}
+
+// Slice a step from the line that carries the marker to the next `- ` step.
+function stepBlocks(workflow: string, marker: string): string[] {
+  const lines = workflow.split(/\r?\n/);
+  return lines.flatMap((line, start) => {
+    if (!line.includes(marker)) return [];
+    let end = lines.length;
+    for (let index = start + 1; index < lines.length; index += 1) {
+      if (/^\s*-\s/.test(lines[index] ?? '')) {
+        end = index;
+        break;
+      }
+    }
+    return [lines.slice(start, end).join('\n')];
+  });
+}
+
+describe('action pins', () => {
+  it('pins every action to a 40-hex commit with a version comment', () => {
+    const uses = [...actionUses(ci), ...actionUses(release)];
+    expect(uses.length).toBeGreaterThan(0);
+    expect(uses.filter((line) => !isPinnedUse(line))).toEqual([]);
+  });
+
+  it('rejects a mutable major tag and a pin without a comment', () => {
+    expect(isPinnedUse('      - uses: actions/checkout@v7')).toBe(false);
+    expect(
+      isPinnedUse(
+        '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+      ),
+    ).toBe(false);
+    expect(
+      isPinnedUse(
+        '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('checkout credentials', () => {
+  it('disables persisted credentials on every checkout', () => {
+    const checkouts = [
+      ...stepBlocks(ci, 'actions/checkout'),
+      ...stepBlocks(release, 'actions/checkout'),
+    ];
+    expect(checkouts.length).toBeGreaterThan(0);
+    expect(
+      checkouts.filter(
+        (block) => !block.includes('persist-credentials: false'),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('release artifact', () => {
+  it('resolves one version and stages the packed tarball', () => {
+    const publish = jobBlock(release, 'publish');
+    expect(publish).not.toBe('');
+    expect(publish).toContain('TOLKIRA_VERSION');
+    expect(publish).toContain('tolkira-$TOLKIRA_VERSION.tgz');
+    expect(release).not.toMatch(/npm stage publish \./);
+    expect(publish).toMatch(
+      /npm stage publish \/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz/,
+    );
+  });
+
+  it('pins npm 12.2.3 in the CI package and release publish jobs', () => {
+    const ciPackage = jobBlock(ci, 'package');
+    const releasePublish = jobBlock(release, 'publish');
+    expect(ciPackage).not.toBe('');
+    expect(releasePublish).not.toBe('');
+    for (const block of [ciPackage, releasePublish]) {
+      expect(block).toMatch(
+        /npm\s+(?:install|i)\s+(?:--global|-g)\s+npm@12\.2\.3\b/,
+      );
+    }
+    expect(ci).not.toContain('npm@latest');
+    expect(release).not.toContain('npm@latest');
+  });
+
+  it('verifies dependency signatures and uploads a CycloneDX SBOM', () => {
+    const publish = jobBlock(release, 'publish');
+    expect(publish).toContain('npm audit signatures');
+    expect(publish).toContain('npm sbom --sbom-format cyclonedx');
+    expect(publish).toContain('tolkira-$TOLKIRA_VERSION.cdx.json');
+    const uploads = stepBlocks(publish, 'actions/upload-artifact');
+    expect(uploads.length).toBeGreaterThan(0);
+    expect(uploads.some((block) => block.includes('name: tolkira-sbom'))).toBe(
+      true,
+    );
+  });
+});
+
+describe('workflow lint job', () => {
+  it('runs actionlint and zizmor in CI', () => {
+    const block = jobBlock(ci, 'workflows');
+    expect(block).not.toBe('');
+    expect(block).toContain('actionlint');
+    expect(block).toContain('zizmor');
+  });
+});
+
+describe('dependabot', () => {
+  it('waits seven days before opening an update for both entries', () => {
+    const entries = dependabot.split(/^ {2}- package-ecosystem:/m).slice(1);
+    expect(entries).toHaveLength(2);
+    for (const entry of entries) {
+      expect(entry).toContain('cooldown:');
+      expect(entry).toMatch(/default-days:\s*7\b/);
+    }
+  });
+});
+
+describe('release cache', () => {
+  it('does not restore a package-manager cache in the release workflow', () => {
+    expect(release).not.toMatch(/cache:\s*npm/);
+  });
+});
+
+describe('CI pack directory', () => {
+  it('hands the package job a stable pack directory', () => {
+    const ciPackage = jobBlock(ci, 'package');
+    expect(ciPackage).not.toBe('');
+    expect(ciPackage).toContain('TOLKIRA_PACK_DIR');
+    expect(ciPackage).toContain('/tmp/pack');
+  });
+});

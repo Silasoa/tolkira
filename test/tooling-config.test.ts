@@ -503,6 +503,7 @@ describe('format gate', () => {
       'npm run assets',
       'npm run typecheck',
       'npm run lint',
+      'npm run lint:dead',
       'npm run format:check',
       'npm run build',
       'npm run test:coverage',
@@ -544,7 +545,7 @@ describe('coverage floor', () => {
 });
 
 describe('dev dependency pins', () => {
-  it('pins oxlint, oxfmt and the coverage provider exactly', () => {
+  it('pins the tooling dependencies exactly', () => {
     const devDependencies =
       readJson<PackageJson>('package.json').devDependencies ?? {};
     const pins = [
@@ -552,11 +553,63 @@ describe('dev dependency pins', () => {
       ['oxlint-tsgolint', '7.0.2008'],
       ['oxfmt', '0.80.0'],
       ['@vitest/coverage-v8', '5.1.1'],
+      ['knip', '6.48.0'],
+      ['publint', '0.3.25'],
+      ['@arethetypeswrong/cli', '0.18.5'],
     ] as const;
     for (const [name, version] of pins) {
       expect(devDependencies[name], name).toBe(version);
     }
     expect(devDependencies).not.toHaveProperty('prettier');
+  });
+});
+
+interface AttwConfig {
+  profile?: string;
+  ignoreRules?: string[];
+}
+
+interface KnipConfig {
+  entry?: string[];
+  ignoreDependencies?: string[];
+}
+
+describe('dead code and package surface', () => {
+  it('exposes the package:check and lint:dead scripts', () => {
+    const scripts = readJson<PackageJson>('package.json').scripts ?? {};
+    expect(scripts['package:check']).toBe(
+      'npm run build && node scripts/package-check.mjs',
+    );
+    expect(scripts['lint:dead']).toBe('knip');
+  });
+
+  it('pins the attw node16 profile and the one ignored rule', () => {
+    const config = readJson<AttwConfig>('.attw.json');
+    expect(Object.keys(config).sort()).toEqual(['ignoreRules', 'profile']);
+    expect(config.profile).toBe('node16');
+    expect([...(config.ignoreRules ?? [])].sort()).toEqual([
+      'cjs-resolves-to-esm',
+    ]);
+  });
+
+  it('declares the knip entries and the one ignored dependency', () => {
+    const config = readJson<KnipConfig>('knip.json');
+    const entries = config.entry ?? [];
+    for (const expected of [
+      'src/index.ts',
+      'src/cli.ts',
+      'src/compat/cucumber-html-reporter.ts',
+      'src/compat/cucumber-html-reporter.cts',
+      'src/render/report-client.ts',
+      'scripts/*.mjs',
+      'test/**/*.test.ts',
+      'test/e2e/**/*.spec.ts',
+    ]) {
+      expect(entries, expected).toContain(expected);
+    }
+    expect(entries).not.toContain('test/**');
+    expect(entries).not.toContain('test/baseline-helpers.ts');
+    expect(config.ignoreDependencies).toEqual(['playwright-core']);
   });
 });
 
