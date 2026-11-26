@@ -2,17 +2,18 @@
 
 ## 1. Contract and pre-implementation review
 
-- [ ] 1.1 Finish the change contract: `proposal.md`, this file and
+- [x] 1.1 Finish the change contract: `proposal.md`, this file and
   `design.md`, including the acceptance criteria AC1-AC10, the edge-case
   matrix and the stop conditions.
-- [ ] 1.2 Run PIR and DXR in parallel before any production code. PIR checks
+- [x] 1.2 Run PIR and DXR in parallel before any production code. PIR checks
   parity and vision: no user-visible change is claimed, no parity feature is
   dropped, and the seam does not promise work that belongs to the input
   pipeline or the render-context refactor. DXR checks the developer and
   integrator view: public API unchanged, stream behaviour unchanged, a fresh
   agent can follow the seam, and the test migration is actionable.
-- [ ] 1.3 Fold every PIR/DXR blocker into `proposal.md`/`design.md` before
-  implementation; record the verdicts in `gate.md`.
+- [x] 1.3 Fold every PIR/DXR blocker into `proposal.md`/`design.md` before
+  implementation; record the verdicts in `gate.md`. Both reviewers PASS after
+  the input-count, parity-fact, stream-option and bundle-claim fixes.
 
 ## 2. TDD-Red
 
