@@ -9,7 +9,7 @@ import {
 } from './artifacts.js';
 import { readBaseline, type BaselineSummary } from './baseline.js';
 import { capabilitiesJson } from './capabilities.js';
-import { formatCiOutput, type CiFormat } from './ci.js';
+import { formatCiOutput } from './ci.js';
 import { renderEmail, type EmailOptions } from './email.js';
 import {
   readHistory,
@@ -22,7 +22,6 @@ import { version } from './index.js';
 import { resolveInputFiles, scanInputBytes } from './input/load.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { renderPdf } from './pdf.js';
-import { resolveLocale } from './render/i18n.js';
 import { generateReportFromResolved, summarizeRunFromResolved } from './run.js';
 import type { ReportSummary } from './summary.js';
 import { oneLine } from './text.js';
@@ -35,13 +34,10 @@ import {
 } from './warnings.js';
 import {
   parseAccent,
-  parseCiFormat,
-  parseCliArgs,
-  parseHistoryLimit,
   parseMaxSize,
   parseMetadata,
-  parsePdfTimeout,
 } from './cli/args.js';
+import { planOptions } from './cli/plan.js';
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_MIME: Record<string, string> = {
@@ -293,227 +289,54 @@ export async function runCli(
   argv: string[],
   io: CliIO = DEFAULT_IO,
 ): Promise<number> {
-  let parsed: ReturnType<typeof parseCliArgs>;
-
-  try {
-    parsed = parseCliArgs(argv);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
+  const planned = await planOptions(argv);
+  if (!planned.ok) {
+    io.stderr(
+      planned.kind === 'usage'
+        ? USAGE
+        : `tolkira: ${planned.message}\n\n${USAGE}`,
+    );
     return 2;
   }
 
-  if (parsed.values.help) {
-    io.stdout(USAGE);
-    return 0;
-  }
-
-  if (parsed.values.version) {
-    io.stdout(`${version}\n`);
-    return 0;
-  }
-
-  if (parsed.values.capabilities) {
-    const combined =
-      parsed.positionals.length > 0 ||
-      Object.keys(parsed.values).some((key) => key !== 'capabilities');
-    if (combined) {
-      io.stderr(
-        `tolkira: --capabilities takes no input and no other option; ` +
-          `run tolkira --capabilities alone\n\n${USAGE}`,
-      );
-      return 2;
-    }
-    io.stdout(capabilitiesJson());
-    return 0;
-  }
-
-  const inputs = parsed.positionals;
-  const output = parsed.values.out;
-  const pdfPath = parsed.values.pdf;
-  const emailPath = parsed.values.email;
-  const wantsJson = parsed.values.json;
-  const ciOut = parsed.values['ci-out'];
-  const historyFile = parsed.values.history;
-  const baselineFile = parsed.values.baseline;
-  const manifestFile = parsed.values.manifest;
-
-  if (parsed.values.out === '') {
-    io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (pdfPath === '') {
-    io.stderr(`tolkira: --pdf requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (baselineFile === '') {
-    io.stderr(`tolkira: --baseline requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (manifestFile === '') {
-    io.stderr(`tolkira: --manifest requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (parsed.values.static && !output && pdfPath === undefined) {
-    io.stderr(`tolkira: --static requires --out or --pdf\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (parsed.values['pdf-timeout'] !== undefined && pdfPath === undefined) {
-    io.stderr(`tolkira: --pdf-timeout requires --pdf\n\n${USAGE}`);
-    return 2;
-  }
-
-  let pdfTimeout: number | undefined;
-  try {
-    pdfTimeout = parsePdfTimeout(parsed.values['pdf-timeout']);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (emailPath === '') {
-    io.stderr(`tolkira: --email requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  let locale: string | undefined;
-  if (parsed.values.locale !== undefined) {
-    try {
-      locale = resolveLocale(parsed.values.locale).requested;
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
-      return 2;
+  if ('action' in planned) {
+    switch (planned.action) {
+      case 'help':
+        io.stdout(USAGE);
+        return 0;
+      case 'version':
+        io.stdout(`${version}\n`);
+        return 0;
+      case 'capabilities':
+        io.stdout(capabilitiesJson());
+        return 0;
     }
   }
 
-  if (
-    locale !== undefined &&
-    !output &&
-    emailPath === undefined &&
-    pdfPath === undefined
-  ) {
-    io.stderr(`tolkira: --locale requires --out, --pdf or --email\n\n${USAGE}`);
-    return 2;
-  }
-
-  let ci: CiFormat | undefined;
-  try {
-    ci = parseCiFormat(parsed.values.ci);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (ciOut === '') {
-    io.stderr(`tolkira: --ci-out requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (ciOut !== undefined && ci === undefined) {
-    io.stderr(`tolkira: --ci-out requires --ci\n\n${USAGE}`);
-    return 2;
-  }
-
-  if ((ci === 'github' || ci === 'azure') && ciOut !== undefined) {
-    io.stderr(
-      `tolkira: --ci ${ci} writes annotations to stdout; ` +
-        `--ci-out is only for --ci markdown\n\n${USAGE}`,
-    );
-    return 2;
-  }
-
-  if (wantsJson && ci !== undefined && ciOut === undefined) {
-    const alternative =
-      ci === 'github'
-        ? 'drop --json or --ci github'
-        : ci === 'azure'
-          ? 'drop --json or --ci azure, or use --ci markdown with --ci-out'
-          : 'add --ci-out for the Markdown summary or drop one';
-    io.stderr(
-      `tolkira: --json and --ci ${ci} both write to stdout; ` +
-        `${alternative}\n\n${USAGE}`,
-    );
-    return 2;
-  }
-
-  if (
-    baselineFile !== undefined &&
-    !output &&
-    !wantsJson &&
-    pdfPath === undefined &&
-    ci !== 'markdown'
-  ) {
-    io.stderr(
-      `tolkira: --baseline requires --out, --pdf, --json or --ci markdown` +
-        `\n\n${USAGE}`,
-    );
-    return 2;
-  }
-
-  if (
-    parsed.values['history-limit'] !== undefined &&
-    historyFile === undefined
-  ) {
-    io.stderr(`tolkira: --history-limit requires --history\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (historyFile !== undefined && historyFile !== '' && !output) {
-    io.stderr(`tolkira: --history requires --out\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (
-    inputs.length === 0 ||
-    (!output &&
-      !wantsJson &&
-      ci === undefined &&
-      emailPath === undefined &&
-      pdfPath === undefined &&
-      manifestFile === undefined)
-  ) {
-    io.stderr(USAGE);
-    return 2;
-  }
-
-  if (parsed.values.logo === '') {
-    io.stderr(`tolkira: --logo requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (!output && parsed.values.logo) {
-    io.stderr(`tolkira: --logo requires --out\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (historyFile === '') {
-    io.stderr(`tolkira: --history requires a file path\n\n${USAGE}`);
-    return 2;
-  }
-
-  let historyLimit: number | undefined;
-  try {
-    historyLimit = parseHistoryLimit(parsed.values['history-limit']);
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
-    return 2;
-  }
+  const options = planned.options;
+  const inputs = options.inputs;
+  const output = options.report;
+  const pdfPath = options.pdf;
+  const emailPath = options.email;
+  const wantsJson = options.json;
+  const ciOut = options.ciOut;
+  const historyFile = options.history;
+  const baselineFile = options.baseline;
+  const manifestFile = options.manifest;
+  const logoFile = options.logo;
+  const title = options.title;
+  const staticReport = options.static;
+  const locale = options.locale;
+  const ci = options.ci;
+  const pdfTimeout = options.pdfTimeout;
+  const historyLimit = options.historyLimit;
 
   if (manifestFile !== undefined) {
     const collides =
       (await pathConflicts(
         manifestFile,
         inputs,
-        parsed.values.logo,
+        logoFile,
         output,
         pdfPath,
         ciOut,
@@ -556,7 +379,7 @@ export async function runCli(
     (await pathConflicts(
       historyFile,
       inputs,
-      parsed.values.logo,
+      logoFile,
       output,
       pdfPath,
       ciOut,
@@ -576,7 +399,7 @@ export async function runCli(
     (await pathConflicts(
       baselineFile,
       inputs,
-      parsed.values.logo,
+      logoFile,
       output,
       pdfPath,
       ciOut,
@@ -593,7 +416,7 @@ export async function runCli(
 
   if (
     output &&
-    (await outputOverwritesInput(inputs, output, parsed.values.logo))
+    (await outputOverwritesInput(inputs, output, logoFile))
   ) {
     io.stderr(`tolkira: --out must not overwrite an input file\n\n${USAGE}`);
     return 2;
@@ -604,7 +427,7 @@ export async function runCli(
       io.stderr(`tolkira: --ci-out must not overwrite --out\n\n${USAGE}`);
       return 2;
     }
-    if (await outputOverwritesInput(inputs, ciOut, parsed.values.logo)) {
+    if (await outputOverwritesInput(inputs, ciOut, logoFile)) {
       io.stderr(
         `tolkira: --ci-out must not overwrite an input file or the logo` +
           `\n\n${USAGE}`,
@@ -629,7 +452,7 @@ export async function runCli(
       );
       return 2;
     }
-    if (await outputOverwritesInput(inputs, emailPath, parsed.values.logo)) {
+    if (await outputOverwritesInput(inputs, emailPath, logoFile)) {
       io.stderr(
         `tolkira: --email must not overwrite an input file or the logo` +
           `\n\n${USAGE}`,
@@ -652,8 +475,8 @@ export async function runCli(
       return 2;
     }
     if (
-      parsed.values.logo !== undefined &&
-      samePath(pdfPath, parsed.values.logo)
+      logoFile !== undefined &&
+      samePath(pdfPath, logoFile)
     ) {
       io.stderr(`tolkira: --pdf must not overwrite the logo\n\n${USAGE}`);
       return 2;
@@ -672,10 +495,10 @@ export async function runCli(
   let accent: string | undefined;
   let logo: string | undefined;
   try {
-    metadata = parseMetadata(parsed.values.meta);
-    maxSizeMb = parseMaxSize(parsed.values['max-size']);
-    accent = parseAccent(parsed.values.accent);
-    logo = parsed.values.logo ? await readLogo(parsed.values.logo) : undefined;
+    metadata = parseMetadata(options.meta);
+    maxSizeMb = parseMaxSize(options.maxSize);
+    accent = parseAccent(options.accent);
+    logo = logoFile ? await readLogo(logoFile) : undefined;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
@@ -711,9 +534,9 @@ export async function runCli(
       );
       if (emailPath !== undefined) {
         await writeEmailSummary(emailPath, summary, {
-          ...(parsed.values.title === undefined
+          ...(title === undefined
             ? {}
-            : { title: parsed.values.title }),
+            : { title: title }),
           ...(locale === undefined ? {} : { locale }),
           ...(accent === undefined ? {} : { accent }),
           now: new Date(),
@@ -724,9 +547,9 @@ export async function runCli(
           ? formatCiOutput(
               summary,
               ci,
-              parsed.values.title === undefined
+              title === undefined
                 ? {}
-                : { title: parsed.values.title },
+                : { title: title },
             )
           : undefined;
       if (ciText !== undefined && ciOut !== undefined) {
@@ -768,14 +591,14 @@ export async function runCli(
     }
 
     const generated = await generateReportFromResolved(resolvedInputs, {
-      ...(parsed.values.title === undefined
+      ...(title === undefined
         ? {}
-        : { title: parsed.values.title }),
+        : { title: title }),
       metadata,
       ...(logo === undefined ? {} : { logo }),
       ...(accent === undefined ? {} : { accent }),
       ...(historyLimit === undefined ? {} : { historyLimit }),
-      ...(parsed.values.static ? { static: true } : {}),
+      ...(staticReport ? { static: true } : {}),
       ...(locale === undefined ? {} : { locale }),
       ...(history === undefined ? {} : { history }),
       ...(baseline === undefined ? {} : { baseline }),
@@ -790,9 +613,9 @@ export async function runCli(
     }
     if (emailPath !== undefined) {
       await writeEmailSummary(emailPath, summary, {
-        ...(parsed.values.title === undefined
+        ...(title === undefined
           ? {}
-          : { title: parsed.values.title }),
+          : { title: title }),
         ...(locale === undefined ? {} : { locale }),
         reportName: path.basename(output ?? pdfPath ?? ''),
         ...(accent === undefined ? {} : { accent }),
@@ -827,9 +650,9 @@ export async function runCli(
         ? formatCiOutput(
             summary,
             ci,
-            parsed.values.title === undefined
+            title === undefined
               ? {}
-              : { title: parsed.values.title },
+              : { title: title },
           )
         : undefined;
     if (ciText !== undefined && ciOut !== undefined) {
