@@ -292,13 +292,12 @@ describe('planCli containment (input files and directories)', () => {
     },
   );
 
-  it('rejects --out and --ci-out replacing an existing file inside an input directory', async () => {
+  it('rejects --out and --ci-out replacing a report file inside an input directory', async () => {
     const dir = await tempDir();
     const inputDir = await inputDirectory(dir);
-    const existing = path.join(inputDir, 'existing.html');
-    await writeFile(existing, 'keep me', 'utf8');
+    const inputFile = path.join(inputDir, 'run.ndjson');
 
-    expect(await failure([inputDir, '--out', existing])).toBe(OUT_CONFLICT);
+    expect(await failure([inputDir, '--out', inputFile])).toBe(OUT_CONFLICT);
 
     expect(
       await failure([
@@ -308,9 +307,20 @@ describe('planCli containment (input files and directories)', () => {
         '--ci',
         'markdown',
         '--ci-out',
-        existing,
+        inputFile,
       ]),
     ).toBe(CI_OUT_INPUT);
+  });
+
+  it('allows --out to replace a non-report file inside an input directory', async () => {
+    const dir = await tempDir();
+    const inputDir = await inputDirectory(dir);
+    const existingHtml = path.join(inputDir, 'existing.html');
+    await writeFile(existingHtml, 'replace me', 'utf8');
+
+    const plan = await runPlan([inputDir, '--out', existingHtml]);
+
+    expect(plan.report).toBe(existingHtml);
   });
 });
 

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { parseCliArgs } from '../src/cli/args.js';
 import { planCli, type CliPlan } from '../src/cli/plan.js';
 
 const fixture = fileURLToPath(
@@ -510,13 +511,19 @@ describe('planCli messages added by checks 32–34', () => {
   });
 
   it.each(['', '0', '-1', 'NaN', 'Infinity'])(
-    'rejects the --max-size value %j',
+    'rejects the --max-size value %j through the equals form',
     async (value) => {
       expect(
-        await failure([fixture, '--out', 'report.html', '--max-size', value]),
+        await failure([fixture, '--out', 'report.html', `--max-size=${value}`]),
       ).toBe(`Invalid --max-size "${value}". Use a positive number of MB.`);
     },
   );
+
+  it('rejects the bare --max-size -1 token as ambiguous in the parser', () => {
+    expect(() =>
+      parseCliArgs([fixture, '--out', 'report.html', '--max-size', '-1']),
+    ).toThrow("Option '--max-size' argument is ambiguous.");
+  });
 });
 
 describe('planCli same- and cross-family precedence (checks 24–34)', () => {
