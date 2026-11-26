@@ -69,20 +69,24 @@ async function hash(file: string): Promise<{ bytes: number; sha: string }> {
 
 function normalizePdf(bytes: Buffer): Buffer {
   let text = bytes.toString('latin1');
-  text = text.replace(
+  text = text.replaceAll(
     /\/(CreationDate|ModDate)\s*\([^)]*\)/g,
     '/$1 (D:FIXED)',
   );
-  text = text.replace(/\/ID\s*\[[^\]]*\]/g, '/ID [<FIXED><FIXED>]');
+  text = text.replaceAll(/\/ID\s*\[[^\]]*\]/g, '/ID [<FIXED><FIXED>]');
   return Buffer.from(text, 'latin1');
 }
 
 function spawnCli(argv: string[]) {
-  return spawnSync(process.execPath, [path.join(repoRoot, 'dist', 'cli.js'), ...argv], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    timeout: 120_000,
-  });
+  return spawnSync(
+    process.execPath,
+    [path.join(repoRoot, 'dist', 'cli.js'), ...argv],
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      timeout: 120_000,
+    },
+  );
 }
 
 describe('one-time gate rows 1-10, 14, 16, 18, 19, 20', () => {
@@ -195,12 +199,16 @@ describe('one-time gate rows 1-10, 14, 16, 18, 19, 20', () => {
     const dir = await tempDir();
     const report = path.join(dir, 'r.html');
     const manifest = path.join(dir, 'm.json');
-    const result = await cli([fixture, '--out', report, '--manifest', manifest]);
+    const result = await cli([
+      fixture,
+      '--out',
+      report,
+      '--manifest',
+      manifest,
+    ]);
     expect(result).toEqual({
       code: 0,
-      stdout:
-        `Report written to ${report}\n` +
-        `Manifest written to ${manifest}\n`,
+      stdout: `Report written to ${report}\nManifest written to ${manifest}\n`,
       stderr: '',
     });
     await expect(readFile(manifest, 'utf8')).resolves.toContain(

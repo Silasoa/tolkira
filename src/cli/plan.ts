@@ -53,17 +53,14 @@ type CliOutputKind =
   | 'history'
   | 'ci-markdown'
   | 'manifest';
-
 type CliConfirmationKind = Extract<
   CliOutputKind,
   'report' | 'pdf' | 'email' | 'manifest'
 >;
-
 export interface CliPlan {
   /** 'summary' when no report/PDF is generated, 'generate' otherwise. */
   mode: 'summary' | 'generate';
   inputs: string[];
-
   report?: string;
   pdf?: string;
   email?: string;
@@ -71,7 +68,6 @@ export interface CliPlan {
   ciOut?: string;
   manifest?: string;
   baseline?: string;
-
   json: boolean;
   ci?: CiFormat;
   title?: string;
@@ -84,7 +80,6 @@ export interface CliPlan {
   maxSizeMb: number;
   pdfTimeout?: number;
   historyLimit?: number;
-
   /** Declared file order, stdout excluded. */
   writes: readonly CliOutputKind[];
   /** Who owns stdout, and which confirmations print when it is free. */
@@ -95,57 +90,45 @@ export interface CliPlan {
   /** Execute returns success or failure; usage never produces a plan. */
   exitCodes: { readonly success: 0; readonly failure: 1 };
 }
-
 type CliAction =
   | { kind: 'help' }
   | { kind: 'version' }
   | { kind: 'capabilities' }
   | { kind: 'run'; plan: CliPlan };
-
 type CliPlanResult =
   | { ok: true; action: CliAction }
   | { ok: false; kind: 'message'; message: string }
   | { ok: false; kind: 'usage' };
-
-function message(error: unknown): CliOptionsResult {
-  return {
-    ok: false,
-    kind: 'message',
-    message: error instanceof Error ? error.message : String(error),
-  };
+type CliFailure =
+  | { ok: false; kind: 'message'; message: string }
+  | { ok: false; kind: 'usage' };
+function fail(message: string): CliFailure {
+  return { ok: false, kind: 'message', message };
 }
-
+function fromError(error: unknown): CliFailure {
+  return fail(error instanceof Error ? error.message : String(error));
+}
 export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
   // The planning seam is asynchronous even while its checks are synchronous.
   await Promise.resolve();
-  let parsed: ReturnType<typeof parseCliArgs>;
 
+  let parsed: ReturnType<typeof parseCliArgs>;
   try {
     parsed = parseCliArgs(argv);
   } catch (error) {
-    return message(error);
+    return fromError(error);
   }
-
-  if (parsed.values.help) {
-    return { ok: true, action: 'help' };
-  }
-
-  if (parsed.values.version) {
-    return { ok: true, action: 'version' };
-  }
-
+  if (parsed.values.help) return { ok: true, action: 'help' };
+  if (parsed.values.version) return { ok: true, action: 'version' };
   if (parsed.values.capabilities) {
     const combined =
       parsed.positionals.length > 0 ||
       Object.keys(parsed.values).some((key) => key !== 'capabilities');
     if (combined) {
-      return {
-        ok: false,
-        kind: 'message',
-        message:
-          '--capabilities takes no input and no other option; ' +
+      return fail(
+        '--capabilities takes no input and no other option; ' +
           'run tolkira --capabilities alone',
-      };
+      );
     }
     return { ok: true, action: 'capabilities' };
   }
@@ -160,120 +143,59 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
   const baseline = parsed.values.baseline;
   const manifest = parsed.values.manifest;
 
-  if (report === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--out requires a file path',
-    };
-  }
-
-  if (pdf === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--pdf requires a file path',
-    };
-  }
-
-  if (baseline === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--baseline requires a file path',
-    };
-  }
-
-  if (manifest === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--manifest requires a file path',
-    };
-  }
-
+  if (report === '') return fail('--out requires a file path');
+  if (pdf === '') return fail('--pdf requires a file path');
+  if (baseline === '') return fail('--baseline requires a file path');
+  if (manifest === '') return fail('--manifest requires a file path');
   if (parsed.values.static && !report && pdf === undefined) {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--static requires --out or --pdf',
-    };
+    return fail('--static requires --out or --pdf');
   }
-
   if (parsed.values['pdf-timeout'] !== undefined && pdf === undefined) {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--pdf-timeout requires --pdf',
-    };
+    return fail('--pdf-timeout requires --pdf');
   }
 
   let pdfTimeout: number | undefined;
   try {
     pdfTimeout = parsePdfTimeout(parsed.values['pdf-timeout']);
   } catch (error) {
-    return message(error);
+    return fromError(error);
   }
 
-  if (email === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--email requires a file path',
-    };
-  }
+  if (email === '') return fail('--email requires a file path');
 
   let locale: string | undefined;
   if (parsed.values.locale !== undefined) {
     try {
       locale = resolveLocale(parsed.values.locale).requested;
     } catch (error) {
-      return message(error);
+      return fromError(error);
     }
   }
-
   if (
     locale !== undefined &&
     !report &&
     email === undefined &&
     pdf === undefined
   ) {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--locale requires --out, --pdf or --email',
-    };
+    return fail('--locale requires --out, --pdf or --email');
   }
 
   let ci: CiFormat | undefined;
   try {
     ci = parseCiFormat(parsed.values.ci);
   } catch (error) {
-    return message(error);
+    return fromError(error);
   }
-
-  if (ciOut === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--ci-out requires a file path',
-    };
-  }
-
+  if (ciOut === '') return fail('--ci-out requires a file path');
   if (ciOut !== undefined && ci === undefined) {
-    return { ok: false, kind: 'message', message: '--ci-out requires --ci' };
+    return fail('--ci-out requires --ci');
   }
-
   if ((ci === 'github' || ci === 'azure') && ciOut !== undefined) {
-    return {
-      ok: false,
-      kind: 'message',
-      message:
-        `--ci ${ci} writes annotations to stdout; ` +
+    return fail(
+      `--ci ${ci} writes annotations to stdout; ` +
         '--ci-out is only for --ci markdown',
-    };
+    );
   }
-
   if (json && ci !== undefined && ciOut === undefined) {
     const alternative =
       ci === 'github'
@@ -281,13 +203,8 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
         : ci === 'azure'
           ? 'drop --json or --ci azure, or use --ci markdown with --ci-out'
           : 'add --ci-out for the Markdown summary or drop one';
-    return {
-      ok: false,
-      kind: 'message',
-      message: `--json and --ci ${ci} both write to stdout; ` + alternative,
-    };
+    return fail(`--json and --ci ${ci} both write to stdout; ` + alternative);
   }
-
   if (
     baseline !== undefined &&
     !report &&
@@ -295,25 +212,14 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
     pdf === undefined &&
     ci !== 'markdown'
   ) {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--baseline requires --out, --pdf, --json or --ci markdown',
-    };
+    return fail('--baseline requires --out, --pdf, --json or --ci markdown');
   }
-
   if (parsed.values['history-limit'] !== undefined && history === undefined) {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--history-limit requires --history',
-    };
+    return fail('--history-limit requires --history');
   }
-
   if (history !== undefined && history !== '' && !report) {
-    return { ok: false, kind: 'message', message: '--history requires --out' };
+    return fail('--history requires --out');
   }
-
   if (
     inputs.length === 0 ||
     (!report &&
@@ -325,70 +231,49 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
   ) {
     return { ok: false, kind: 'usage' };
   }
-
-  if (parsed.values.logo === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--logo requires a file path',
-    };
-  }
-
-  if (!report && parsed.values.logo) {
-    return { ok: false, kind: 'message', message: '--logo requires --out' };
-  }
-
-  if (history === '') {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--history requires a file path',
-    };
-  }
+  if (parsed.values.logo === '') return fail('--logo requires a file path');
+  if (!report && parsed.values.logo) return fail('--logo requires --out');
+  if (history === '') return fail('--history requires a file path');
 
   let historyLimit: number | undefined;
   try {
     historyLimit = parseHistoryLimit(parsed.values['history-limit']);
   } catch (error) {
-    return message(error);
+    return fromError(error);
   }
 
-  return {
-    ok: true,
-    options: {
-      inputs,
-      ...(report === undefined ? {} : { report }),
-      ...(pdf === undefined ? {} : { pdf }),
-      ...(email === undefined ? {} : { email }),
-      ...(history === undefined ? {} : { history }),
-      ...(ciOut === undefined ? {} : { ciOut }),
-      ...(manifest === undefined ? {} : { manifest }),
-      ...(baseline === undefined ? {} : { baseline }),
-      json: json ?? false,
-      ...(ci === undefined ? {} : { ci }),
-      ...(parsed.values.title === undefined
-        ? {}
-        : { title: parsed.values.title }),
-      ...(locale === undefined ? {} : { locale }),
-      static: parsed.values.static ?? false,
-      ...(pdfTimeout === undefined ? {} : { pdfTimeout }),
-      ...(historyLimit === undefined ? {} : { historyLimit }),
-      ...(parsed.values.meta === undefined ? {} : { meta: parsed.values.meta }),
-      ...(parsed.values['max-size'] === undefined
-        ? {}
-        : { maxSize: parsed.values['max-size'] }),
-      ...(parsed.values.accent === undefined
-        ? {}
-        : { accent: parsed.values.accent }),
-      ...(parsed.values.logo === undefined ? {} : { logo: parsed.values.logo }),
-    },
+  const options: CliOptions = {
+    inputs,
+    json: json ?? false,
+    static: parsed.values.static ?? false,
   };
+  if (report !== undefined) options.report = report;
+  if (pdf !== undefined) options.pdf = pdf;
+  if (email !== undefined) options.email = email;
+  if (history !== undefined) options.history = history;
+  if (ciOut !== undefined) options.ciOut = ciOut;
+  if (manifest !== undefined) options.manifest = manifest;
+  if (baseline !== undefined) options.baseline = baseline;
+  if (ci !== undefined) options.ci = ci;
+  if (parsed.values.title !== undefined) options.title = parsed.values.title;
+  if (locale !== undefined) options.locale = locale;
+  if (pdfTimeout !== undefined) options.pdfTimeout = pdfTimeout;
+  if (historyLimit !== undefined) options.historyLimit = historyLimit;
+  if (parsed.values.meta !== undefined) options.meta = parsed.values.meta;
+  if (parsed.values['max-size'] !== undefined) {
+    options.maxSize = parsed.values['max-size'];
+  }
+  if (parsed.values.accent !== undefined) options.accent = parsed.values.accent;
+  if (parsed.values.logo !== undefined) options.logo = parsed.values.logo;
+  return { ok: true, options };
 }
 
 export async function planCli(argv: string[]): Promise<CliPlanResult> {
   const planned = await planOptions(argv);
   if (!planned.ok) {
-    return planned;
+    return planned.kind === 'usage'
+      ? { ok: false, kind: 'usage' }
+      : { ok: false, kind: 'message', message: planned.message };
   }
   if ('action' in planned) {
     return { ok: true, action: { kind: planned.action } };
@@ -404,185 +289,71 @@ export async function planCli(argv: string[]): Promise<CliPlanResult> {
   const manifest = options.manifest;
   const baseline = options.baseline;
   const logo = options.logo;
+  const conflicts = (file: string, peer?: string) =>
+    pathConflicts(file, inputs, logo, report, pdf, ciOut, email, peer);
+  const same = (a?: string, b?: string) =>
+    a !== undefined && b !== undefined && samePath(a, b);
 
   if (manifest !== undefined) {
-    const collides =
-      (await pathConflicts(
-        manifest,
-        inputs,
-        logo,
-        report,
-        pdf,
-        ciOut,
-        email,
-        history,
-      )) ||
-      (baseline !== undefined && samePath(manifest, baseline));
-    if (collides) {
-      return {
-        ok: false,
-        kind: 'message',
-        message:
-          '--manifest must not overwrite an input file, the logo, ' +
+    if ((await conflicts(manifest, history)) || same(manifest, baseline)) {
+      return fail(
+        '--manifest must not overwrite an input file, the logo, ' +
           '--out, --pdf, --email, --history, --ci-out or --baseline',
-      };
+      );
     }
-
-    const artifacts: Array<[string, string | undefined]> = [
+    for (const [flag, artifact] of [
       ['--out', report],
       ['--pdf', pdf],
       ['--email', email],
       ['--history', history],
       ['--ci-out', ciOut],
-    ];
-    for (const [flag, artifact] of artifacts) {
+    ] as const) {
       if (artifact !== undefined && cannotExpressRelative(manifest, artifact)) {
-        return {
-          ok: false,
-          kind: 'message',
-          message:
-            `${flag} ${oneLine(artifact)} cannot be expressed relative ` +
+        return fail(
+          `${flag} ${oneLine(artifact)} cannot be expressed relative ` +
             `to --manifest; pass an absolute ${flag} path`,
-        };
+        );
       }
     }
   }
-
-  if (
-    history !== undefined &&
-    (await pathConflicts(
-      history,
-      inputs,
-      logo,
-      report,
-      pdf,
-      ciOut,
-      email,
-      baseline,
-    ))
-  ) {
-    return {
-      ok: false,
-      kind: 'message',
-      message:
-        '--history must not overwrite an input file, the logo, ' +
+  if (history !== undefined && (await conflicts(history, baseline))) {
+    return fail(
+      '--history must not overwrite an input file, the logo, ' +
         '--out, --pdf, --ci-out, --email or --baseline',
-    };
+    );
   }
-
-  if (
-    baseline !== undefined &&
-    (await pathConflicts(
-      baseline,
-      inputs,
-      logo,
-      report,
-      pdf,
-      ciOut,
-      email,
-      history,
-    ))
-  ) {
-    return {
-      ok: false,
-      kind: 'message',
-      message:
-        '--baseline must not name an input file, the logo, ' +
+  if (baseline !== undefined && (await conflicts(baseline, history))) {
+    return fail(
+      '--baseline must not name an input file, the logo, ' +
         '--out, --pdf, --email, --history or --ci-out',
-    };
+    );
   }
-
   if (report && (await outputOverwritesInput(inputs, report, logo))) {
-    return {
-      ok: false,
-      kind: 'message',
-      message: '--out must not overwrite an input file',
-    };
+    return fail('--out must not overwrite an input file');
   }
-
   if (ciOut !== undefined) {
-    if (report && samePath(ciOut, report)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--ci-out must not overwrite --out',
-      };
-    }
+    if (same(ciOut, report)) return fail('--ci-out must not overwrite --out');
     if (await outputOverwritesInput(inputs, ciOut, logo)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--ci-out must not overwrite an input file or the logo',
-      };
+      return fail('--ci-out must not overwrite an input file or the logo');
     }
   }
-
   if (email !== undefined) {
-    if (report && samePath(email, report)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--email must not overwrite --out',
-      };
-    }
-    if (ciOut !== undefined && samePath(email, ciOut)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--email must not overwrite --ci-out',
-      };
-    }
+    if (same(email, report)) return fail('--email must not overwrite --out');
+    if (same(email, ciOut)) return fail('--email must not overwrite --ci-out');
     if (await conflictsWithInputs(email, inputs)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--email must not overwrite an input file or directory',
-      };
+      return fail('--email must not overwrite an input file or directory');
     }
     if (await outputOverwritesInput(inputs, email, logo)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--email must not overwrite an input file or the logo',
-      };
+      return fail('--email must not overwrite an input file or the logo');
     }
   }
-
   if (pdf !== undefined) {
-    if (report && samePath(pdf, report)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--pdf must not overwrite --out',
-      };
-    }
-    if (ciOut !== undefined && samePath(pdf, ciOut)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--pdf must not overwrite --ci-out',
-      };
-    }
-    if (email !== undefined && samePath(pdf, email)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--pdf must not overwrite --email',
-      };
-    }
-    if (logo !== undefined && samePath(pdf, logo)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--pdf must not overwrite the logo',
-      };
-    }
+    if (same(pdf, report)) return fail('--pdf must not overwrite --out');
+    if (same(pdf, ciOut)) return fail('--pdf must not overwrite --ci-out');
+    if (same(pdf, email)) return fail('--pdf must not overwrite --email');
+    if (same(pdf, logo)) return fail('--pdf must not overwrite the logo');
     if (await conflictsWithInputs(pdf, inputs)) {
-      return {
-        ok: false,
-        kind: 'message',
-        message: '--pdf must not overwrite an input file or directory',
-      };
+      return fail('--pdf must not overwrite an input file or directory');
     }
   }
 
@@ -596,11 +367,7 @@ export async function planCli(argv: string[]): Promise<CliPlanResult> {
     accent = parseAccent(options.accent);
     logoDataUri = logo ? await readLogo(logo) : undefined;
   } catch (error) {
-    return {
-      ok: false,
-      kind: 'message',
-      message: error instanceof Error ? error.message : String(error),
-    };
+    return fromError(error);
   }
 
   const mode =
@@ -632,39 +399,32 @@ export async function planCli(argv: string[]): Promise<CliPlanResult> {
     if (manifest !== undefined) confirmations.push('manifest');
   }
 
-  return {
-    ok: true,
-    action: {
-      kind: 'run',
-      plan: {
-        mode,
-        inputs,
-        ...(report === undefined ? {} : { report }),
-        ...(pdf === undefined ? {} : { pdf }),
-        ...(email === undefined ? {} : { email }),
-        ...(history === undefined ? {} : { history }),
-        ...(ciOut === undefined ? {} : { ciOut }),
-        ...(manifest === undefined ? {} : { manifest }),
-        ...(baseline === undefined ? {} : { baseline }),
-        json: options.json,
-        ...(options.ci === undefined ? {} : { ci: options.ci }),
-        ...(options.title === undefined ? {} : { title: options.title }),
-        ...(options.locale === undefined ? {} : { locale: options.locale }),
-        metadata,
-        ...(accent === undefined ? {} : { accent }),
-        ...(logoDataUri === undefined ? {} : { logoDataUri }),
-        static: options.static,
-        maxSizeMb,
-        ...(options.pdfTimeout === undefined
-          ? {}
-          : { pdfTimeout: options.pdfTimeout }),
-        ...(options.historyLimit === undefined
-          ? {}
-          : { historyLimit: options.historyLimit }),
-        writes,
-        stdout: { machine, confirmations },
-        exitCodes: { success: 0, failure: 1 },
-      },
-    },
+  const plan: CliPlan = {
+    mode,
+    inputs,
+    json: options.json,
+    metadata,
+    static: options.static,
+    maxSizeMb,
+    writes,
+    stdout: { machine, confirmations },
+    exitCodes: { success: 0, failure: 1 },
   };
+  if (report !== undefined) plan.report = report;
+  if (pdf !== undefined) plan.pdf = pdf;
+  if (email !== undefined) plan.email = email;
+  if (history !== undefined) plan.history = history;
+  if (ciOut !== undefined) plan.ciOut = ciOut;
+  if (manifest !== undefined) plan.manifest = manifest;
+  if (baseline !== undefined) plan.baseline = baseline;
+  if (options.ci !== undefined) plan.ci = options.ci;
+  if (options.title !== undefined) plan.title = options.title;
+  if (options.locale !== undefined) plan.locale = options.locale;
+  if (accent !== undefined) plan.accent = accent;
+  if (logoDataUri !== undefined) plan.logoDataUri = logoDataUri;
+  if (options.pdfTimeout !== undefined) plan.pdfTimeout = options.pdfTimeout;
+  if (options.historyLimit !== undefined) {
+    plan.historyLimit = options.historyLimit;
+  }
+  return { ok: true, action: { kind: 'run', plan } };
 }
