@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { packEntries, verifyPackList } from '../scripts/package-check.mjs';
 
@@ -67,17 +68,25 @@ describe('pack entries', () => {
   it('reads the npm 12 object shape', () => {
     expect(packEntries(npm12Shape(packedPaths))).toEqual(packedPaths);
   });
-
-  it('returns the same list for both npm shapes', () => {
-    expect(packEntries(npm12Shape(packedPaths))).toEqual(
-      packEntries(npm10Shape(packedPaths)),
-    );
-  });
 });
 
 describe('packed manifest', () => {
   it('accepts a complete tarball list', () => {
     expect(verifyPackList(packedPaths, packageJson)).toEqual([]);
+  });
+
+  it('accepts a pack list without the package/ prefix', () => {
+    const barePaths = packedPaths.map((entry) =>
+      entry.slice('package/'.length),
+    );
+    expect(verifyPackList(barePaths, packageJson)).toEqual([]);
+  });
+
+  it('lists docs/README.md in the real package files', () => {
+    const real = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    ) as { files?: string[] };
+    expect(real.files).toContain('docs/README.md');
   });
 
   it('fails the npm 12 80-entry list without docs/README.md', () => {
@@ -119,6 +128,52 @@ describe('packed manifest', () => {
         forbidden,
       ).toBe(true);
     }
+  });
+
+  it('rejects unexpected paths outside the allowed set', () => {
+    const unexpectedPaths = [
+      'package/stray.txt',
+      'package/coverage/index.html',
+      'package/docs/OTHER.md',
+    ];
+    for (const unexpected of unexpectedPaths) {
+      const relative = unexpected.slice('package/'.length);
+      const errors = verifyPackList([...packedPaths, unexpected], packageJson);
+      expect(
+        errors.some(
+          (error) =>
+            error.includes('unexpected path in tarball') &&
+            error.includes(relative),
+        ),
+        unexpected,
+      ).toBe(true);
+    }
+  });
+
+  it('rejects unsafe tarball paths', () => {
+    const unsafePaths = [
+      'package/../src/index.ts',
+      '../src/index.ts',
+      'package/src/../index.ts',
+      '/etc/passwd',
+      'package//etc/passwd',
+      'C:\\temp\\x',
+      'package\\src\\index.ts',
+    ];
+    for (const unsafe of unsafePaths) {
+      const errors = verifyPackList([...packedPaths, unsafe], packageJson);
+      const named = errors.find((error) => error.includes(unsafe));
+      expect(named, unsafe).toBeDefined();
+      expect(named, unsafe).toContain('unsafe path in tarball');
+    }
+  });
+
+  it('does not require a glob entry as a literal path', () => {
+    const withGlob = {
+      files: ['dist', 'docs/*.md', ...docsFiles, ...rootFiles],
+    };
+    const errors = verifyPackList(packedPaths, withGlob);
+    expect(errors.some((error) => error.includes('docs/*.md'))).toBe(false);
   });
 
   it('rejects an empty pack list', () => {

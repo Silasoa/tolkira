@@ -1,8 +1,14 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
@@ -26,6 +32,8 @@ const requiredEntryFiles = [
   'dist/compat/cucumber-html-reporter.d.cts',
 ];
 
+const requiredDocsFiles = ['docs/README.md'];
+
 const forbiddenPrefixes = [
   'src/',
   'test/',
@@ -35,16 +43,31 @@ const forbiddenPrefixes = [
   '.github/',
 ];
 
+const globCharacters = /[*?[\]{}!]/;
+
 function relativePath(packedPath) {
   return packedPath.startsWith('package/')
     ? packedPath.slice('package/'.length)
     : packedPath;
 }
 
-// Directories such as "dist" are packed by their contents, not as one entry.
+// Literal files are required in the tarball; globs and directories are not.
 function listedFiles(packageJson) {
   return (packageJson.files ?? []).filter(
-    (entry) => path.extname(entry) !== '',
+    (entry) =>
+      !globCharacters.test(entry) &&
+      !entry.endsWith('/') &&
+      path.extname(entry) !== '',
+  );
+}
+
+// Directories such as "dist" are packed by their contents, not as one entry.
+function directoryEntries(packageJson) {
+  return (packageJson.files ?? []).filter(
+    (entry) =>
+      !globCharacters.test(entry) &&
+      !entry.endsWith('/') &&
+      path.extname(entry) === '',
   );
 }
 
@@ -56,14 +79,31 @@ export function packEntries(packed) {
 }
 
 export function verifyPackList(paths, packageJson) {
-  const present = new Set(paths.map((entry) => relativePath(entry)));
-  const required = new Set([
+  const present = new Set();
+  const errors = [];
+  for (const entry of paths) {
+    const relative = relativePath(entry);
+    const normalized = path.posix.normalize(relative);
+    if (
+      path.posix.isAbsolute(relative) ||
+      path.win32.isAbsolute(relative) ||
+      relative.includes('\\') ||
+      relative.split('/').includes('..') ||
+      normalized.startsWith('..')
+    ) {
+      errors.push(`unsafe path in tarball: ${entry}`);
+      continue;
+    }
+    present.add(normalized);
+  }
+  const directories = directoryEntries(packageJson);
+  const allowed = new Set([
     ...requiredRootFiles,
+    ...requiredDocsFiles,
     ...listedFiles(packageJson),
     ...requiredEntryFiles,
   ]);
-  const errors = [];
-  for (const file of required) {
+  for (const file of allowed) {
     if (!present.has(file)) {
       errors.push(`missing required path: ${file}`);
     }
@@ -74,6 +114,13 @@ export function verifyPackList(paths, packageJson) {
     );
     if (forbidden !== undefined) {
       errors.push(`forbidden path in tarball: ${file}`);
+      continue;
+    }
+    const inAllowedDirectory = directories.some((directory) =>
+      file.startsWith(`${directory}/`),
+    );
+    if (!allowed.has(file) && !inAllowedDirectory) {
+      errors.push(`unexpected path in tarball: ${file}`);
     }
   }
   return errors;
@@ -85,13 +132,13 @@ function npmInvocation(args) {
     return { command: process.execPath, args: [npmExecPath, ...args] };
   }
   if (process.platform === 'win32') {
-    return { command: 'npm.cmd', args, shell: true };
+    throw new Error('Run this script through npm: npm run package:check');
   }
   return { command: 'npm', args };
 }
 
 function runNpmPack(packDir) {
-  const { command, args, shell } = npmInvocation([
+  const { command, args } = npmInvocation([
     'pack',
     '--json',
     '--pack-destination',
@@ -100,7 +147,6 @@ function runNpmPack(packDir) {
   const result = spawnSync(command, args, {
     cwd: repoRoot,
     encoding: 'utf8',
-    shell,
   });
   if (result.error !== undefined) throw result.error;
   if (result.status !== 0) {
@@ -142,6 +188,14 @@ function main() {
   try {
     mkdirSync(packDir, { recursive: true });
     const packed = runNpmPack(packDir);
+    const results = Array.isArray(packed)
+      ? packed
+      : Object.values(packed ?? {});
+    if (results.length !== 1) {
+      throw new Error(
+        `npm pack returned ${String(results.length)} results, expected one`,
+      );
+    }
     const entries = packEntries(packed);
     const errors = verifyPackList(entries, packageJson);
     if (errors.length > 0) {
@@ -149,9 +203,7 @@ function main() {
       process.exitCode = 1;
       return;
     }
-    const [result] = Array.isArray(packed)
-      ? packed
-      : Object.values(packed ?? {});
+    const [result] = results;
     const tarball = path.join(packDir, result.filename);
     run(process.execPath, [
       packageBin('publint', 'publint'),
@@ -173,7 +225,7 @@ function main() {
 
 if (
   process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
+  realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
 ) {
   main();
 }

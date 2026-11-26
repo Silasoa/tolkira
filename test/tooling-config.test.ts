@@ -571,6 +571,8 @@ interface AttwConfig {
 
 interface KnipConfig {
   entry?: string[];
+  project?: string[];
+  ignore?: string[];
   ignoreDependencies?: string[];
 }
 
@@ -581,6 +583,9 @@ describe('dead code and package surface', () => {
       'npm run build && node scripts/package-check.mjs',
     );
     expect(scripts['lint:dead']).toBe('knip');
+    expect(scripts['prepublishOnly']).toBe(
+      'npm run check && npm run package:check',
+    );
   });
 
   it('pins the attw node16 profile and the one ignored rule', () => {
@@ -592,7 +597,7 @@ describe('dead code and package surface', () => {
     ]);
   });
 
-  it('declares the knip entries and the one ignored dependency', () => {
+  it('declares the knip entries, the spawned tools and the optional peer', () => {
     const config = readJson<KnipConfig>('knip.json');
     const entries = config.entry ?? [];
     for (const expected of [
@@ -609,6 +614,17 @@ describe('dead code and package surface', () => {
     }
     expect(entries).not.toContain('test/**');
     expect(entries).not.toContain('test/baseline-helpers.ts');
+    expect(config.project).toEqual([
+      'src/**/*.ts',
+      'scripts/**/*.mjs',
+      'test/**/*.ts',
+    ]);
+    expect(config.ignore).toEqual([
+      'test/fixtures/**',
+      'src/render/client-bundle.ts',
+      'src/i18n/catalogs.ts',
+      'src/render/styles.ts',
+    ]);
     expect(config.ignoreDependencies).toEqual([
       '@arethetypeswrong/cli',
       'playwright-core',

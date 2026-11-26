@@ -98,7 +98,7 @@
     "stress": "node scripts/stress.mjs",
     "bench:ansi": "node scripts/bench-ansi.mjs",
     "check": "npm run i18n:check && npm run assets && npm run typecheck && npm run lint && npm run lint:dead && npm run format:check && npm run build && npm run test:coverage",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "npm run check && npm run package:check"
   },
   "publishConfig": {
     "access": "public",

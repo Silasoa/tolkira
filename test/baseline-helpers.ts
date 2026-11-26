@@ -9,6 +9,7 @@ import type {
   BaselineScenario,
 } from '../src/baseline.js';
 import {
+  SUMMARY_SCHEMA_VERSION,
   summarizeReport,
   type BaselineRenderOptions,
   type BaselineSummary,
@@ -28,7 +29,6 @@ export type SummaryWithBaseline = ReportSummary & { baseline?: BaselineBlock };
 
 export const summarizeWithBaseline = summarizeReport;
 
-const SUMMARY_SCHEMA = 2;
 export const BASELINE_MAX_BYTES = 10_485_760;
 
 const dirs: string[] = [];
@@ -130,7 +130,7 @@ export function projectSummary(summary: ReportSummary): BaselineSummary {
 /** A valid baseline for a file; callers mutate one field per hostile case. */
 export function validBaseline(): BaselineSummary {
   return {
-    schemaVersion: SUMMARY_SCHEMA,
+    schemaVersion: SUMMARY_SCHEMA_VERSION,
     status: 'passed',
     scenarios: [
       {
@@ -275,7 +275,7 @@ export function styleBlock(html: string): string {
 /** A JSON document padded to an exact byte length (ASCII padding). */
 export function baselineOfSize(bytes: number): string {
   const base = {
-    schemaVersion: SUMMARY_SCHEMA,
+    schemaVersion: SUMMARY_SCHEMA_VERSION,
     status: 'passed',
     scenarios: [],
     padding: '',
@@ -312,7 +312,7 @@ export function mixedFeatures(): SyntheticFeature[] {
 
 export function mixedBaseline(): BaselineSummary {
   return {
-    schemaVersion: SUMMARY_SCHEMA,
+    schemaVersion: SUMMARY_SCHEMA_VERSION,
     status: 'failed',
     scenarios: [
       {

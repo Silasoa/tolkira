@@ -139,7 +139,7 @@ describe('release workflow gate', () => {
 
     expectStep(
       publish,
-      'git fetch origin main\ngit merge-base --is-ancestor HEAD FETCH_HEAD',
+      'git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main\ngit merge-base --is-ancestor HEAD refs/remotes/origin/main',
     );
     // A shallow clone cannot prove the ancestor relation; the fetch is full.
     // `fetch-depth` is a `with:` key, not a run command.
@@ -154,7 +154,9 @@ describe('release workflow gate', () => {
       'TOLKIRA_PACK_DIR=/tmp/pack npm run package:check',
     );
     expect(check, 'package check step').toBeGreaterThanOrEqual(0);
-    expect(commands.indexOf('npm ci')).toBeLessThan(check);
+    const ci = commands.indexOf('npm ci');
+    expect(ci, 'npm ci step').toBeGreaterThanOrEqual(0);
+    expect(ci).toBeLessThan(check);
     // One pack source: no second build or pack step in the publish job.
     expect(commands).not.toContain('npm run build');
     expect(commands.filter((command) => /^npm pack\b/.test(command))).toEqual(
@@ -169,7 +171,14 @@ describe('release workflow gate', () => {
     const commands = runCommands(job(await workflowJobs(), 'publish'));
     const order: Array<[string, RegExp]> = [
       ['package check', /^TOLKIRA_PACK_DIR=\/tmp\/pack npm run package:check$/],
-      ['install', /^npm install -g --prefix \S+ \S*tolkira-.*\.tgz$/],
+      [
+        'digest',
+        /^sha256sum "\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz" > "\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.sha256"$/,
+      ],
+      [
+        'install',
+        /^npm install -g --prefix \/tmp\/global \/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz$/,
+      ],
       ['binary', /^test -x \S+\/bin\/tolkira$/],
       [
         'global help',
@@ -186,6 +195,10 @@ describe('release workflow gate', () => {
       [
         'smoke output',
         /^test -s \S+report\.html && grep -q "Minimal feature" \S+report\.html$/,
+      ],
+      [
+        'verify',
+        /^sha256sum -c "\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.sha256"$/,
       ],
       [
         'stage',
