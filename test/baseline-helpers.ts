@@ -28,7 +28,7 @@ export type SummaryWithBaseline = ReportSummary & { baseline?: BaselineBlock };
 
 export const summarizeWithBaseline = summarizeReport;
 
-export const SUMMARY_SCHEMA = 2;
+const SUMMARY_SCHEMA = 2;
 export const BASELINE_MAX_BYTES = 10_485_760;
 
 const dirs: string[] = [];
@@ -57,15 +57,7 @@ export async function writeText(
   return file;
 }
 
-export async function writeJson(
-  dir: string,
-  name: string,
-  value: unknown,
-): Promise<string> {
-  return writeText(dir, name, JSON.stringify(value, null, 2));
-}
-
-export interface SyntheticScenario {
+interface SyntheticScenario {
   name: string;
   /** A legacy status, or `unexecuted` for a started scenario without results. */
   status: string;
@@ -79,7 +71,7 @@ export interface SyntheticFeature {
 }
 
 /** One legacy JSON document; the current-run side of every comparison. */
-export function legacyJson(features: SyntheticFeature[]): string {
+function legacyJson(features: SyntheticFeature[]): string {
   return JSON.stringify(
     features.map((feature) => ({
       uri: feature.uri,

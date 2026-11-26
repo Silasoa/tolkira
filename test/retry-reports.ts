@@ -13,7 +13,7 @@ export const SMALL_PNG =
 
 export const SMALL_PNG_BYTES = Buffer.from(SMALL_PNG, 'base64').length;
 
-export interface EarlierAttachment {
+interface EarlierAttachment {
   fileName: string;
   mediaType: string;
   kind: string;

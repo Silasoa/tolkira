@@ -1,6 +1,6 @@
 // Browser-side message formatting. No catalog enters this module; the report
 // supplies the active locale's client.* strings and the document language.
-export type ClientParams = Record<string, string | number>;
+type ClientParams = Record<string, string | number>;
 
 // One level of `{param}` is allowed inside a branch body; nested plurals are
 // already forbidden by the catalog check.

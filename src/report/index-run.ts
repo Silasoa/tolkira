@@ -17,17 +17,17 @@ import type {
   TestStepFinished,
 } from '@cucumber/messages';
 
-export interface RunFeatureDocument {
+interface RunFeatureDocument {
   feature: Feature;
   uri: string;
 }
 
-export interface RunScenarioNode {
+interface RunScenarioNode {
   scenario: Scenario;
   rule?: Rule;
 }
 
-export interface RunOutlineExample {
+interface RunOutlineExample {
   uri: string;
   scenario: Scenario;
   examples: Examples;
@@ -35,7 +35,7 @@ export interface RunOutlineExample {
   exampleIndex: number;
 }
 
-export interface RunSuggestion {
+interface RunSuggestion {
   language?: string;
   code: string;
 }

@@ -8,7 +8,7 @@ import {
 import { compareText, oneLine } from './text.js';
 
 /** A baseline summary is one JSON document; the input cap does not apply. */
-export const BASELINE_MAX_BYTES = 10_485_760;
+const BASELINE_MAX_BYTES = 10_485_760;
 const MAX_DEPTH = 64;
 const NOT_IN_THIS_RUN_LIMIT = 50;
 

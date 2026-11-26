@@ -1,12 +1,7 @@
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 
-export const SUPPORTED_EXTENSIONS = new Set([
-  '.json',
-  '.jsonl',
-  '.ndjson',
-  '.xml',
-]);
+const SUPPORTED_EXTENSIONS = new Set(['.json', '.jsonl', '.ndjson', '.xml']);
 
 const MAX_DIRECTORY_DEPTH = 20;
 const IGNORED_DIRECTORIES = new Set(['node_modules', '.git', '.hg', '.svn']);

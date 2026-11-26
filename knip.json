@@ -1,0 +1,20 @@
+{
+  "entry": [
+    "src/index.ts",
+    "src/cli.ts",
+    "src/compat/cucumber-html-reporter.ts",
+    "src/compat/cucumber-html-reporter.cts",
+    "src/render/report-client.ts",
+    "scripts/*.mjs",
+    "test/**/*.test.ts",
+    "test/e2e/**/*.spec.ts"
+  ],
+  "project": ["src/**/*.ts", "scripts/**/*.mjs", "test/**/*.ts"],
+  "ignore": [
+    "test/fixtures/**",
+    "src/render/client-bundle.ts",
+    "src/i18n/catalogs.ts",
+    "src/render/styles.ts"
+  ],
+  "ignoreDependencies": ["@arethetypeswrong/cli", "playwright-core", "publint"]
+}

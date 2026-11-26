@@ -39,8 +39,6 @@ import {
 } from './index-run.js';
 import { type ReportStatus, worstExecutedStatus } from './status.js';
 
-export type { ReportStatus } from './status.js';
-
 export interface ReportAttachment {
   fileName: string;
   mediaType: string;
@@ -120,7 +118,7 @@ export interface ReportRule {
   backgrounds: ReportBackground[];
 }
 
-export interface ReportEarlierAttempt {
+interface ReportEarlierAttempt {
   /** Display number from the executed earlier starts, oldest first. */
   attempt: number;
   status: ReportStatus;
@@ -182,7 +180,7 @@ export interface ReportFeature {
   sourceFile?: string;
 }
 
-export interface ReportCounts {
+interface ReportCounts {
   features: number;
   scenarios: Record<ReportStatus, number> & { total: number };
   steps: Record<ReportStatus, number> & { total: number };
@@ -191,7 +189,7 @@ export interface ReportCounts {
   attachmentBytes: number;
 }
 
-export interface ReportCi {
+interface ReportCi {
   name?: string;
   url?: string;
   remote?: string;
@@ -200,7 +198,7 @@ export interface ReportCi {
   tag?: string;
 }
 
-export interface ReportEnvironment {
+interface ReportEnvironment {
   producer?: string;
   runtime?: string;
   os?: string;
