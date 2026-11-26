@@ -3,18 +3,20 @@
 ## Why
 
 `src/cli.ts` is a single 993-line module and `runCli` alone is about 598
-lines. It mixes option parsing, usage/exclusivity checks, path collision
-checks, logo validation, input resolution, history and baseline reads, the
-summary/generate branch, the write order, warnings, manifest assembly and the
-stdout policy. Every new CLI flag has to be threaded through that one function,
-and the write order and exit-code policy are only visible by reading nested
-branches.
+lines, with 42 `return 2;` sites. It mixes option parsing, usage/exclusivity
+checks, path collision checks, logo validation, input resolution, history and
+baseline reads, the summary/generate branch, the write order, warnings,
+manifest assembly and the stdout policy. Every new CLI flag has to be threaded
+through that one function, and the write order and exit-code policy are only
+visible by reading nested branches.
 
-`docs/BACKLOG.md` B-057 orders the "CLI plan/execute" step after the status
-vocabulary and the durable sidecar reader. The second architecture pass
-(`docs/research/architecture-session-2026-11.md`, candidate 3) adds the output
-path plan: six blocks check output paths against each other and two
-"overwrites an input" implementations exist.
+`docs/BACKLOG.md` B-057 records the 2026-11-26 user scope decision: the feature
+bundle is done, then this CLI plan/execute step, then the report pipeline seam,
+with the redesign last; the status vocabulary only if cheap, and the sidecar
+reader, input pipeline, filter seam and ICU message parser deferred. The second
+architecture pass (`docs/research/architecture-session-2026-11.md`, candidate 3)
+adds the output path plan: seven blocks holding eight checks compare output
+paths against each other, and two "overwrites an input" implementations exist.
 
 This change is the CLI plan/execute slice of B-057. It is an internal refactor
 with **no externally visible change**.
@@ -70,9 +72,10 @@ restate existing `cli-api` requirements (duplicating the spec without adding a
 capability) or describe an internal module layout (not a product capability).
 The invariant "no externally visible change" is enforced by the existing CLI
 suite plus the targeted plan/execute and equivalence tests named in
-`design.md`. This follows the precedent of
-`2026-11-13-architecture-dom-contract`, which also uses `skip_specs: true` for
-a behaviour-preserving internal refactor.
+`design.md`. This follows the precedent of `2026-11-20-split-report-renderer`,
+which also uses `skip_specs: true` for a behaviour-preserving internal split,
+keeps its public entry and updates the architecture map. The `cli-api` spec owns
+the observable contract; this change preserves it.
 
 ## Impact
 
@@ -82,15 +85,17 @@ a behaviour-preserving internal refactor.
   `src/cli/plan.ts`, `src/cli/execute.ts`.
 - New tests: `test/cli-plan.test.ts`, `test/cli-plan-paths.test.ts`,
   `test/cli-execute.test.ts`, `test/cli-equivalence.test.ts`.
-- Existing tests do not change their imports: 26 files import `runCli`
-  directly (21 unit/integration, 5 e2e); the remaining e2e specs reach it
-  through `test/e2e/helpers.ts`. `test/render-report.test.ts` bundles `src/cli.ts`
-  with esbuild, `test/tooling-config.test.ts` pins it as a knip entry and
+- Existing tests do not change their imports: 26 files import `runCli`, namely
+  24 test files (20 unit/integration, 4 e2e specs) plus the two shared helpers
+  `test/baseline-helpers.ts` and `test/e2e/helpers.ts`.
+  `test/render-report.test.ts` bundles `src/cli.ts` with esbuild,
+  `test/tooling-config.test.ts` pins it as a knip entry and
   `test/package-manifest.test.ts` pins `dist/cli.js`.
 - No new dependency, build-script, package-export or bin change. The esbuild
-  entry and shebang stay. New internal `dist/cli/*.d.ts` files are emitted by
-  the existing declaration build; `dist/index.d.ts` and the package surface
-  stay unchanged.
+  entry and shebang stay. The declaration build emits exactly five new internal
+  files, `dist/cli/{args,execute,logo,paths,plan}.d.ts`; the tarball gains
+  exactly those five entries, and `dist/index.d.ts`, the public entries and the
+  runtime bytes stay unchanged.
 - This is part of 0.7.0. `package.json` keeps its current version in this
   change; there is no bump, changelog, tag, stage or publish.
 - Documented risk: usage-error precedence, path identity semantics and the

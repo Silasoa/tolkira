@@ -3,10 +3,10 @@
 ## Context
 
 `src/cli.ts` is the only CLI entry (`esbuild.mjs` bundles it to `dist/cli.js`
-with the shebang). It exports `CliIO` and `runCli`; 26 test files import
-`runCli` directly (21 unit/integration, 5 e2e), the other e2e specs reach it
-through `test/e2e/helpers.ts`, and `test/render-report.test.ts` rebuilds and
-spawns the bundle.
+with the shebang). It exports `CliIO` and `runCli`; 26 files import `runCli`:
+24 test files (20 unit/integration, 4 e2e specs) plus 2 shared helpers
+(`test/baseline-helpers.ts`, `test/e2e/helpers.ts`).
+`test/render-report.test.ts` rebuilds and spawns the bundle.
 
 The 0.6.0 architecture review and the 2026-11-24 second pass both put this
 refactor in B-057. B-057's rule is explicit: one change at a time, and never a
@@ -28,6 +28,11 @@ produces:
 - the same files, with the same bytes, in the same order;
 - the same atomic-write behaviour and the same failure points (no partial
   file, `.tmp` name never printed);
+- the same POSIX file mode: `writeAtomic` writes new files with 0600, so the
+  tests assert it on POSIX and skip it on Windows;
+- the accepted package delta: exactly five internal declarations in
+  `dist/cli/{args,execute,logo,paths,plan}.d.ts`; public entries, exports and
+  runtime bytes unchanged;
 - the same help, version and capabilities bytes and the same precedence
   (`parseArgs` error → help → version → capabilities → everything else);
 - the same public API: no new export from `src/index.ts`, `dist/index.d.ts`
@@ -47,14 +52,18 @@ Proof:
 3. New execute-level tests pin the branch, the write order and every failure
    point.
 4. New equivalence tests pin exact stdout/stderr/exit codes and compare CLI
-   artifacts with the direct API seams that produce them.
-5. A process check confirms the diff touches only `src/cli*`, the CLI tests
-   and docs — no renderer, summary, email, PDF, history or baseline module.
+   artifacts with the direct API seams that produce them; the one-time gate
+   (task 4.6) compares real CLI report/email/PDF bytes to the 1.1 baseline on
+   the same host.
+5. A process check confirms the diff touches only `src/cli*`, the CLI tests,
+   the two package-surface pins and docs — no renderer, summary, email, PDF,
+   history or baseline module.
 
-Report HTML, email and PDF bytes are not re-golden-hashed. Their producers are
-untouched; the CLI change is the option object passed into them, which the
-equivalence tests prove directly (`renderReport`, `renderEmail`,
-`renderPdf`), avoiding brittle cross-Node/Intl goldens.
+Report HTML, email and PDF bytes are compared once, in the one-time gate, to
+the 1.1 baseline on the same host: the CLI must emit the same bytes. The
+permanent equivalence tests still compare option objects and API seams
+(`renderReport`, `renderEmail`, `renderPdf`) and use no cross-Node or
+cross-Intl goldens.
 
 ## Goals / Non-Goals
 
@@ -139,8 +148,13 @@ without a `tolkira: ` line; it stays that way.
 
 ## The plan type
 
+`CliOutputKind` and `CliConfirmationKind` stay module-private (no `export`);
+only `plan.ts` uses them and knip would flag an unused export. `CliPlan`,
+`CliAction` and `CliPlanResult` are exported for `cli.ts`; `execute.ts`
+imports only the `CliPlan` type.
+
 ```ts
-export type CliOutputKind =
+type CliOutputKind =
   | 'report'
   | 'pdf'
   | 'email'
@@ -148,7 +162,7 @@ export type CliOutputKind =
   | 'ci-markdown'
   | 'manifest';
 
-export type CliConfirmationKind = Extract<
+type CliConfirmationKind = Extract<
   CliOutputKind,
   'report' | 'pdf' | 'email' | 'manifest'
 >;
@@ -251,55 +265,64 @@ suppressed by `--json`/stdout-CI.
 `planCli` keeps the current first-error order. This is the part that a naive
 "pure first, filesystem later" split would break. The order is:
 
-| # | Current check | New owner |
-| --- | --- | --- |
-| 1 | `parseArgs` failure → `tolkira: <detail>` | `plan.ts` |
-| 2 | `--help` | `plan.ts` action |
-| 3 | `--version` | `plan.ts` action |
-| 4 | `--capabilities`, including the "no input and no other option" error | `plan.ts` action/message |
-| 5 | empty `--out`, `--pdf`, `--baseline`, `--manifest` | `plan.ts` |
-| 6 | `--static` requires `--out` or `--pdf` | `plan.ts` |
-| 7 | `--pdf-timeout` requires `--pdf` | `plan.ts` |
-| 8 | `--pdf-timeout` value | `args.ts` via `plan.ts` |
-| 9 | empty `--email` | `plan.ts` |
-| 10 | `--locale` resolution | `plan.ts` via `resolveLocale` |
-| 11 | `--locale` requires `--out`, `--pdf` or `--email` | `plan.ts` |
-| 12 | `--ci` value | `args.ts` via `plan.ts` |
-| 13 | empty `--ci-out` | `plan.ts` |
-| 14 | `--ci-out` requires `--ci` | `plan.ts` |
-| 15 | `--ci github/azure` rejects `--ci-out` | `plan.ts` |
-| 16 | `--json` + stdout `--ci` conflict | `plan.ts` |
-| 17 | `--baseline` requires a surface | `plan.ts` |
-| 18 | `--history-limit` requires `--history` | `plan.ts` |
-| 19 | non-empty `--history` requires `--out` | `plan.ts` |
-| 20 | at least one input and one output → bare usage | `plan.ts` (`kind: 'usage'`) |
-| 21 | empty `--logo`; `--logo` requires `--out` | `plan.ts` |
-| 22 | empty `--history` requires a path | `plan.ts` |
-| 23 | `--history-limit` value | `args.ts` via `plan.ts` |
-| 24 | `--manifest` collision with inputs/logo/out/pdf/email/history/ci-out/baseline | `paths.ts` via `plan.ts` |
-| 25 | `--manifest` relative expressibility for out/pdf/email/history/ci-out | `paths.ts` via `plan.ts` |
-| 26 | `--history` collision | `paths.ts` via `plan.ts` |
-| 27 | `--baseline` collision | `paths.ts` via `plan.ts` |
-| 28 | `--out` overwrites an input or the logo | `paths.ts` via `plan.ts` |
-| 29 | `--ci-out` collision with `--out`, an input or the logo | `paths.ts` via `plan.ts` |
-| 30 | `--email` collision with `--out`, `--ci-out`, inputs, logo | `paths.ts` via `plan.ts` |
-| 31 | `--pdf` collision with `--out`, `--ci-out`, `--email`, logo, inputs | `paths.ts` via `plan.ts` |
-| 32 | `--meta` value | `args.ts` via `plan.ts` |
-| 33 | `--max-size` value | `args.ts` via `plan.ts` |
-| 34 | `--accent` value | `args.ts` via `plan.ts` |
-| 35 | logo type/size/content | `logo.ts` via `plan.ts` |
-| 36 | input resolution | `execute.ts` |
-| 37 | early input size scan and warning | `execute.ts` |
-| 38 | history read | `execute.ts` |
-| 39 | baseline read | `execute.ts` |
-| 40 | summary/generate branch | `plan.mode` + `execute.ts` |
-| 41 | report, PDF, email, history, `--ci-out`, manifest writes | `execute.ts` |
-| 42 | max-size and skipped-attachment warnings | `execute.ts` |
-| 43 | CI text formatting and write | `execute.ts` |
-| 44 | manifest build/serialize | `execute.ts` |
-| 45 | stdout ownership and confirmations | `plan.stdout` + `execute.ts` |
-| 46 | caught error → `tolkira: <detail>\n`, exit 1 | `execute.ts` |
-| 47 | main-module guard | `cli.ts` |
+| # | Current check | Current site (`src/cli.ts` at `8f4a493`) | New owner |
+| --- | --- | --- | --- |
+| 1 | `parseArgs` failure → `tolkira: <detail>` | `390` | `plan.ts` |
+| 2 | `--help` | action / no site (`return 0`) | `plan.ts` action |
+| 3 | `--version` | action / no site (`return 0`) | `plan.ts` action |
+| 4 | `--capabilities`, including the "no input and no other option" error | `412` | `plan.ts` action/message |
+| 5 | empty `--out`, `--pdf`, `--baseline`, `--manifest` | `430`, `435`, `440`, `445` | `plan.ts` |
+| 6 | `--static` requires `--out` or `--pdf` | `450` | `plan.ts` |
+| 7 | `--pdf-timeout` requires `--pdf` | `455` | `plan.ts` |
+| 8 | `--pdf-timeout` value | `464` | `args.ts` via `plan.ts` |
+| 9 | empty `--email` | `469` | `plan.ts` |
+| 10 | `--locale` resolution | `479` | `plan.ts` via `resolveLocale` |
+| 11 | `--locale` requires `--out`, `--pdf` or `--email` | `490` | `plan.ts` |
+| 12 | `--ci` value | `499` | `args.ts` via `plan.ts` |
+| 13 | empty `--ci-out` | `504` | `plan.ts` |
+| 14 | `--ci-out` requires `--ci` | `509` | `plan.ts` |
+| 15 | `--ci github/azure` rejects `--ci-out` | `517` | `plan.ts` |
+| 16 | `--json` + stdout `--ci` conflict | `531` | `plan.ts` |
+| 17 | `--baseline` requires a surface | `545` | `plan.ts` |
+| 18 | `--history-limit` requires `--history` | `553` | `plan.ts` |
+| 19 | non-empty `--history` requires `--out` | `558` | `plan.ts` |
+| 20 | at least one input and one output → bare usage | `571` | `plan.ts` (`kind: 'usage'`) |
+| 21 | empty `--logo`; `--logo` requires `--out` | `576`, `581` | `plan.ts` |
+| 22 | empty `--history` requires a path | `586` | `plan.ts` |
+| 23 | `--history-limit` value | `595` | `args.ts` via `plan.ts` |
+| 24 | `--manifest` collision with inputs/logo/out/pdf/email/history/ci-out/baseline | `617` | `paths.ts` via `plan.ts` |
+| 25 | `--manifest` relative expressibility for out/pdf/email/history/ci-out | `636` | `paths.ts` via `plan.ts` |
+| 26 | `--history` collision | `658` | `paths.ts` via `plan.ts` |
+| 27 | `--baseline` collision | `678` | `paths.ts` via `plan.ts` |
+| 28 | `--out` overwrites an input or the logo | `686` | `paths.ts` via `plan.ts` |
+| 29 | `--ci-out` collision with `--out`, an input or the logo | `692`, `699` | `paths.ts` via `plan.ts` |
+| 30 | `--email` collision with `--out`, `--ci-out`, inputs, logo | `706`, `710`, `717`, `724` | `paths.ts` via `plan.ts` |
+| 31 | `--pdf` collision with `--out`, `--ci-out`, `--email`, logo, inputs | `731`, `735`, `739`, `746`, `753` | `paths.ts` via `plan.ts` |
+| 32 | `--meta` value | `769` (shared catch with 33–35) | `args.ts` via `plan.ts` |
+| 33 | `--max-size` value | `769` (shared catch with 32, 34, 35) | `args.ts` via `plan.ts` |
+| 34 | `--accent` value | `769` (shared catch with 32, 33, 35) | `args.ts` via `plan.ts` |
+| 35 | logo type/size/content | `769` (shared catch with 32–34) | `logo.ts` via `plan.ts` |
+| 36 | input resolution | no exit-2 site; catch `971`–`974` returns 1 | `execute.ts` |
+| 37 | early input size scan and warning | action / no site (stderr warning) | `execute.ts` |
+| 38 | history read | no exit-2 site; catch `971`–`974` returns 1 | `execute.ts` |
+| 39 | baseline read | no exit-2 site; catch `971`–`974` returns 1 | `execute.ts` |
+| 40 | summary/generate branch | action / no site (branch) | `plan.mode` + `execute.ts` |
+| 41 | report, PDF, email, history, `--ci-out`, manifest writes | no exit-2 site; catch `971`–`974` returns 1 | `execute.ts` |
+| 42 | max-size and skipped-attachment warnings | action / no site (stderr warnings) | `execute.ts` |
+| 43 | CI text formatting and write | no exit-2 site; catch `971`–`974` returns 1 | `execute.ts` |
+| 44 | manifest build/serialize | no exit-2 site; catch `971`–`974` returns 1 | `execute.ts` |
+| 45 | stdout ownership and confirmations | action / no site (stdout) | `plan.stdout` + `execute.ts` |
+| 46 | caught error → `tolkira: <detail>\n`, exit 1 | `971`–`974` (`return 1`, the error sink) | `execute.ts` |
+| 47 | main-module guard | action / no site | `cli.ts` |
+
+Site check: `grep -n 'return 2;' src/cli.ts` at `8f4a493` yields 42
+lines and every one appears in the table. Rows 24–31 are the seven
+path blocks holding eight checks (the manifest block holds collision plus
+relative expressibility) and sixteen sites. Row 5 holds four sites, rows
+21/29/30/31 hold 2/2/4/5, and rows 32–35 share the one catch at 769.
+Rows marked action/no site are help/version actions, warnings, the branch or
+stdout, or the main guard; the failing rows among 36–46 terminate in the single
+catch at 971–974 with exit 1, not 2.
 
 Steps 32–35 stay in one `try`/`catch` that maps any failure to a usage message,
 exactly as today. Path-check throws are **not** newly caught: today they escape
@@ -361,6 +384,11 @@ catch
   stderr `tolkira: <detail>\n`
   return 1
 ```
+
+Input resolution, history read and baseline read fail before the first write:
+exit 1, no stdout and no `.tmp`; only the early input warning may already be on
+stderr. Every writer failure keeps the earlier completed writes and leaves no
+`.tmp`.
 
 The five writers (`writeReport`, `writePdf`, `writeEmailSummary`,
 `writeCiOutput`, `writeManifest`, plus the `errorCode` helper) move verbatim,
@@ -439,16 +467,17 @@ today.
 
 Everything below keeps working without an import change:
 
-- 21 unit/integration files import `runCli` directly: `baseline-helpers.ts`,
+- 20 unit/integration test files import `runCli` directly:
   `capabilities.test.ts`, `cli-artifacts`, `cli-ci`, `cli-edge`, `cli-email`,
   `cli-history-window`, `cli-history`, `cli-locale`, `cli-pdf`,
   `cli-size-warning`, `cli-static`, `cli.test.ts`, `inputs`, `junit`,
   `messages-producers`, `metadata-links`, `parity-metadata`, `playwright`,
-  `render-retry-evidence`, `size-diagnostics`; `cli-baseline` reaches it
-  through `baseline-helpers.ts`.
-- E2E: 5 files import `runCli` directly — `test/e2e/helpers.ts`,
-  `baseline.spec.ts`, `metadata-links.spec.ts`, `responsive.spec.ts` and
-  `visual.spec.ts`. The other specs depend through the helpers.
+  `render-retry-evidence`, `size-diagnostics`; the first shared helper
+  `test/baseline-helpers.ts` imports it for `cli-baseline`.
+- E2E: 4 specs import `runCli` directly — `baseline.spec.ts`,
+  `metadata-links.spec.ts`, `responsive.spec.ts` and `visual.spec.ts`. The
+  second shared helper is `test/e2e/helpers.ts`; the other specs depend
+  through it.
 - Bundle/tooling: `test/render-report.test.ts` builds `src/cli.ts` with
   esbuild and spawns it; `test/tooling-config.test.ts` pins `src/cli.ts` as a
   knip entry; `test/package-manifest.test.ts` pins `dist/cli.js`.
@@ -483,6 +512,19 @@ edited except for a genuine import change, which this design does not expect.
   `--pdf-timeout` 1, 2,147,483,647, 2,147,483,648, `0`, `01`; `--max-size`
   `0`, negative, `Infinity`, `NaN`, tiny positive; `--meta` `=x`, `k=`,
   `k=v=w`, repeat; `--ci` case and unknown; `--accent` valid/invalid forms.
+- Cross-family precedence, both directions: early scalar/dependency errors beat
+  a later path collision (`--pdf-timeout abc`, invalid `--locale`, invalid
+  `--ci`, invalid `--history-limit`, each with a colliding `--out`); path
+  errors beat later `--meta`/`--max-size`/`--accent` parsing (a manifest
+  collision plus an invalid `--meta`).
+- Parse order inside the shared catch (rows 32–35): one argv with an invalid
+  `--meta`, `--max-size`, `--accent` and `--logo` reports `--meta` first, then
+  max-size, accent and logo.
+- `--meta k=1 --meta k=2` keeps the last value (`{ k: '2' }`).
+- `--max-size` equivalence classes: `1e3`, `0x10` and `" 5 "` are accepted by
+  `Number()`; `""`, `0`, negative, `NaN` and `Infinity` are usage errors.
+- `--pdf-timeout` and `--history-limit` reject `-1`, `+1`, `1e3`, `" 1"`, `0`
+  and `01` as usage errors; 1 and the maximum are accepted.
 
 ### Slice 2 — plan paths and logo (`test/cli-plan-paths.test.ts`)
 
@@ -494,9 +536,11 @@ edited except for a genuine import change, which this design does not expect.
   replacement, while
   `--email`/`--pdf`/`--history`/`--baseline`/`--manifest` also fail for a
   missing target inside an input directory.
-- Manifest relative expressibility: absolute artifact passes; a relative
-  artifact that cannot be expressed fails with the exact per-flag message;
-  cross-drive case guarded to Windows.
+- Manifest relative expressibility: an absolute artifact passes; a relative
+  artifact inside the manifest's directory is expressible and passes; one that
+  cannot be expressed fails with the exact per-flag message; cross-drive case
+  guarded to Windows.
+- `samePath` with UNC paths and trailing separators (platform-guarded).
 - Logo validation: missing file, unsupported extension, >2 MB, wrong magic per
   extension, valid PNG/JPEG/GIF/WebP/SVG with XML declaration and BOM-free
   handling; exact messages.
@@ -510,24 +554,49 @@ edited except for a genuine import change, which this design does not expect.
   pass-through.
 - Resolved input once: `resolveInputFiles` is called once and its result is
   the object handed to `generateReportFromResolved`/`summarizeRunFromResolved`.
-- Failure-point state table: fail report → no PDF/email/history/ci-out/
-  manifest/stdout; fail PDF → report stays, later absent; fail email → report
-  and PDF stay, history/ci-out/manifest/stdout absent; fail history → earlier
-  stay, ci-out/manifest/stdout absent; fail ci-out → earlier stay, manifest/
-  stdout absent; fail manifest → earlier stay, stdout empty. No `.tmp` remains.
+- Failure-point state table, split by mode. Summary order: email → ci-out →
+  manifest → stdout. Generate order: generate → report → PDF → email →
+  history → max-size warning → attachment warning → ci-out → manifest →
+  stdout.
+
+  | Mode | Failed step | Prior writes stay | Later steps | stdout |
+  | --- | --- | --- | --- | --- |
+  | summary | email | none | ci-out, manifest absent | empty |
+  | summary | ci-out | email | manifest absent | empty |
+  | summary | manifest | email, ci-out | — | empty |
+  | generate | generate | none | report, PDF, email, history, ci-out, manifest absent | empty |
+  | generate | report | none | PDF, email, history, ci-out, manifest absent | empty |
+  | generate | PDF | report | email, history, ci-out, manifest absent | empty |
+  | generate | email | report, PDF | history, ci-out, manifest absent | empty |
+  | generate | history | report, PDF, email | ci-out, manifest absent | empty |
+  | generate | ci-out | report, PDF, email, history | manifest absent | empty |
+  | generate | manifest | report, PDF, email, history, ci-out | — | empty |
+
+  Read failures (input resolution, history read, baseline read) happen before
+  any write: exit 1, no files, no stdout; only the early input warning may
+  already be on stderr. Every failure leaves no `.tmp` and keeps every
+  completed earlier write.
 - Warning order: max-size then skipped-attachment, after writes and before
   ci-out/manifest/stdout; early input warning before parse; exact bytes.
 - Manifest ledger: report, PDF, email, history, ci-markdown in write order;
   history only when written; summary mode email/ci-markdown only.
 
-### Slice 4 — end-to-end equivalence (`test/cli-equivalence.test.ts`)
+### Slice 4 — compact end-to-end equivalence (`test/cli-equivalence.test.ts`)
 
-- A compact argv matrix through `runCli`: help, version, capabilities,
-  `--json`, report, report+json, PDF-only (mocked engine), email-only,
-  ci-github, ci-azure, ci-markdown, ci-markdown+ci-out, history, baseline,
-  manifest, static, locale, and representative usage failures. Pin exact code,
-  stdout and stderr; the expected values are recorded from the pre-refactor
-  commit before implementation.
+The permanent file is compact: it covers only what the 12 existing CLI files do
+not pin — the mode × stdout cross-product, the built-CLI spawn and the
+file-set/determinism checks. The full ~20-row matrix and the baseline artifact
+comparison are the one-time gate recorded in task 4.6, not a duplicate
+permanent suite.
+
+- Mode × stdout rows through `runCli` with exact code/stdout/stderr:
+  generate+`--ci github` (stdout), generate+`--ci azure`,
+  generate+`--ci markdown --ci-out`, generate+`--json --baseline`,
+  summary+`--ci github`, summary+`--json --baseline`,
+  summary+`--ci markdown --ci-out`, and `--json`+`--manifest` suppression.
+- Built-CLI spawn after `npm run build`: `node dist/cli.js --help`,
+  `--version`, `--capabilities` and one usage failure return the pinned bytes
+  and exit codes.
 - Machine-byte proof: `--json` stdout equals
   `${JSON.stringify(await summarizeReport(inputs), null, 2)}\n`; Markdown
   stdout/file equals `formatCiOutput(summary, 'markdown', { title })`; the
@@ -538,18 +607,21 @@ edited except for a genuine import change, which this design does not expect.
   `renderEmail(summary, { title, locale, reportName, accent, now })` under the
   same frozen clock; the mocked `renderPdf` receives the exact CLI HTML and
   writes its bytes atomically.
-- File-set proof: before/after directory listing equals the expected outputs;
-  no `.tmp`, no extra directory; existing files survive a failed write.
+- File-set proof: before/after directory listing equals the expected outputs
+  and the same directory state as today, including `writeAtomic`'s `mkdir`
+  before a failed write; no `.tmp` remains and existing files survive a failed
+  write. On POSIX, assert mode 0600 on each created file; skip the mode
+  assertion on Windows.
 - Determinism: two runs with the same argv and frozen clock produce identical
   bytes for JSON, CI, manifest and history.
 
 ISTQB coverage: equivalence classes for summary vs generate and for stdout
 ownership; boundary values above; decision tables for option combinations and
-single errors; state transitions for the six failure points; pairwise
+single errors; state transitions for the mode-split failure table; pairwise
 combinations for output collisions (`manifest × peer`, `email ×
 ci-out/history/pdf`, `baseline × surface`).
 
-## Size, stop condition and fallback
+## Size, stop condition and first-commit fallback
 
 Expected result:
 
@@ -563,8 +635,11 @@ Stop conditions — stop and return to the design/user if any holds:
 
 - an existing CLI test needs an expectation, message or order change;
 - any `git diff` outside `src/cli.ts`, `src/cli/**`, the new CLI tests,
-  `docs/ARCHITECTURE.md`, `GLOSSARY.md` and this change appears (except a
-  mechanical import change);
+  `docs/ARCHITECTURE.md`, `GLOSSARY.md`, `scripts/package-check.mjs`,
+  `test/package-manifest.test.ts` and this change appears (except a mechanical
+  import change);
+- a move needs a new `oxlint-disable` or knip suppression directive
+  (`test/tooling-config.test.ts` pins every directive);
 - the plan/execute boundary needs a new catch, a new validation, a new
   message, or a reordered check to compile;
 - total line growth exceeds +20% (about 1,190 lines) or a module other than
@@ -572,23 +647,28 @@ Stop conditions — stop and return to the design/user if any holds:
 - the write-order or failure-point table cannot be reproduced without adding
   a hook or abstraction.
 
-Fallback first slice (if the full split cannot stay identical): extract
-`src/cli/args.ts` and a pure `planOptions(argv)` covering only the contiguous
-block that ends before the filesystem path checks (parse, help/version/
-capabilities, empty paths, option dependencies, `--pdf-timeout`, locale, CI,
-`--history-limit`, at-least-one, logo/history empty checks, history-limit
-value). Return a partial `CliPlan` and leave path checks, metadata/logo reads
-and execution in `cli.ts` untouched. That removes about 450 lines, establishes
-the plan type and keeps the exact error order because the extracted block is
-contiguous at the top. Deferred to a follow-up: path plan, execute split,
-write ledger and the execute/equivalence test slices.
+First implementation commit (unconditional, and also the fallback): add
+`src/cli/args.ts` and `src/cli/plan.ts` with `planOptions(argv)` and the
+partial `CliOptions` type covering checks 1–23 — the contiguous block that ends
+before the filesystem path checks (parse, help/version/capabilities, empty
+paths, option dependencies, `--pdf-timeout`, locale, CI, `--history-limit`,
+at-least-one, logo/history empty checks and the history-limit value).
+`src/cli.ts` calls it and then continues with the current path checks,
+metadata/logo reads and execution. About 300 lines (~211 pre-path + ~92
+parsers, plus imports and types). This commit is green on the full CLI suite
+and the 2.5 equivalence control; the later slices build on it. If a later step
+breaks byte identity, stop at this green extract and return to the
+design/user; the extract then stands as the fallback, and the follow-up gets
+the path plan, execute split, write ledger and the execute/equivalence test
+slices.
 
 ## Risks
 
-1. **Usage-error precedence drift.** 38 exit-2 sites are interleaved with
-   filesystem checks. Moving all pure checks before path checks (or the
-   reverse) changes which error a multi-defect argv sees. Mitigation: the
-   ordered table above is normative; precedence-pair tests; side-by-side diff.
+1. **Usage-error precedence drift.** 42 exit-2 sites are interleaved with
+   filesystem checks across the 47 ordered checks. Moving all pure checks
+   before path checks (or the reverse) changes which error a multi-defect argv
+   sees. Mitigation: the ordered table above is normative; precedence-pair
+   tests in both directions; side-by-side diff.
 2. **Path semantics drift.** `isInside`, `conflictsWithInputs`, `pathConflicts`
    and `cannotExpressRelative` are copied verbatim with the same signatures.
    `samePath` and `outputOverwritesInput` stay untouched. The rules are
@@ -613,49 +693,38 @@ write ledger and the execute/equivalence test slices.
    normative; execute maps 1:1 and never re-parses.
 7. **"Pure" misunderstanding.** Planning reads filesystem metadata and the
    logo. This is deliberate and documented; a strict-pure split would reorder
-   errors. PIR/DXR should confirm this is acceptable.
+   errors. The 2026-11-26 PIR/DXR review accepted this.
 8. **Unhandled-rejection parity.** Path checks currently sit outside the exit-1
    catch. Do not add a catch around them; only the metadata/max-size/accent/
    logo block maps to exit 2.
-9. **Bundle/type surface.** New internal `dist/cli/*.d.ts` files appear.
-   `src/index.ts` and `dist/index.d.ts` must stay unchanged; `npm run
-   package:check` confirms the tarball has no unexpected path change beyond
-   `dist/` contents.
-10. **Coverage and suite bloat.** Four new test files must cover the new
-    modules without duplicating the 12 existing CLI files. Mitigation: plan/
-    execute/equivalence scopes only; STR reviews test health.
+9. **Bundle/type surface.** Accept exactly five new internal declarations,
+   `dist/cli/{args,execute,logo,paths,plan}.d.ts` (+5 tarball entries); public
+   entries and runtime bytes must stay unchanged. `scripts/package-check.mjs`
+   pins them as required entries and `test/package-manifest.test.ts` pins the
+   same list; its 80-entry npm-12 fixture derives fillers as
+   `80 - (packedPaths.length - 1)` so the shape check follows the list.
+   Mitigation: `npm run package:check` and the manifest test.
+10. **Coverage and suite bloat.** The permanent equivalence file stays compact:
+    mode × stdout cross-product, built-CLI spawn and file-set/determinism; the
+    full ~20-row matrix is the one-time gate in task 4.6. The existing 12 CLI
+    files are not edited. Mitigation: intended scopes only; STR reviews test
+    health.
 11. **Cross-platform tests.** Case folding, junctions and cross-drive paths
     differ by host. Mitigation: platform guards like the existing suite.
-12. **Golden brittleness.** No HTML/email byte goldens across Node/Intl
-    versions; use direct API equivalence and frozen clocks for machine bytes.
+12. **Golden brittleness.** No permanent HTML/email byte goldens across
+    Node/Intl versions; the one-time gate compares on the same host, and the
+    permanent tests use direct API equivalence and frozen clocks for machine
+    bytes.
 
-## PIR / DXR questions
+## Review outcome (2026-11-26)
 
-PIR (Parity & Vision):
-
-- Is every user-visible CLI surface (flags, help, capabilities, errors, write
-  order, exit codes) explicitly covered by the no-visible-change contract?
-- Does the refactor accidentally modernize path validation or reorder errors
-  in a way a user or script could observe?
-- Are B-056, B-065 or the research's table-driven path plan being smuggled in?
-  (They must not be.)
-- Is any report, email, PDF or summary byte affected? (No module outside the
-  CLI seam is touched.)
-- Is the fallback slice small enough to be safe if the full split is not
-  provably identical?
-
-DXR (Developer Experience & Integration):
-
-- Can a fresh agent find the seam from `docs/ARCHITECTURE.md`, `GLOSSARY.md`
-  and the module names, and add a new output in one place (plan slot → write
-  order → confirmation → test matrix)?
-- Does every existing importer, e2e helper, bundle entry and package check
-  keep working with no import change?
-- Is the failure model clear: plan failure = 2 with usage text, execute
-  failure = 1 with `tolkira:`, success = 0?
-- Does the resolved-input seam stay internal, and is the public `.d.ts`
-  unchanged?
-- Are the new tests the right size, or do they duplicate the existing CLI
-  suite?
-- Is the bundle still built from `src/cli.ts` with the shebang and no new
-  dependency?
+PIR and DXR ran on the contract at `8f4a493`. Both returned blockers: PIR-1
+(B-057's order contradicted the 2026-11-26 user scope decision) and DXR-1
+(knip would flag exported `CliOutputKind`/`CliConfirmationKind` with no
+external consumer). The remaining findings are folded into this contract: the
+corrected counts and per-site table, the split-report-renderer precedent, the
+one-time byte gate, the mode-split failure table, the unconditional first
+extract, the ISTQB pairs, the 0600/tarball delta, the five pinned declarations,
+the built-CLI spawn, the mode × stdout matrix, the architecture-doc rules, the
+stop conditions and the compact equivalence suite. A PIR/DXR delta re-check
+runs after these fixes; implementation waits for that and the user's approval.
