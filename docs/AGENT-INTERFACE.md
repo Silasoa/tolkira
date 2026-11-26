@@ -9,7 +9,7 @@ Tolkira produces six things from the same input:
 - an opt-in HTML email summary for a status mail or chat message;
 - an opt-in PDF print archive when the optional Playwright Chromium engine is
   installed;
-- an opt-in JSON manifest that lists the files the run wrote and the first
+- an opt-in JSON manifest that lists the files written before it and the first
   failures.
 
 The HTML report is the artifact. The JSON summary is the interface. The CI text
@@ -42,16 +42,16 @@ At least one of `--out`, `--pdf`, `--email`, `--json`, `--ci` or `--manifest`
 is required; `--manifest` alone is a valid summary-only run.
 
 `--json` writes exactly one JSON document to stdout. Warnings and errors go to
-stderr. Exit codes are about report generation, not test status:
+stderr. Exit codes are about output generation, not test status:
 
 | Code | Meaning |
 | ---- | ------- |
-| 0    | Report or summary generated; tests may still have failed |
-| 1    | Input could not be parsed or rendered, or the output could not be written |
+| 0    | Requested output generated (report, summary, manifest or another file); tests may still have failed |
+| 1    | Input could not be parsed or rendered, or a requested output could not be written |
 | 2    | Invalid usage, including an invalid flag value or logo file |
 
-Always read `status` from the JSON summary for the test outcome. A failed test
-suite is exit code 0 by design.
+Read `status` from the JSON summary or the manifest for the test outcome. A
+failed test suite is exit code 0 by design.
 
 A failed `--out` write exits 1 and reports
 `Cannot write report to <target> (<code>)`; a failed `--ci-out` write reports
@@ -63,9 +63,10 @@ keeps an already written report, skips the manifest and writes no later stdout.
 ## Capabilities
 
 `tolkira --capabilities` prints one schema-1 JSON document and exits 0. It takes
-no input and no other option: a positional input or any other flag exits 2 with
-`--capabilities takes no input and no other option; run tolkira --capabilities
-alone`, followed by the usage text, and nothing is read or written. `--help` and
+no input and no other option: a positional input or another valid flag exits 2
+with `--capabilities takes no input and no other option; run tolkira
+--capabilities alone`, followed by the usage text, and nothing is read or
+written; an unknown flag keeps the normal unknown-option error. `--help` and
 `--version` keep precedence.
 
 ```json
@@ -76,8 +77,8 @@ alone`, followed by the usage text, and nothing is read or written. `--help` and
   "node": ">=22",
   "inputs": [
     "cucumber-legacy-json",
-    "cucumber-messages",
     "junit-xml",
+    "cucumber-messages",
     "playwright-json"
   ],
   "outputs": [
@@ -122,8 +123,9 @@ alone`, followed by the usage text, and nothing is read or written. `--help` and
   the running package version (`tolkira --version`) and `node` is the package's
   Node range, both pinned to `package.json` by tests. `inputs` lists the four
   accepted input kinds in detection order, each proven by a `detectInput`
-  fixture. `outputs` mirrors the `CiFormat` union and names `--ci-out` as the
-  file form of `ci-markdown`. `defaults` (`reportWarnMb`, `pdfTimeoutMs`,
+  fixture. `outputs` lists the file outputs (report, PDF, email, history,
+  manifest) and the CI formats; `ci-markdown` names `--ci-out` as its file form.
+  `defaults` (`reportWarnMb`, `pdfTimeoutMs`,
   `historyLimit`) are overridable option defaults, not caps.
 - The document is deterministic: no timestamp, cwd, environment value or
   unbounded array. It stays under 4,096 bytes.
@@ -203,9 +205,11 @@ tolkira test-results/ --out report.html --json --manifest run.json
 - `artifacts` lists only files written before the manifest, once each, in write
   order: `report`, `pdf`, `email`, `history`, `ci-markdown`. The JSON summary on
   stdout and the manifest itself are not artifacts. Each `path` is relative to
-  the manifest file's directory with `/` separators; when no relative path
-  exists, such as across Windows drives, the path as given is the fallback. It
-  never contains the cwd and never names an input.
+  the manifest file's directory with `/` separators. An absolute artifact path
+  is recorded as given only when no relative path exists, such as across Windows
+  drives; a relative artifact path that cannot be expressed relative to the
+  manifest is a usage error that exits 2 before any write. Beyond that absolute
+  fallback, it never contains the cwd and never names an input.
 - The document has no timestamp, attachment content or second copy of the
   scenario rows. It is deterministic for the same run and options.
 - The path must be non-empty and is validated like every other output: it must
@@ -393,6 +397,9 @@ tolkira test-results/ --pdf report.pdf --json > summary.json
 tolkira test-results/ --pdf report.pdf --locale de
 tolkira test-results/ --pdf report.pdf --pdf-timeout 600000
 ```
+
+On Windows PowerShell 5.1, `>` writes UTF-16; use PowerShell 7 or pipe to
+`Set-Content -Encoding utf8` before parsing the JSON.
 
 - Run the install in the project where Tolkira runs; a project-local Tolkira
   install is recommended. The engine resolves beside Tolkira, then from the
@@ -787,7 +794,8 @@ Contract:
   is part of that list.
 - The CLI is the only automatic writer: it resolves inputs once and drives the
   internal `generateReportFromResolved` (report) and
-  `summarizeReportFromResolved` (summary) entry points. The public API stays
+  `summarizeRunFromResolved` (summary plus the skipped-attachment count) entry
+  points. The public API stays
   path-based: `generateReport` resolves the paths and appends the current run
   itself. API callers write
   through `writeHistory`; `renderReport` and `CucumberHtmlStream` render a given
@@ -1246,8 +1254,10 @@ and uses the same display URI for an unnamed feature's heading; the summary
   `CucumberHtmlStream` do not accept a baseline in 0.6.0.
 - `--capabilities` is input-free and read-only. The manifest is opt-in, has no
   timestamp or input path, and its artifact paths are relative to the manifest
-  file except for the documented cross-drive fallback; it is not a second
-  summary and carries no scenario rows beyond the first 10 failures.
+  file; an absolute path is recorded as given only when no relative path exists,
+  such as across Windows drives, and a relative path that cannot be expressed is
+  a usage error before any write. It is not a second summary and carries no
+  scenario rows beyond the first 10 failures.
 - The email summary is opt-in and file-only. It has no sending, recipients,
   scheduling, `.eml` draft, logo, error snippets or redaction mode; the report
   basename (or the no-report note) is the only path-like content.

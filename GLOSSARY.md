@@ -223,6 +223,17 @@ resolved title, overall status, feature/scenario/step counts, duration,
 attachment totals and the optional flaky count. It never carries scenario names,
 step text, paths, tags or attachment content.
 
+**Run manifest** — the opt-in `--manifest <file>` JSON document (schema 1) with
+the run status, counts, attachments, skipped-attachment count, the files written
+before it and the first 10 failures. It carries no timestamp or input path, is
+written last and atomically with mode `0600`, and its artifact paths are
+relative to the manifest file except the absolute cross-drive fallback.
+
+**Capabilities document** — the input-free `tolkira --capabilities` JSON
+document (schema 1) with the version, Node range, accepted inputs, file outputs,
+CI formats, summary schema, locales, limits, defaults and exit codes. It is
+deterministic, under 4,096 bytes and sourced from the enforcing constants.
+
 **Aggregate id** — the SHA-256 in a history run. It hashes the aggregates,
 including the optional flaky count, and the title but not the recorded time, so
 an identical rerun is not appended and keeps the old timestamp.
@@ -303,6 +314,13 @@ block container; images become alt text and raw HTML stays escaped.
 **Tag expression** — the official Cucumber boolean tag query (`@a and not @b`,
 `or`, `not`, parentheses, escaped tags). The search box uses it only when the
 whole query is tag-shaped; mixed text and tags fall back to substring search.
+
+**Tag overview** — the Details panel with one row per tag and its executed
+scenario, failed and skipped counts. It counts inherited feature, rule and
+examples tags once per executed row, sorts failing tags first, then by scenario
+count and fixed code-unit order, and caps at 50 rows with the complete tag
+count. It ignores the toolbar filter and adds no panel when no rendered row
+carries a tag.
 
 **URL state** — the shareable `?query=`, repeated lowercase `?hide=` and `?tag=`
 parameters, including the `hide=unexecuted` pseudo-status. The report restores

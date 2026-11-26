@@ -32,8 +32,10 @@ HTML attachments are always escaped text, and SVG attachments are only used as
 ## Owner-only output files
 
 Tolkira creates its report, email, PDF, CI Markdown (`--ci-out`), history
-sidecar and compat sidecar through an atomic temporary-file rename with mode
-`0600`. On POSIX the final file is readable and writable only by the account
+sidecar, run manifest (`--manifest`) and compat sidecar through an atomic
+temporary-file rename with mode `0600`. The manifest repeats the summary status
+and counts, the first 10 failure names and URIs, and the artifact paths, so it
+is as sensitive as the report and inherits the same Windows ACL trade-off. On POSIX the final file is readable and writable only by the account
 that ran Tolkira. Windows ignores the POSIX mode; there the inherited
 destination ACL decides, so a shared folder that already grants read exposes
 the file without any permission change.

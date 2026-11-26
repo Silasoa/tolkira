@@ -183,6 +183,9 @@ npm install --save-dev tolkira
 npx tolkira test-results/ --out report.html --email email.html --title "CI run" --json > summary.json
 ```
 
+On Windows PowerShell 5.1, `>` writes UTF-16; use PowerShell 7 or pipe to
+`Set-Content -Encoding utf8` before parsing the JSON.
+
 `--capabilities` prints the installed inputs, outputs, limits and exit codes as
 one schema-1 JSON document, without an input. `--manifest run.json` adds a
 schema-1 manifest with the status, counts, files written before it and the first
@@ -231,7 +234,8 @@ artifact and carries baseline names and URIs, so share it with that in mind. See
 [Baseline comparison](docs/CI.md#baseline-comparison).
 
 `--json` writes exactly one JSON document to stdout; warnings go to stderr.
-Exit code 0 means the report was generated, not that the tests passed. Read
+Exit code 0 means the requested output was generated (report, summary or
+manifest), not that the tests passed. Read
 `status` and `counts` from the summary. Abridged real output (counts and steps
 trimmed):
 
@@ -261,15 +265,13 @@ trimmed):
 }
 ```
 
-Paste this into an agent's instructions:
-
-```text
-Use Tolkira for Cucumber results. Run `npx tolkira <inputs> --out report.html --json`
-and parse stdout as the JSON summary; do not scrape the HTML. Exit code 0 means
-the report was generated, not that the tests passed. Read summary.status and
-summary.counts, and check scenarios[].executed before treating a status as an
-outcome. Upload report.html as the human-facing artifact.
-```
+Paste the canonical block from
+[`docs/AGENT-SNIPPET.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-SNIPPET.md)
+into an agent's instructions. In short: run
+`npx tolkira <inputs> --out reports/report.html --json --manifest .tolkira/run.json`,
+parse stdout as the JSON summary, and check `scenarios[].executed` before
+treating a status as an outcome. Exit code 0 means generation succeeded, not
+that the tests passed.
 
 See [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md)
 for the full schema and exit codes. A longer, version-agnostic copy-paste block
@@ -353,15 +355,15 @@ unredacted-message warning.
   same offline HTML as `renderReport`, for embedding without a temp file.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
-- **A Details view when you need it.** Status distribution, a feature-by-status
-  matrix, a tag overview (executed scenario, failed and skipped counts per tag,
-  failing tags first, capped at 50 rows with the complete tag count), run
-  metadata (absolute http(s) values become links), the Run
+- **A Details view when you need it.** A feature-by-status matrix, status
+  distribution, run metadata (absolute http(s) values become links), the Run
   environment (producer, runtime, OS, CPU, protocol) and size contributors: the
   unique report files and their total on-disk bytes, decoded attachment bytes,
   the exact report HTML bytes (at 1 MiB and above, paired with one-decimal MB in
   parentheses) and the three largest attachments by decoded bytes. The rows are
-  contributors, not a sum.
+  contributors, not a sum. A tag overview follows the analysis grid: executed
+  scenario, failed and skipped counts per tag, failing tags first, capped at 50
+  rows with the complete tag count.
 - **Opt-in run trends.** `--history <file>` keeps the newest 30 aggregate runs
   by default and adds a Trends tab from the second run: a newest-first table with
   pass rate, flaky count and flaky share, plus a pass-rate sparkline.
@@ -587,8 +589,9 @@ browser launch are not reproduced. The shim consumes the same input JSON,
 never the old rendered HTML. `reportSuiteAsScenarios`, `scenarioTimestamp`,
 `columnLayout` and `failedSummaryReport` are warned and ignored; the `jsonDir`
 group mode and its merged sidecar are supported. The shim has no equivalent of
-the 0.6.0 core flags (`--static`, `--history`/`--history-limit`, `--baseline`)
-or the core outputs (`--json`, `--ci`, `--email`, `--pdf`).
+the 0.6.0 core flags (`--static`, `--history`/`--history-limit`, `--baseline`,
+`--capabilities`) or the core outputs (`--json`, `--ci`, `--email`, `--pdf`,
+`--manifest`).
 See [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md)
 for the full mapping and caveats.
 

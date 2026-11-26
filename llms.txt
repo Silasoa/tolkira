@@ -50,8 +50,9 @@ License: MIT
 
 - Generate the summary with `tolkira <inputs> --json` and parse stdout; do not
   scrape the HTML for pass/fail data.
-- Exit code 0 means the report was generated, not that the tests passed. Read
-  `status` and `counts` from the summary.
+- Exit code 0 means the requested output was generated (report, summary or
+  manifest), not that the tests passed. Read `status` and `counts` from the
+  summary or the manifest.
 - Check `scenarios[].executed` before treating a scenario status as an outcome.
 - Use `tolkira --capabilities` for the installed inputs, outputs, limits and exit
   codes, and `--manifest run.json` for the run's status, counts, written files

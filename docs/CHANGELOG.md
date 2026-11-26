@@ -20,11 +20,12 @@ Keep a Changelog and the project uses semantic versioning.
   4,096 bytes. `--manifest <file>` writes a schema-1 run manifest with the
   status, counts, attachments, skipped-attachment count, the artifacts written
   before it and the first 10 failures; it is written last, atomically as `0600`,
-  uses relative paths with the documented cross-drive fallback, and alone
-  satisfies the at-least-one-output rule. The new
+  uses relative paths and records an absolute one only when no relative path
+  exists, such as across Windows drives; a relative path that cannot be expressed
+  is a usage error, and it alone satisfies the at-least-one-output rule. The new
   `docs/AGENT-SNIPPET.md` ships in the package and is linked from `llms.txt`
-  (B-062, B-063, B-064). The summary schema, report, PDF, email and CI bytes are
-  unchanged.
+  (B-062, B-063, B-064). Neither flag changes the summary schema, report, PDF,
+  email or CI bytes.
 
 ### Changed
 

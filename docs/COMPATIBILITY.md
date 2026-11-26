@@ -174,8 +174,9 @@ the sidecar afterwards.
 - The shim is experimental. The option set is frozen; new features are added to
   the core CLI/API, not to the shim.
 - The shim has no equivalent of the 0.6.0 core flags (`--static`,
-  `--history`/`--history-limit`, `--baseline`) or the core outputs (`--json`,
-  `--ci`, `--email`, `--pdf`); use the core CLI/API for those. `jsonDir` group
+  `--history`/`--history-limit`, `--baseline`, `--capabilities`) or the core
+  outputs (`--json`, `--ci`, `--email`, `--pdf`, `--manifest`); use the core
+  CLI/API for those. `jsonDir` group
   mode and its merged sidecar are supported. The legacy
   `reportSuiteAsScenarios`, `scenarioTimestamp`, `columnLayout` and
   `failedSummaryReport` options are warned and ignored.

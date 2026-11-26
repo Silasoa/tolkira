@@ -140,10 +140,10 @@ and is covered by real producer fixtures.
   while the preset chip state is active.
   The run percentage and feature pass text use attempted (non-skipped)
   scenarios. Below 560 px the triage collapses and the source strip hides.
-- Details tab: feature-by-status matrix, status distribution, tag overview,
-  environment and the agent summary. The tag overview counts executed scenario
-  rows per tag, sorts failing tags first and caps at 50 rows with the complete
-  tag count; it is server-rendered and ignores the toolbar filter.
+- Details tab: feature-by-status matrix, status distribution, Run / environment
+  panels, tag overview and the agent summary. The tag overview counts executed
+  scenario rows per tag, sorts failing tags first and caps at 50 rows with the
+  complete tag count; it is server-rendered and ignores the toolbar filter.
 - Trends tab (only with two or more history runs): newest-first table of the
   recorded runs with attempted pass rate, flaky count and flaky share, and a
   decorative pass-rate sparkline oldest to newest. One `passRate` helper in
@@ -285,7 +285,7 @@ and is covered by real producer fixtures.
   report order across hosts. The visible order for non-ASCII names differs from
   locale-aware order.
 - Pure: it builds from an index or envelope list and owns no file reading. The
-  CLI always drives `summarizeReportFromResolved` in `src/run.ts`, the single
+  CLI always drives `summarizeRunFromResolved` in `src/run.ts`, the single
   summary seam, even without a baseline.
 - Exposed as `summarizeReport(inputs, options?)`.
 - Schema version 2 is documented in `docs/AGENT-INTERFACE.md`; breaking changes
@@ -400,9 +400,10 @@ and is covered by real producer fixtures.
   `loadResolvedInputs` reads and parses the resolved files, `indexRun` builds the
   report index, and the summary, attachment totals and history come from that one
   run.
-- `generateReportFromResolved`, `renderReportFromResolved` and
-  `summarizeReportFromResolved` are the internal entry points for a resolved
-  list; the CLI drives the first and the last.
+- `generateReportFromResolved`, `renderReportFromResolved`,
+  `summarizeRunFromResolved` and `summarizeReportFromResolved` are the internal
+  entry points for a resolved list; the CLI drives `generateReportFromResolved`
+  and `summarizeRunFromResolved`.
 - The public `generateReport`, `renderReport` and `summarizeReport` stay
   path-based and resolve first; the resolved list is not a package type.
 
@@ -423,9 +424,11 @@ and is covered by real producer fixtures.
   the skipped-attachment count, the artifacts written before it and the first 10
   failed rows with their display URI and optional example coordinate.
 - Relative paths are computed against the manifest file's directory and joined
-  with `/`; across Windows drives the path as given is the fallback. The builder
-  writes no file; the CLI validates the path, keeps the artifact ledger in write
-  order and writes the manifest last through the shared atomic `0600` writer.
+  with `/`; an absolute artifact path is recorded as given only when no relative
+  path exists, such as across Windows drives, and a relative one that cannot be
+  expressed is a usage error before any write. The builder writes no file; the
+  CLI validates the path, keeps the artifact ledger in write order and writes the
+  manifest last through the shared atomic `0600` writer.
 
 ### `src/cli`
 
@@ -529,7 +532,7 @@ writes nothing and shares the translator. `renderPdf` takes rendered
 report HTML, returns PDF bytes and launches the optional engine only when
 called; it accepts `PdfOptions` (`timeoutMs`) and writes no file. The CLI
 resolves inputs once and drives the internal resolved entry points
-(`generateReportFromResolved` and `summarizeReportFromResolved`) instead of
+(`generateReportFromResolved` and `summarizeRunFromResolved`) instead of
 re-resolving through the path-based public functions.
 
 `BaselineRenderOptions extends RenderReportOptions` with

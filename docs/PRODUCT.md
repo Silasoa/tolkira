@@ -88,8 +88,6 @@ it. The gap is the combination.
 - A "Needs attention" index with counts and links into the collapsed detail.
 - Feature rows with passed/attempted counts and proportion bars.
 - Feature-by-status matrix in Details.
-- Tag overview in Details: executed scenario, failed and skipped counts per
-  tag, failing tags first and capped at 50 rows.
 - Source strip for multi-file runs with real provenance.
 - Batched CLI edge fixes from the 0.1.2 audit.
 
@@ -120,6 +118,25 @@ it. The gap is the combination.
   aggregate runs (`--history-limit <n>`, default 30) and a Trends tab from the
   second run; aggregate-only data, one CLI writer, no server and no
   scenario-level history. Lowering the window drops older runs on the next write.
+
+### Tag overview (in main)
+
+- Details panel with executed scenario, failed and skipped counts per tag,
+  failing tags first, then scenario count and fixed code-unit order, capped at
+  50 rows with the complete tag count. It counts every executed row, including
+  pending, undefined and ambiguous results; unexecuted-only tags show zeros.
+- Server-rendered and independent of the toolbar filter; the tag filter still
+  offers tags that only appear on unexecuted rows.
+
+### Agent surface (in main)
+
+- `tolkira --capabilities` prints one deterministic schema-1 JSON document with
+  the installed facts, without an input.
+- Opt-in `--manifest <file>` writes a schema-1 run trail after the other files:
+  status, counts, attachments, skipped-attachment count, the artifacts written
+  before it and the first 10 failures. It is written last, atomic with mode
+  `0600`, and carries no timestamp or input path.
+- A copy-paste agent block ships as `docs/AGENT-SNIPPET.md` and in the package.
 
 ### Baseline comparison (in main)
 

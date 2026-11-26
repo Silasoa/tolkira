@@ -382,9 +382,10 @@ file:
 
 `--ci-out` exists only for `--ci markdown`; GitHub and Azure annotations always
 own stdout, so `--ci azure --ci-out` is a usage error. A failed test run still
-exits 0 in every row. `--manifest` adds no row: it writes its file last and
-prints `Manifest written to ...` only when stdout is free, so the JSON and CI
-bytes are unchanged.
+exits 0 in every row. Without `--out`, the two `--ci-out` rows print
+`Manifest written to ...` instead of nothing when `--manifest` is set.
+`--manifest` adds no row: it writes its file last and prints its confirmation
+only when stdout is free, so the JSON and CI bytes are unchanged.
 
 The human confirmation lines (`Report written to ...`,
 `PDF written to ...`, `Email written to ...` and `Manifest written to ...`) are
