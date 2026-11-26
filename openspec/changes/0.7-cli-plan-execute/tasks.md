@@ -2,7 +2,7 @@
 
 ## 1. Baseline and guardrails
 
-- [ ] 1.1 Record the pre-refactor baseline at the current `main` commit on
+- [x] 1.1 Record the pre-refactor baseline at the current `main` commit on
   fixed fixtures (`test/fixtures/messages/screenshot.ndjson` plus
   `test/fixtures/history/two-runs.json`), with a frozen clock and English
   (`--locale en`): one generate run with report + PDF + email + history +
@@ -15,7 +15,7 @@
   pinned host Chromium (record the `playwright-core` and Chromium versions),
   never the `cli-pdf` mock; the mock stays a permanent unit seam. The reference
   must not be regenerated after the split.
-- [ ] 1.2 Re-run the existing CLI suite (`npx vitest run test/cli*.test.ts
+- [x] 1.2 Re-run the existing CLI suite (`npx vitest run test/cli*.test.ts
   test/capabilities.test.ts test/inputs.test.ts`: the 12 CLI files plus
   `capabilities`, `inputs` and the shared helpers) on the baseline commit and
   record the green result as the control for 4.1; no test is edited.
@@ -29,39 +29,39 @@ PIR/DXR blockers are closed.
 
 ## 2. TDD-Red (failing tests first)
 
-- [ ] 2.1a `test/cli-plan-options.test.ts`: the exported `planOptions` shape,
+- [x] 2.1a `test/cli-plan-options.test.ts`: the exported `planOptions` shape,
   defaults, purity and the checks 1–23 single-defect messages, precedence and
   boundary classes. RED because `planOptions` does not exist; GREEN at the
   3.1b fallback. ≤2h.
-- [ ] 2.1b `test/cli-plan.test.ts`: the full plan shape/defaults, write order,
+- [x] 2.1b `test/cli-plan.test.ts`: the full plan shape/defaults, write order,
   stdout policy, exit policy, help/version/capabilities actions and purity.
   RED until 3.4/3.5. ≤2h. The checks 1–23 message table stays in 2.1a, not a
   second copy here.
-- [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 32–34 (path
+- [x] 2.1c `test/cli-plan.test.ts`: the messages added by checks 32–34 (path
   collisions 24–31, the logo message 35 and the four-way parse order are in
   2.3), `--meta` `=x`/`k=`/`k=v=w` plus last-wins, the `--max-size` classes
   and the same- and cross-family precedence pairs that involve 24–34.
   The `--pdf-timeout`/`--history-limit` boundary forms stay in 2.1a. RED for
   the full plan API; the expected strings are the baseline. ≤2h.
-- [ ] 2.3 `test/cli-plan-paths.test.ts`: identity, containment, peer
+- [x] 2.3 `test/cli-plan-paths.test.ts`: identity, containment, peer
   collisions (messages 24–31), manifest relative expressibility, logo
   validation (message 35), the four-way `--meta` → `--max-size` → `--accent` →
   `--logo` order, out collision vs logo; platform guards for case folding,
   junctions and cross-drive. RED.
-- [ ] 2.4 `test/cli-execute.test.ts`: summary/generate branches, resolved input
+- [x] 2.4 `test/cli-execute.test.ts`: summary/generate branches, resolved input
   once, option-object equality, the mode-split failure table, warning order,
   manifest ledger. RED because `executePlan` does not exist.
-- [ ] 2.5a `test/cli-equivalence.test.ts`: the compact mode × stdout matrix
+- [x] 2.5a `test/cli-equivalence.test.ts`: the compact mode × stdout matrix
   with exact code/stdout/stderr. GREEN as a control before the split and after
   it. ≤2h.
-- [ ] 2.5b `test/cli-equivalence.test.ts`: machine-byte API equivalence
+- [x] 2.5b `test/cli-equivalence.test.ts`: machine-byte API equivalence
   (`summarizeReport`, `formatCiOutput`, `buildRunManifest`), report/email API
   equivalence, mocked PDF pass-through, file-set and determinism checks, and a
   built-CLI spawn from a temporary esbuild bundle (the `render-report` pattern;
   `npm test` does not build, so never `dist/cli.js` here). The spawned probes
   are `--help`, `--version`, `--capabilities` and row 5 (bare usage). GREEN as
   a control. ≤2h.
-- [ ] 2.6 Confirm every new seam test fails for the right reason (missing
+- [x] 2.6 Confirm every new seam test fails for the right reason (missing
   module/API), and every equivalence test is green on the baseline. No existing
   test is edited.
 
