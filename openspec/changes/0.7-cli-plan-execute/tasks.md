@@ -20,9 +20,10 @@
   `capabilities`, `inputs` and the shared helpers) on the baseline commit and
   record the green result as the control for 4.1; no test is edited.
 - [x] 1.3 Run the pre-implementation PIR + DXR on this proposal and design;
-  fix blockers in the contract before any code. Five delta rounds closed
-  (`f73a7b4`, `21ebded`, `33782c9`, `05ff933`, `88d79af`, `3904040`); PIR and
-  DXR both PASS on `3904040`. No code until the user approves this contract.
+  fix blockers in the contract before any code. Seven delta rounds closed
+  (`f73a7b4`, `21ebded`, `33782c9`, `05ff933`, `88d79af`, `8f013f9`,
+  `3904040`); PIR and DXR both PASS on `3904040`. No code until the user
+  approves this contract.
 
 Implementation does not start until the user approves this contract and the
 PIR/DXR blockers are closed.

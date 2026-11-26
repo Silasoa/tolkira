@@ -1,7 +1,7 @@
 # One-time equivalence gate — task 4.6
 
 Run on the final implementation on 2026-11-26, after all 3.x steps, and re-run
-after the review-fix commit `88b9f74` closed findings 1–7.
+after the review-fix commit `88b9f74`.
 
 | Item | Value |
 | --- | --- |
@@ -113,6 +113,33 @@ Tarball: 86 entries at `1ee837e` → **91 entries** (+5), exactly the five
 attw are green. The `npm run check` and `npm run package:check` rebuilds
 reproduced the same five byte sizes above.
 
+## Post-implementation review (2026-11-26)
+
+The standard reviewer set ran on `79505c8`, the last implementation commit
+before the fix:
+
+| Reviewer | Verdict | Blockers |
+| --- | --- | --- |
+| SCR | FAIL | 2 |
+| CR | PASS | — |
+| DAR | FAIL | 1 |
+| STR | PASS | — |
+| SEC | PASS | — |
+
+- SCR-1: the built-CLI equivalence probe compared the spawned process with the
+  in-process entry instead of pinning the baseline bytes, so a usage change
+  could stay green.
+- SCR-2: the `--max-size -1` case asserted the parser instead of `planCli`,
+  and the symlink containment test skipped Linux; both now exercise the shipped
+  behaviour.
+- DAR-1: `docs/ARCHITECTURE.md`, `GLOSSARY.md`, B-057 and this change record
+  did not match the shipped seam, the line counts or the commit history.
+
+The SCR blockers are fixed in `88b9f74`; the DAR blocker is addressed by the
+documentation fix that carries this record. The gate was re-run at `88b9f74`
+and recorded in `b480ebd`/`b39ba99`. SCR and DAR are not PASS before a
+re-review: re-review pending; task 4.7 stays open.
+
 ## Post-fix gate re-run
 
 Run at `88b9f74` after the review fix, in this order:
@@ -123,7 +150,8 @@ Run at `88b9f74` after the review fix, in this order:
 | `npm run test:e2e` | 478 passed, 8 skipped (1.9 min); Chromium, Firefox and WebKit |
 | `npm run package:check` | green: publint `All good!`, attw all green except the ignored `node10` entries, tarball 91 entries |
 
-All three are green; nothing in this record is pending.
+All three gate commands are green; the post-implementation re-review is still
+pending.
 
 ## Diff surface (task 4.5)
 
@@ -151,9 +179,9 @@ test/cli-plan.test.ts
 test/package-manifest.test.ts
 ```
 
-- Contract range `8f4a493..1ee837e` adds only the change contract:
-  `openspec/changes/0.7-cli-plan-execute/{proposal,design,baseline,tasks}.md`
-  (plus `docs/BACKLOG.md` for the B-057 entry).
+- Contract range `8f4a493..1ee837e` adds the change contract
+  `openspec/changes/0.7-cli-plan-execute/{proposal,design,baseline,tasks}.md`,
+  `docs/BACKLOG.md` and the five TDD-Red test files (`test/cli-*.test.ts`).
 
 Union `8f4a493..88b9f74`: the 17 files above plus
 `docs/BACKLOG.md`, `proposal.md`, `design.md` and `baseline.md`. No renderer,
