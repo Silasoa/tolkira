@@ -314,6 +314,7 @@ describe('executePlan summary branch', () => {
       mode: 'summary',
       json: true,
       baseline: 'baseline.json',
+      writes: [],
       stdout: { machine: 'json', confirmations: [] },
     });
 
