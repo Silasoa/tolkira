@@ -19,24 +19,31 @@ discussion. Docs-only fixes can go straight to a PR.
 
 ## Local checks
 
-Requires Node.js 22 or newer.
+Requires Node.js 22.12 or newer for development (the dead-code check needs it);
+the published package keeps the `>=22` runtime floor.
 
 ```shell
 npm ci
 npx playwright install chromium firefox webkit
 npm run hygiene
 npm run check
+npm run lint:dead
+npm run package:check
 npm run test:e2e
 npm run bench:ansi
 ```
 
 `npm run check` runs `i18n:check`, assets, both typecheck programs, the
-type-aware lint at zero warnings, the Oxfmt check, the build and the coverage
-suite; an empty test glob and coverage below the floor fail. `npm run hygiene`
-checks tracked generated/local files, absolute local paths in docs and commit
-trailers; CI runs the same check on the committed tree. `npm run bench:ansi`
-measures `stripAnsi` on fixed message corpora and fails on the 500 ms
-production budget.
+type-aware lint at zero warnings, the dead-code check, the Oxfmt check, the
+build and the coverage suite; an empty test glob and coverage below the floor
+fail. `npm run lint:dead` is knip with the explicit entries in `knip.json`; a
+new unused file, export, type or dependency fails it. `npm run package:check`
+builds, packs once and checks that exact tarball (manifest, `publint --strict`
+and `attw`); it is a required CI check and runs before a release, not inside
+the fast local gate. `npm run hygiene` checks tracked generated/local files,
+absolute local paths in docs and commit trailers; CI runs the same check on the
+committed tree. `npm run bench:ansi` measures `stripAnsi` on fixed message
+corpora and fails on the 500 ms production budget.
 
 ## Pull requests
 
@@ -73,6 +80,25 @@ Use short, imperative English messages, for example:
   `Co-authored-by` trailer. The usual tool address belongs to an unrelated
   GitHub user.
 - Keep the diff scoped; leave unrelated edits out of the commit.
+
+## Releases
+
+A release stages the tarball that passed the gate:
+
+1. Create the `v<version>` tag on a green `main` commit whose `package.json`
+   version matches the tag; the release workflow runs the Linux and macOS gates
+   first.
+2. The publish job verifies dependency signatures, packs once through
+   `npm run package:check`, smokes that tarball and generates a CycloneDX SBOM
+   for the same `tolkira-<version>.tgz`.
+3. The workflow stages that exact tarball; it never repacks from the directory.
+4. Approve or reject the staged package with the maintainer's 2FA.
+5. After approval, confirm `npm view tolkira@<version> version`, create the
+   GitHub Release and attach the `tolkira-sbom` artifact.
+
+Never re-stage after approval. The SBOM is the `--omit=dev` lockfile tree;
+esbuild externalizes every runtime dependency, so that tree is the runtime
+tree.
 
 ## License
 

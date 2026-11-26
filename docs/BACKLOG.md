@@ -71,8 +71,8 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-068 | Security | P3 | Producer-written text is shown and copied without redaction (except the Playwright adapter's documented error-text path scrub), so a local user name or absolute path can reach the HTML failure block and `data-search`, the `--json` step message, the CI Markdown and the copied text (Cucumber-js failure stack), and the HTML attachment body and copy button (nine PetClinic `system-out` lines; not `--json` or CI). Both cases also exist in the 0.5.1 reports and the display URIs stay clean. Approved limit for 0.6.1 on 2026-11-25, documented in `SECURITY.md` and `docs/LIMITATIONS.md`. | When reports are shared with an untrusted audience by default, a user asks for scrubbing, or a CI provider flags the path; then offer an opt-in redaction mode (home and absolute-path shapes in failure/log text) with a before/after fixture and a documented default, not a silent change. Keep the raw text available as evidence and out of the default change. | - |
 | B-069 | Report | P2 | A Messages input without a Gherkin feature document renders 0 features in the HTML while the JSON summary carries the scenario; the feature row needs a feature document to be built | When the next Messages or report-model change touches feature grouping; then build the feature row from the scenario's display URI and name fallback, and add a featureless-Messages fixture that asserts one feature in HTML and JSON. | - |
 | B-070 | Report | P3 | The native tag `<select>` clips a long selected label at 320 px with 200 % text zoom, so the active tag is unreadable in the control | When the next shell or 320 px change touches the tag filter; then let the selected label wrap or shorten with a `title`, and add a 320 px / 200 % browser assertion. | - |
-| B-071 | Release | P2 | The published 0.6.1 tarball has 80 entries and omits `docs/README.md`, while the tag tree, the `files` field and `npm pack` under npm 10.8.2 and npm 11 all produce 81; the publish job installs `npm@latest` before `npm stage publish`, so the packed set depends on the publish-time npm version and diverged from the recorded 81-entry artifact check | Before the next tag: make the pack list npm-independent (list `docs/README.md` explicitly or exclude it explicitly), pin the npm used for the staged publish or publish the verified tarball, and compare the published tarball with the artifact check. | - |
 | B-072 | Tooling | P3 | The build is esbuild for the CLI and library plus two tsc declaration passes and a copy script; tsdown (Rolldown/Oxc, the tsup successor, shipped by Vite+) emits ESM/CJS, bundled declarations and package exports in one config | 0.7: replace the build with tsdown behind a separate OpenSpec change; acceptance: byte-identical public declarations and exports, same bin and shebang, same tarball file set (modulo B-071), CLI smoke, e2e green, no report byte change. Revert is the old three scripts. | - |
+| B-073 | Verification | P3 | Release/CI hardening leaves verification work for 0.7: no CodeQL default setup for JS/TS (taint analysis for the HTML sinks), no dependency-review-action, no OpenSSF Scorecard, no property tests for the legacy JSON, Messages and JUnit XML parsers, no mutation run, and no knip MCP/LSP or repo skills | 0.7, in this order: CodeQL default setup, dependency-review-action for licence and diff policy, Scorecard; then `fast-check` 4.11 with `@fast-check/vitest` 0.6 property tests for the three parsers as a separate change (it will find bugs); StrykerJS when its Vitest 5 runner works upstream, on nightly/changed files only, never the PR gate; knip MCP/LSP and repo skills for the release and a new input adapter. No new weekly job: Dependabot keeps its existing weekly schedule and the signature/SBOM checks stay release-only. | - |
 
 #13 is closed after #13a–#13c shipped; the #13 links above are provenance, not
 open issue work. The remaining rows are trigger-based backlog items.
@@ -134,6 +134,14 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-071 Release tarball drift** — resolved on 2026-11-26 in the
+  `release-ci-hardening` change: npm 12.2.3 packs 80 entries and omits
+  `docs/README.md` when it is only covered by the `docs/*.md` glob, while
+  npm 10 packs 81. `docs/README.md` is now explicit in `files`;
+  `npm run package:check` packs once and checks that exact tarball (manifest,
+  `publint --strict`, `attw`); and the release installs the pinned npm 12.2.3,
+  smokes the same `tolkira-<version>.tgz` and passes it to `npm stage publish`.
+  Both npm versions pack 81 entries; the version stays 0.6.1.
 - **B-055 Quality gate** - done on 2026-11-26 in `0.6.2-tooling` (issue #30):
   eleven strict TypeScript checks in two programs (88 errors fixed in 22
   files), the maximal type-aware oxlint gate (335 findings: 314 fixed and 21

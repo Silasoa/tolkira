@@ -629,11 +629,20 @@ Test names, metadata, file names and attachments are untrusted input.
   test selection fails.
 - Playwright for browser-level checks.
 - LF checkout policy (`* text=auto eol=lf` in `.gitattributes`).
-- `npm run check` runs i18n:check, assets, typecheck, lint, format:check, build
-  and the coverage suite, in that order; CI and the release workflow call it
-  unchanged.
+- `npm run check` runs i18n:check, assets, typecheck, lint, lint:dead,
+  format:check, build and the coverage suite, in that order; CI and the release
+  workflow call it unchanged.
+- The package surface is checked from the packed tarball: `npm run
+  package:check` builds, packs once, validates the required and forbidden paths,
+  then runs `publint --strict` and `attw` with the node16 profile (the one
+  `cjs-resolves-to-esm` ignore covers the ESM-only root). It runs in the CI
+  package job and in the release, not in the local gate.
+- Release integrity: the publish job packs once, smokes that tarball and passes
+  the same file to `npm stage publish`; npm 12.2.3 is pinned for the pack and
+  the publish, and no step repacks from the directory.
 - Dev-only exact pins: oxlint 1.94.0, oxlint-tsgolint 7.0.2008, Oxfmt 0.80.0,
-  vitest 5.1.1 and @vitest/coverage-v8 5.1.1.
+  vitest 5.1.1, @vitest/coverage-v8 5.1.1, knip 6.48.0, publint 0.3.25 and
+  @arethetypeswrong/cli 0.18.5.
 - npm trusted publishing with provenance.
 
 ## Key decisions
