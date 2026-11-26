@@ -501,6 +501,35 @@ and is covered by real producer fixtures.
 - Warns when the report HTML (also on a PDF-only run) exceeds 10 MB.
 - `node:util parseArgs`; no CLI framework dependency.
 
+The CLI is a thin entry over one planning step and one execution step:
+
+```text
+src/cli.ts                  entry: USAGE, DEFAULT_IO, CliIO re-export, runCli, main guard
+  ├── src/cli/plan.ts       planCli + CliPlan
+  │     ├── src/cli/args.ts     parseArgs + scalar parsers
+  │     ├── src/cli/paths.ts    identity/containment/collision checks
+  │     └── src/cli/logo.ts     logo type/size/content -> data URI
+  └── src/cli/execute.ts    executePlan + CliIO + writers + stdout
+        └── src/cli/plan.ts (type import only)
+```
+
+- Dependency direction: `cli.ts -> {plan, execute}`, `plan -> {args, paths,
+  logo}`, `execute -> plan` (type only). `plan` and `execute` are peers and never
+  import each other's implementation.
+- `planCli` turns argv and the process cwd into a validated `CliPlan` or a
+  structured usage failure. It never writes, prints, mutates argv or uses the
+  network. It reads filesystem metadata and the logo because the usage contract
+  needs those checks; moving them behind execution would reorder observable
+  errors.
+- `executePlan` owns all reads, writes, warnings and stdout. It resolves the
+  inputs once, reads history and baseline before the first write, follows
+  `plan.writes`, builds the manifest ledger from the writes that actually
+  happened and returns `plan.exitCodes`. Usage formatting stays in `cli.ts`.
+- Adding an output means: add the plan slot and usage checks, add it to
+  `plan.writes` in writing order, add its confirmation policy to
+  `plan.stdout.confirmations`, add it to the manifest ledger, then extend the
+  plan/execute and equivalence test matrix.
+
 ### `src/index`
 
 Programmatic API:

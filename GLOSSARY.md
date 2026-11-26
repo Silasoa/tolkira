@@ -229,6 +229,13 @@ before it and the first 10 failures. It carries no timestamp or input path, is
 written last and atomically with mode `0600`, and its artifact paths are
 relative to the manifest file except the absolute cross-drive fallback.
 
+**CLI plan / execute** — the internal CLI seam. `planCli(argv)` validates argv
+and filesystem facts into a `CliPlan` (mode, paths, options, write order, stdout
+ownership, exit policy) or a structured usage failure, and never writes or
+prints. `executePlan(plan, io)` owns all reads, writes, warnings and stdout and
+returns 0 or 1; usage formatting and the help/version/capabilities actions stay
+in `src/cli.ts`. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 **Capabilities document** — the input-free `tolkira --capabilities` JSON
 document (schema 1) with the version, Node range, accepted inputs, file outputs
 and JSON summary, CI formats, summary schema, locales, limits, defaults and exit
