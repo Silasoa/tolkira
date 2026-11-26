@@ -34,12 +34,12 @@
   only when the overview renders; keep `REPORT_CSS` unchanged.
 - [x] 3.4 Add the seven keys to the English and German catalogs and run
   `npm run i18n:check`.
-- [ ] 3.5 Update `DESIGN.md` (Details row and module list) and
+- [x] 3.5 Update `DESIGN.md` (Details row and module list) and
   `docs/CHANGELOG.md`.
 
 ## 4. Reviews
 
-- [ ] 4.1 Run SCR, CR, DAR, UXR, CMP and ILA blind and in parallel.
+- [x] 4.1 Run SCR, CR, DAR, UXR, CMP and ILA blind and in parallel.
 - [ ] 4.2 Fix every finding with a separate fixer or record a decision with a
   trigger; re-run the gate; delta re-check the reviewers.
 

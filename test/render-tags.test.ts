@@ -173,7 +173,8 @@ describe('tag overview rows', () => {
       { tag: '@wip', scenarios: 0, failed: 0, skipped: 0 },
     ]);
 
-    const table = tagTable(renderTagOverview(model, english));
+    const panel = renderTagOverview(model, english);
+    const table = tagTable(panel);
     const head = table.slice(
       table.indexOf('<thead>'),
       table.indexOf('</thead>'),
@@ -189,8 +190,10 @@ describe('tag overview rows', () => {
     expect(table.match(/<th scope="col">/g) ?? []).toHaveLength(4);
     expect(table).not.toContain('<caption>');
     expect(cells(rowFor(table, '@smoke'))).toEqual(['4', '2', '1']);
+    // A pending-only tag is executed, so Executed reads 1 without calling it passed.
     expect(cells(rowFor(table, '@pending'))).toEqual(['1', '0', '0']);
     expect(cells(rowFor(table, '@wip'))).toEqual(['0', '0', '0']);
+    expect(panel).toContain('including pending, undefined and ambiguous');
   });
 
   it('counts inherited feature, rule and examples tags once per executed row', async () => {
@@ -261,6 +264,11 @@ describe('tag overview rows', () => {
         { tags: ['@gamma'], status: 'failed' },
         { tags: ['@gamma'], status: 'passed' },
         { tags: ['@gamma'], status: 'passed' },
+        // Reverse insertion order against code-unit order: @Zebra sorts first.
+        { tags: ['@apple'], status: 'failed' },
+        { tags: ['@apple'], status: 'passed' },
+        { tags: ['@Zebra'], status: 'failed' },
+        { tags: ['@Zebra'], status: 'passed' },
         { tags: ['@delta'], status: 'failed' },
         { tags: ['@delta'], status: 'passed' },
         { tags: ['@epsilon'], status: 'failed' },
@@ -270,7 +278,9 @@ describe('tag overview rows', () => {
 
     expect(rows.map((entry) => entry.tag)).toEqual([
       '@gamma',
+      '@Zebra',
       '@alpha',
+      '@apple',
       '@delta',
       '@epsilon',
       '@beta',
@@ -299,6 +309,9 @@ describe('tag overview bound', () => {
 
     expect(table.match(/<th scope="row">/g) ?? []).toHaveLength(50);
     expect(panel).toContain('Showing 50 of 51 tags');
+    expect(panel.indexOf('Showing 50 of 51 tags')).toBeLessThan(
+      panel.indexOf('class="tableWrap"'),
+    );
   });
 
   it('keeps every failing tag visible when fewer than 50 tags fail', () => {
@@ -382,6 +395,24 @@ describe('tag overview placement and styles', () => {
     expect(summary).toBeGreaterThan(table);
   });
 
+  it('puts the region role on the focusable scroll wrapper, described by the note', () => {
+    const panel = renderTagOverview(tagModel([{ tags: ['@smoke'] }]), english);
+    const wrapStart = panel.indexOf('<div class="tableWrap"');
+    const wrapTag = panel.slice(wrapStart, panel.indexOf('>', wrapStart));
+
+    expect(wrapStart).toBeGreaterThan(-1);
+    expect(wrapTag).toContain('tabindex="0"');
+    expect(wrapTag).toContain('role="region"');
+    expect(wrapTag).toContain(
+      `aria-label="${englishText('details.tagsLabel')}"`,
+    );
+    expect(wrapTag).toContain('aria-describedby="tag-overview-note"');
+    expect(panel.match(/role="region"/g) ?? []).toHaveLength(1);
+    expect(panel).not.toMatch(/<section[^>]*role="/);
+    expect(panel).toContain('<p id="tag-overview-note">');
+    expect(panel.indexOf('id="tag-overview-note"')).toBeLessThan(wrapStart);
+  });
+
   it('injects TAG_TABLE_CSS only into a tagged report', async () => {
     const tagged = await renderHtml(await messagesEnvelopes('tags.ndjson'), {
       title: 'Tags',
@@ -462,10 +493,11 @@ describe('tag overview localisation', () => {
   it('defines the contract English catalog text', () => {
     expect(englishText('details.tags')).toBe('Tags');
     expect(englishText('details.tagsNote')).toBe(
-      'Counts cover executed scenario rows; failed and skipped count only those statuses.',
+      'Executed counts every executed scenario, including pending, undefined and ambiguous; Failed and Skipped count only those statuses. A tag that appears only on unexecuted rows shows 0, failing tags come first, and the overview ignores the toolbar filter.',
     );
     expect(englishText('details.tagsLabel')).toBe('Tag overview');
-    expect(englishText('details.tagScenarios')).toBe('Scenarios');
+    expect(englishText('details.tagScenarios')).toBe('Executed');
+    expect(germanText('details.tagScenarios')).toBe('Ausgeführt');
     expect(englishText('details.tagFailed')).toBe('Failed');
     expect(englishText('details.tagSkipped')).toBe('Skipped');
     expect(englishText('details.tagsRemaining')).toBe(
@@ -541,6 +573,16 @@ describe('tag overview output boundaries', () => {
     const summary = await summarizeReport(file);
     const generatedJson = JSON.stringify(generated.summary, null, 2);
 
+    expect(Object.keys(summary)).toEqual([
+      'schemaVersion',
+      'status',
+      'durationMs',
+      'counts',
+      'attachments',
+      'scenarios',
+    ]);
+    expect(summary).not.toHaveProperty('tags');
+    expect(summary.counts).not.toHaveProperty('tags');
     expect(generatedJson).toBe(JSON.stringify(summary, null, 2));
 
     const now = new Date('2026-11-26T00:00:00.000Z');

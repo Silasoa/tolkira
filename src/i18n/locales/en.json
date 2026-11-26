@@ -292,8 +292,8 @@
     "description": "Column header for the failed count of a tag in the tag overview"
   },
   "details.tagScenarios": {
-    "message": "Scenarios",
-    "description": "Column header for the scenario count of a tag in the tag overview"
+    "message": "Executed",
+    "description": "Column header for the executed-scenario count of a tag in the tag overview"
   },
   "details.tagSkipped": {
     "message": "Skipped",
@@ -308,8 +308,8 @@
     "description": "Accessible label for the tag overview table region"
   },
   "details.tagsNote": {
-    "message": "Counts cover executed scenario rows; failed and skipped count only those statuses.",
-    "description": "Explains which rows and statuses the tag overview counts"
+    "message": "Executed counts every executed scenario, including pending, undefined and ambiguous; Failed and Skipped count only those statuses. A tag that appears only on unexecuted rows shows 0, failing tags come first, and the overview ignores the toolbar filter.",
+    "description": "Explains the executed counts, unexecuted-only zeros, failing-first order and that the overview ignores the toolbar filter"
   },
   "details.tagsRemaining": {
     "message": "Showing {shown} of {total} tags",

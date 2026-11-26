@@ -34,26 +34,32 @@ rendered data.
 
 ## 3. Placement and markup
 
-The table is a full-width panel after the analysis grid and before the run
-attachments:
+The table is a panel after the analysis grid and before the run attachments:
 
 ```html
 <section class="panel" style="margin-top:16px">
   <h2>Tags</h2>
-  <p>...counting note...</p>
-  <div class="tableWrap" tabindex="0" role="region" aria-label="Tag overview">
+  <p id="tag-overview-note">...counting note...</p>
+  <p>Showing 50 of 60 tags</p>
+  <div class="tableWrap" tabindex="0" role="region" aria-label="Tag overview"
+       aria-describedby="tag-overview-note">
     <table class="tagTable">...</table>
   </div>
-  <p>Showing 50 of 60 tags</p>
 </section>
 ```
 
 The toolbar is already tight at 320 px; a table beside the tag filter would
 overflow or wrap the toolbar. The Details panel uses the existing `.panel`,
 `.tableWrap` and focus conventions, so it scrolls horizontally at 320 px and
-gets the print table rules for free. The tag filter stays where it is.
+gets the print table rules for free. The focusable scroll wrapper is the single
+region: it carries the label and is described by the note, while the section
+only groups the heading and notes. The capped sentence sits above the table with
+the note. The table follows its content (`width:auto`) with a 19rem minimum, so
+it does not stretch at 1024/1440 px, fits the three numeric columns at 390 px
+(after the shell and panel padding plus the scrollbar gutter) and still scrolls
+inside the wrapper at 320 px. The tag filter stays where it is.
 
-Columns: `Tag`, `Scenarios`, `Failed`, `Skipped`. The tag cell uses
+Columns: `Tag`, `Executed`, `Failed`, `Skipped`. The tag cell uses
 `<th scope="row">` and the existing `.tag` mono style; numeric cells use the
 existing right-aligned mono `num` treatment. Headers are
 `<th scope="col">`. The table caption is not rendered as a visible element; the
@@ -86,7 +92,9 @@ so no new breakpoint is needed. The table SHALL use `<thead>`, and
 `TAG_TABLE_CSS` SHALL carry `.tagTable thead { display: table-header-group }`
 and `.tagTable tr { break-inside: avoid }`, so print repeats the header and
 keeps rows whole; the existing print rules for `.tableWrap table` and `.panel`
-apply on top.
+apply on top. The `--line-strong` rule belongs to `thead th` only; `tbody th`
+and `td` use the normal `--line` rule, and the last row clears both so no row
+mixes header and body rules.
 
 ## 6. Localisation
 
@@ -95,9 +103,9 @@ New keys in both catalogs (English carries descriptions):
 | Key | English |
 | --- | --- |
 | `details.tags` | Tags |
-| `details.tagsNote` | Counts cover executed scenario rows; failed and skipped count only those statuses. |
+| `details.tagsNote` | Executed counts every executed scenario, including pending, undefined and ambiguous; Failed and Skipped count only those statuses. A tag that appears only on unexecuted rows shows 0, failing tags come first, and the overview ignores the toolbar filter. |
 | `details.tagsLabel` | Tag overview |
-| `details.tagScenarios` | Scenarios |
+| `details.tagScenarios` | Executed |
 | `details.tagFailed` | Failed |
 | `details.tagSkipped` | Skipped |
 | `details.tagsRemaining` | Showing {shown} of {total} tags |
@@ -118,21 +126,27 @@ Unit (`test/render-tags.test.ts`, importing the pure row builder and
   the exact cells, plus a tag only on an unexecuted row with three zeros;
 - inherited feature/rule/examples tags reach every row and count once;
 - a row with a duplicate tag counts once;
-- sort by failed count, then scenario count, then code-unit order;
-- 60 tags with fewer than 50 failing: 50 rows, `Showing 50 of 60 tags`,
-  complete total, every failing tag visible;
+- sort by failed count, then scenario count, then code-unit order, including a
+  reversed case pair (`@Zebra` before `@apple`) that a stable insertion sort
+  cannot pass;
+- 60 tags with fewer than 50 failing: 50 rows, `Showing 50 of 60 tags` above
+  the table, complete total, every failing tag visible;
 - 60 failing tags: 50 rows in failed-count, scenario-count, code-unit order;
 - no tags: panel absent;
 - HTML escaping of a tag with `<`, `&` and quotes;
 - the tag set equals the tag filter's option set;
+- the focusable wrapper is the only region, labelled and described by the note;
 - `REPORT_CSS` contains no tag rule and an untagged report contains neither the
   panel nor `TAG_TABLE_CSS`;
+- the summary keeps its pinned top-level shape and gains no tag aggregate;
 - summary, CI and email bytes unchanged.
 
 Browser (`test/e2e/tags.spec.ts`):
 
 - the panel is visible in Details, not on the Report tab, and the table scrolls
   inside the panel at 320 px and 200 % text without page overflow;
+- at 390, 768, 1024 and 1440 px the panel stays visible without page-level
+  horizontal overflow, and the table does not stretch at 1024/1440 px;
 - applying a toolbar search, status filter or tag filter hides scenarios on the
   Report tab but leaves every overview count unchanged;
 - the static report shows the panel open and script-free;

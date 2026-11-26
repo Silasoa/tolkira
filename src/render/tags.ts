@@ -41,16 +41,18 @@ const TAG_ROW_LIMIT = 50;
 
 // Only injected into a tagged report, so REPORT_CSS and untagged bytes stay
 // unchanged. The print header/row rules sit here instead of the shared sheet.
+// 19rem fits the three numeric columns in a 390px panel after the shell and
+// panel padding plus the scrollbar gutter; 320px still scrolls.
 export const TAG_TABLE_CSS =
-  '.tagTable{width:100%;min-width:34rem;border-collapse:collapse;font-size:.8125rem}' +
+  '.tagTable{width:auto;min-width:19rem;border-collapse:collapse;font-size:.8125rem}' +
   '.tagTable thead{display:table-header-group}' +
   '.tagTable tr{break-inside:avoid}' +
-  '.tagTable th{text-align:left;color:var(--muted);font-size:.6875rem;font-weight:500;padding:.5rem .5rem .5rem 0;border-bottom:1px solid var(--line-strong)}' +
-  '.tagTable th:not(:first-child){text-align:right}' +
-  '.tagTable th[scope="row"]{color:var(--ink);font-size:.8125rem;font-weight:400}' +
+  '.tagTable thead th{text-align:left;color:var(--muted);font-size:.6875rem;font-weight:500;padding:.5rem .5rem .5rem 0;border-bottom:1px solid var(--line-strong)}' +
+  '.tagTable thead th:not(:first-child){text-align:right}' +
+  '.tagTable tbody th{text-align:left;color:var(--ink);font-size:.8125rem;font-weight:400;padding:.5rem .5rem .5rem 0;border-bottom:1px solid var(--line)}' +
   '.tagTable td{padding:.5rem .5rem .5rem 0;border-bottom:1px solid var(--line)}' +
-  '.tagTable td:last-child,.tagTable th:last-child{text-align:right}' +
-  '.tagTable tr:last-child td{border-bottom:0}' +
+  '.tagTable td:last-child,.tagTable thead th:last-child{text-align:right}' +
+  '.tagTable tr:last-child th,.tagTable tr:last-child td{border-bottom:0}' +
   '.tagTable .num{text-align:right;font-family:var(--font-mono);font-size:.75rem;font-variant-numeric:tabular-nums}';
 
 export function renderTagOverview(model: ReportModel, t: Translator): string {
@@ -68,5 +70,5 @@ export function renderTagOverview(model: ReportModel, t: Translator): string {
     rows.length > TAG_ROW_LIMIT
       ? `<p>${t.t('details.tagsRemaining', { shown: TAG_ROW_LIMIT, total: rows.length })}</p>`
       : '';
-  return `<section class="panel" style="margin-top:16px" role="region" aria-label="${t.t('details.tagsLabel')}"><h2>${t.t('details.tags')}</h2><p>${t.t('details.tagsNote')}</p><div class="tableWrap" tabindex="0"><table class="tagTable"><thead>${head}</thead><tbody>${body}</tbody></table></div>${remaining}</section>`;
+  return `<section class="panel" style="margin-top:16px"><h2>${t.t('details.tags')}</h2><p id="tag-overview-note">${t.t('details.tagsNote')}</p>${remaining}<div class="tableWrap" tabindex="0" role="region" aria-label="${t.t('details.tagsLabel')}" aria-describedby="tag-overview-note"><table class="tagTable"><thead>${head}</thead><tbody>${body}</tbody></table></div></section>`;
 }

@@ -24,9 +24,7 @@ test('keeps Details content reachable by keyboard', async ({ page }) => {
     await expect(tableWrap).toBeFocused();
 
     await page.keyboard.press('Tab');
-    const tagWrap = page
-      .getByRole('region', { name: 'Tag overview' })
-      .locator('.tableWrap');
+    const tagWrap = page.getByRole('region', { name: 'Tag overview' });
     await expect(tagWrap).toBeFocused();
 
     await page.keyboard.press('Tab');
