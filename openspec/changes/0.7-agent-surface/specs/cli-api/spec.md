@@ -92,7 +92,7 @@ and leave no partial file.
 - **WHEN** the manifest cannot be written after the report
 - **THEN** the CLI exits 1 and names the manifest path
 - **AND** the report stays and no partial manifest remains
-- **AND** the index and all later stdout, including `--json`/`--ci`, are skipped
+- **AND** all later stdout, including `--json`/`--ci`, are skipped
 
 #### Scenario: Machine stdout stays identical
 
@@ -104,9 +104,8 @@ and leave no partial file.
 Only `report`, `pdf`, `email`, `history` and `ci-markdown` files SHALL appear
 in the manifest, in write order. Each `path` SHALL be relative to the manifest
 file; only when no relative path exists across Windows drives SHALL it fall
-back to the path as given. The manifest file itself SHALL be omitted. Either
-`--manifest` or `--index` alone SHALL satisfy the at-least-one-output
-requirement.
+back to the path as given. The manifest file itself SHALL be omitted.
+`--manifest` alone SHALL satisfy the at-least-one-output requirement.
 
 #### Scenario: Artifact list
 
@@ -116,73 +115,6 @@ requirement.
   once each, in that order
 - **AND** its status, counts and attachments equal the summary values
 - **AND** its paths are relative to the manifest file
-
-### Requirement: Write a Markdown run index
-
-The CLI SHALL accept `--index <file>` and write the Markdown CI body for the
-same summary and title, followed by an `## Artifacts` section that links every
-file written before it. The section SHALL be omitted when no file was written.
-The index SHALL be written after the manifest and before stdout, atomically
-with mode `0600` like every other output. A write failure SHALL exit 1 with the
-index path, keep earlier outputs and skip all later stdout, including
-`--json`/`--ci`.
-
-#### Scenario: Index content
-
-- **WHEN** `--out report.html --index index.md` is used
-- **THEN** the index starts with the Markdown CI body for the run
-- **AND** its artifact section links `report.html` relative to `index.md`
-
-#### Scenario: Manifest link
-
-- **WHEN** `--out report.html --manifest run.json --index index.md` is used
-- **THEN** the index links both `report.html` and `run.json`
-
-#### Scenario: No artifact files
-
-- **WHEN** `--index index.md` is used without another file output
-- **THEN** the index carries the CI body and no `## Artifacts` section
-
-#### Scenario: Index failure keeps the manifest
-
-- **WHEN** the index cannot be written after the manifest
-- **THEN** the CLI exits 1 and names the index path
-- **AND** the manifest and earlier outputs stay
-- **AND** no partial index remains
-- **AND** no later stdout, including `--json`/`--ci`, is printed
-
-### Requirement: Validate the index path
-
-A non-empty `--index` path SHALL be validated like the other outputs: it SHALL
-not name an input, the logo, `--out`, `--pdf`, `--email`, `--history`,
-`--ci-out`, `--baseline` or `--manifest`, or sit inside an input directory; a
-collision or empty path SHALL exit 2 before any write. An artifact that cannot
-form a relative link, such as one on another Windows drive, SHALL exit 2 before
-any write with a message naming the index and the artifact.
-
-#### Scenario: Index collision and empty path
-
-- **WHEN** `--index` names an input, the logo, another output, a path inside an
-  input directory, or an empty path
-- **THEN** the CLI exits 2 and nothing is written
-
-#### Scenario: Cross-volume artifact
-
-- **WHEN** an artifact and the index sit on different Windows drives
-- **THEN** the CLI exits 2 before writing anything and names both paths
-
-### Requirement: Encode the index links
-
-Link targets SHALL be relative to the index file and encoded with RFC 3986
-segment rules so `(`, `)`, spaces and `#` stay inside the link, and the link
-text SHALL be escaped for Markdown.
-
-#### Scenario: Relative and encoded links
-
-- **WHEN** the index sits in another directory or an artifact path contains a
-  space, an unbalanced `)` or `#`
-- **THEN** the link target is relative to the index file and encoded
-- **AND** it stays a valid inline Markdown link
 
 ## MODIFIED Requirements
 
@@ -220,9 +152,8 @@ be a report surface.
 The CLI SHALL support a report title, repeated metadata entries, a logo, an
 accent colour, a size warning threshold, help, version and capabilities
 output. The API SHALL support title, metadata, logo and accent. The CLI SHALL
-require at least one of `--out`, `--pdf`, `--email`, `--json`, `--ci`,
-`--manifest` or `--index`. With `--static`, the CLI SHALL require `--out` or
-`--pdf` instead of accepting `--json` alone.
+require at least one of `--out`, `--pdf`, `--email`, `--json`, `--ci` or
+`--manifest`. With `--static`, the CLI SHALL require `--out` or `--pdf` instead of accepting `--json` alone.
 
 #### Scenario: Title and metadata
 
@@ -242,18 +173,18 @@ require at least one of `--out`, `--pdf`, `--email`, `--json`, `--ci`,
 ### Requirement: Validate email paths and writes
 
 The email path SHALL NOT equal an input, the logo, `--out`, `--ci-out`,
-`--history`, `--manifest` or `--index`, or be inside an input directory even
+`--history` or `--manifest`, or be inside an input directory even
 when the target does not exist. The CLI SHALL write in the order report, email,
-history, `--ci-out`, manifest, index, stdout, with the PDF between report and
+history, `--ci-out`, manifest, stdout, with the PDF between report and
 email when present. On an email write failure it SHALL exit 1 with the email
 path (not the temporary name), keep an already written report, and SHALL NOT
-write the history/`--ci-out`/manifest/index or print the JSON/CI stdout. No
+write the history/`--ci-out`/manifest or print the JSON/CI stdout. No
 partial email SHALL remain.
 
 #### Scenario: Collision
 
 - **WHEN** `--email` resolves to an input, the logo, `--out`, `--ci-out`, the
-  history file, the manifest, the index or a path inside an input directory
+  history file, the manifest or a path inside an input directory
 - **THEN** the CLI exits 2
 - **AND** nothing is written
 
@@ -262,7 +193,7 @@ partial email SHALL remain.
 - **WHEN** the email cannot be written after the report or summary
 - **THEN** the CLI exits 1 and names the email path
 - **AND** the report stays
-- **AND** the history, `--ci-out`, manifest and index are not written and the
+- **AND** the history, `--ci-out` and manifest are not written and the
   JSON/CI stdout is not printed
 - **AND** no partial email remains
 
@@ -270,8 +201,8 @@ partial email SHALL remain.
 
 The CLI SHALL accept `--pdf <file>` as an output. It SHALL require a non-empty
 path and at least one input. The PDF SHALL compose with `--out`, `--email`,
-`--json`, `--ci`, `--history`, `--manifest` and `--index`, and SHALL follow the
-order report → PDF → email → history → `--ci-out` → manifest → index → stdout
+`--json`, `--ci`, `--history` and `--manifest`, and SHALL follow the
+order report → PDF → email → history → `--ci-out` → manifest → stdout
 (the PDF is written before the email that names it). A missing optional engine
 SHALL exit 1 with install instructions; the report remains and the
 email/later outputs are skipped.
@@ -288,7 +219,7 @@ email/later outputs are skipped.
 - **WHEN** `--out report.html --email summary.html --pdf run.pdf` is used
 - **THEN** the report, PDF and email are written in that order
 - **AND** a PDF failure keeps the report and skips email, history, `--ci-out`,
-  manifest, index and stdout
+  manifest and stdout
 
 #### Scenario: Missing engine
 
@@ -300,17 +231,16 @@ email/later outputs are skipped.
 ### Requirement: Validate PDF paths and writes
 
 The PDF path SHALL NOT equal an input, the logo, `--out`, `--ci-out`,
-`--history`, `--email`, `--manifest` or `--index`, or lie inside an input
+`--history`, `--email` or `--manifest`, or lie inside an input
 directory (canonicalized/case-aware). It SHALL be written atomically after the
 report and before the email. A write or render failure SHALL exit 1 with the
-PDF path, keep the report, skip the email, history, `--ci-out`, manifest, index
-and stdout, and leave no partial PDF.
+PDF path, keep the report, skip the email, history, `--ci-out`, manifest and
+stdout, and leave no partial PDF.
 
 #### Scenario: Collision
 
 - **WHEN** `--pdf` resolves to an input, the logo, `--out`, `--ci-out`,
-  `--history`, `--email`, the manifest, the index or a path inside an input
-  directory
+  `--history`, `--email`, the manifest or a path inside an input directory
 - **THEN** the CLI exits 2
 - **AND** nothing is written
 
@@ -319,5 +249,5 @@ and stdout, and leave no partial PDF.
 - **WHEN** the PDF cannot be written or rendered
 - **THEN** the CLI exits 1 and names the PDF path
 - **AND** the report stays
-- **AND** the email/history/`--ci-out`/manifest/index/stdout outputs are skipped
+- **AND** the email/history/`--ci-out`/manifest/stdout outputs are skipped
 - **AND** no partial PDF remains
