@@ -197,7 +197,7 @@ pinned npm CLI). The four ad-hoc hints get an inline
 `# zizmor: ignore[adhoc-packages]` with the reason; everything else is fixed.
 actionlint 1.7.12 is green on the pre-change tree and stays part of the job.
 
-New `workflows` job (Ubuntu, 5 minutes):
+New `workflows` job in `ci.yml` (Ubuntu, 5 minutes):
 
 - actionlint 1.7.12 from the official release tarball, verified with
   `sha256 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8`;

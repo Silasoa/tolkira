@@ -31,8 +31,9 @@
   resolves `TOLKIRA_VERSION` and uses `/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz`
   for smoke, SBOM and stage, never `npm stage publish .`; the CI package job
   and the publish job install npm 12.2.3; `npm audit signatures`, the SBOM
-  command and the Dependabot cooldown exist; a `workflows` job runs actionlint
-  and zizmor.
+  command and the Dependabot cooldown exist; a `workflows` job in `ci.yml`
+  runs actionlint and zizmor. One repo-wide run scans both workflow files; the
+  release does not duplicate it.
 - [ ] 2.3 Extend `test/tooling-config.test.ts`: the exact eight `check` steps,
   the knip/publint/attw exact pins, the `package:check` script, the attw
   profile and ignore, and the `knip.json` entries.
@@ -96,9 +97,9 @@
 
 ## 6. Workflow lint
 
-- [ ] 6.1 Add the `workflows` job: actionlint 1.7.12 from the official tarball
-  with the pinned sha256, and zizmor 1.33.1 via pipx with `--offline
-  --persona=regular`. A finding fails the job.
+- [ ] 6.1 Add the `workflows` job to `ci.yml`: actionlint 1.7.12 from the
+  official tarball with the pinned sha256, and zizmor 1.33.1 via pipx with
+  `--offline --persona=regular`. A finding fails the job.
 - [ ] 6.2 Fix the zizmor baseline: the 15+ unpinned uses, the 9 missing
   `persist-credentials`, the workflow-level `id-token`, the three release-cache
   findings and the two Dependabot cooldowns. The four ad-hoc installs (the
