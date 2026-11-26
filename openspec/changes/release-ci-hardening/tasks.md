@@ -17,7 +17,8 @@
   file changes the pack list.
 - [x] 1.3 Record the decisions: no new weekly job; `package:check` stays out
   of the local `check` but is a required CI check; the release publishes the
-  checked tarball; knip keeps the manual scripts as entries; attw uses the
+  checked tarball; knip keeps the manual scripts as entries and ignores
+  `playwright-core`, `publint` and `@arethetypeswrong/cli`; attw uses the
   node16 profile and ignores only `cjs-resolves-to-esm`; no CodeQL, fast-check
   or Stryker in this change.
 
@@ -83,11 +84,11 @@
 
 ## 5. Dead code
 
-- [ ] 5.1 Add `knip.json` with the entries, project, ignored paths and the one
-  ignored dependency from the design. The test entries are the test files
-  (`test/**/*.test.ts`, `test/e2e/**/*.spec.ts`), not the helpers or fixtures,
-  so the dead helpers are still reported. Add `lint:dead` after `lint` in
-  `check`.
+- [ ] 5.1 Add `knip.json` with the entries, project, ignored paths and the
+  three ignored dependencies from the design. The test entries are the test
+  files (`test/**/*.test.ts`, `test/e2e/**/*.spec.ts`), not the helpers or
+  fixtures, so the dead helpers are still reported. Add `lint:dead` after
+  `lint` in `check`.
 - [ ] 5.2 Un-export or delete the 17 findings from the design table. Check
   every item against the package entry and the compat entry first; no public
   export is removed. Prove `npm run assets` leaves the client bundle

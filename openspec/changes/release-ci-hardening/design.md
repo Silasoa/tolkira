@@ -148,8 +148,9 @@ dependency, so the `--omit=dev` CycloneDX tree is the runtime tree.
 - project: `src/**/*.ts`, `scripts/**/*.mjs`, `test/**/*.ts`;
 - ignored paths: `test/fixtures/**`, the generated browser bundle, catalogs and
   styles;
-- ignored dependency: `playwright-core` only, because it is an optional peer
-  loaded at runtime.
+- ignored dependencies: `playwright-core` (an optional peer loaded at runtime),
+  `publint` and `@arethetypeswrong/cli` (spawned by the package check, so knip
+  cannot see the import). No other dependency is ignored.
 
 Triage of the 6.48.0 run on 2026-11-26:
 
@@ -159,6 +160,7 @@ Triage of the 6.48.0 run on 2026-11-26:
 | `src/compat/cucumber-html-reporter.cts` | keep; CJS entry |
 | `test/fixtures/cjs-types/require-compat.cts` | keep; fixture, ignored path |
 | `playwright-core` | keep; optional peer, ignored dependency |
+| `publint`, `@arethetypeswrong/cli` | keep; spawned by the package check, ignored dependencies |
 | `BASELINE_MAX_BYTES`, `SUPPORTED_EXTENSIONS` | un-export if used in the file, delete otherwise |
 | `SUMMARY_SCHEMA`, `writeJson`, `legacyJson`, `SyntheticScenario`, `EarlierAttachment` | delete; dead test helpers |
 | `ClientParams` | un-export if used in the file; types erase, bundle unchanged |

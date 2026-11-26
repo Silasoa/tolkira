@@ -19,8 +19,9 @@ exception SHALL fail the gate.
 
 The config SHALL name the public entry, the CLI entry, the two compat entries,
 the browser bundle entry, the manual scripts and the test files.
-`playwright-core` SHALL be the only ignored dependency, because it is an
-optional peer loaded at runtime. No export reachable from the package entry or
+`playwright-core`, `publint` and `@arethetypeswrong/cli` SHALL be the ignored
+dependencies: the first is an optional peer loaded at runtime, the other two
+are spawned by the package check. No other dependency SHALL be ignored. No export reachable from the package entry or
 the compat entry SHALL be removed.
 
 #### Scenario: Entries and fixtures stay quiet
