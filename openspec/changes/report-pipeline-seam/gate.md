@@ -79,4 +79,27 @@ the migration/guard files) and 25 `tsc` errors, all on the missing API.
 
 ## Reviews
 
-Pending: SCR, CR, DAR, STR, SEC, PCA on the implementation commit.
+Blind reviews on `95a7567`, delta re-checks on `95a7567..a1c0d26` and
+`a1c0d26..8139373`:
+
+- SCR: PASS. AC1-AC10 met and exercised; no scope creep, no assertion
+  weakened. Delta PASS: `cli-baseline` comment, gate counts, and the `never`
+  guards strengthen AC4.
+- CR: PASS. Brand, `exactOptionalPropertyTypes`, run-facts-win, one
+  `renderOptions` application, no cycle, no public d.ts change. Delta PASS:
+  the stream build sits inside the promise chain (a runtime probe reproduced
+  the raw-string error event without it), and `RenderCallOptions` closes the
+  typed-variable hole.
+- DAR: PASS, then delta FAIL on two `docs/ARCHITECTURE.md` claims (fact flow,
+  `RenderReportOptions` vs `RenderCallOptions`); fixed in `8139373`, DAR
+  re-check PASS.
+- STR: PASS. Module layer, test migration, proportionate suites. Delta PASS:
+  shared fixtures, the pairwise history × baseline byte test, the stream
+  regression test, ratchets 98/95.
+- SEC: PASS. Sanitise once on every production path, escaping/CSP intact,
+  attachments and notice unchanged. Delta PASS: real trust-boundary test,
+  non-Error wrap, no envelope or path data in errors.
+- PCA: PASS. One sanitise pass removed, no per-render work, no second index;
+  bundle 365,512 B (+1,098 B, +0.301 %) against the 2 % trigger. No delta
+  needed: its only finding was the recorded percentage, corrected.
+- UXR, ILA, CMP: not run by contract; no visible change, byte parity proven.

@@ -1,4 +1,4 @@
-# Tasks â€” report pipeline seam
+# Tasks Ã¢â‚¬â€ report pipeline seam
 
 ## 1. Contract and pre-implementation review
 
@@ -106,14 +106,14 @@
 
 ## 5. Reviews
 
-- [ ] 5.1 Run SCR, CR, DAR, STR, SEC and PCA in parallel on the approved tree.
+- [x] 5.1 Run SCR, CR, DAR, STR, SEC and PCA in parallel on the approved tree.
   PCA is triggered by the render hot path; record the bundle delta against the
   2 % trigger either way. No UXR, ILA or CMP: no visible change, proven by
   byte parity.
-- [ ] 5.2 A failing review spawns a fixer (not the implementer of record);
+- [x] 5.2 A failing review spawns a fixer (not the implementer of record);
   then re-review the findings. Every finding is fixed, filed or recorded with
   a trigger in `docs/BACKLOG.md`.
-- [ ] 5.3 Commit and push after every completed step with a conventional
+- [x] 5.3 Commit and push after every completed step with a conventional
   message and the B-057/change reference; run `npm run hygiene` before every
   commit. Do not close an issue, archive the change, bump the version, tag or
   publish.
