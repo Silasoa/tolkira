@@ -118,27 +118,43 @@ reproduced the same five byte sizes above.
 The standard reviewer set ran on `79505c8`, the last implementation commit
 before the fix:
 
-| Reviewer | Verdict | Blockers |
+| Reviewer | First round | Delta re-review |
 | --- | --- | --- |
-| SCR | FAIL | 2 |
-| CR | PASS | — |
-| DAR | FAIL | 1 |
-| STR | PASS | — |
-| SEC | PASS | — |
+| SCR | FAIL (2 blockers) | PASS (`a41035b`) |
+| CR | PASS (1 should-fix) | PASS |
+| DAR | FAIL (1 blocker) | PASS (`a41035b`) |
+| STR | PASS (5 should-fixes) | PASS |
+| SEC | PASS (1 should-fix) | PASS |
 
 - SCR-1: the built-CLI equivalence probe compared the spawned process with the
   in-process entry instead of pinning the baseline bytes, so a usage change
-  could stay green.
-- SCR-2: the `--max-size -1` case asserted the parser instead of `planCli`,
-  and the symlink containment test skipped Linux; both now exercise the shipped
-  behaviour.
-- DAR-1: `docs/ARCHITECTURE.md`, `GLOSSARY.md`, B-057 and this change record
-  did not match the shipped seam, the line counts or the commit history.
+  could stay green. Fixed by pinning 2044/6/1318/2044 bytes, their SHA-256
+  values and exit 0/0/0/2, with the in-process comparison kept as a second
+  check.
+- SCR-2 / DAR-1: the final bundle rows were stale (417397/789633) and did not
+  reproduce; a clean build of the final code gives 414825/784102. Re-measured
+  and recorded above.
+- CR: `docs/ARCHITECTURE.md` claimed that `executePlan` follows `plan.writes`;
+  the executed order is fixed and `plan.writes` mirrors it. Corrected, and the
+  independent order pins replace the cross-check claim.
+- STR: the 430-line `plan.ts` budget was met by compaction, not a seam, and
+  `planOptions` had a fake async boundary. It is synchronous now (427 lines);
+  the cap is a soft budget and the seam split is B-079. The duplicate
+  out-collision case was removed (owner remains
+  `test/cli-plan-paths.test.ts:936`), the Linux skip on the symlink case was
+  dropped, and the bare `--max-size -1` case now runs through `planCli`.
+- SEC: the logo 2 MB cap is checked before an unbounded `readFile`; unchanged
+  from the pre-split code and recorded as B-078 with its trigger.
 
-The SCR blockers are fixed in `88b9f74`; the DAR blocker is addressed by the
-documentation fix that carries this record. The gate was re-run at `88b9f74`
-and recorded in `b480ebd`/`b39ba99`. SCR and DAR are not PASS before a
-re-review: re-review pending; task 4.7 stays open.
+The fixes landed in `88b9f74`; the gate was re-run and recorded in
+`b480ebd`/`b39ba99`; the documentation and record fixes in
+`ed86d72`/`7d0579e`/`a41035b`. The delta re-reviews returned PASS from all
+five reviewers; task 4.7 is closed.
+
+`npm run check` on the final tree: 103 files, 2089 passed, 11 skipped;
+coverage 95.07/88.32/97.04/96.47. `npm run test:e2e` (4.3) and
+`npm run package:check` (4.4) ran on `88b9f74`; only documentation and a test
+comment changed afterwards.
 
 ## Post-fix gate re-run
 

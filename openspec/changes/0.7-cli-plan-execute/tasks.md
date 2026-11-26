@@ -150,9 +150,12 @@ PIR/DXR blockers are closed.
   `dist/cli.d.ts` deltas, the bundle size delta and the exact
   commands/results. Stop and escalate if a stop condition in `design.md` was
   hit.
-- [ ] 4.7 Run the post-implementation review set: SCR, CR, DAR, STR and SEC
+- [x] 4.7 Run the post-implementation review set: SCR, CR, DAR, STR and SEC
   (path checks and file writes moved). PCA is not triggered unless the bundle
   grows more than 2%; a failing review spawns a fixer, then re-review.
+  First round: SCR and DAR FAIL (unpinned spawn bytes, stale bundle rows);
+  CR/STR/SEC PASS with should-fixes. Fixed in `88b9f74`, docs and record in
+  `ed86d72`/`7d0579e`/`a41035b`; all five delta re-reviews PASS.
 - [x] 4.8 Commit and push after each completed step with a conventional
   message and the B-057/change reference; run `npm run hygiene` before every
   commit. Do not close an issue, archive the change, bump the version, tag or
