@@ -732,7 +732,7 @@ test('reflows at 200% page zoom', async ({ page }) => {
         () => document.documentElement.scrollWidth - window.innerWidth,
       ),
     ).toBeLessThanOrEqual(1);
-    const tableWrap = page.locator('#analysis-view .tableWrap');
+    const tableWrap = page.locator('#analysis-view .analysisGrid .tableWrap');
     await expect(tableWrap).toHaveAttribute('tabindex', '0');
     expect(
       await tableWrap.evaluate(

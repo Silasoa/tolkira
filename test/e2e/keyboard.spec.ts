@@ -20,8 +20,14 @@ test('keeps Details content reachable by keyboard', async ({ page }) => {
     await expect(page.locator('#analysis-view')).toBeFocused();
 
     await page.keyboard.press('Tab');
-    const tableWrap = page.locator('#analysis-view .tableWrap');
+    const tableWrap = page.locator('#analysis-view .analysisGrid .tableWrap');
     await expect(tableWrap).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    const tagWrap = page
+      .getByRole('region', { name: 'Tag overview' })
+      .locator('.tableWrap');
+    await expect(tagWrap).toBeFocused();
 
     await page.keyboard.press('Tab');
     await expect(page.locator('#analysis-view pre.json')).toBeFocused();
