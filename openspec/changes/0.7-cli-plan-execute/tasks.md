@@ -7,9 +7,11 @@
   `test/fixtures/history/two-runs.json`), with a frozen clock and English
   (`--locale en`): one generate run with report + PDF + email + history +
   `--ci markdown --ci-out` + manifest, one summary run with email +
-  `--ci markdown --ci-out` + manifest, and the four process outputs `--help`,
-  `--version`, `--capabilities` and one usage failure. Record every artifact's
-  bytes/SHA-256 and `{ code, stdout, stderr }`. The PDF baseline uses the
+  `--ci markdown --ci-out` + manifest, one `<input> --json` run whose stdout
+  is kept as `b.json` (the explicit earlier baseline for gate rows 15/22), and
+  the four process outputs `--help`, `--version`, `--capabilities` and one
+  usage failure (row 5, bare usage). Record every artifact's bytes/SHA-256 and
+  `{ code, stdout, stderr }`. The PDF baseline uses the
   pinned host Chromium (record the `playwright-core` and Chromium versions),
   never the `cli-pdf` mock; the mock stays a permanent unit seam. The reference
   must not be regenerated after the split.
@@ -37,7 +39,8 @@ PIR/DXR blockers are closed.
   second copy here.
 - [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 24–35, the
   metadata → max-size → accent → logo order in one argv, repeated `--meta`
-  last-wins, the `--max-size` classes and the cross-family precedence pairs.
+  last-wins, the `--max-size` classes and the same- and cross-family
+  precedence pairs that involve 24–35.
   The `--pdf-timeout`/`--history-limit` boundary forms stay in 2.1a. RED for
   the full plan API; the expected strings are the baseline. ≤2h.
 - [ ] 2.3 `test/cli-plan-paths.test.ts`: identity, containment, peer
@@ -53,8 +56,9 @@ PIR/DXR blockers are closed.
   (`summarizeReport`, `formatCiOutput`, `buildRunManifest`), report/email API
   equivalence, mocked PDF pass-through, file-set and determinism checks, and a
   built-CLI spawn from a temporary esbuild bundle (the `render-report` pattern;
-  `npm test` does not build, so never `dist/cli.js` here). GREEN as a control.
-  ≤2h.
+  `npm test` does not build, so never `dist/cli.js` here). The spawned probes
+  are `--help`, `--version`, `--capabilities` and row 5 (bare usage). GREEN as
+  a control. ≤2h.
 - [ ] 2.6 Confirm every new seam test fails for the right reason (missing
   module/API), and every equivalence test is green on the baseline. No existing
   test is edited.
@@ -124,7 +128,7 @@ PIR/DXR blockers are closed.
   entries), `dist/cli.d.ts` changed only by the `CliIO` re-export,
   `dist/index.*` and the CLI-observable bytes intact, and no other unexpected
   tarball path. After `npm run build`, spawn the real `node dist/cli.js` for
-  `--help`, `--version`, `--capabilities` and one usage failure; compare bytes
+  `--help`, `--version`, `--capabilities` and row 5 (bare usage); compare bytes
   and exit codes to the 1.1 baseline.
 - [ ] 4.5 Verify the diff surface: `git diff --name-only` touches only
   `src/cli.ts`, `src/cli/**`, the new CLI tests, `docs/ARCHITECTURE.md`,

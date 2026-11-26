@@ -226,10 +226,16 @@ export async function planCli(argv: string[]): Promise<CliPlanResult>;
 The first-commit `planOptions` returns the internal `CliOptions`: the
 validated values from checks 1–23 (inputs, output paths, flags, parsed
 scalars, locale and CI format) before any path check or metadata/logo read.
-It is exported for `test/cli-plan-options.test.ts`; its result is the named
-`CliOptionsResult = { ok: true; options: CliOptions } | { ok: false; kind:
-'message'; message: string } | { ok: false; kind: 'usage' }`. `CliOptions`
-never crosses the execute seam; `planCli` builds `CliPlan` from it.
+The raw `--meta`, `--max-size`, `--accent` and `--logo` values travel in
+`CliOptions` unparsed, so checks 32–35 can parse them later without reading
+argv again; only the parsed products (`metadata`, `maxSizeMb`, `accent`,
+`logoDataUri`) stay out of it. Actions are resolved inside `planOptions`
+(checks 2–4), so its exported result is the named
+`CliOptionsResult = { ok: true; action: 'help' | 'version' | 'capabilities' } |
+{ ok: true; options: CliOptions } | { ok: false; kind: 'message'; message:
+string } | { ok: false; kind: 'usage' }`, and `planCli` maps the action arm to
+`CliAction`. `CliOptions` never crosses the execute seam; `planCli` builds
+`CliPlan` from it.
 
 The plan carries options and policy. It must **not** carry:
 
@@ -505,11 +511,13 @@ edited except for a genuine import change, which this design does not expect.
 
 - `planOptions` shape/defaults for the checks 1–23 values: inputs, output
   paths, `json`, `ci`, title (including empty), locale (`de-AT` keeps its
-  tag), `static`, `pdfTimeout`, `historyLimit` and the baseline path.
-  Metadata, max-size, accent and logo are not part of `CliOptions`.
+  tag), `static`, `pdfTimeout`, `historyLimit`, the baseline path and the raw
+  `meta`/`max-size`/`accent`/`logo` strings. The parsed products are not part
+  of `CliOptions`.
 - Action precedence: parse error vs help; help vs version; version vs
   capabilities; capabilities alone vs capabilities plus input/valid flag;
-  unknown flag still fails at `parseArgs`.
+  unknown flag still fails at `parseArgs`. The action flags are consumed
+  inside `planOptions` and surface only through the `action` arm.
 - Purity: a valid `planOptions` call creates no file/directory, prints
   nothing and does not mutate argv.
 - Single-defect messages 1–23, pinned exactly, including bare usage.
@@ -536,8 +544,8 @@ edited except for a genuine import change, which this design does not expect.
 
 ### Slice 1c — added messages and precedence (`test/cli-plan.test.ts`)
 
-- Single-defect messages 24–35: path collisions and manifest relative
-  expressibility (with Slice 2), metadata/max-size/accent and logo.
+- Single-defect messages 32–35: invalid metadata, max-size, accent and logo.
+  The path-collision messages 24–31 are pinned in Slice 2 (2.3), not here.
 - Cross-family precedence, both directions: early scalar errors beat a later
   path collision (`--pdf <path> --pdf-timeout abc`, invalid `--locale` with a
   valid surface, invalid `--ci`, `--history <path> --history-limit abc`, each
@@ -551,7 +559,8 @@ edited except for a genuine import change, which this design does not expect.
 - Parse order inside the shared catch (rows 32–35): one argv with an invalid
   `--meta`, `--max-size`, `--accent` and `--logo` reports `--meta` first, then
   max-size, accent and logo.
-- `--meta k=1 --meta k=2` keeps the last value (`{ k: '2' }`).
+- `--meta` forms: `=x` is a usage error, `k=` keeps an empty value, `k=v=w`
+  keeps `v=w`, and `--meta k=1 --meta k=2` keeps the last value (`{ k: '2' }`).
 - `--max-size` equivalence classes: `1e3`, `0x10` and `" 5 "` are accepted by
   `Number()`; `""`, `0`, negative, `NaN` and `Infinity` are usage errors.
 - The `--pdf-timeout`/`--history-limit` boundary forms stay in 1a; they are
@@ -625,8 +634,10 @@ trail.
 
 #### One-time gate matrix (task 4.6)
 
-All rows use the 1.1 fixtures, frozen clock and English locale. `r`, `e`,
-`ci`, `h`, `m` and `b` are gate-output paths; `b` is the 1.1 baseline fixture.
+Rows 6–23 use the 1.1 input fixture; rows 1–5 use no input. All rows run with
+the frozen clock and English unless the row names another locale (row 19).
+`r`, `e`, `ci`, `h` and `m` are gate-output paths; `b` is the baseline artifact
+recorded in 1.1 and only read here.
 
 | # | argv | expected |
 | --- | --- | --- |
@@ -657,10 +668,10 @@ All rows use the 1.1 fixtures, frozen clock and English locale. `r`, `e`,
 - The eight ★ rows through `runCli` with exact code/stdout/stderr (the
   permanent mode × stdout cross-product).
 - Built-CLI equivalence from a temporary esbuild bundle of `src/cli.ts` (the
-  `render-report` pattern): `--help`, `--version`, `--capabilities` and one
-  usage failure return the pinned bytes and exit codes. `npm test` does not
-  build, so the permanent test must not depend on `dist`; the real
-  `node dist/cli.js` spawn belongs to 4.4.
+  `render-report` pattern): rows 1, 2, 3 and row 5 (bare usage, pinned as the
+  single usage-failure probe everywhere) return the pinned bytes and exit
+  codes. `npm test` does not build, so the permanent test must not depend on
+  `dist`; the real `node dist/cli.js` spawn belongs to 4.4.
 - Machine-byte proof: `--json` stdout equals
   `${JSON.stringify(await summarizeReport(inputs), null, 2)}\n`; Markdown
   stdout/file equals `formatCiOutput(summary, 'markdown', { title })`; the
