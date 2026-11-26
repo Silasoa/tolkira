@@ -1,11 +1,13 @@
 # One-time equivalence gate — task 4.6
 
-Run on the final implementation on 2026-11-26, after all 3.x steps.
+Run on the final implementation on 2026-11-26, after all 3.x steps, and re-run
+after the review-fix commit `88b9f74` closed findings 1–7.
 
 | Item | Value |
 | --- | --- |
-| Final code | `02088a7` |
-| Gate file commit | `c329643` (`test/cli-equivalence-gate.test.ts`) |
+| Final code | `88b9f74` (review fix); `02088a7` was the first gate run |
+| Gate file source | `c329643` (`test/cli-equivalence-gate.test.ts`, restored byte-exact with `git show c329643:test/...` for this run, then removed again) |
+| Gate file history | added `c329643`; formatted `02088a7`; removed `79505c8`; not committed by the re-run |
 | OS / arch | `win32` / `x64` |
 | Node | `v26.13.1` |
 | playwright-core | `1.65.1` |
@@ -16,17 +18,21 @@ Run on the final implementation on 2026-11-26, after all 3.x steps.
 
 | Task | Command | Result |
 | --- | --- | --- |
-| 4.1 | `npx vitest run` over the 12 existing `cli-*` files, the five new files, `capabilities` and `inputs` | 19 files, 496 passed, 4 skipped |
-| 4.2 | `npm run check` (i18n, assets, typecheck, lint, knip, format, build, coverage) | green; 104 files, 2107 passed, 11 skipped; coverage 95.07 % stmts, 88.32 % branch, 97.04 % funcs, 96.47 % lines |
-| 4.3 | `npm run test:e2e` | 478 passed, 8 skipped (1.6 min); no browser change |
-| 4.4 | `npm run package:check` | green: publint `All good!`, attw all green except the ignored `node10` entries; tarball **91 entries** |
-| 4.6 | `npx vitest run test/cli-equivalence-gate.test.ts` | **17 passed** (15 non-★ rows + 2 baseline comparisons) |
+| 4.1 | `npx vitest run` over the 12 existing `cli-*` files, the five new files, `capabilities` and `inputs` at `88b9f74` | 19 files, 495 passed, 4 skipped |
+| 4.6 | `npx vitest run test/cli-equivalence-gate.test.ts` at `88b9f74` | **17 passed** (15 non-★ rows + 2 baseline comparisons) |
+| 4.2 | `npm run check` | see “Post-fix gate re-run” below |
+| 4.3 | `npm run test:e2e` | see “Post-fix gate re-run” below |
+| 4.4 | `npm run package:check` | see “Post-fix gate re-run” below |
 
 The eight ★ rows are the permanent `test/cli-equivalence.test.ts` cases
 (11, 12, 13, 15, 17, 21, 22, 23); they are green in the 4.1 run and are not
-duplicated in the gate.
+duplicated in the gate. The permanent built-CLI spawn in the same file now
+pins the exact 2044/6/1318/2044 bytes, their SHA-256 values and exit
+0/0/0/2 from this record, so a `USAGE` edit can no longer stay green.
 
 ## 4.4 process probes (real `node dist/cli.js`)
+
+Built at `88b9f74`; bytes and hashes reproduced on the re-run.
 
 | Probe | Stream | Bytes | SHA-256 | Exit |
 | --- | --- | ---: | --- | ---: |
@@ -40,7 +46,7 @@ These match `baseline.md` byte for byte.
 ## 1.1 baseline comparison
 
 The gate reproduced the exact 1.1 generate, summary and `--json` argv with the
-frozen clock and `--locale en`:
+frozen clock and `--locale en` at `88b9f74`:
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -54,16 +60,20 @@ frozen clock and `--locale en`:
 | `summary/manifest.json` | 925 | `43cc61c9683bd20f360bf7f73d88815b56325fe9557a482ababb6c1dd5333a69` |
 | `json/b.json` | 1519 | `09c4be0d7b20f5f9981521956e94d3b7cffc7a932856850090d49c3cce9b2da8` |
 
-Every non-PDF artifact matches `baseline.md` exactly (bytes and SHA-256).
+Every non-PDF artifact matches `baseline.md` exactly (bytes and SHA-256). The
+1.1 hashes therefore stay as recorded.
 
 PDF: raw size **145116 bytes** (same as the 1.1 record). The engine's
 `/CreationDate` and `/ModDate` were normalized to `D:FIXED`; no `/ID` field is
 present in this engine output. Normalized size **145084 bytes**, SHA-256
-`544c1fec6c5df287b1d9d134413dc86ab4689a8e12084fb4f99b6120e553e5dd`.
-The same normalization on a pre-split capture of `1ee837e` under the same frozen
-clock gives the same normalized hash, so the page and content bytes are equal.
+`544c1fec6c5df287b1d9d134413dc86ab4689a8e12084fb4f99b6120e553e5dd`. The
+normalization method and hash still reproduce, so both stay unchanged. The same
+normalization on a pre-split capture of `1ee837e` under the same frozen clock
+gives the same normalized hash, so the page and content bytes are equal.
 
 ## Line counts
+
+At `88b9f74`:
 
 | File | Lines |
 | --- | ---: |
@@ -72,37 +82,47 @@ clock gives the same normalized hash, so the page and content bytes are equal.
 | `src/cli/execute.ts` | 336 |
 | `src/cli/logo.ts` | 57 |
 | `src/cli/paths.ts` | 60 |
-| `src/cli/plan.ts` | 430 |
-| **Total** | **1079** (+86, +8.7 % vs 993) |
+| `src/cli/plan.ts` | 427 |
+| **Total** | **1076** (+83, +8.4 % vs 993) |
 
-No module other than `cli.ts` exceeds 430 lines.
+No module other than `cli.ts` exceeds 430 lines. The 430-line cap in
+`design.md` is a soft budget: `plan.ts` was fitted by compaction, not by a
+sixth module. Splitting `planOptions` out of `plan.ts` is deferred and belongs
+in the backlog (the docs fixer records it); reflowing the file or adding a
+module is not part of this change.
 
 ## Bundle and package delta
 
-| File | Baseline | Final | Delta |
+Clean `npm run build` at `88b9f74`:
+
+| File | Baseline (`1ee837e`) | Final (`88b9f74`) | Delta |
 | --- | ---: | ---: | ---: |
-| `dist/cli.js` | 412458 | 417397 | +4939 (+1.20 %) |
-| `dist/cli.js.map` | 777140 | 789633 | +12493 (+1.61 %) |
+| `dist/cli.js` | 412458 | 414825 | +2367 (+0.57 %) |
+| `dist/cli.js.map` | 777140 | 784102 | +6962 (+0.90 %) |
 | `dist/cli.d.ts` | 176 | 171 | −5 (only the `CliIO` re-export) |
 | `dist/index.js` | 364414 | 364414 | 0 (SHA-256 `4fd2c61f…`) |
 | `dist/index.d.ts` | 1616 | 1616 | 0 (SHA-256 `24f07109…`) |
 
-The bundle stays under the 2 % PCA trigger. New internal declarations:
-`dist/cli/args.d.ts` 1211 B, `dist/cli/execute.d.ts` 221 B,
-`dist/cli/logo.d.ts` 65 B, `dist/cli/paths.d.ts` 600 B,
-`dist/cli/plan.d.ts` 2417 B.
+Both bundle deltas stay under the 2 % PCA trigger, so PCA is not triggered.
+New internal declarations at `88b9f74`: `dist/cli/args.d.ts` 1211 B,
+`dist/cli/execute.d.ts` 221 B, `dist/cli/logo.d.ts` 65 B,
+`dist/cli/paths.d.ts` 600 B, `dist/cli/plan.d.ts` 2408 B.
 
 Tarball: 86 entries at `1ee837e` → **91 entries** (+5), exactly the five
 `dist/cli/*.d.ts` declarations. `package:check` reports 91 entries; publint and
-attw are green.
+attw are green (re-run result below).
 
 ## Diff surface (task 4.5)
 
-`git diff --name-only 1ee837e..HEAD` before removing the gate file:
+Two ranges make the exact union:
+
+- Implementation range `1ee837e..88b9f74`:
 
 ```text
 GLOSSARY.md
 docs/ARCHITECTURE.md
+openspec/changes/0.7-cli-plan-execute/gate.md
+openspec/changes/0.7-cli-plan-execute/tasks.md
 scripts/package-check.mjs
 src/cli.ts
 src/cli/args.ts
@@ -110,20 +130,29 @@ src/cli/execute.ts
 src/cli/logo.ts
 src/cli/paths.ts
 src/cli/plan.ts
+test/cli-equivalence.test.ts
 test/cli-execute.test.ts
-test/cli-equivalence-gate.test.ts
 test/cli-plan-options.test.ts
 test/cli-plan-paths.test.ts
 test/cli-plan.test.ts
 test/package-manifest.test.ts
 ```
 
-No renderer, summary, email, PDF, history, baseline, input or output module
-changed. The gate file is removed after this record; the commit that removes it
-also records this file.
+- Contract range `8f4a493..1ee837e` adds only the change contract:
+  `openspec/changes/0.7-cli-plan-execute/{proposal,design,baseline,tasks}.md`
+  (plus `docs/BACKLOG.md` for the B-057 entry).
+
+Union `8f4a493..88b9f74`: the 17 files above plus
+`docs/BACKLOG.md`, `proposal.md`, `design.md` and `baseline.md`. No renderer,
+summary, email, PDF, history, baseline, input or output module changed.
+
+The one-time gate file was a temporary test, not part of the shipped range:
+`test/cli-equivalence-gate.test.ts` was added at `c329643`, edited at
+`02088a7`, and removed at `79505c8`. This re-run restored the `c329643` bytes,
+ran them and removed the file again; it is not tracked at `88b9f74`.
 
 ## Stop conditions
 
-None hit on the final run. The pre-existing `plan.ts` exceeded the 430-line
-budget during one intermediate revision and was compacted before this gate; the
-table above is the final measurement.
+None hit. The review fix removed an unused async seam (`planOptions` is now
+synchronous); that shrinks code and changes no observable byte, so it is not a
+design stop condition.
