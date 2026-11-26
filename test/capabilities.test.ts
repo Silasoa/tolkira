@@ -7,6 +7,7 @@ import {
   MAX_ATTACHMENT_BYTES,
   MAX_TOTAL_ATTACHMENT_BYTES,
 } from '../src/attachment.js';
+import { BASELINE_MAX_BYTES } from '../src/baseline.js';
 import type { CiFormat } from '../src/ci.js';
 import { runCli } from '../src/cli.js';
 import {
@@ -17,9 +18,10 @@ import {
 import { version } from '../src/index.js';
 import { detectInput } from '../src/input/detect.js';
 import { MAX_TOTAL_INPUT_BYTES } from '../src/input/load.js';
+import { DEFAULT_TIMEOUT_MS } from '../src/pdf.js';
 import { SUPPORTED_LOCALES } from '../src/render/i18n.js';
 import { SUMMARY_SCHEMA_VERSION } from '../src/summary.js';
-import { INPUT_WARN_BYTES } from '../src/warnings.js';
+import { DEFAULT_MAX_SIZE_MB, INPUT_WARN_BYTES } from '../src/warnings.js';
 import { fixturePath } from './fixtures.js';
 
 interface CapabilitiesDocument {
@@ -171,16 +173,13 @@ describe('CLI --capabilities', () => {
       inputWarnBytes: INPUT_WARN_BYTES,
       attachmentBytes: MAX_ATTACHMENT_BYTES,
       totalAttachmentBytes: MAX_TOTAL_ATTACHMENT_BYTES,
-      // The baseline reader keeps its 10 MiB cap private; the reader tests pin
-      // that cap through the rejection of an oversized baseline.
-      baselineBytes: 10 * 1024 * 1024,
+      baselineBytes: BASELINE_MAX_BYTES,
       historyBytes: HISTORY_MAX_BYTES,
       historyLimitMax: HISTORY_LIMIT_MAX,
     });
     expect(document.defaults).toEqual({
-      // CLI option defaults: --max-size 10 MB and --pdf-timeout 300000 ms.
-      reportWarnMb: 10,
-      pdfTimeoutMs: 300_000,
+      reportWarnMb: DEFAULT_MAX_SIZE_MB,
+      pdfTimeoutMs: DEFAULT_TIMEOUT_MS,
       historyLimit: HISTORY_LIMIT,
     });
   });
@@ -195,13 +194,13 @@ describe('CLI --capabilities', () => {
         file: fixturePath('legacy', 'happy.json'),
         detected: 'legacy',
       },
-      'cucumber-messages': {
-        file: fixturePath('messages', 'screenshot.ndjson'),
-        detected: 'messages',
-      },
       'junit-xml': {
         file: fixturePath('junit', 'basic.xml'),
         detected: 'junit',
+      },
+      'cucumber-messages': {
+        file: fixturePath('messages', 'screenshot.ndjson'),
+        detected: 'messages',
       },
       'playwright-json': {
         file: fixturePath('playwright', 'output.json'),

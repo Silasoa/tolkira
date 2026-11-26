@@ -103,9 +103,11 @@ and leave no partial file.
 
 Only `report`, `pdf`, `email`, `history` and `ci-markdown` files SHALL appear
 in the manifest, in write order. Each `path` SHALL be relative to the manifest
-file; only when no relative path exists across Windows drives SHALL it fall
-back to the path as given. The manifest file itself SHALL be omitted.
-`--manifest` alone SHALL satisfy the at-least-one-output requirement.
+file; an absolute artifact path SHALL be recorded as given only when no
+relative path exists. A relative artifact path that cannot be expressed
+relative to the manifest SHALL be a usage error before any write. The manifest
+file itself SHALL be omitted. `--manifest` alone SHALL satisfy the
+at-least-one-output requirement.
 
 #### Scenario: Artifact list
 

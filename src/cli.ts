@@ -226,6 +226,20 @@ function pathConflicts(
   return conflictsWithInputs(file, inputs);
 }
 
+/** A relative artifact path with no form relative to the manifest directory. */
+function cannotExpressRelative(
+  manifestFile: string,
+  artifact: string,
+): boolean {
+  if (path.isAbsolute(artifact)) return false;
+  return path.isAbsolute(
+    path.relative(
+      path.dirname(path.resolve(manifestFile)),
+      path.resolve(artifact),
+    ),
+  );
+}
+
 function errorCode(error: unknown): string | undefined {
   return error instanceof Error &&
     'code' in error &&
@@ -601,6 +615,26 @@ export async function runCli(
           `\n\n${USAGE}`,
       );
       return 2;
+    }
+
+    const artifacts: Array<[string, string | undefined]> = [
+      ['--out', output],
+      ['--pdf', pdfPath],
+      ['--email', emailPath],
+      ['--history', historyFile],
+      ['--ci-out', ciOut],
+    ];
+    for (const [flag, artifact] of artifacts) {
+      if (
+        artifact !== undefined &&
+        cannotExpressRelative(manifestFile, artifact)
+      ) {
+        io.stderr(
+          `tolkira: ${flag} ${oneLine(artifact)} cannot be expressed relative ` +
+            `to --manifest; pass an absolute ${flag} path\n\n${USAGE}`,
+        );
+        return 2;
+      }
     }
   }
 

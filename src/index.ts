@@ -9,8 +9,7 @@ import {
 } from './run.js';
 import type { ReportSummary } from './summary.js';
 
-export const version = '0.6.1';
-export const phase = 'development';
+export { phase, version } from './version.js';
 
 export type {
   ReportSummary,

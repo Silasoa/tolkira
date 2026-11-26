@@ -40,8 +40,8 @@ boolean flag is the smaller change and the only new surface. Recorded decision.
   "node": ">=22",
   "inputs": [
     "cucumber-legacy-json",
-    "cucumber-messages",
     "junit-xml",
+    "cucumber-messages",
     "playwright-json"
   ],
   "outputs": [
@@ -149,9 +149,11 @@ output.
 - `artifacts` lists only files written before the manifest, in write order:
   `report`, `pdf`, `email`, `history`, `ci-markdown`. The JSON summary on
   stdout is not an artifact. `path` is relative to the manifest file's
-  directory with `/` separators (JSON needs no percent-encoding); when no
-  relative path exists, such as across Windows drives, the path as given is
-  the fallback. It never contains the cwd and never names an input.
+  directory with `/` separators (JSON needs no percent-encoding). An absolute
+  artifact path is recorded as given when no relative path exists, such as
+  across Windows drives; a relative artifact path that cannot be expressed
+  relative to the manifest is a usage error before any write. It never
+  contains the cwd and never names an input.
 - No timestamp, no attachment content, no second copy of the scenario rows.
   The document is deterministic for the same run and options.
 
@@ -237,8 +239,9 @@ Manifest (`test/cli-artifacts.test.ts`):
   summary's executed-only counts; unexecuted rows are not added as a field.
 - Paths in the manifest are made relative to the manifest file, so the document
   does not reveal the runner's directory layout and no input path is written.
-  The cross-drive fallback can still be absolute on Windows; that is the one
-  recorded exception.
+  Only an absolute artifact path can still be recorded as given, when no
+  relative path exists across Windows drives; a relative artifact path that
+  cannot be expressed is rejected with exit 2 before any write.
 - `--index` is deferred as B-077: it duplicates the Markdown CI body, and its
   relative-link edge cases were the largest review surface of this bundle.
 - No new runtime dependency and no network. The capabilities document is the

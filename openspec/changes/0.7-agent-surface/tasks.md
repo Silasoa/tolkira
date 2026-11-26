@@ -42,15 +42,15 @@
 
 ## 4. Documentation
 
-- [ ] 4.1 Add `docs/AGENT-SNIPPET.md`; link it from `llms.txt`,
+- [x] 4.1 Add `docs/AGENT-SNIPPET.md`; link it from `llms.txt`,
   `docs/README.md` and `docs/AGENT-INTERFACE.md`; add it to `package.json`
   `files`.
-- [ ] 4.2 Document `--capabilities`, the manifest schema and the extended order
+- [x] 4.2 Document `--capabilities`, the manifest schema and the extended order
   in `docs/AGENT-INTERFACE.md`; update the email/PDF order statements there;
   add the manifest to the owner-only list in `docs/LIMITATIONS.md`; add the
   flags to `README.md` and the module names to `DESIGN.md` and
   `docs/ARCHITECTURE.md`.
-- [ ] 4.3 Update `docs/CHANGELOG.md` (Unreleased) and `docs/BACKLOG.md`
+- [x] 4.3 Update `docs/CHANGELOG.md` (Unreleased) and `docs/BACKLOG.md`
   (B-062 and B-064 resolved, B-063 manifest half delivered, B-077 carries the
   deferred index).
 

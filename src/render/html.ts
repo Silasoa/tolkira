@@ -13,7 +13,7 @@ import { createTranslator, localeShellCss, type Translator } from './i18n.js';
 import { PRINT_SCRIPT } from './print-script.js';
 import { renderReportView } from './report.js';
 import { BASELINE_CSS, REPORT_CSS } from './styles.js';
-import { TAG_TABLE_CSS, tagOverviewRows } from './tags.js';
+import { TAG_TABLE_CSS } from './tags.js';
 import { renderTrendsView, TRENDS_SHELL_CSS } from './trends.js';
 import type { RenderOptions } from './types.js';
 
@@ -80,7 +80,11 @@ export async function renderHtml(
       : '';
   const trends =
     history.length >= 2 ? renderTrendsView(history, t, staticMode) : '';
-  const tagTableCss = tagOverviewRows(model).length > 0 ? TAG_TABLE_CSS : '';
+  const tagTableCss = model.scenarios.some(
+    (scenario) => scenario.tags.length > 0,
+  )
+    ? TAG_TABLE_CSS
+    : '';
   const messages = staticMode
     ? ''
     : `<script type="application/json" id="${DOM_IDS.i18nMessages}">${t.clientMessages()}</script>`;

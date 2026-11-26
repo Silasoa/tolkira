@@ -41,8 +41,9 @@ separate changes and not part of this contract.
 Out of scope: no summary schema change (stays 2), no HTML report, email, CI or
 history byte change, no new public API export, no new runtime dependency, no
 network, no timestamp in the manifest, no input paths, no absolute paths except
-the documented cross-drive fallback, no `--index` (deferred as B-077), no
-`sarif`/JUnit/other report formats, no release, tag or publish.
+an artifact path recorded as given when no relative path exists, such as across
+Windows drives, no `--index` (deferred as B-077), no `sarif`/JUnit/other report
+formats, no release, tag or publish.
 
 ## Capabilities
 

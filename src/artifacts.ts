@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { version } from './index.js';
 import type { ReportSummary } from './summary.js';
+import { version } from './version.js';
 
 const MANIFEST_SCHEMA_VERSION = 1;
 const MANIFEST_FAILURE_LIMIT = 10;
@@ -55,15 +55,16 @@ function firstFailures(summary: ReportSummary): ManifestFailure[] {
 }
 
 /**
- * A path relative to the manifest's directory with `/` separators. Across
- * Windows drives no relative path exists; the path as given is the fallback.
+ * A path relative to the manifest's directory with `/` separators. Only an
+ * absolute artifact with no relative form, such as across Windows drives, is
+ * recorded as given; the CLI rejects a relative one before this runs.
  */
 function artifactPath(manifestFile: string, artifactFile: string): string {
   const relative = path.relative(
     path.dirname(path.resolve(manifestFile)),
     path.resolve(artifactFile),
   );
-  if (relative === '' || path.isAbsolute(relative)) return artifactFile;
+  if (path.isAbsolute(relative)) return artifactFile;
   return relative.split(path.sep).join('/');
 }
 

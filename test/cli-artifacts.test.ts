@@ -21,8 +21,9 @@ const pdf = vi.hoisted(() => ({
 }));
 vi.mock('../src/pdf.js', () => ({ renderPdf: pdf.renderPdf }));
 
+import { buildRunManifest } from '../src/artifacts.js';
 import { runCli } from '../src/cli.js';
-import { version } from '../src/index.js';
+import { summarizeReport, version } from '../src/index.js';
 import type { ReportSummary } from '../src/summary.js';
 import { writeAttachmentReport } from './attachments.js';
 import { fixturePath } from './fixtures.js';
@@ -145,6 +146,24 @@ function manyFailures(count: number): unknown[] {
   ];
 }
 
+async function runManyFailures(count: number): Promise<{
+  summary: ReportSummary;
+  manifest: ManifestDocument;
+}> {
+  const dir = await tempDir();
+  const input = path.join(dir, 'many.json');
+  await writeFile(input, JSON.stringify(manyFailures(count)), 'utf8');
+  const manifestFile = path.join(dir, 'run.json');
+
+  const run = await cli([input, '--json', '--manifest', manifestFile]);
+
+  expect(run.code, run.stderr).toBe(0);
+  return {
+    summary: JSON.parse(run.stdout) as ReportSummary,
+    manifest: await readManifest(manifestFile),
+  };
+}
+
 // A passing scenario plus a failed run-level hook: the run fails without a
 // failed scenario row.
 const hookOnlyMessages = [
@@ -216,6 +235,16 @@ describe('CLI --manifest', () => {
     expect(lines[manifestLine]).toBe(`Manifest written to ${manifestFile}`);
 
     const manifest = await readManifest(manifestFile);
+    expect(Object.keys(manifest)).toEqual([
+      'schemaVersion',
+      'tool',
+      'status',
+      'counts',
+      'attachments',
+      'warnings',
+      'artifacts',
+      'failures',
+    ]);
     expect(manifest.schemaVersion).toBe(1);
     expect(manifest.tool).toEqual({ name: 'tolkira', version });
     expect(manifest.status).toBe(summary.status);
@@ -264,6 +293,60 @@ describe('CLI --manifest', () => {
     );
   });
 
+  it('keeps all ten failures when the run has exactly ten', async () => {
+    const { summary, manifest } = await runManyFailures(10);
+
+    expect(summary.counts.scenarios.failed).toBe(10);
+    expect(manifest.counts.scenarios.failed).toBe(10);
+    expect(manifest.failures).toHaveLength(10);
+    expect(manifest.failures).toEqual(expectedFailures(summary));
+    expect(manifest.failures.map((failure) => failure.name)).toEqual(
+      Array.from(
+        { length: 10 },
+        (_, index) => `Failure ${String(index + 1).padStart(2, '0')}`,
+      ),
+    );
+  });
+
+  it('keeps ten and omits the eleventh when the run has eleven', async () => {
+    const { summary, manifest } = await runManyFailures(11);
+
+    expect(summary.counts.scenarios.failed).toBe(11);
+    expect(manifest.counts.scenarios.failed).toBe(11);
+    expect(manifest.failures).toHaveLength(10);
+    expect(manifest.failures).toEqual(expectedFailures(summary));
+    expect(manifest.failures.map((failure) => failure.name)).toEqual(
+      Array.from(
+        { length: 10 },
+        (_, index) => `Failure ${String(index + 1).padStart(2, '0')}`,
+      ),
+    );
+    expect(manifest.failures.map((failure) => failure.name)).not.toContain(
+      'Failure 11',
+    );
+  });
+
+  it('omits an unexecuted failed-status row', async () => {
+    const summary = await summarizeReport(fixturePath('legacy', 'happy.json'));
+    const [first] = summary.scenarios;
+    if (!first) throw new Error('fixture must contain a scenario');
+    summary.scenarios.push({
+      ...first,
+      name: 'Unexecuted failure',
+      status: 'failed',
+      executed: false,
+    });
+
+    const manifest = buildRunManifest(
+      summary,
+      0,
+      [],
+      path.join(tmpdir(), 'run.json'),
+    );
+
+    expect(manifest.failures).toEqual([]);
+  });
+
   it('carries the outline example coordinate', async () => {
     const dir = await tempDir();
     const manifestFile = path.join(dir, 'run.json');
@@ -286,6 +369,10 @@ describe('CLI --manifest', () => {
         example: '#2.2',
         uri: 'samples/examples-tables/examples-tables.feature',
       },
+    ]);
+    expect(manifest.failures.map((failure) => Object.keys(failure))).toEqual([
+      ['feature', 'name', 'example', 'uri'],
+      ['feature', 'name', 'example', 'uri'],
     ]);
     expect(manifest.failures).toEqual(expectedFailures(summary));
   });
@@ -403,6 +490,11 @@ describe('CLI --manifest', () => {
     expect(manifest.artifacts).toEqual([]);
     expect(manifest.failures).toEqual(expectedFailures(summary));
     expect(manifest.failures.length).toBeGreaterThan(0);
+    expect(Object.keys(manifest.failures[0] ?? {})).toEqual([
+      'feature',
+      'name',
+      'uri',
+    ]);
     expect(run.stdout).not.toContain('Manifest written');
   });
 
@@ -519,6 +611,38 @@ describe('CLI --manifest', () => {
       (await readdir(dir)).filter((name) => name.endsWith('.tmp')),
     ).toEqual([]);
   });
+
+  it.skipIf(process.platform !== 'win32')(
+    'rejects a relative --out that has no path from the manifest drive',
+    async () => {
+      const currentDrive = path.parse(process.cwd()).root.toLowerCase();
+      const otherDrive = currentDrive === 'z:\\' ? 'Y:\\' : 'Z:\\';
+      const manifestFile = path.join(
+        otherDrive,
+        'tolkira-manifest',
+        'run.json',
+      );
+      const report = 'tolkira-cross-drive-report.html';
+
+      const run = await cli([
+        screenshot,
+        '--out',
+        report,
+        '--manifest',
+        manifestFile,
+      ]);
+
+      expect(run.code).toBe(2);
+      expect(run.stdout).toBe('');
+      expect(run.stderr).toContain(
+        'tolkira: --out tolkira-cross-drive-report.html cannot be expressed ' +
+          'relative to --manifest; pass an absolute --out path',
+      );
+      expect(pdf.renderPdf).not.toHaveBeenCalled();
+      await expect(exists(path.resolve(report))).resolves.toBe(false);
+      await expect(exists(manifestFile)).resolves.toBe(false);
+    },
+  );
 
   it('fails on a manifest write error, keeps earlier outputs and skips stdout', async () => {
     const dir = await tempDir();

@@ -9,11 +9,11 @@ import {
   HISTORY_LIMIT_MAX,
   HISTORY_MAX_BYTES,
 } from './history.js';
-import { version } from './index.js';
 import { MAX_TOTAL_INPUT_BYTES } from './input/load.js';
 import { DEFAULT_TIMEOUT_MS } from './pdf.js';
 import { SUPPORTED_LOCALES } from './render/i18n.js';
 import { SUMMARY_SCHEMA_VERSION } from './summary.js';
+import { version } from './version.js';
 import { DEFAULT_MAX_SIZE_MB, INPUT_WARN_BYTES } from './warnings.js';
 
 const CAPABILITIES_SCHEMA_VERSION = 1;
@@ -24,8 +24,8 @@ const NODE_RANGE = '>=22';
 /** Accepted input kinds, in the order the input interface documents them. */
 const INPUT_KINDS = [
   'cucumber-legacy-json',
-  'cucumber-messages',
   'junit-xml',
+  'cucumber-messages',
   'playwright-json',
 ] as const;
 
