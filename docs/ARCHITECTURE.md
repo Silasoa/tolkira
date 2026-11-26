@@ -407,9 +407,10 @@ and is covered by real producer fixtures.
   loaded run.
 - `buildLoadedRun` is the sole producer: `LoadedRun` carries a non-exported
   brand, so no other module can build one. `renderRun` (`src/render/html.ts`)
-  trusts that run and never sanitises, indexes or summarises again. A new run
-  fact flows `LoadedRunFacts` → `LoadedRun` → `runRenderOptions` → view, never
-  through caller options.
+  trusts that run and never sanitises, indexes or summarises again. From the
+  run, `comparison`, `inputFiles` and `inputBytes` flow through
+  `runRenderOptions` to the view, `provenance` to `buildReportModel` and the
+  skipped-attachment count to the notice; none comes through caller options.
 - `generateReportFromResolved`, `renderReportFromResolved`,
   `summarizeRunFromResolved` and `summarizeReportFromResolved` are the internal
   entry points for a resolved list; the CLI drives `generateReportFromResolved`
@@ -586,9 +587,10 @@ re-resolving through the path-based public functions.
 `BaselineRenderOptions extends RenderReportOptions` with
 `baseline?: BaselineSummary`; `generateReport`, `renderReport` and
 `summarizeReport` accept it, build one comparison and never read a file. The
-render entries (`renderRun` over a loaded run and the `renderHtml` wrapper) and
-`CucumberHtmlStream` keep `RenderReportOptions` and ignore a `baseline` key, so
-the stream's same-input-same-HTML contract is unchanged. The package exports both
+internal `renderRun` and the `renderHtml` wrapper take `RenderCallOptions`
+(extends `RenderReportOptions`, run facts typed `never`); `CucumberHtmlStream`
+keeps `RenderReportOptions`. All ignore a `baseline` key, so the stream's
+same-input-same-HTML contract is unchanged. The package exports both
 `BaselineSummary` and `BaselineRenderOptions`.
 
 ## Security
