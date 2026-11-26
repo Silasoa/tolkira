@@ -13,6 +13,7 @@ const layers: Record<string, number> = {
   trends: 1,
   triage: 2,
   matrix: 2,
+  tags: 2,
   attachments: 2,
   ci: 2,
   format: 3,

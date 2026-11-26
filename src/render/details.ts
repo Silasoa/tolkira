@@ -21,6 +21,7 @@ import {
 
 import type { Translator } from './i18n.js';
 import { renderFeatureMatrix } from './matrix.js';
+import { renderTagOverview } from './tags.js';
 import type { RenderOptions } from './types.js';
 
 /** Empty element replaced with the exact report size after the document is built. */
@@ -142,7 +143,7 @@ export function renderAnalysisView(
     )
     .join(
       '',
-    )}</div>${runPanel(model, counts.total, options, t)}${environmentPanel(model, customRows, t)}</section></div>${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>${t.t('details.runAttachments')}</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, t.t('details.runAttachments'), t, staticMode)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>${t.t('details.agentSummary')}</h2><p>${t.t('details.agentSummaryNote')}</p><pre class="json" tabindex="0" aria-label="${t.t('details.agentSummaryJson')}">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">${t.t('details.fullSummary')} <code>tolkira ... --json</code></p>`;
+    )}</div>${runPanel(model, counts.total, options, t)}${environmentPanel(model, customRows, t)}</section></div>${renderTagOverview(model, t)}${model.runAttachments.length ? `<section class="panel" style="margin-top:16px"><h2>${t.t('details.runAttachments')}</h2>${model.runAttachments.map((attachment) => renderAttachment(attachment, t.t('details.runAttachments'), t, staticMode)).join('')}</section>` : ''}<section class="panel" style="margin-top:16px"><h2>${t.t('details.agentSummary')}</h2><p>${t.t('details.agentSummaryNote')}</p><pre class="json" tabindex="0" aria-label="${t.t('details.agentSummaryJson')}">${escapeHtml(JSON.stringify(preview))}</pre></section><p class="foot">${t.t('details.fullSummary')} <code>tolkira ... --json</code></p>`;
   return staticMode
     ? `<div class="tabPanel" id="${DOM_IDS.analysisView}"><div class="shell analysis">${view}</div></div>`
     : `<div class="tabPanel" id="${DOM_IDS.analysisView}" role="tabpanel" aria-labelledby="view-analysis" tabindex="0" hidden><div class="shell analysis">${view}</div></div>`;

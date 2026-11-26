@@ -287,6 +287,34 @@
     "message": "Details",
     "description": "Top navigation tab that shows run details"
   },
+  "details.tagFailed": {
+    "message": "Failed",
+    "description": "Column header for the failed count of a tag in the tag overview"
+  },
+  "details.tagScenarios": {
+    "message": "Scenarios",
+    "description": "Column header for the scenario count of a tag in the tag overview"
+  },
+  "details.tagSkipped": {
+    "message": "Skipped",
+    "description": "Column header for the skipped count of a tag in the tag overview"
+  },
+  "details.tags": {
+    "message": "Tags",
+    "description": "Heading of the tag overview panel in the details view"
+  },
+  "details.tagsLabel": {
+    "message": "Tag overview",
+    "description": "Accessible label for the tag overview table region"
+  },
+  "details.tagsNote": {
+    "message": "Counts cover executed scenario rows; failed and skipped count only those statuses.",
+    "description": "Explains which rows and statuses the tag overview counts"
+  },
+  "details.tagsRemaining": {
+    "message": "Showing {shown} of {total} tags",
+    "description": "States the visible and complete tag count when the tag overview is capped"
+  },
   "details.testTime": {
     "message": "Test time",
     "description": "Label for the total test time"

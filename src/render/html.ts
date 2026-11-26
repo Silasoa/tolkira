@@ -13,6 +13,7 @@ import { createTranslator, localeShellCss, type Translator } from './i18n.js';
 import { PRINT_SCRIPT } from './print-script.js';
 import { renderReportView } from './report.js';
 import { BASELINE_CSS, REPORT_CSS } from './styles.js';
+import { TAG_TABLE_CSS, tagOverviewRows } from './tags.js';
 import { renderTrendsView, TRENDS_SHELL_CSS } from './trends.js';
 import type { RenderOptions } from './types.js';
 
@@ -79,6 +80,7 @@ export async function renderHtml(
       : '';
   const trends =
     history.length >= 2 ? renderTrendsView(history, t, staticMode) : '';
+  const tagTableCss = tagOverviewRows(model).length > 0 ? TAG_TABLE_CSS : '';
   const messages = staticMode
     ? ''
     : `<script type="application/json" id="${DOM_IDS.i18nMessages}">${t.clientMessages()}</script>`;
@@ -86,6 +88,6 @@ export async function renderHtml(
     ? ''
     : `<dialog class="lightbox" id="${DOM_IDS.lightbox}" aria-label="${t.t('lightbox.label')}"><button class="lightboxClose" type="button" data-lightbox-close>${t.t('lightbox.close')}</button><img alt=""></dialog>`;
   const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div>${staticMode ? '' : tabBar(history.length, t)}</div></header><p class="sr" id="${DOM_IDS.copyLive}" aria-live="polite"></p>${notice}<main>${renderReportView(model, options, t, staticMode)}${renderAnalysisView(model, options, summary, t, staticMode)}${trends}</main>${lightbox}${messages}${clientScript}${printScript}`;
-  const html = `<!doctype html>\n<html lang="${escapeHtml(t.lang)}" dir="${t.dir}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(inlineScriptHashes(body))}\n<style>${REPORT_CSS}${accent}${localeCss}${trends ? TRENDS_SHELL_CSS : ''}${options.comparison ? BASELINE_CSS : ''}</style>\n</head>\n<body>${body}</body>\n</html>`;
+  const html = `<!doctype html>\n<html lang="${escapeHtml(t.lang)}" dir="${t.dir}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(options.title)}</title>\n${csp(inlineScriptHashes(body))}\n<style>${REPORT_CSS}${accent}${localeCss}${trends ? TRENDS_SHELL_CSS : ''}${options.comparison ? BASELINE_CSS : ''}${tagTableCss}</style>\n</head>\n<body>${body}</body>\n</html>`;
   return applyReportSize(html, t);
 }

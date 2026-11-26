@@ -24,11 +24,17 @@ const passedOnlyFixture = legacyFixture('behave.json');
 describe('parity rules rendering', () => {
   it('renders feature and rule tags once and keeps inherited tags off rows', async () => {
     const html = await renderMessagesFile(tagsFixture, 'Rules');
+    // The tag overview in Details repeats every tag; the Report rows must still
+    // show each inherited or own tag once.
+    const reportView = html.slice(
+      html.indexOf('id="report-view"'),
+      html.indexOf('id="analysis-view"'),
+    );
 
-    expect(html.match(/class="tag">@feature-tag/g)).toHaveLength(1);
-    expect(html.match(/class="tag">@rule-tag/g)).toHaveLength(1);
-    expect(html.match(/class="tag">@scenario-tag/g)).toHaveLength(1);
-    expect(html.match(/class="tag">@some-tag/g)).toHaveLength(1);
+    expect(reportView.match(/class="tag">@feature-tag/g)).toHaveLength(1);
+    expect(reportView.match(/class="tag">@rule-tag/g)).toHaveLength(1);
+    expect(reportView.match(/class="tag">@scenario-tag/g)).toHaveLength(1);
+    expect(reportView.match(/class="tag">@some-tag/g)).toHaveLength(1);
 
     const featureHead = html.slice(
       html.indexOf('<details class="feature'),

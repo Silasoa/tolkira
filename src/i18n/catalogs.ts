@@ -72,6 +72,13 @@ export type MessageKey =
   | "details.statusDistribution"
   | "details.steps"
   | "details.tab"
+  | "details.tagFailed"
+  | "details.tagScenarios"
+  | "details.tagSkipped"
+  | "details.tags"
+  | "details.tagsLabel"
+  | "details.tagsNote"
+  | "details.tagsRemaining"
   | "details.testTime"
   | "details.title"
   | "email.attachments"
@@ -277,6 +284,13 @@ export const en: Record<MessageKey, string> = {
   "details.statusDistribution": "Status distribution",
   "details.steps": "Steps (excl. hooks)",
   "details.tab": "Details",
+  "details.tagFailed": "Failed",
+  "details.tagScenarios": "Scenarios",
+  "details.tagSkipped": "Skipped",
+  "details.tags": "Tags",
+  "details.tagsLabel": "Tag overview",
+  "details.tagsNote": "Counts cover executed scenario rows; failed and skipped count only those statuses.",
+  "details.tagsRemaining": "Showing {shown} of {total} tags",
   "details.testTime": "Test time",
   "details.title": "Run details",
   "email.attachments": "Attachments in the run",
@@ -483,6 +497,13 @@ export const de: Record<MessageKey, string> = {
   "details.statusDistribution": "Statusverteilung",
   "details.steps": "Schritte (ohne Hooks)",
   "details.tab": "Details",
+  "details.tagFailed": "Fehlgeschlagen",
+  "details.tagScenarios": "Szenarien",
+  "details.tagSkipped": "Übersprungen",
+  "details.tags": "Tags",
+  "details.tagsLabel": "Tag-Übersicht",
+  "details.tagsNote": "Die Anzahlen umfassen nur ausgeführte Szenarien; fehlgeschlagen und übersprungen zählen nur diese Status.",
+  "details.tagsRemaining": "Zeige {shown} von {total} Tags",
   "details.testTime": "Testzeit",
   "details.title": "Laufdetails",
   "email.attachments": "Anhänge im Lauf",
