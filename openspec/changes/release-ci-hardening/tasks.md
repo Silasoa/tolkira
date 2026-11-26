@@ -102,8 +102,8 @@
   `--offline --persona=regular`. A finding fails the job.
 - [ ] 6.2 Fix the zizmor baseline: the 15+ unpinned uses, the 9 missing
   `persist-credentials`, the workflow-level `id-token`, the three release-cache
-  findings and the two Dependabot cooldowns. The four ad-hoc installs (the
-  tarball under test and the pinned npm CLI) get an inline
+  findings and the two Dependabot cooldowns. The five ad-hoc installs (three
+  tarball smokes and the two pinned npm CLI installs) get an inline
   `# zizmor: ignore[adhoc-packages]` with the reason. Fix every actionlint
   finding. No blanket ignore.
 

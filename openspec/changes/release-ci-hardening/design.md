@@ -192,9 +192,10 @@ keeps its cache.
 The pre-change zizmor run (1.33.1, regular persona, offline) reports 51
 findings, 24 high: 15+ unpinned uses, 9 missing `persist-credentials`, one
 workflow-level `id-token`, three release-cache findings, two Dependabot
-cooldown warnings and four ad-hoc installs (our own tarball under test and the
-pinned npm CLI). The four ad-hoc hints get an inline
-`# zizmor: ignore[adhoc-packages]` with the reason; everything else is fixed.
+cooldown warnings and four ad-hoc installs (the three tarball smokes and
+`npm@latest`). The change adds a second pinned npm CLI install (the CI package
+job), so five ad-hoc hints get an inline `# zizmor: ignore[adhoc-packages]`
+with the reason; everything else is fixed.
 actionlint 1.7.12 is green on the pre-change tree and stays part of the job.
 
 New `workflows` job in `ci.yml` (Ubuntu, 5 minutes):
@@ -256,7 +257,7 @@ together can still change behaviour. Review is the lock.
 | npm 12 changes the pack list again | the manifest check runs with the pinned npm in the CI package job and the release and fails closed; a bump is a reviewed commit |
 | `npm stage publish` drops tarball support | parsed on 2026-11-26 with 12.2.3; provenance is proven at the first real stage; a regression fails before staging |
 | knip flags intentional entries | explicit entries and one ignored dependency; a new exception needs a reason in the diff |
-| actionlint/zizmor findings block the first run | the pre-change zizmor baseline is 51 findings; the fixes are in this change; the four ad-hoc installs get an inline reason; a new finding fails CI |
+| actionlint/zizmor findings block the first run | the pre-change zizmor baseline is 51 findings; the fixes are in this change; the five ad-hoc installs get an inline reason; a new finding fails CI |
 | the attw node16 profile hides node10 | deliberate: node10 is below `engines`; node16 (CJS and ESM) and bundler stay checked, and the one ignore is pinned |
 | the package check slows CI | it runs in one job, not the matrix; about 7-10 s |
 

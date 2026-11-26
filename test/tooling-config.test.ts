@@ -609,7 +609,11 @@ describe('dead code and package surface', () => {
     }
     expect(entries).not.toContain('test/**');
     expect(entries).not.toContain('test/baseline-helpers.ts');
-    expect(config.ignoreDependencies).toEqual(['playwright-core']);
+    expect(config.ignoreDependencies).toEqual([
+      '@arethetypeswrong/cli',
+      'playwright-core',
+      'publint',
+    ]);
   });
 });
 
