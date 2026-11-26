@@ -26,7 +26,8 @@ before the 0.7 feature work adds more.
   manifest (required and forbidden paths), `publint --strict` and `attw`.
   List `docs/README.md` explicitly in `files`, so npm 10 and npm 12 both pack
   it. The check runs in the CI package job and in the release, before the smoke
-  test and the publish.
+  test and the publish. Both jobs install the same pinned npm, so the npm 12
+  pack list is exercised in CI, not only at tag time.
 - Change the release workflow to publish the checked tarball, pin npm 12.2.3
   for packing and publishing, verify dependency signatures, generate a
   CycloneDX SBOM and upload it as an artifact.
@@ -54,9 +55,9 @@ Stryker; no CodeQL or fast-check (0.7).
 
 ### Modified Capabilities
 
-- `test-infrastructure`: the gate gains the dead-code check and the package
-  check; the exact step list, dev pins and package-content requirement are
-  updated.
+- `test-infrastructure`: the gate gains the dead-code check; the CI package
+  job gains the package check. The exact step list, dev pins and
+  package-content requirement are updated.
 
 ## Impact
 
@@ -64,7 +65,8 @@ Affected: `package.json` (scripts, dev pins, `files`), `package-lock.json`,
 `knip.json`, `.attw.json`, `scripts/package-check.mjs` plus its declaration,
 `test/package-manifest.test.ts`, `test/workflow-config.test.ts`,
 `test/tooling-config.test.ts`, `.github/workflows/ci.yml`,
-`.github/workflows/release.yml`, `CONTRIBUTING.md`, `docs/ARCHITECTURE.md`,
+`.github/workflows/release.yml`, `.github/dependabot.yml`, `CONTRIBUTING.md`,
+`docs/ARCHITECTURE.md`,
 `docs/CHANGELOG.md`, `docs/BACKLOG.md`, and the dead-code sites listed in the
 design. Runtime dependencies, entry points, report bytes and the version stay
 unchanged. Dev-only dependencies grow by knip, publint and

@@ -4,12 +4,12 @@
 
 ### Requirement: Publish the artifact that was checked
 
-The release publish job SHALL pack the package once, run the package check and
-the CLI smoke test on that tarball, and pass the same file to
-`npm stage publish`. It SHALL NOT repack from the directory. The npm version
-used for packing and publishing SHALL be pinned exactly. A failed package
-check or smoke test SHALL block staging. The existing tag/version and
-tag-on-main checks SHALL stay in front of the publish.
+The release publish job SHALL pack once, run the package check and the CLI
+smoke test on that tarball, and pass the same file to `npm stage publish`. It
+SHALL NOT repack from the directory, SHALL resolve the version once
+(`tolkira-<version>.tgz`, no glob), and SHALL use the same pinned npm as the CI
+package job. A failed check or smoke SHALL block staging. The tag/version and
+tag-on-main checks SHALL stay in front.
 
 #### Scenario: The staged file is the checked file
 
@@ -32,11 +32,11 @@ tag-on-main checks SHALL stay in front of the publish.
 
 ### Requirement: Verify dependency signatures and attach an SBOM
 
-The release SHALL run `npm audit signatures` before staging and SHALL generate
-a CycloneDX SBOM of the production tree with `npm sbom --sbom-format cyclonedx
---omit=dev`. The SBOM SHALL be uploaded as a workflow artifact named
-`tolkira-sbom` for the release notes. Neither check SHALL run on a schedule;
-they run at release only.
+The release SHALL run `npm audit signatures` on the installed tree before
+staging and SHALL generate a CycloneDX SBOM with `npm sbom --sbom-format
+cyclonedx --omit=dev`. esbuild externalizes every runtime dependency, so that
+tree is the runtime tree. The SBOM SHALL be uploaded as the `tolkira-sbom`
+artifact. Neither step SHALL run on a new schedule; they run at release only.
 
 #### Scenario: A bad signature blocks the release
 
@@ -59,10 +59,11 @@ they run at release only.
 ### Requirement: Pin and lint the workflow dependencies
 
 Every `uses:` in a workflow SHALL reference a 40-hex commit with a version
-comment. Dependabot SHALL keep the pins current. CI SHALL run actionlint and
-zizmor on the workflows; a finding SHALL fail the job unless it has a written
-suppression reason. Checkouts SHALL set `persist-credentials: false`, and
-`id-token: write` SHALL be scoped to the publish job.
+comment. Dependabot SHALL keep the pins current with a cooldown of at least
+seven days. CI SHALL run actionlint and zizmor; a finding SHALL fail the job
+unless it has a written suppression reason. Checkouts SHALL set
+`persist-credentials: false`, `id-token: write` SHALL be scoped to the publish
+job, and the release workflow SHALL NOT restore a package-manager cache.
 
 #### Scenario: An unpinned action fails the config test
 

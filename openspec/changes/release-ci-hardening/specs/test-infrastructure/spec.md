@@ -58,11 +58,12 @@ docs, the root and CLI entries and the four compat files; it SHALL contain no
 
 ### Requirement: Pin the package-check exceptions
 
-The attw config SHALL ignore exactly `cjs-resolves-to-esm` (the ESM-only root)
-and `no-resolution` (node10, below `engines`); any other rule SHALL stay
-active. `docs/README.md` SHALL be listed in `files`, so npm 10 and npm 12 pack
-it. The manifest check SHALL read the npm 10 array and the npm 12 object shapes
-the same way.
+The attw config SHALL use the node16 profile and ignore exactly
+`cjs-resolves-to-esm` (the ESM-only root); node16 (CJS and ESM) and the bundler
+SHALL stay checked, and node10 is out of scope below `engines`.
+`docs/README.md` SHALL be listed in `files`, so npm 10 and npm 12 pack it. The
+manifest check SHALL read the npm 10 array and the npm 12 object shapes the
+same way.
 
 #### Scenario: Both npm JSON shapes are accepted
 
