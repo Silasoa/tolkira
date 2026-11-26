@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   mkdir,
   mkdtemp,
@@ -597,14 +598,53 @@ describe('built CLI from a temporary esbuild bundle', () => {
     };
   }
 
-  it('matches the in-process entry for --help, --version, --capabilities and bare usage', async () => {
-    for (const argv of [[], ['--help'], ['--version'], ['--capabilities']]) {
-      expect(spawnCli(argv), JSON.stringify(argv)).toEqual(await cli(argv));
-    }
+  it('returns the pinned bytes and exit codes for --help, --version, --capabilities and bare usage', async () => {
+    const rows = [
+      [
+        ['--help'],
+        0,
+        'stdout',
+        2044,
+        '0debb225b3d6e9b98bd966671925f55cd9f574eba65bd35a4b92ef75c6ee4574',
+      ],
+      [
+        ['--version'],
+        0,
+        'stdout',
+        6,
+        '87b241b275c591694846560e9879f50c9da3150f854efdabd782c539772f3033',
+      ],
+      [
+        ['--capabilities'],
+        0,
+        'stdout',
+        1318,
+        '013d180c59d64916fffdd92643fafae8ff5e478b2e6bb2b599b9d1fc41df647c',
+      ],
+      [
+        [],
+        2,
+        'stderr',
+        2044,
+        '0debb225b3d6e9b98bd966671925f55cd9f574eba65bd35a4b92ef75c6ee4574',
+      ],
+    ] as const;
 
-    const bare = spawnCli([]);
-    expect(bare.code).toBe(2);
-    expect(bare.stdout).toBe('');
-    expect(bare.stderr.startsWith('Usage: tolkira')).toBe(true);
+    for (const [argv, code, stream, bytes, sha] of rows) {
+      const spawned = spawnCli([...argv]);
+      expect(spawned.code, JSON.stringify(argv)).toBe(code);
+      expect(Buffer.byteLength(spawned[stream]), JSON.stringify(argv)).toBe(
+        bytes,
+      );
+      expect(
+        createHash('sha256').update(spawned[stream]).digest('hex'),
+        JSON.stringify(argv),
+      ).toBe(sha);
+      expect(
+        stream === 'stdout' ? spawned.stderr : spawned.stdout,
+        JSON.stringify(argv),
+      ).toBe('');
+      expect(spawned, JSON.stringify(argv)).toEqual(await cli([...argv]));
+    }
   });
 });

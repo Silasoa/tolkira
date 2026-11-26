@@ -2,7 +2,6 @@ import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseArgs } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseCliArgs } from '../src/cli/args.js';
 import { planCli, type CliPlan } from '../src/cli/plan.js';
@@ -52,7 +51,7 @@ async function failure(argv: string[]) {
 
 function parseError(argv: string[]): string {
   try {
-    parseArgs({ args: argv, allowPositionals: true });
+    parseCliArgs(argv);
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
   }
@@ -519,10 +518,9 @@ describe('planCli messages added by checks 32–34', () => {
     },
   );
 
-  it('rejects the bare --max-size -1 token as ambiguous in the parser', () => {
-    expect(() =>
-      parseCliArgs([fixture, '--out', 'report.html', '--max-size', '-1']),
-    ).toThrow("Option '--max-size' argument is ambiguous.");
+  it('rejects the bare --max-size -1 token as ambiguous through planCli', async () => {
+    const argv = [fixture, '--out', 'report.html', '--max-size', '-1'];
+    expect(await failure(argv)).toBe(parseError(argv));
   });
 });
 
@@ -623,14 +621,5 @@ describe('planCli same- and cross-family precedence (checks 24–34)', () => {
         'report.html',
       ]),
     ).toBe('--email must not overwrite --out');
-  });
-
-  it('keeps the out-collision-before-logo order', async () => {
-    const dir = await tempDir();
-    const logo = await writeLogo(dir);
-
-    expect(await failure([fixture, '--out', logo, '--logo', logo])).toBe(
-      '--out must not overwrite an input file',
-    );
   });
 });

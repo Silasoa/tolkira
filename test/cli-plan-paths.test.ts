@@ -292,7 +292,7 @@ describe('planCli containment (input files and directories)', () => {
     },
   );
 
-  it('rejects --out and --ci-out replacing a report file inside an input directory', async () => {
+  it('rejects --out and --ci-out replacing an input file inside an input directory', async () => {
     const dir = await tempDir();
     const inputDir = await inputDirectory(dir);
     const inputFile = path.join(inputDir, 'run.ndjson');
@@ -944,35 +944,32 @@ describe('planCli logo validation', () => {
 });
 
 describe('planCli input-directory identity through a symlink', () => {
-  it.skipIf(process.platform === 'linux')(
-    'keeps checking containment when the input is reached by another name',
-    async () => {
-      const dir = await tempDir();
-      const inputDir = await inputDirectory(dir);
-      const link = path.join(dir, 'alias-results');
-      try {
-        await symlink(
-          inputDir,
-          link,
-          process.platform === 'win32' ? 'junction' : 'dir',
-        );
-      } catch (error) {
-        const code = (error as NodeJS.ErrnoException).code;
-        if (code === 'EPERM' || code === 'EACCES') return;
-        throw error;
-      }
+  it('keeps checking containment when the input is reached by another name', async () => {
+    const dir = await tempDir();
+    const inputDir = await inputDirectory(dir);
+    const link = path.join(dir, 'alias-results');
+    try {
+      await symlink(
+        inputDir,
+        link,
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'EPERM' || code === 'EACCES') return;
+      throw error;
+    }
 
-      expect(
-        await failure([
-          link,
-          '--out',
-          path.join(dir, 'report.html'),
-          '--pdf',
-          path.join(inputDir, 'missing.pdf'),
-        ]),
-      ).toBe(PDF_INPUT_DIR);
-    },
-  );
+    expect(
+      await failure([
+        link,
+        '--out',
+        path.join(dir, 'report.html'),
+        '--pdf',
+        path.join(inputDir, 'missing.pdf'),
+      ]),
+    ).toBe(PDF_INPUT_DIR);
+  });
 });
 
 describe('planCli accepts a valid logo on a normal output', () => {

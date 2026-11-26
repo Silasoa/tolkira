@@ -108,10 +108,7 @@ function fail(message: string): CliFailure {
 function fromError(error: unknown): CliFailure {
   return fail(error instanceof Error ? error.message : String(error));
 }
-export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
-  // The planning seam is asynchronous even while its checks are synchronous.
-  await Promise.resolve();
-
+export function planOptions(argv: string[]): CliOptionsResult {
   let parsed: ReturnType<typeof parseCliArgs>;
   try {
     parsed = parseCliArgs(argv);
@@ -269,7 +266,7 @@ export async function planOptions(argv: string[]): Promise<CliOptionsResult> {
 }
 
 export async function planCli(argv: string[]): Promise<CliPlanResult> {
-  const planned = await planOptions(argv);
+  const planned = planOptions(argv);
   if (!planned.ok) {
     return planned.kind === 'usage'
       ? { ok: false, kind: 'usage' }

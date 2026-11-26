@@ -27,7 +27,7 @@ async function tempDir(): Promise<string> {
 }
 
 async function options(argv: string[]): Promise<CliOptions> {
-  const result = await planOptions(argv);
+  const result = planOptions(argv);
   if (!result.ok) {
     throw new Error(`expected options, got ${JSON.stringify(result)}`);
   }
@@ -40,7 +40,7 @@ async function options(argv: string[]): Promise<CliOptions> {
 async function action(
   argv: string[],
 ): Promise<'help' | 'version' | 'capabilities'> {
-  const result = await planOptions(argv);
+  const result = planOptions(argv);
   if (!result.ok || !('action' in result)) {
     throw new Error(`expected an action, got ${JSON.stringify(result)}`);
   }
@@ -242,7 +242,7 @@ describe('planOptions actions and precedence', () => {
       ['--capabilities', '--json'],
       ['--capabilities', '--out='],
     ]) {
-      const result = await planOptions(argv);
+      const result = planOptions(argv);
       expect(result).toEqual({
         ok: false,
         kind: 'message',
@@ -258,7 +258,7 @@ describe('planOptions actions and precedence', () => {
       ['--bogus', '--help'],
       ['--help', '--bogus'],
     ]) {
-      const result = await planOptions(argv);
+      const result = planOptions(argv);
       expect(result).toEqual({
         ok: false,
         kind: 'message',
@@ -319,7 +319,7 @@ describe('planOptions single-defect messages (checks 1–23)', () => {
   ];
 
   it.each(emptyPaths)('rejects an empty %s path', async (flag, argv) => {
-    const result = await planOptions(argv);
+    const result = planOptions(argv);
     expect(result).toEqual({
       ok: false,
       kind: 'message',
@@ -427,7 +427,7 @@ describe('planOptions single-defect messages (checks 1–23)', () => {
       '--history requires a file path',
     ],
   ])('rejects %s', async (_label, argv, message) => {
-    const result = await planOptions(argv);
+    const result = planOptions(argv);
     expect(result).toEqual({ ok: false, kind: 'message', message });
   });
 
@@ -439,7 +439,7 @@ describe('planOptions single-defect messages (checks 1–23)', () => {
       [fixture, '--logo='],
       [fixture, '--history='],
     ]) {
-      const result = await planOptions(argv);
+      const result = planOptions(argv);
       expect(result).toEqual({ ok: false, kind: 'usage' });
     }
   });
@@ -462,7 +462,7 @@ describe('planOptions boundary values', () => {
   it.each(['0', '366', '01', '1.5', 'abc', ''])(
     'rejects --history-limit %j',
     async (value) => {
-      const result = await planOptions([
+      const result = planOptions([
         fixture,
         '--out',
         'report.html',
@@ -493,7 +493,7 @@ describe('planOptions boundary values', () => {
   it.each(['0', '2147483648', '01'])(
     'rejects --pdf-timeout %j',
     async (value) => {
-      const result = await planOptions([
+      const result = planOptions([
         fixture,
         '--pdf',
         'run.pdf',
@@ -523,7 +523,7 @@ describe('planOptions boundary values', () => {
   it.each(['GitHub', 'Azure', 'Markdown', ''])(
     'rejects --ci %j with the exact message',
     async (value) => {
-      const result = await planOptions([
+      const result = planOptions([
         fixture,
         '--out',
         'report.html',
@@ -598,7 +598,7 @@ describe('planOptions precedence within checks 1–23', () => {
       '--history-limit requires --history',
     ],
   ])('keeps %s', async (_label, argv, message) => {
-    const result = await planOptions(argv);
+    const result = planOptions(argv);
     expect(result).toEqual({ ok: false, kind: 'message', message });
   });
 });
