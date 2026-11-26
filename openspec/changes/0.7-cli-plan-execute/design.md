@@ -228,9 +228,12 @@ The first-commit `planOptions` is exported for
 validated values from checks 1–23 (inputs, output paths, flags, parsed
 scalars, locale and CI format) before any path check or metadata/logo read.
 The raw `--meta`, `--max-size`, `--accent` and `--logo` values travel in
-`CliOptions` unparsed, so checks 32–35 can parse them later without reading
-argv again; only the parsed products (`metadata`, `maxSizeMb`, `accent`,
-`logoDataUri`) stay out of it. Actions are resolved inside `planOptions`
+`CliOptions` unparsed as `meta: string[]`, `maxSize`, `accent` and `logo`, so
+checks 32–35 can parse them later without reading argv again; `metadata`,
+`maxSizeMb` and `logoDataUri` stay out. The field names mirror the flags:
+`inputs`, `report`, `pdf`, `email`, `history`, `ciOut`, `manifest`,
+`baseline`, `json`, `ci`, `title`, `locale`, `static`, `pdfTimeout`,
+`historyLimit`. Actions are resolved inside `planOptions`
 (checks 2–4), and its exported result is the named
 `CliOptionsResult = { ok: true; action: 'help' | 'version' | 'capabilities' } |
 { ok: true; options: CliOptions } | { ok: false; kind: 'message'; message:
