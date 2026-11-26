@@ -4,17 +4,19 @@
 
 ### Requirement: Publish the artifact that was checked
 
-The release publish job SHALL pack once, run the package check and the CLI
-smoke test on that tarball, and pass the same file to `npm stage publish`. It
-SHALL NOT repack from the directory, SHALL resolve the version once
-(`tolkira-<version>.tgz`, no glob), and SHALL use the same pinned npm as the CI
-package job. A failed check or smoke SHALL block staging. The tag/version and
-tag-on-main checks SHALL stay in front.
+The release publish job SHALL pack once, run the package check and CLI smoke
+test on that tarball, record its SHA-256, and verify that digest immediately
+before `npm stage publish` on the same file. It SHALL NOT pack a second
+tarball, SHALL resolve `tolkira-<version>.tgz` once (no glob), and SHALL use the
+same pinned npm as the CI package job. The tag/version and tag-on-main checks
+SHALL run first, and a failed check or smoke SHALL block staging.
 
 #### Scenario: The staged file is the checked file
 
 - **WHEN** the package check passes and the smoke test runs
 - **THEN** the smoke test installs the tarball from the pack directory
+- **AND** the job records the tarball's SHA-256 and verifies it immediately
+  before staging
 - **AND** `npm stage publish` receives that exact path
 - **AND** no step runs `npm stage publish .`
 
@@ -26,17 +28,20 @@ tag-on-main checks SHALL stay in front.
 
 #### Scenario: Tag guards still run first
 
-- **WHEN** the tag does not match the package version or is not on `origin/main`
+- **WHEN** the tag does not match the package version or is not on
+  `refs/heads/main`
 - **THEN** the publish job fails before pack or stage
+- **AND** the guard resolved the full `refs/heads/main` ref, not a short name
 - **AND** the existing gate jobs still have to be green
 
 ### Requirement: Verify dependency signatures and attach an SBOM
 
-The release SHALL run `npm audit signatures` on the installed tree before
-staging and SHALL generate a CycloneDX SBOM with `npm sbom --sbom-format
-cyclonedx --omit=dev`. esbuild externalizes every runtime dependency, so that
-tree is the runtime tree. The SBOM SHALL be uploaded as the `tolkira-sbom`
-artifact. Neither step SHALL run on a new schedule; they run at release only.
+The release SHALL run `npm audit signatures` before staging and SHALL generate
+a CycloneDX SBOM with `npm sbom --sbom-format cyclonedx --omit=dev
+--package-lock-only` into the fixed `tolkira-sbom.cdx.json`. The SBOM SHALL
+cover the external runtime dependency tree from the lockfile and not bundled
+code (B-075). It SHALL be uploaded as `tolkira-sbom` with `if-no-files-found:
+error`. Neither step SHALL run on a schedule; they SHALL run at release only.
 
 #### Scenario: A bad signature blocks the release
 
@@ -47,8 +52,10 @@ artifact. Neither step SHALL run on a new schedule; they run at release only.
 #### Scenario: The SBOM is available
 
 - **WHEN** the publish job reaches the SBOM step
-- **THEN** the CycloneDX file is written for the package version
+- **THEN** the CycloneDX file `tolkira-sbom.cdx.json` is written from the
+  lockfile production tree for the package version
 - **AND** it is uploaded as the `tolkira-sbom` artifact
+- **AND** the upload fails if the file is missing
 
 #### Scenario: No scheduled maintenance job
 

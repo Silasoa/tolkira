@@ -30,29 +30,37 @@ when invoked directly:
 
 - `packEntries(packed)` normalises the `npm pack --json` result. npm 10 returns
   an array, npm 12 returns an object keyed by package name; both shapes are
-  tested.
-- `verifyPackList(paths, packageJson)` returns a list of errors. It requires
-  every explicit file in `files`, the docs listed there (including
-  `docs/README.md`), and the root/entry/compat paths; it rejects `src/`,
-  `test/`, `openspec/`, `scripts/`, `node_modules/` and `.github/`. Tarball
-  paths are normalised from the `package/` prefix.
+  tested. The CLI uses that one pack result, requires exactly one tarball and
+  reads its `filename`; it never packs a second tarball.
+- `verifyPackList(paths, packageJson)` returns a list of errors. The normalised
+  tarball set must equal the documented `files` set, so an unexpected path
+  fails: every explicit file entry, the automatic root files, the entry/compat
+  paths and `docs/README.md` are required. Directory entries such as `dist`
+  cover their contents; glob entries are treated as patterns and are not
+  required as literal paths. `docs/README.md` is required unconditionally even
+  though `docs/*.md` also matches it. Absolute paths, `..` segments and
+  backslash paths are unsafe and fail. `src/`, `test/`, `openspec/`, `scripts/`,
+  `node_modules/` and `.github/` are rejected. Tarball paths are normalised
+  from the `package/` prefix and slash-normalised before comparison.
+- A real-`package.json` assertion covers the `docs/README.md` entry, so a
+  fixture-only test cannot hide that regression.
 - The CLI creates `TOLKIRA_PACK_DIR` with `mkdirSync(dir, { recursive: true })`
   before packing; `npm pack --pack-destination` fails `ENOENT` on a fresh
   runner otherwise. Without the variable it uses a fresh temp directory that is
   removed afterwards. It prints the tarball path and the entry count on
   success.
 - `npm pack` is spawned through `process.execPath` plus
-  `process.env.npm_execpath` when `npm run` provides it, with the
-  `npm.cmd`/shell branch from `scripts/bench-compare.mjs` as the fallback, so
-  Windows works without a bare `spawn('npm')`.
+  `process.env.npm_execpath` when `npm run` provides it. Without that variable,
+  Windows fails with an instruction to run through `npm run package:check`;
+  there is no bare `spawn('npm')` fallback.
 - It then runs `publint run <tarball> --strict` and `attw <tarball>` through
   `process.execPath` and the package bin. The bin paths are read from
   `node_modules/<pkg>/package.json` by path, not `require.resolve`: publint's
   exports map hides `./package.json`. The bins are `publint/src/cli.js` and
   `@arethetypeswrong/cli/dist/index.js`.
-- The direct-run guard is
-  `import.meta.url === pathToFileURL(process.argv[1]).href`, not
-  `import.meta.main`, which needs Node 22.18.
+- The direct-run guard resolves both sides with `realpathSync`, so a symlinked
+  or relative invocation still runs; not `import.meta.main`, which needs Node
+  22.18.
 - `--pack-dir` is not parsed; the environment variable is the only input, so
   the script stays small.
 
@@ -110,31 +118,48 @@ The publish job becomes:
    tree, not of the tarball).
 4. Resolve the version once after the tag guard:
    `echo "TOLKIRA_VERSION=$(node -p "require('./package.json').version")" >>
-   "$GITHUB_ENV"`. Every later path uses `tolkira-$TOLKIRA_VERSION.tgz` or
-   `.cdx.json`; no placeholder and no glob reaches the config test.
+   "$GITHUB_ENV"`. Every later tarball path uses
+   `tolkira-$TOLKIRA_VERSION.tgz`; no placeholder and no glob reaches the
+   config test.
 5. `TOLKIRA_PACK_DIR=/tmp/pack npm run package:check`. This builds, packs once,
    validates the manifest, runs publint and attw, and leaves
    `/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz`.
-6. Install that tarball globally and run the existing CLI smoke test. The smoke
+6. Record the checked tarball's SHA-256 immediately after the package check:
+   `sha256sum /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz` into
+   `/tmp/pack/tolkira-$TOLKIRA_VERSION.sha256`.
+7. Install that tarball globally and run the existing CLI smoke test. The smoke
    and the publish now use the same file.
-7. `npm sbom --sbom-format cyclonedx --omit=dev` into
-   `/tmp/pack/tolkira-$TOLKIRA_VERSION.cdx.json`, uploaded as the
-   `tolkira-sbom` artifact with the pinned `upload-artifact` action.
-8. `npm stage publish /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz --provenance
+8. `npm sbom --sbom-format cyclonedx --omit=dev --package-lock-only` into the
+   fixed `/tmp/pack/tolkira-sbom.cdx.json`, uploaded as the `tolkira-sbom`
+   artifact with the pinned `upload-artifact` action and
+   `if-no-files-found: error`.
+9. Verify the digest with `sha256sum -c` immediately before
+   `npm stage publish /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz --provenance
    --access public`.
 
-No step repacks from the directory. The tag/version and tag-on-main checks stay
-unchanged. `npm stage publish` defers the 2FA proof to the maintainer; after the
-stage, the maintainer approves or rejects, confirms
-`npm view tolkira@<version> version`, then creates the GitHub Release and
-attaches the `tolkira-sbom` artifact. The workflow only stages.
+No step packs a second tarball. The tag/version and tag-on-main checks stay in
+front. The tag-on-main guard fetches and resolves `refs/heads/main` explicitly
+(`git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main`) and
+compares HEAD with `refs/remotes/origin/main`; it never relies on an ambiguous
+short name.
+`npm stage publish` defers the 2FA proof to the maintainer; after the stage, the
+maintainer approves or rejects, confirms `npm view tolkira@<version> version`,
+then creates the GitHub Release and attaches the `tolkira-sbom` artifact. The
+workflow only stages.
+
+`prepublishOnly` runs `npm run check && npm run package:check`, so a manual
+`npm publish` also validates the packed tarball. The workflow is still the
+release path: a manual publish skips the signature check, the digest record and
+verify, and the SBOM upload.
 
 The CI `package` job also installs npm 12.2.3 before `npm ci`, so it exercises
 the same npm 12 pack list as the release; it is a required check in CI.
 
 `npm audit signatures` verifies the installed tree (80 packages, about 11 s) and
-does not cover the tarball or B-071. esbuild externalizes every runtime
-dependency, so the `--omit=dev` CycloneDX tree is the runtime tree.
+does not cover the tarball or B-071. The CLI bundle externalizes every runtime
+dependency, so the `--omit=dev` lockfile tree is the external runtime tree; the
+SBOM covers that tree only and not bundled code such as
+`@cucumber/tag-expressions` (B-075).
 
 ## 4. Dead code (knip)
 
@@ -146,8 +171,10 @@ dependency, so the `--omit=dev` CycloneDX tree is the runtime tree.
   `test/e2e/**/*.spec.ts`), not the test helpers or fixtures; those are
   project files, so the dead helpers are still reported;
 - project: `src/**/*.ts`, `scripts/**/*.mjs`, `test/**/*.ts`;
-- ignored paths: `test/fixtures/**`, the generated browser bundle, catalogs and
-  styles;
+- ignored paths: exactly four explicit generated/fixture boundaries:
+  `test/fixtures/**`, `src/render/client-bundle.ts`, `src/i18n/catalogs.ts` and
+  `src/render/styles.ts`; they are not general source exclusions, and
+  `test/tooling-config.test.ts` pins the four patterns;
 - ignored dependencies: `playwright-core` (an optional peer loaded at runtime),
   `publint` and `@arethetypeswrong/cli` (spawned by the package check, so knip
   cannot see the import). No other dependency is ignored.
@@ -187,9 +214,10 @@ same day.
 Every checkout sets `persist-credentials: false`; no job pushes with the token.
 Permissions move from the workflow top to the jobs that need them:
 `contents: read` stays at the top, `id-token: write` moves to `publish` only.
-The release jobs drop `cache: npm`: the release runs on a tag and does not need
-the cache, and zizmor flags it as cache poisoning for a publishing workflow. CI
-keeps its cache.
+The release jobs set `package-manager-cache: false`: setup-node v7 defaults
+caching on, the release runs on a tag and does not need the cache, and zizmor
+flags it as cache poisoning for a publishing workflow. CI keeps its explicit
+`cache: npm`.
 
 The pre-change zizmor run (1.33.1, regular persona, offline) reports 51
 findings, 24 high: 15+ unpinned uses, 9 missing `persist-credentials`, one
@@ -238,16 +266,23 @@ pin, not a project dependency.
 
 - `test/package-manifest.test.ts`: npm 10 array and npm 12 object shapes; the
   B-071 regression (the 80-entry npm 12 list without `docs/README.md` fails and
-  names the file); a forbidden `src/` path fails; a complete list passes.
+  names the file); `docs/README.md` is required unconditionally; an unexpected
+  path fails; unsafe paths fail; a glob entry matches as a pattern rather than
+  as a literal path; the real `package.json` is checked for the
+  `docs/README.md` entry; a forbidden `src/` path fails; a complete list passes.
 - `test/workflow-config.test.ts`: every `uses:` is a 40-hex pin with a version
   comment; every checkout disables persisted credentials; the release resolves
-  `TOLKIRA_VERSION` and uses `tolkira-$TOLKIRA_VERSION.tgz` for smoke, SBOM and
-  stage, never `npm stage publish .`; the CI package job and the publish job
-  install npm 12.2.3; `npm audit signatures`, the SBOM command and the
+  `TOLKIRA_VERSION` and uses `tolkira-$TOLKIRA_VERSION.tgz` for smoke, digest
+  and stage, never `npm stage publish .`; the guard resolves `refs/heads/main`
+  explicitly; the digest is recorded and verified immediately before staging;
+  the SBOM uses `npm sbom --sbom-format cyclonedx --omit=dev
+  --package-lock-only`, writes the fixed `tolkira-sbom.cdx.json` and uploads
+  with `if-no-files-found: error`; the CI package job and the publish job
+  install npm 12.2.3; `npm audit signatures`, `prepublishOnly` and the
   Dependabot cooldown exist; the `workflows` job runs actionlint and zizmor.
 - `test/tooling-config.test.ts`: the eight check steps, the three new dev
   pins, the `package:check` script, the attw profile and ignore, and the
-  `knip.json` content.
+  `knip.json` entries plus the four ignore patterns.
 
 These are tripwires, not locks: an agent that edits the config and the test
 together can still change behaviour. Review is the lock.
@@ -262,10 +297,12 @@ together can still change behaviour. Review is the lock.
 | actionlint/zizmor findings block the first run | the pre-change zizmor baseline is 51 findings; the fixes are in this change; the five ad-hoc installs get an inline reason; a new finding fails CI |
 | the attw node16 profile hides node10 | deliberate: node10 is below `engines`; node16 (CJS and ESM) and bundler stay checked, and the one ignore is pinned |
 | the package check slows CI | it runs in one job, not the matrix; about 7-10 s |
+| the same token-bearing job can have a dev dependency tamper with the tarball after the digest | the digest catches an accidental or post-check change; the same-job trust boundary and the missing tag/environment protection remain B-074 before the next tag |
+| the SBOM does not cover bundled MIT code | B-075 records the missing `@cucumber/tag-expressions` notice and the SBOM scope; a separate report-gate change fixes it before the next publish |
 
-## 9. Deferred to 0.7
+## 9. Deferred
 
-Recorded in `docs/BACKLOG.md` as one entry, so nothing is dropped:
+Recorded in `docs/BACKLOG.md`, so nothing is dropped:
 
 - CodeQL default setup for JS/TS (taint analysis for the HTML sinks).
 - dependency-review-action for licence and diff policy.
@@ -276,6 +313,14 @@ Recorded in `docs/BACKLOG.md` as one entry, so nothing is dropped:
 - StrykerJS when its Vitest 5 runner works upstream; then nightly/changed
   files, never the PR gate.
 - knip MCP/LSP and repo skills for the release and a new input adapter.
+
+Release follow-ups with earlier triggers, not 0.7 work:
+
+- B-074: split the non-privileged package job from the token-only publish job,
+  protect `v*` tags with a ruleset and require a reviewer on the release
+  environment; before the next tag.
+- B-075: add the bundled MIT notice and decide the SBOM's bundled-component
+  scope; before the next publish, in a separate change with the report gate.
 
 No new weekly job. Dependabot keeps its existing weekly schedule;
 `npm audit signatures` and the SBOM run at release only.

@@ -83,22 +83,32 @@ Use short, imperative English messages, for example:
 
 ## Releases
 
-A release stages the tarball that passed the gate:
+A release stages the tarball that passed the gate. The workflow is the release
+path; a manual `npm publish` also runs the package check through
+`prepublishOnly`, but it does not run the workflow's signature, digest or SBOM
+steps.
 
 1. Create the `v<version>` tag on a green `main` commit whose `package.json`
    version matches the tag; the release workflow runs the Linux and macOS gates
-   first.
-2. The publish job verifies dependency signatures, packs once through
-   `npm run package:check`, smokes that tarball and generates a CycloneDX SBOM
-   for the same `tolkira-<version>.tgz`.
-3. The workflow stages that exact tarball; it never repacks from the directory.
-4. Approve or reject the staged package with the maintainer's 2FA.
-5. After approval, confirm `npm view tolkira@<version> version`, create the
+   first. The tag-on-main guard resolves `refs/heads/main` explicitly, never an
+   ambiguous short name.
+2. The publish job verifies dependency signatures, installs the pinned npm
+   12.2.3 and runs `npm run package:check`, which builds, packs once and checks
+   that exact tarball. It smokes the same `tolkira-<version>.tgz` and records
+   its SHA-256 after the check.
+3. The job generates a CycloneDX SBOM with
+   `npm sbom --sbom-format cyclonedx --omit=dev --package-lock-only`, writes
+   the fixed `tolkira-sbom.cdx.json`, and uploads it as `tolkira-sbom`; the
+   upload fails if the file is missing. The SBOM covers the external runtime
+   dependency tree from the lockfile and does not cover bundled code (B-075).
+4. Immediately before `npm stage publish`, the job verifies the recorded
+   SHA-256 against the tarball and stages that exact file; no step packs a
+   second tarball.
+5. Approve or reject the staged package with the maintainer's 2FA.
+6. After approval, confirm `npm view tolkira@<version> version`, create the
    GitHub Release and attach the `tolkira-sbom` artifact.
 
-Never re-stage after approval. The SBOM is the `--omit=dev` lockfile tree;
-esbuild externalizes every runtime dependency, so that tree is the runtime
-tree.
+Never re-stage after approval.
 
 ## License
 

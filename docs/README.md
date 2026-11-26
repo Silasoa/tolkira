@@ -18,6 +18,8 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [Drop-in host validation](DROP-IN-VALIDATION.md) — real host projects for releases and major adapter/report changes.
 - [Agent interface](AGENT-INTERFACE.md) — JSON summary schema and CLI contract.
 - [Glossary](../GLOSSARY.md) — shared terms for the model, report and agents.
+- [Contributing](../CONTRIBUTING.md) — local gate, commit hygiene and the
+  release checklist.
 - [CI output](CI.md) — GitHub and Azure annotations, Jenkins HTML Publisher,
   sharded reports, GitLab and step-summary output.
 - [Limitations](LIMITATIONS.md) — dated known gaps.

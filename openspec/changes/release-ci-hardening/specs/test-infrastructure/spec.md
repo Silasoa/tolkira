@@ -21,8 +21,8 @@ The config SHALL name the public entry, the CLI entry, the two compat entries,
 the browser bundle entry, the manual scripts and the test files.
 `playwright-core`, `publint` and `@arethetypeswrong/cli` SHALL be the ignored
 dependencies: the first is an optional peer loaded at runtime, the other two
-are spawned by the package check. No other dependency SHALL be ignored. No export reachable from the package entry or
-the compat entry SHALL be removed.
+are spawned by the package check. No other dependency SHALL be ignored. No
+export reachable from the package entry or the compat entry SHALL be removed.
 
 #### Scenario: Entries and fixtures stay quiet
 
@@ -40,11 +40,12 @@ the compat entry SHALL be removed.
 
 ### Requirement: Check the packed package surface
 
-The package gate SHALL pack the package once and check that exact tarball. The
-manifest SHALL contain every explicit `files` entry, the root files, the listed
-docs, the root and CLI entries and the four compat files; it SHALL contain no
-`src`, `test`, `openspec`, `scripts`, `node_modules` or `.github` path.
-`publint --strict` and `attw` SHALL run on the tarball.
+The package gate SHALL pack once and check that file. The packed set SHALL
+equal the documented `files` set plus npm's automatic root files; an unexpected
+path SHALL fail, and `docs/README.md` SHALL be required unconditionally. Glob
+entries in `files` are patterns, not literal paths; absolute, `..` and
+backslash paths SHALL fail. `publint --strict` and `attw` SHALL run on the
+tarball.
 
 #### Scenario: The B-071 regression fails
 
@@ -54,8 +55,16 @@ docs, the root and CLI entries and the four compat files; it SHALL contain no
 
 #### Scenario: A forbidden path fails
 
-- **WHEN** the tarball contains a `src/`, `test/` or `scripts/` path
+- **WHEN** the tarball contains a `src/`, `test/`, `openspec/`, `scripts/`,
+  `node_modules/` or `.github/` path
 - **THEN** the manifest check fails
+
+#### Scenario: An unexpected or unsafe path fails
+
+- **WHEN** the tarball contains a path outside the documented `files` set, or an
+  absolute, `..` or backslash path
+- **THEN** the manifest check fails and names the path
+- **AND** the tarball is not used for a smoke test or a publish
 
 ### Requirement: Pin the package-check exceptions
 

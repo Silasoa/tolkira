@@ -103,6 +103,7 @@ Spec first, tests first, small vertical slices.
 - hygiene (tracked artifacts, local paths, commit trailers)
 - typecheck
 - lint
+- dead-code check (knip)
 - unit tests
 - build
 - browser test (`npm run test:e2e`) for report-level changes
@@ -136,7 +137,8 @@ and result. A red host blocks or needs a written, approved exception.
   one-line change; fold it into the next meaningful patch or minor release.
 - `npm publish`/`npm stage publish` runs from a tag with provenance. The
   maintainer approves staged packages with 2FA; never ask for an npm token in
-  chat, use the private secret card.
+  chat, use the private secret card. The staged publish consumes the checked
+  tarball; see `CONTRIBUTING.md`.
 - No release without a green gate, updated changelog and a final review.
 - Never publish a name or package without the name/trademark check recorded in
   the ADR.

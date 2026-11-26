@@ -1,7 +1,7 @@
 # ADR 0002 — One package, ESM, Node 22+
 
 - Status: accepted
-- Date: 2026-11-02, amended 2026-11-12
+- Date: 2026-11-02, amended 2026-11-12 and 2026-11-26
 
 ## Context
 
@@ -20,7 +20,9 @@ the CI matrix covers 22, 24 and 26.
   package root, core API and CLI stay ESM-only.
 - CLI and API in the same package.
 - `esbuild` for the bundle; runtime dependencies stay external and explicit.
-- npm trusted publishing with provenance; no long-lived token.
+- Staged publishing with provenance (amended 2026-11-26): provenance comes from
+  GitHub OIDC; the stage authenticates with a granular `NPM_TOKEN` and the
+  maintainer approves with 2FA. npm trusted publishing is a future option.
 
 ## Consequences
 
@@ -31,3 +33,13 @@ the CI matrix covers 22, 24 and 26.
 - The wrapper adds one build artifact and one export condition that must stay
   aligned with the ESM shim.
 - If a second package is ever needed, split only when a real consumer exists.
+
+## Amendment — 2026-11-26
+
+The 2026-11-02 decision bullet said "npm trusted publishing with provenance; no
+long-lived token". That did not match the staged flow: the publish job stages
+with a granular `NPM_TOKEN`, the maintainer approves or rejects the staged
+package with 2FA, and provenance comes from GitHub OIDC rather than the token.
+npm trusted publishing is not used for staged publishes and remains a future
+option; revisit it when npm supports that flow without a token. The rest of the
+ADR is unchanged.

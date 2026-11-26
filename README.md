@@ -688,7 +688,8 @@ for the dated limitations table (last verified 2026-11-24).
 
 ## Development
 
-Tolkira requires Node.js 22 or newer.
+Development requires Node.js 22.12 or newer (knip); the package runtime stays
+Node.js 22 or newer.
 
 ```shell
 npm install
@@ -699,8 +700,9 @@ npm run stress -- 1000
 npm run bench:ansi
 ```
 
-`npm run check` runs typecheck, lint, unit tests, build and the CSS generation
-step. `npm run test:e2e` runs the browser tests in Chromium, Firefox and
+`npm run check` runs the i18n check, asset generation, typecheck, lint,
+dead-code check, format check, build and coverage suite. `npm run test:e2e`
+runs the browser tests in Chromium, Firefox and
 WebKit. `npm run stress -- 1000` builds a 1,000-scenario report and reports size
 and timing. `npm run bench:ansi` measures `stripAnsi` on fixed message corpora
 and enforces the 500 ms production budget.

@@ -27,32 +27,42 @@ Keep a Changelog and the project uses semantic versioning.
   is gone, so an empty test selection fails.
 - The repository enforces LF checkout line endings.
 - `npm run package:check` builds, packs once and checks that exact tarball: the
-  required and forbidden manifest paths, `publint --strict` and `attw` with the
-  node16 profile. `docs/README.md` is explicit in `files`, so npm 10 and npm 12
+  required, unexpected and forbidden manifest paths, `publint --strict` and
+  `attw` with the node16 profile. `docs/README.md` is explicit in `files`, so npm 10 and npm 12
   both pack 81 entries. It runs in the CI package job and before the staged
   publish.
 - The release publishes the tarball it checked: `npm audit signatures`, a
   pinned npm 12.2.3, one `TOLKIRA_PACK_DIR=/tmp/pack` build, the CLI smoke on
-  `tolkira-<version>.tgz`, a CycloneDX SBOM uploaded as `tolkira-sbom`, then
-  `npm stage publish <tarball>`. No step repacks from the directory (B-071).
+  `tolkira-<version>.tgz`, then `npm stage publish` on that file. No step packs
+  a second tarball. The publish job records the tarball's SHA-256 after the
+  package check and verifies it immediately before staging (B-071).
+- The CycloneDX SBOM is the production lockfile tree
+  (`npm sbom --sbom-format cyclonedx --omit=dev --package-lock-only`), written
+  to `tolkira-sbom.cdx.json` and uploaded as `tolkira-sbom`; it covers external
+  runtime dependencies only, not bundled code (B-075). `prepublishOnly` also
+  runs `package:check`, so a manual `npm publish` validates the packed tarball;
+  the release workflow remains the release path.
 - knip 6.48.0 runs as `lint:dead` after lint in the gate; the 17 unused exports
   and types are un-exported or removed, with no export reachable from the
   package or compat entry removed. The dev-only exact pins grow by knip,
   publint 0.3.25 and `@arethetypeswrong/cli` 0.18.5.
 - Workflows are hardened: every Action is pinned to a commit with a version
   comment, checkouts persist no credentials, `id-token: write` is scoped to
-  the publish job, the release drops its package cache, Dependabot waits seven
-  days, and a new CI `workflows` job runs actionlint 1.7.12 and zizmor 1.33.1.
+  the publish job, the tag-on-main guard resolves `refs/heads/main` explicitly,
+  the release drops its package cache, Dependabot waits seven days, and a new
+  CI `workflows` job runs actionlint 1.7.12 and zizmor 1.33.1.
 - `npm run check` remains the consolidated quality gate the check jobs call; the
   added steps run inside it. Dev-only dependencies: `oxlint-tsgolint` 7.0.2008,
   Oxfmt 0.80.0 and `@vitest/coverage-v8` 5.1.1, with `oxlint` pinned to 1.94.0
   and `vitest` to 5.1.1.
-- No runtime dependency, CLI/API option, report byte, public input declaration
-  or package entry change; the only package-content change is the explicit
-  `docs/README.md` entry in `files`, and the workflow changes are CI- and
-  release-only. Wrapped errors keep their `cause` internally, and the
-  non-exported `renderOptions()` helper has a different inferred shape (five
-  optional fields instead of required `T | undefined`); neither is public API.
+- No runtime dependency, CLI/API option, report byte or package entry change.
+  The only manifest/file-set change is the explicit `docs/README.md` entry in
+  `files`; public entries, runtime dependencies and runtime bytes are unchanged.
+  Un-exporting the 17 knip findings changes some non-exported declaration files.
+  Wrapped errors keep their `cause` internally, and the non-exported
+  `renderOptions()` helper has a different inferred shape (five optional fields
+  instead of required `T | undefined`); neither is public API. The workflow
+  changes are CI- and release-only.
 
 ## [0.6.1] - 2026-11-25
 
