@@ -343,9 +343,9 @@ describe('executePlan generate branch', () => {
         confirmations: ['report', 'pdf', 'email', 'manifest'],
       },
     });
-    mocks.generateReportFromResolved.mockResolvedValue({
-      ...generated,
-      history: historyRuns,
+    mocks.generateReportFromResolved.mockImplementation(async () => {
+      events.push('generate');
+      return { ...generated, history: historyRuns };
     });
     mocks.readHistory.mockResolvedValue(historyRuns);
 
@@ -938,11 +938,14 @@ describe('executePlan warnings', () => {
       },
     });
     mocks.scanInputBytes.mockResolvedValue({ bytes: INPUT_WARN_BYTES });
-    mocks.generateReportFromResolved.mockResolvedValue({
-      ...generated,
-      html: 'x'.repeat(4096),
-      skippedAttachments: 1,
-      history: historyRuns,
+    mocks.generateReportFromResolved.mockImplementation(async () => {
+      events.push('generate');
+      return {
+        ...generated,
+        html: 'x'.repeat(4096),
+        skippedAttachments: 1,
+        history: historyRuns,
+      };
     });
 
     const earlyWarning = `tolkira: warning: ${earlyInputWarning(INPUT_WARN_BYTES)}\n`;
