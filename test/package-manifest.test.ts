@@ -23,6 +23,11 @@ const distFiles = [
   'dist/index.js',
   'dist/index.d.ts',
   'dist/cli.js',
+  'dist/cli/args.d.ts',
+  'dist/cli/execute.d.ts',
+  'dist/cli/logo.d.ts',
+  'dist/cli/paths.d.ts',
+  'dist/cli/plan.d.ts',
   'dist/compat/cucumber-html-reporter.js',
   'dist/compat/cucumber-html-reporter.cjs',
   'dist/compat/cucumber-html-reporter.d.ts',
@@ -91,7 +96,7 @@ describe('packed manifest', () => {
 
   it('fails the npm 12 80-entry list without docs/README.md', () => {
     const fillers = Array.from(
-      { length: 63 },
+      { length: 80 - (packedPaths.length - 1) },
       (_, index) =>
         `package/dist/assets/chunk-${String(index).padStart(2, '0')}.js`,
     );
