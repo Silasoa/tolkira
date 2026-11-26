@@ -398,8 +398,8 @@ tolkira test-results/ --pdf report.pdf --locale de
 tolkira test-results/ --pdf report.pdf --pdf-timeout 600000
 ```
 
-On Windows PowerShell 5.1, `>` writes UTF-16; use PowerShell 7 or pipe to
-`Set-Content -Encoding utf8` before parsing the JSON.
+On Windows PowerShell 5.1, `>` writes UTF-16; use PowerShell 7 or `cmd /c`
+redirection before parsing the JSON.
 
 - Run the install in the project where Tolkira runs; a project-local Tolkira
   install is recommended. The engine resolves beside Tolkira, then from the

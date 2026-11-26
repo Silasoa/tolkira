@@ -410,9 +410,9 @@ and is covered by real producer fixtures.
 ### `src/capabilities`
 
 - Owns the schema-1 capabilities document that `--capabilities` prints: name,
-  version, Node range, accepted input kinds in detection order, outputs (the
-  `CiFormat` union and `--manifest` included), summary schema, locales, limits,
-  defaults and exit codes.
+  version, Node range, accepted input kinds in detection order, outputs (report,
+  PDF, email, history, manifest and the `CiFormat` union), summary schema,
+  locales, limits, defaults and exit codes.
 - Limits and schema values come from the modules that enforce them; the version
   and Node range are pinned to `package.json` by tests, and the input and output
   lists are proven against the detector and the `CiFormat` union. The document

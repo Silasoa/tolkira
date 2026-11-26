@@ -383,7 +383,8 @@ file:
 `--ci-out` exists only for `--ci markdown`; GitHub and Azure annotations always
 own stdout, so `--ci azure --ci-out` is a usage error. A failed test run still
 exits 0 in every row. Without `--out`, the two `--ci-out` rows print
-`Manifest written to ...` instead of nothing when `--manifest` is set.
+`Manifest written to ...` in addition to their usual line (or as the only line)
+when `--manifest` is set.
 `--manifest` adds no row: it writes its file last and prints its confirmation
 only when stdout is free, so the JSON and CI bytes are unchanged.
 
@@ -425,7 +426,7 @@ CI output does not change the exit codes:
 
 | Code | Meaning |
 | --- | --- |
-| 0 | Report or CI text generated; tests may still have failed |
+| 0 | Requested output generated (report, CI text, manifest or another file); tests may still have failed |
 | 1 | An input could not be parsed or rendered, or a file could not be written |
 | 2 | Invalid usage, including an invalid `--ci` combination |
 

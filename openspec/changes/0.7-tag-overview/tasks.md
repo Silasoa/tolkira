@@ -53,7 +53,7 @@
 
 ## 6. Gate and archive
 
-- [ ] 6.1 `npm run hygiene`, `npm run check` and `npm run test:e2e` are green;
+- [x] 6.1 `npm run hygiene`, `npm run check` and `npm run test:e2e` are green;
   record counts and runtime.
 - [ ] 6.2 Update `docs/CHANGELOG.md` (Unreleased) and `docs/BACKLOG.md`
   (B-059 resolved, B-060/B-061 already resolved).

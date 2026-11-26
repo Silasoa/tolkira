@@ -45,7 +45,8 @@ is Letter-only by default and puts the local `file://` URL in its footer.
   `createRequire(cwd/package.json)`, so a globally installed or npx-cached
   Tolkira sees the caller's project.
 - Write the PDF atomically after the report and before the email/history/
-  `--ci-out`/stdout: `report → PDF → email → history → --ci-out → stdout`. A
+  `--ci-out`/manifest/stdout:
+  `report → PDF → email → history → --ci-out → manifest → stdout`. A
   PDF failure exits 1, names the PDF path, keeps the report and skips the email/
   later outputs; no partial PDF remains.
 - A missing engine exits 1 with install instructions (`playwright-core` plus the

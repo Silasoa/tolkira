@@ -56,7 +56,7 @@
 
 ## 5. Reviews
 
-- [ ] 5.1 Run SCR, CR, DAR, PSA and SEC blind and in parallel.
+- [x] 5.1 Run SCR, CR, DAR, PSA and SEC blind and in parallel.
 - [ ] 5.2 Fix every finding with a separate fixer or record a decision with a
   trigger; re-run the gate; delta re-check the reviewers.
 

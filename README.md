@@ -183,8 +183,8 @@ npm install --save-dev tolkira
 npx tolkira test-results/ --out report.html --email email.html --title "CI run" --json > summary.json
 ```
 
-On Windows PowerShell 5.1, `>` writes UTF-16; use PowerShell 7 or pipe to
-`Set-Content -Encoding utf8` before parsing the JSON.
+On Windows PowerShell 5.1, `>` writes UTF-16; use PowerShell 7 or `cmd /c`
+redirection before parsing the JSON.
 
 `--capabilities` prints the installed inputs, outputs, limits and exit codes as
 one schema-1 JSON document, without an input. `--manifest run.json` adds a
@@ -274,8 +274,8 @@ treating a status as an outcome. Exit code 0 means generation succeeded, not
 that the tests passed.
 
 See [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md)
-for the full schema and exit codes. A longer, version-agnostic copy-paste block
-for an `AGENTS.md`, a skill or a tool description is in
+for the full schema and exit codes. A longer copy-paste block for 0.7 or newer,
+for an `AGENTS.md`, a skill or a tool description, is in
 [`docs/AGENT-SNIPPET.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-SNIPPET.md).
 
 ### CI annotations and step summaries
@@ -499,9 +499,10 @@ through an async wrapper.
 
 **What changes for your CI:** the report still comes from the same legacy JSON
 input and is written to the `--out` path, now as one self-contained HTML file.
-Exit codes describe report generation, not test status: 0 means the report or
-summary was generated, even when tests failed; 1 means the input could not be
-parsed or rendered, or the output could not be written; 2 means invalid usage.
+Exit codes describe output generation, not test status: 0 means the requested
+output was generated (report, summary or manifest), even when tests failed; 1
+means the input could not be parsed or rendered, or the output could not be
+written; 2 means invalid usage.
 Add `--json` to write one JSON summary document to stdout, with warnings on
 stderr; read `status` and `counts` from it. The old themes, charts and CDN
 assets do not carry over.
@@ -589,9 +590,9 @@ browser launch are not reproduced. The shim consumes the same input JSON,
 never the old rendered HTML. `reportSuiteAsScenarios`, `scenarioTimestamp`,
 `columnLayout` and `failedSummaryReport` are warned and ignored; the `jsonDir`
 group mode and its merged sidecar are supported. The shim has no equivalent of
-the 0.6.0 core flags (`--static`, `--history`/`--history-limit`, `--baseline`,
-`--capabilities`) or the core outputs (`--json`, `--ci`, `--email`, `--pdf`,
-`--manifest`).
+the core flags (`--static`, `--history`/`--history-limit` and `--baseline` from
+0.6.0; `--capabilities` from 0.7.0) or the core outputs (`--json`, `--ci`,
+`--email` and `--pdf` from 0.6.0; `--manifest` from 0.7.0).
 See [`docs/COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/COMPATIBILITY.md)
 for the full mapping and caveats.
 
