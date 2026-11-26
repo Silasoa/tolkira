@@ -1,0 +1,129 @@
+# One-time equivalence gate — task 4.6
+
+Run on the final implementation on 2026-11-26, after all 3.x steps.
+
+| Item | Value |
+| --- | --- |
+| Final code | `02088a7` |
+| Gate file commit | `c329643` (`test/cli-equivalence-gate.test.ts`) |
+| OS / arch | `win32` / `x64` |
+| Node | `v26.13.1` |
+| playwright-core | `1.65.1` |
+| Chromium (headless shell) | `159.0.8154.6` (revision 1255), as in `baseline.md` |
+| Frozen clock | `2026-11-26T12:00:00.000Z` |
+
+## Commands and results
+
+| Task | Command | Result |
+| --- | --- | --- |
+| 4.1 | `npx vitest run` over the 12 existing `cli-*` files, the five new files, `capabilities` and `inputs` | 19 files, 496 passed, 4 skipped |
+| 4.2 | `npm run check` (i18n, assets, typecheck, lint, knip, format, build, coverage) | green; 104 files, 2107 passed, 11 skipped; coverage 95.07 % stmts, 88.32 % branch, 97.04 % funcs, 96.47 % lines |
+| 4.3 | `npm run test:e2e` | 478 passed, 8 skipped (1.6 min); no browser change |
+| 4.4 | `npm run package:check` | green: publint `All good!`, attw all green except the ignored `node10` entries; tarball **91 entries** |
+| 4.6 | `npx vitest run test/cli-equivalence-gate.test.ts` | **17 passed** (15 non-★ rows + 2 baseline comparisons) |
+
+The eight ★ rows are the permanent `test/cli-equivalence.test.ts` cases
+(11, 12, 13, 15, 17, 21, 22, 23); they are green in the 4.1 run and are not
+duplicated in the gate.
+
+## 4.4 process probes (real `node dist/cli.js`)
+
+| Probe | Stream | Bytes | SHA-256 | Exit |
+| --- | --- | ---: | --- | ---: |
+| `--help` | stdout | 2044 | `0debb225b3d6e9b98bd966671925f55cd9f574eba65bd35a4b92ef75c6ee4574` | 0 |
+| `--version` | stdout | 6 | `87b241b275c591694846560e9879f50c9da3150f854efdabd782c539772f3033` | 0 |
+| `--capabilities` | stdout | 1318 | `013d180c59d64916fffdd92643fafae8ff5e478b2e6bb2b599b9d1fc41df647c` | 0 |
+| no args | stderr | 2044 | `0debb225b3d6e9b98bd966671925f55cd9f574eba65bd35a4b92ef75c6ee4574` | 2 |
+
+These match `baseline.md` byte for byte.
+
+## 1.1 baseline comparison
+
+The gate reproduced the exact 1.1 generate, summary and `--json` argv with the
+frozen clock and `--locale en`:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `generate/report.html` | 98930 | `35f601978e270c87f8df113728d3b7e73c3a4b8dfe916f8c92bafc355e61180c` |
+| `generate/email.html` | 4951 | `6d01fc31b2dcdf782542db4c31bc5d7da4ca3058858aa0d6bf8ebcb2fab620aa` |
+| `generate/history.json` | 2450 | `7cf2d838d03dddf7b8408f65d78b820e641234b15fc4b0c5e29ee2201d4f0fb5` |
+| `generate/summary.md` | 480 | `640af92da29ec892697d3eb3326ac54abfd17e14e37719b19d76a4e821ea3524` |
+| `generate/manifest.json` | 1118 | `1ae0d2fc438e7733dda23676566da6c277d7a7f2c8512e5e5db9b493b0ff7ce3` |
+| `summary/email.html` | 4922 | `9e98e79d669257e68e201b00a00c4a17ea7ea106a1532a2d235c2cfd6173aca1` |
+| `summary/summary.md` | 480 | `640af92da29ec892697d3eb3326ac54abfd17e14e37719b19d76a4e821ea3524` |
+| `summary/manifest.json` | 925 | `43cc61c9683bd20f360bf7f73d88815b56325fe9557a482ababb6c1dd5333a69` |
+| `json/b.json` | 1519 | `09c4be0d7b20f5f9981521956e94d3b7cffc7a932856850090d49c3cce9b2da8` |
+
+Every non-PDF artifact matches `baseline.md` exactly (bytes and SHA-256).
+
+PDF: raw size **145116 bytes** (same as the 1.1 record). The engine's
+`/CreationDate` and `/ModDate` were normalized to `D:FIXED`; no `/ID` field is
+present in this engine output. Normalized size **145084 bytes**, SHA-256
+`544c1fec6c5df287b1d9d134413dc86ab4689a8e12084fb4f99b6120e553e5dd`.
+The same normalization on a pre-split capture of `1ee837e` under the same frozen
+clock gives the same normalized hash, so the page and content bytes are equal.
+
+## Line counts
+
+| File | Lines |
+| --- | ---: |
+| `src/cli.ts` | 93 (baseline 993) |
+| `src/cli/args.ts` | 103 |
+| `src/cli/execute.ts` | 336 |
+| `src/cli/logo.ts` | 57 |
+| `src/cli/paths.ts` | 60 |
+| `src/cli/plan.ts` | 430 |
+| **Total** | **1079** (+86, +8.7 % vs 993) |
+
+No module other than `cli.ts` exceeds 430 lines.
+
+## Bundle and package delta
+
+| File | Baseline | Final | Delta |
+| --- | ---: | ---: | ---: |
+| `dist/cli.js` | 412458 | 417397 | +4939 (+1.20 %) |
+| `dist/cli.js.map` | 777140 | 789633 | +12493 (+1.61 %) |
+| `dist/cli.d.ts` | 176 | 171 | −5 (only the `CliIO` re-export) |
+| `dist/index.js` | 364414 | 364414 | 0 (SHA-256 `4fd2c61f…`) |
+| `dist/index.d.ts` | 1616 | 1616 | 0 (SHA-256 `24f07109…`) |
+
+The bundle stays under the 2 % PCA trigger. New internal declarations:
+`dist/cli/args.d.ts` 1211 B, `dist/cli/execute.d.ts` 221 B,
+`dist/cli/logo.d.ts` 65 B, `dist/cli/paths.d.ts` 600 B,
+`dist/cli/plan.d.ts` 2417 B.
+
+Tarball: 86 entries at `1ee837e` → **91 entries** (+5), exactly the five
+`dist/cli/*.d.ts` declarations. `package:check` reports 91 entries; publint and
+attw are green.
+
+## Diff surface (task 4.5)
+
+`git diff --name-only 1ee837e..HEAD` before removing the gate file:
+
+```text
+GLOSSARY.md
+docs/ARCHITECTURE.md
+scripts/package-check.mjs
+src/cli.ts
+src/cli/args.ts
+src/cli/execute.ts
+src/cli/logo.ts
+src/cli/paths.ts
+src/cli/plan.ts
+test/cli-execute.test.ts
+test/cli-equivalence-gate.test.ts
+test/cli-plan-options.test.ts
+test/cli-plan-paths.test.ts
+test/cli-plan.test.ts
+test/package-manifest.test.ts
+```
+
+No renderer, summary, email, PDF, history, baseline, input or output module
+changed. The gate file is removed after this record; the commit that removes it
+also records this file.
+
+## Stop conditions
+
+None hit on the final run. The pre-existing `plan.ts` exceeded the 430-line
+budget during one intermediate revision and was compacted before this gate; the
+table above is the final measurement.
