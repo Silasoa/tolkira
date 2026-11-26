@@ -61,7 +61,7 @@
 
 ## 4. Release
 
-- [ ] 4.1 Rewrite the publish job: `npm ci`, pin npm 12.2.3,
+- [x] 4.1 Rewrite the publish job: `npm ci`, pin npm 12.2.3,
   `npm audit signatures`, resolve `TOLKIRA_VERSION` after the tag guard, run
   `TOLKIRA_PACK_DIR=/tmp/pack npm run package:check`, record the tarball's
   SHA-256, smoke-test that tarball, generate the CycloneDX SBOM with
@@ -80,9 +80,12 @@
   SHAs with version comments, install npm 12.2.3 in the CI `package` job
   before `npm ci`, set `TOLKIRA_PACK_DIR=/tmp/pack`, and install the exact
   tarball from `/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz` (no glob).
-- [ ] 4.4 Prove `npm stage publish <tarball> --dry-run` still parses with
+- [x] 4.4 Prove `npm stage publish <tarball> --dry-run` still parses with
   12.2.3 and record that it does not exercise provenance; the real stage and
-  its provenance proof stay with the user.
+  its provenance proof stay with the user. On 2026-11-26 the dry run listed the
+  81-entry tarball and stopped at "cannot publish over the previously published
+  versions: 0.6.1"; the version is intentionally unchanged, so the version
+  check is the expected stop. Provenance is not exercised by a dry run.
 
 ## 5. Dead code
 
@@ -130,34 +133,50 @@
 
 ## 8. Verification and archive
 
-- [ ] 8.1 `npm run hygiene`, `npm run check`, `npm run package:check` and
+- [x] 8.1 `npm run hygiene`, `npm run check`, `npm run package:check` and
   `npm run test:e2e` are green. Record the exact counts, the check runtime
   with and without knip, the package-check runtime and the tarball entry count.
-- [ ] 8.2 Run the reviewer set: SCR, CR, DAR, SEC, PCA and STR. UXR, CMP and
+  On 2026-11-26: hygiene 871 files / 482 commits; check 1,820 passed / 10
+  skipped in 95 files, 19.1 s, coverage 94.67 / 87.61 / 96.95 / 96.13; knip
+  1.4-1.9 s standalone; package:check 4.3 s with npm 10.8.2 and 5.6 s with npm
+  12.2.3, 81 entries both, publint and attw green; e2e 454 passed / 8 skipped in
+  1.9 min; audit 0 vulnerabilities; client bundle `c018a0c3…` unchanged.
+- [x] 8.2 Run the reviewer set: SCR, CR, DAR, SEC, PCA and STR. UXR, CMP and
   ILA are not triggered because no report byte changes; prove it with the
-  characterization hashes and both goldens.
-- [ ] 8.3 Fix every finding or record a decision with a trigger, using a
+  characterization hashes and both goldens. The six reviewers ran on `c3ffdc1`;
+  the fix commits `a24889e` (code) and `fd7fc39` (docs) follow. No `src/`
+  change and the client bundle hash is unchanged.
+- [x] 8.3 Fix every finding or record a decision with a trigger, using a
   separate fixer; re-run the gate after fixes. Delta re-check the reviewers.
-- [ ] 8.4 Gate record in `tasks.md`, archive the change, sync the specs, close
-  B-071, push. Do not bump the version, tag, stage or publish.
+  The fixes landed in `a24889e` and `fd7fc39`; the follow-ups closed the SCR
+  `LICENSE`-as-directory hole, glob matching for `files` patterns, the exact
+  version echo, the `sha256sum -c -` pin and the Dependabot specificity. Delta
+  re-checks: SCR, CR, DAR, SEC, PCA and STR PASS. Decisions: keep the four knip
+  ignore boundaries, keep the pre-existing `npm pack --dry-run` as a cheap
+  npm-10 pack smoke, and defer the publish-job split and tag protection (B-074)
+  and the bundled MIT notice (B-075) with their triggers.
+- [x] 8.4 Gate record in `tasks.md`, archive the change, sync the specs, close
+  B-071, push. Do not bump the version, tag, stage or publish. Archived on
+  2026-11-26; the version stays 0.6.1.
 
 ## 9. Review fixes
 
-The coordinator ticks these after the gate; this fixer leaves them open.
+The coordinator ticks these after the gate.
 
-- [ ] 9.1 Tag refspec: the tag-on-main guard resolves `refs/heads/main`
+- [x] 9.1 Tag refspec: the tag-on-main guard resolves `refs/heads/main`
   explicitly, never an ambiguous short name.
-- [ ] 9.2 Digest: the publish job records the checked tarball's SHA-256 after
+- [x] 9.2 Digest: the publish job records the checked tarball's SHA-256 after
   the package check and verifies it immediately before `npm stage publish`.
-- [ ] 9.3 SBOM: `npm sbom --sbom-format cyclonedx --omit=dev
+- [x] 9.3 SBOM: `npm sbom --sbom-format cyclonedx --omit=dev
   --package-lock-only` writes the fixed `tolkira-sbom.cdx.json`, the upload
   fails if it is missing, and the scope excludes bundled code (B-075).
-- [ ] 9.4 Strict manifest: the packed set equals the documented `files` set,
-  `docs/README.md` is unconditional, glob entries stay patterns, unsafe paths
-  fail, and the new test cases cover them.
-- [ ] 9.5 Docs corrections: B-071/B-072 root cause and the B-074/B-075 rows,
+- [x] 9.4 Strict manifest: the packed set equals the documented `files` set
+  plus the automatic root files, `docs/README.md` is unconditional, glob
+  entries stay patterns and allow their matches, directories are classified
+  from the packed list, unsafe paths fail, and the test cases cover them.
+- [x] 9.5 Docs corrections: B-071/B-072 root cause and the B-074/B-075 rows,
   ARCHITECTURE, the ADR 0002 amendment, CHANGELOG, README Node/gate lines, the
   docs index, AGENTS/review gate and the CONTRIBUTING release flow.
-- [ ] 9.6 Deferred follow-ups: B-074 (same-job tamper, tag protection, release
+- [x] 9.6 Deferred follow-ups: B-074 (same-job tamper, tag protection, release
   environment) and B-075 (bundled MIT notice, SBOM scope) are recorded with
   their triggers.

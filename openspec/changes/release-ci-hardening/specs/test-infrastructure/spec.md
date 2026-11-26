@@ -43,9 +43,9 @@ export reachable from the package entry or the compat entry SHALL be removed.
 The package gate SHALL pack once and check that file. The packed set SHALL
 equal the documented `files` set plus npm's automatic root files; an unexpected
 path SHALL fail, and `docs/README.md` SHALL be required unconditionally. Glob
-entries in `files` are patterns, not literal paths; absolute, `..` and
-backslash paths SHALL fail. `publint --strict` and `attw` SHALL run on the
-tarball.
+entries in `files` are patterns, not literal paths, and a file matching a glob
+entry SHALL be allowed. Absolute, `..` and backslash paths SHALL fail.
+`publint --strict` and `attw` SHALL run on the tarball.
 
 #### Scenario: The B-071 regression fails
 

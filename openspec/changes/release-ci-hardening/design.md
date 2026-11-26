@@ -36,8 +36,9 @@ when invoked directly:
   tarball set must equal the documented `files` set, so an unexpected path
   fails: every explicit file entry, the automatic root files, the entry/compat
   paths and `docs/README.md` are required. Directory entries such as `dist`
-  cover their contents; glob entries are treated as patterns and are not
-  required as literal paths. `docs/README.md` is required unconditionally even
+  cover their contents; glob entries are treated as patterns, are not
+  required as literal paths, and allow the files they match. `docs/README.md` is
+  required unconditionally even
   though `docs/*.md` also matches it. Absolute paths, `..` segments and
   backslash paths are unsafe and fail. `src/`, `test/`, `openspec/`, `scripts/`,
   `node_modules/` and `.github/` are rejected. Tarball paths are normalised
@@ -254,8 +255,9 @@ the full gate.
 gate grows by that amount and stays under the 20 % rule. knip 6.48 needs Node
 `^20.19 || >=22.12`; `CONTRIBUTING.md` says 22.12+ for development, while the
 package runtime stays `>=22`. `package:check` adds a build, a pack, publint
-(about 2 s) and attw (about 5 s); it runs in the CI package job and the
-release, not in the local `check`.
+(about 2 s) and attw (about 5 s); it runs in the CI package job, in the
+release, and via `prepublishOnly` for a manual publish, not in the local
+`check`.
 
 The exact eight-step `check` list is pinned by
 `test/tooling-config.test.ts`. The new dev pins are knip 6.48.0, publint
