@@ -9,7 +9,8 @@ export interface PdfOptions {
   timeoutMs?: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 300_000;
+/** `--pdf-timeout` default, documented in the capabilities document. */
+export const DEFAULT_TIMEOUT_MS = 300_000;
 const CLOSE_TIMEOUT_MS = 5_000;
 
 const INSTALL_GUIDANCE = `PDF output needs the optional Playwright Chromium engine.

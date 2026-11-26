@@ -140,10 +140,24 @@ export async function renderReportFromResolved(
   );
 }
 
+interface SummarizedRun {
+  summary: ReportSummary;
+  skippedAttachments: number;
+}
+
+/** Internal: the summary and skipped-attachment count from one load. */
+export async function summarizeRunFromResolved(
+  resolved: ResolvedInputs,
+  baseline?: BaselineSummary,
+): Promise<SummarizedRun> {
+  const run = await loadRun(resolved, baseline);
+  return { summary: run.summary, skippedAttachments: run.skippedAttachments };
+}
+
 /** Internal: builds the summary, including a baseline comparison, without HTML. */
 export async function summarizeReportFromResolved(
   resolved: ResolvedInputs,
   baseline?: BaselineSummary,
 ): Promise<ReportSummary> {
-  return (await loadRun(resolved, baseline)).summary;
+  return (await summarizeRunFromResolved(resolved, baseline)).summary;
 }

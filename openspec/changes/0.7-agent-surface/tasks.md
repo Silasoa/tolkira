@@ -5,18 +5,18 @@
 - [x] 1.1 Run PIR + DXR over this proposal, the cli-api delta, the design and
   the tasks. Both passed after two rounds; `--index` was cut and deferred as
   B-077.
-- [ ] 1.2 Confirm the exact capabilities shape and the manifest subset; measure
+- [x] 1.2 Confirm the exact capabilities shape and the manifest subset; measure
   the CI Markdown bytes for a fixed fixture and the current CLI option table.
   Confirm the single source for `node`, `inputs` and the CI kinds, and the
   relative-path helper used by the manifest.
 
 ## 2. Red
 
-- [ ] 2.1 Write `test/capabilities.test.ts`: shape and key order, value
+- [x] 2.1 Write `test/capabilities.test.ts`: shape and key order, value
   cross-check against `package.json`, `SUMMARY_SCHEMA_VERSION`, the locale list,
   every limit and every default, `inputs` against `detectInput`, the exclusivity
   matrix, help/version precedence, the 4,096-byte bound and determinism.
-- [ ] 2.2 Write `test/cli-artifacts.test.ts` from the spec: manifest kinds and
+- [x] 2.2 Write `test/cli-artifacts.test.ts` from the spec: manifest kinds and
   the full order report, PDF, email, history, `ci-markdown` in both paths,
   counts/attachments equality, skipped-attachment warning count, failure cap,
   order and `example` coordinate, hook-only failure, deterministic bytes, no
@@ -24,20 +24,20 @@
   with `--email`/`--ci-out` artifacts; collision matrix, empty paths,
   manifest write failure with later stdout skipped, manifest-only run, and the
   extended order.
-- [ ] 2.3 Add the stdout byte-identity tests: `--json` and `--ci` output with
+- [x] 2.3 Add the stdout byte-identity tests: `--json` and `--ci` output with
   and without `--manifest`, plus the updated usage-line pins.
-- [ ] 2.4 Run the new tests and confirm they fail for the intended reason.
+- [x] 2.4 Run the new tests and confirm they fail for the intended reason.
 
 ## 3. Implement
 
-- [ ] 3.1 Add `src/capabilities.ts` and the CLI flag with its exclusivity and
+- [x] 3.1 Add `src/capabilities.ts` and the CLI flag with its exclusivity and
   precedence checks; add the usage line.
-- [ ] 3.2 Add `src/artifacts.ts` with the manifest builder and the shared
+- [x] 3.2 Add `src/artifacts.ts` with the manifest builder and the shared
   artifact ledger.
-- [ ] 3.3 Wire the manifest into both CLI paths: validation, write order,
+- [x] 3.3 Wire the manifest into both CLI paths: validation, write order,
   confirmation, failure message, the "at least one output" check, the usage
   line and the pinned help tests.
-- [ ] 3.4 Export no new public API symbol; make module-private constants
+- [x] 3.4 Export no new public API symbol; make module-private constants
   shared internally where the document needs them.
 
 ## 4. Documentation

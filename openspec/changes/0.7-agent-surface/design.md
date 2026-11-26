@@ -137,8 +137,10 @@ output.
 - `status`, `counts` and `attachments` are the summary values, copied as-is
   (the `scenarios` and `steps` objects keep every status key). Like the
   summary, the counts cover executed rows; unexecuted rows appear in neither.
-- `warnings.skippedAttachments` is the run's skipped-attachment count, the same
-  number the stderr warning names; it is `0` when nothing was skipped.
+- `warnings.skippedAttachments` is the run's skipped-attachment count, whether
+  or not that CLI path prints the stderr warning; it is `0` when nothing was
+  skipped. The summary-only path stays silent on stderr (pinned by
+  `test/cli-edge.test.ts`) but still reports the real count in the manifest.
 - `failures` is the first 10 failed scenario rows in summary order, with the
   display `uri` and the outline `example` coordinate when the row carries one;
   `counts.scenarios.failed` carries the complete number. A failed run hook
@@ -211,7 +213,8 @@ Manifest (`test/cli-artifacts.test.ts`):
 - full report path: artifact kinds and order, counts/attachments deep-equal to
   the summary, failures cap, order and `example` coordinate, manifest JSON
   deterministic;
-- `warnings.skippedAttachments` equals the count the stderr warning names;
+- `warnings.skippedAttachments` equals the count the stderr warning names on
+  the report path, and the true count on the silent summary-only path;
 - a failed run hook with no failed scenario keeps `status: failed` and an empty
   `failures` array;
 - full output order with history and `--ci-out`: the manifest lists report,

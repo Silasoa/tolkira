@@ -762,7 +762,7 @@ describe('CLI --pdf', () => {
     expect(result.stdout).toContain('--pdf <file>');
     expect(result.stdout).toContain('--pdf-timeout <ms>');
     expect(result.stdout).toMatch(
-      /At least one of --out, --pdf, --json, --ci or --email is required/,
+      /At least one of --out, --pdf, --json, --ci, --email or --manifest is required/,
     );
   });
 });

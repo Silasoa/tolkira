@@ -6,6 +6,9 @@
  */
 export const INPUT_WARN_BYTES = 52_428_800;
 
+/** `--max-size` default in MB; the capabilities document reports it. */
+export const DEFAULT_MAX_SIZE_MB = 10;
+
 /** One-decimal MiB value, labelled MB by every size warning. */
 export function formatMegabytes(bytes: number): string {
   return (bytes / 1024 / 1024).toFixed(1);

@@ -16,7 +16,7 @@ import { formatCiOutput } from '../src/ci.js';
 import { renderEmail } from '../src/email.js';
 import { buildHistoryRun, writeHistory } from '../src/history.js';
 import { generateReport } from '../src/index.js';
-import { summarizeReportFromResolved } from '../src/run.js';
+import { summarizeRunFromResolved } from '../src/run.js';
 import {
   loadResolvedInputs,
   resolveInputFiles,
@@ -42,9 +42,9 @@ vi.mock('../src/run.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../src/run.js')>();
   return {
     ...actual,
-    summarizeReportFromResolved: vi.fn<
-      typeof actual.summarizeReportFromResolved
-    >(actual.summarizeReportFromResolved),
+    summarizeRunFromResolved: vi.fn<typeof actual.summarizeRunFromResolved>(
+      actual.summarizeRunFromResolved,
+    ),
   };
 });
 
@@ -450,17 +450,16 @@ describe('Early input warning', () => {
     await copyFile(legacyFixture('happy.json'), path.join(dir, 'run.json'));
     vi.mocked(resolveInputFiles).mockClear();
     vi.mocked(scanInputBytes).mockClear();
-    vi.mocked(summarizeReportFromResolved).mockClear();
+    vi.mocked(summarizeRunFromResolved).mockClear();
 
     const run = await cli([dir, '--json']);
 
     expect(run.code).toBe(0);
     expect(resolveInputFiles).toHaveBeenCalledTimes(1);
     expect(scanInputBytes).toHaveBeenCalledTimes(1);
-    expect(summarizeReportFromResolved).toHaveBeenCalledTimes(1);
+    expect(summarizeRunFromResolved).toHaveBeenCalledTimes(1);
     const scanned = vi.mocked(scanInputBytes).mock.calls[0]?.[0];
-    const summarized = vi.mocked(summarizeReportFromResolved).mock
-      .calls[0]?.[0];
+    const summarized = vi.mocked(summarizeRunFromResolved).mock.calls[0]?.[0];
     expect(scanned).toBeDefined();
     expect(summarized?.files).toBe(scanned);
   });

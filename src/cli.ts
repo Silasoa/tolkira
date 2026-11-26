@@ -3,7 +3,13 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import {
+  buildRunManifest,
+  serializeRunManifest,
+  type ManifestArtifact,
+} from './artifacts.js';
 import { readBaseline, type BaselineSummary } from './baseline.js';
+import { capabilitiesJson } from './capabilities.js';
 import { formatCiOutput, type CiFormat } from './ci.js';
 import { renderEmail, type EmailOptions } from './email.js';
 import {
@@ -18,22 +24,19 @@ import { resolveInputFiles, scanInputBytes } from './input/load.js';
 import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
 import { renderPdf } from './pdf.js';
 import { resolveLocale } from './render/i18n.js';
-import {
-  generateReportFromResolved,
-  summarizeReportFromResolved,
-} from './run.js';
+import { generateReportFromResolved, summarizeRunFromResolved } from './run.js';
 import type { ReportSummary } from './summary.js';
 import { oneLine } from './text.js';
 import { ACCENT_PATTERN } from './validation.js';
 import {
   ATTACHMENT_HINT,
+  DEFAULT_MAX_SIZE_MB,
   INPUT_WARN_BYTES,
   attachmentWarning,
   earlyInputWarning,
   formatMegabytes,
 } from './warnings.js';
 
-const DEFAULT_MAX_SIZE_MB = 10;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_MIME: Record<string, string> = {
   '.gif': 'image/gif',
@@ -60,16 +63,18 @@ Options:
       --history <file> Read and append an aggregate run history; needs --out
       --history-limit <n> Runs kept in that history (default ${HISTORY_LIMIT}, range 1 to ${HISTORY_LIMIT_MAX}); needs --history
       --baseline <file> Compare with an earlier schema-2 summary; needs --out, --pdf, --json or --ci markdown
+      --manifest <file> Write a JSON manifest of the run
       --title <text>   Report title, email subject/heading and Markdown CI heading
       --locale <tag>   Report, PDF and email language: en or de (default en); needs --out, --pdf or --email
       --meta key=value Add metadata (repeatable)
       --logo <file>    Embed a PNG, JPEG, GIF, WebP or SVG logo; needs --out
       --accent <color> Header accent as a hex colour, e.g. #1b5e20
       --max-size <mb>  Warn when the report exceeds this size (default 10)
+      --capabilities   Print the JSON capabilities document and exit
   -h, --help           Show this help
   -v, --version        Show the version
 
-At least one of --out, --pdf, --json, --ci or --email is required. --ci-out requires
+At least one of --out, --pdf, --json, --ci, --email or --manifest is required. --ci-out requires
 --ci markdown. --history requires --out. Without --ci-out, --ci writes only the
 CI summary to stdout. --json and --ci markdown share stdout only with --ci-out;
 --ci github and --ci azure always own stdout. Failing tests do not change the
@@ -107,6 +112,8 @@ function parseCliArgs(argv: string[]) {
       history: { type: 'string' },
       'history-limit': { type: 'string' },
       baseline: { type: 'string' },
+      manifest: { type: 'string' },
+      capabilities: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -269,6 +276,17 @@ async function writeCiOutput(file: string, text: string): Promise<void> {
   }
 }
 
+async function writeManifest(file: string, text: string): Promise<void> {
+  try {
+    await writeAtomic(file, text);
+  } catch (error) {
+    // Name the target, never the atomic temporary file.
+    throw new Error(`Cannot write manifest to ${oneLine(file)}`, {
+      cause: error,
+    });
+  }
+}
+
 async function writePdf(
   file: string,
   html: string,
@@ -368,6 +386,21 @@ export async function runCli(
     return 0;
   }
 
+  if (parsed.values.capabilities) {
+    const combined =
+      parsed.positionals.length > 0 ||
+      Object.keys(parsed.values).some((key) => key !== 'capabilities');
+    if (combined) {
+      io.stderr(
+        `tolkira: --capabilities takes no input and no other option; ` +
+          `run tolkira --capabilities alone\n\n${USAGE}`,
+      );
+      return 2;
+    }
+    io.stdout(capabilitiesJson());
+    return 0;
+  }
+
   const inputs = parsed.positionals;
   const output = parsed.values.out;
   const pdfPath = parsed.values.pdf;
@@ -376,6 +409,7 @@ export async function runCli(
   const ciOut = parsed.values['ci-out'];
   const historyFile = parsed.values.history;
   const baselineFile = parsed.values.baseline;
+  const manifestFile = parsed.values.manifest;
 
   if (parsed.values.out === '') {
     io.stderr(`tolkira: --out requires a file path\n\n${USAGE}`);
@@ -389,6 +423,11 @@ export async function runCli(
 
   if (baselineFile === '') {
     io.stderr(`tolkira: --baseline requires a file path\n\n${USAGE}`);
+    return 2;
+  }
+
+  if (manifestFile === '') {
+    io.stderr(`tolkira: --manifest requires a file path\n\n${USAGE}`);
     return 2;
   }
 
@@ -511,7 +550,8 @@ export async function runCli(
       !wantsJson &&
       ci === undefined &&
       emailPath === undefined &&
-      pdfPath === undefined)
+      pdfPath === undefined &&
+      manifestFile === undefined)
   ) {
     io.stderr(USAGE);
     return 2;
@@ -539,6 +579,29 @@ export async function runCli(
     const detail = error instanceof Error ? error.message : String(error);
     io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
     return 2;
+  }
+
+  if (manifestFile !== undefined) {
+    const collides =
+      (await pathConflicts(
+        manifestFile,
+        inputs,
+        parsed.values.logo,
+        output,
+        pdfPath,
+        ciOut,
+        emailPath,
+        historyFile,
+      )) ||
+      (baselineFile !== undefined && samePath(manifestFile, baselineFile));
+    if (collides) {
+      io.stderr(
+        `tolkira: --manifest must not overwrite an input file, the logo, ` +
+          `--out, --pdf, --email, --history, --ci-out or --baseline` +
+          `\n\n${USAGE}`,
+      );
+      return 2;
+    }
   }
 
   if (
@@ -695,7 +758,7 @@ export async function runCli(
     }
 
     if (!output && pdfPath === undefined) {
-      const summary = await summarizeReportFromResolved(
+      const { summary, skippedAttachments } = await summarizeRunFromResolved(
         resolvedInputs,
         baseline,
       );
@@ -722,12 +785,37 @@ export async function runCli(
       if (ciText !== undefined && ciOut !== undefined) {
         await writeCiOutput(ciOut, ciText);
       }
+      if (manifestFile !== undefined) {
+        const artifacts: ManifestArtifact[] = [];
+        if (emailPath !== undefined) {
+          artifacts.push({ kind: 'email', path: emailPath });
+        }
+        if (ciText !== undefined && ciOut !== undefined) {
+          artifacts.push({ kind: 'ci-markdown', path: ciOut });
+        }
+        await writeManifest(
+          manifestFile,
+          serializeRunManifest(
+            buildRunManifest(
+              summary,
+              skippedAttachments,
+              artifacts,
+              manifestFile,
+            ),
+          ),
+        );
+      }
+      const stdoutOwned =
+        wantsJson || (ciText !== undefined && ciOut === undefined);
       if (wantsJson) {
         io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
       } else if (ciText !== undefined && ciOut === undefined) {
         io.stdout(ciText);
       } else if (emailPath !== undefined) {
         io.stdout(`Email written to ${oneLine(emailPath)}\n`);
+      }
+      if (manifestFile !== undefined && !stdoutOwned) {
+        io.stdout(`Manifest written to ${oneLine(manifestFile)}\n`);
       }
       return 0;
     }
@@ -801,6 +889,32 @@ export async function runCli(
       await writeCiOutput(ciOut, ciText);
     }
 
+    if (manifestFile !== undefined) {
+      const artifacts: ManifestArtifact[] = [];
+      if (output) artifacts.push({ kind: 'report', path: output });
+      if (pdfPath !== undefined) artifacts.push({ kind: 'pdf', path: pdfPath });
+      if (emailPath !== undefined) {
+        artifacts.push({ kind: 'email', path: emailPath });
+      }
+      if (historyFile !== undefined && generated.history) {
+        artifacts.push({ kind: 'history', path: historyFile });
+      }
+      if (ciText !== undefined && ciOut !== undefined) {
+        artifacts.push({ kind: 'ci-markdown', path: ciOut });
+      }
+      await writeManifest(
+        manifestFile,
+        serializeRunManifest(
+          buildRunManifest(
+            summary,
+            skippedAttachments,
+            artifacts,
+            manifestFile,
+          ),
+        ),
+      );
+    }
+
     if (wantsJson) {
       io.stdout(`${JSON.stringify(summary, null, 2)}\n`);
     } else if (ciText !== undefined && ciOut === undefined) {
@@ -814,6 +928,9 @@ export async function runCli(
       }
       if (emailPath !== undefined) {
         io.stdout(`Email written to ${oneLine(emailPath)}\n`);
+      }
+      if (manifestFile !== undefined) {
+        io.stdout(`Manifest written to ${oneLine(manifestFile)}\n`);
       }
     }
     return 0;
