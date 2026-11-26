@@ -20,9 +20,9 @@ after the review-fix commit `88b9f74` closed findings 1–7.
 | --- | --- | --- |
 | 4.1 | `npx vitest run` over the 12 existing `cli-*` files, the five new files, `capabilities` and `inputs` at `88b9f74` | 19 files, 495 passed, 4 skipped |
 | 4.6 | `npx vitest run test/cli-equivalence-gate.test.ts` at `88b9f74` | **17 passed** (15 non-★ rows + 2 baseline comparisons) |
-| 4.2 | `npm run check` | see “Post-fix gate re-run” below |
-| 4.3 | `npm run test:e2e` | see “Post-fix gate re-run” below |
-| 4.4 | `npm run package:check` | see “Post-fix gate re-run” below |
+| 4.2 | `npm run check` | green; 103 files, 2089 passed, 11 skipped; coverage 95.07 % stmts, 88.32 % branch, 97.04 % funcs, 96.47 % lines |
+| 4.3 | `npm run test:e2e` | 478 passed, 8 skipped (1.9 min); no browser change |
+| 4.4 | `npm run package:check` | green: publint `All good!`, attw all green except the ignored `node10` entries; tarball **91 entries** |
 
 The eight ★ rows are the permanent `test/cli-equivalence.test.ts` cases
 (11, 12, 13, 15, 17, 21, 22, 23); they are green in the 4.1 run and are not
@@ -110,7 +110,20 @@ New internal declarations at `88b9f74`: `dist/cli/args.d.ts` 1211 B,
 
 Tarball: 86 entries at `1ee837e` → **91 entries** (+5), exactly the five
 `dist/cli/*.d.ts` declarations. `package:check` reports 91 entries; publint and
-attw are green (re-run result below).
+attw are green. The `npm run check` and `npm run package:check` rebuilds
+reproduced the same five byte sizes above.
+
+## Post-fix gate re-run
+
+Run at `88b9f74` after the review fix, in this order:
+
+| Command | Result |
+| --- | --- |
+| `npm run check` | green: i18n 24 tests, typecheck, lint, knip, format, build and coverage; 103 files, 2089 passed, 11 skipped; coverage 95.07 % stmts, 88.32 % branch, 97.04 % funcs, 96.47 % lines |
+| `npm run test:e2e` | 478 passed, 8 skipped (1.9 min); Chromium, Firefox and WebKit |
+| `npm run package:check` | green: publint `All good!`, attw all green except the ignored `node10` entries, tarball 91 entries |
+
+All three are green; nothing in this record is pending.
 
 ## Diff surface (task 4.5)
 
