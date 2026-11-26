@@ -303,6 +303,22 @@ exit code.
 ```
 Stdout: "", exit code: `2`
 
+The fenced blocks above show the bytes verbatim; `USAGE` has no trailing
+newline. Byte sizes and SHA-256 of the process streams:
+
+| Probe | Stream | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `--help` | stdout | 2044 | `0debb225b3d6e9b98bd966671925f55cd9f574eba65bd35a4b92ef75c6ee4574` |
+| `--help` | stderr | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `--version` | stdout | 6 | `87b241b275c591694846560e9879f50c9da3150f854efdabd782c539772f3033` |
+| `--version` | stderr | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `--capabilities` | stdout | 1318 | `013d180c59d64916fffdd92643fafae8ff5e478b2e6bb2b599b9d1fc41df647c` |
+| `--capabilities` | stderr | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| row 5 (no args) | stdout | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| row 5 (no args) | stderr | 2044 | `0debb225b3d6e9b98bd966671925f55cd9f574eba65bd35a4b92ef75c6ee4574` |
+
+`--help` and row 5 write the same 2044-byte `USAGE` bytes.
+
 ## Artifact hashes and sizes
 
 | Artifact | Bytes | SHA-256 |
