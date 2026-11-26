@@ -7,7 +7,7 @@ import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
 import { createTranslator } from '../src/render/i18n.js';
-import type { RenderOptions } from '../src/render/types.js';
+import type { RenderReportOptions } from '../src/options.js';
 
 const fixture = (path: string): string =>
   fileURLToPath(new URL(`./fixtures/${path}`, import.meta.url));
@@ -23,13 +23,13 @@ const historyFixture = fixture('history/two-runs.json');
 async function renderFile(
   file: string,
   locale?: string,
-  extra: Partial<RenderOptions> = {},
+  extra: Partial<RenderReportOptions> = {},
 ): Promise<string> {
   const content = await readFile(file, 'utf8');
   const envelopes = file.endsWith('.json')
     ? parseLegacyJson(content, basename(file))
     : parseMessages(content, basename(file));
-  const options: RenderOptions = {
+  const options: RenderReportOptions = {
     title: 'Tolkira report',
     ...extra,
     ...(locale === undefined ? {} : { locale }),

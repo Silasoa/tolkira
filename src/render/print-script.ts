@@ -1,4 +1,4 @@
-// Static print lifecycle. `renderHtml` embeds this beside the report client as
+// Static print lifecycle. `renderRun` embeds this beside the report client as
 // a second CSP-hashed inline script, so the interactive bundle stays at its
 // 16 KB budget baseline. No imports.
 export const PRINT_SCRIPT: string = `(()=>{const d=[...document.querySelectorAll("details")],l=[...document.querySelectorAll("img[loading=lazy]")],b=document.querySelector(".lightbox");let s=null;addEventListener("beforeprint",()=>{if(s)return;s={d:d.filter(e=>!e.open),b:!!b?.open,o:document.documentElement.style.overflow};document.body.classList.add("printing");d.forEach(e=>e.open=true);l.forEach(e=>e.loading="eager");b?.close?.();document.documentElement.style.overflow=""});addEventListener("afterprint",()=>{const t=s;if(!t)return;s=null;document.body.classList.remove("printing");t.d.forEach(e=>e.open=false);l.forEach(e=>e.loading="lazy");document.documentElement.style.overflow=t.o;t.b&&typeof b?.showModal==="function"&&b.showModal()})})();`;

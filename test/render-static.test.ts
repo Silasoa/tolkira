@@ -6,7 +6,6 @@ import { parseMessages } from '../src/input/messages.js';
 import { parsePlaywrightJson } from '../src/input/playwright.js';
 import { buildLoadedRun } from '../src/loaded-run.js';
 import { renderHtml, renderRun } from '../src/render/html.js';
-import type { RenderOptions } from '../src/render/types.js';
 import type { RenderReportOptions } from '../src/options.js';
 import { fixturePath, messagesFixture, playwrightFixture } from './fixtures.js';
 import { scenarioOpeningTag, syntheticRun } from './render-helpers.js';
@@ -123,7 +122,7 @@ function cspDirectives(html: string): Map<string, string[]> {
 
 describe('static report shell', () => {
   it('renders without scripts, tabs, dead controls or dangling ARIA', async () => {
-    const options: RenderOptions = {
+    const options: RenderReportOptions = {
       title: 'Static shell',
       static: true,
       history: await history(2),
@@ -187,7 +186,7 @@ describe('static report shell', () => {
   });
 
   it('opens every disclosure kind without a click', async () => {
-    const options: RenderOptions = {
+    const options: RenderReportOptions = {
       title: 'Static details',
       static: true,
       history: await history(2),
@@ -221,7 +220,7 @@ describe('static report shell', () => {
   });
 
   it('renders tagged rows without a tag filter', async () => {
-    const options: RenderOptions = { title: 'Static tags', static: true };
+    const options: RenderReportOptions = { title: 'Static tags', static: true };
     const html = await renderHtml(await messages('tags.ndjson'), options);
     const body = markup(html);
 
@@ -251,7 +250,10 @@ describe('static report shell', () => {
   });
 
   it('escapes hostile text without a script or markup executing', async () => {
-    const options: RenderOptions = { title: 'Hostile static', static: true };
+    const options: RenderReportOptions = {
+      title: 'Hostile static',
+      static: true,
+    };
     const html = await renderHtml(
       syntheticRun([
         {
@@ -277,7 +279,7 @@ describe('static report shell', () => {
 
 describe('static views', () => {
   it('stacks Report, Details and Trends with two history runs', async () => {
-    const options: RenderOptions = {
+    const options: RenderReportOptions = {
       title: 'Static stack',
       static: true,
       history: await history(2),
@@ -299,7 +301,7 @@ describe('static views', () => {
   it.each([0, 1])(
     'omits Trends with %i history runs and keeps Report and Details',
     async (count) => {
-      const options: RenderOptions = {
+      const options: RenderReportOptions = {
         title: `Static ${count}`,
         static: true,
         history: await history(count),
@@ -315,7 +317,7 @@ describe('static views', () => {
   );
 
   it('keeps the Trends table and sparkline with many runs', async () => {
-    const options: RenderOptions = {
+    const options: RenderReportOptions = {
       title: 'Static many',
       static: true,
       history: await history(30),

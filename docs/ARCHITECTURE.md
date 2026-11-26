@@ -401,9 +401,15 @@ and is covered by real producer fixtures.
 
 - Internal load/render/history assembly for a list the caller already resolved:
   `loadResolvedInputs` reads and parses the resolved files, then one
-  `buildLoadedRun` (`src/loaded-run.ts`) sanitises the envelopes, builds the
-  report index and the summary and applies the optional baseline comparison.
-  Attachment totals, provenance and the input counts travel on the loaded run.
+  `buildLoadedRun` (`src/loaded-run.ts`) sanitises the envelopes once, builds
+  the report index and the summary and applies the optional baseline
+  comparison. Attachment totals, provenance and the input counts travel on the
+  loaded run.
+- `buildLoadedRun` is the sole producer: `LoadedRun` carries a non-exported
+  brand, so no other module can build one. `renderRun` (`src/render/html.ts`)
+  trusts that run and never sanitises, indexes or summarises again. A new run
+  fact flows `LoadedRunFacts` → `LoadedRun` → `runRenderOptions` → view, never
+  through caller options.
 - `generateReportFromResolved`, `renderReportFromResolved`,
   `summarizeRunFromResolved` and `summarizeReportFromResolved` are the internal
   entry points for a resolved list; the CLI drives `generateReportFromResolved`

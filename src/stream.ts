@@ -26,10 +26,12 @@ export class CucumberHtmlStream extends Transform {
   }
 
   override _flush(callback: TransformCallback): void {
-    renderRun(buildLoadedRun(this.envelopes), this.options).then(
-      (html) => callback(null, html),
-      (error: unknown) =>
-        callback(error instanceof Error ? error : new Error(String(error))),
-    );
+    Promise.resolve()
+      .then(() => renderRun(buildLoadedRun(this.envelopes), this.options))
+      .then(
+        (html) => callback(null, html),
+        (error: unknown) =>
+          callback(error instanceof Error ? error : new Error(String(error))),
+      );
   }
 }

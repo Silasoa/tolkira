@@ -33,6 +33,10 @@ export interface LoadedRunFacts {
  * one; the brand is compile-time only and adds no runtime field.
  */
 export interface LoadedRun {
+  /**
+   * The caller's array, sanitised in place once. Do not mutate it after the
+   * build: `renderRun` never sanitises again.
+   */
   readonly envelopes: Envelope[];
   readonly index: RunIndex;
   readonly summary: ReportSummary;

@@ -1,26 +1,9 @@
-import { readFile } from 'node:fs/promises';
-import type { Envelope } from '@cucumber/messages';
 import { describe, expect, it } from 'vitest';
 import { summarizeReport } from '../src/index.js';
-import { parseMessages } from '../src/input/messages.js';
 import { buildLoadedRun, type LoadedRun } from '../src/loaded-run.js';
 import { projectSummary } from './baseline-helpers.js';
 import { messagesFixture } from './fixtures.js';
-
-async function parseFile(file: string): Promise<Envelope[]> {
-  return parseMessages(await readFile(file, 'utf8'), file);
-}
-
-/** One fixture envelope whose feature description carries a remote image. */
-async function remoteImageEnvelopes(): Promise<Envelope[]> {
-  const envelopes = await parseFile(messagesFixture('screenshot.ndjson'));
-  const feature = envelopes.find(
-    (envelope) => envelope.gherkinDocument?.feature,
-  )?.gherkinDocument?.feature;
-  if (!feature) throw new Error('fixture feature missing');
-  feature.description = 'Before ![logo](https://example.com/logo.png) after';
-  return envelopes;
-}
+import { parseFile, remoteImageEnvelopes } from './render-helpers.js';
 
 describe('buildLoadedRun', () => {
   it('builds an empty run with the documented defaults', () => {
@@ -49,7 +32,7 @@ describe('buildLoadedRun', () => {
     expect(run.skippedAttachments).toBe(0);
   });
 
-  it('sanitises the envelopes it owns exactly once', async () => {
+  it('keeps the built envelopes free of the remote Markdown image', async () => {
     const envelopes = await remoteImageEnvelopes();
     const run = buildLoadedRun(envelopes);
 

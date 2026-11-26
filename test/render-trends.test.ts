@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import type { HistoryRun } from '../src/history.js';
 import { renderHtml } from '../src/render/html.js';
-import type { RenderOptions } from '../src/render/types.js';
+import type { RenderReportOptions } from '../src/options.js';
 import type { StatusCounts } from '../src/summary.js';
 import { syntheticRun } from './render-helpers.js';
 
@@ -42,7 +42,7 @@ function run(overrides: Partial<HistoryRun> = {}): HistoryRun {
 }
 
 function renderTrends(history?: HistoryRun[]): Promise<string> {
-  const options: RenderOptions = {
+  const options: RenderReportOptions = {
     title: 'Trends report',
     ...(history === undefined ? {} : { history }),
   };

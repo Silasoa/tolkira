@@ -16,6 +16,16 @@ export interface RenderReportOptions {
   static?: boolean;
 }
 
+/**
+ * Caller-facing render options. `renderRun` fills the three run facts; typing
+ * them `never` rejects them through a typed variable, not only a fresh literal.
+ */
+export interface RenderCallOptions extends RenderReportOptions {
+  comparison?: never;
+  inputFiles?: never;
+  inputBytes?: never;
+}
+
 /** Report options plus the validated earlier summary; not for the stream. */
 export interface BaselineRenderOptions extends RenderReportOptions {
   /** Validated earlier summary; the API accepts the projection, never a path. */

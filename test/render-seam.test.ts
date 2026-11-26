@@ -1,21 +1,26 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Envelope } from '@cucumber/messages';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BaselineComparison } from '../src/baseline.js';
 import { readHistory } from '../src/history.js';
-import { renderReport, summarizeReport } from '../src/index.js';
+import {
+  CucumberHtmlStream,
+  renderReport,
+  summarizeReport,
+} from '../src/index.js';
 import { loadInputs, provenanceFor } from '../src/input/load.js';
-import { parseMessages } from '../src/input/messages.js';
 import { sanitizeEnvelopes } from '../src/input/sanitize.js';
 import { buildLoadedRun, type LoadedRun } from '../src/loaded-run.js';
 import type { RenderReportOptions } from '../src/options.js';
 import { renderHtml, renderRun } from '../src/render/html.js';
 import { indexRun } from '../src/report/index-run.js';
 import { summarizeIndex } from '../src/summary.js';
+import { writeAttachmentReport } from './attachments.js';
 import { projectSummary } from './baseline-helpers.js';
 import { fixturePath, legacyFixture, messagesFixture } from './fixtures.js';
+import { parseFile, remoteImageEnvelopes } from './render-helpers.js';
 
 vi.mock('../src/input/sanitize.js', { spy: true });
 vi.mock('../src/report/index-run.js', { spy: true });
@@ -34,22 +39,8 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-async function parseFile(file: string): Promise<Envelope[]> {
-  return parseMessages(await readFile(file, 'utf8'), file);
-}
-
 async function inputFacts(file: string) {
   return { inputFiles: 1, inputBytes: (await stat(file)).size };
-}
-
-async function remoteImageEnvelopes(): Promise<Envelope[]> {
-  const envelopes = await parseFile(messagesFixture('screenshot.ndjson'));
-  const feature = envelopes.find(
-    (envelope) => envelope.gherkinDocument?.feature,
-  )?.gherkinDocument?.feature;
-  if (!feature) throw new Error('fixture feature missing');
-  feature.description = 'Before ![logo](https://example.com/logo.png) after';
-  return envelopes;
 }
 
 function analysisView(html: string): string {
@@ -61,118 +52,73 @@ function analysisView(html: string): string {
   return start < 0 ? '' : html.slice(start, ends[0] ?? html.length);
 }
 
-/** A Playwright report whose only attachment path does not exist. */
-function playwrightReportWithMissingAttachment(): unknown {
-  return {
-    config: {
-      version: '1.65.0',
-      configFile: 'playwright.config.ts',
-      rootDir: 'tests',
-      projects: [{ id: 'chromium', name: 'chromium', retries: 0 }],
-    },
-    suites: [
-      {
-        title: 'seam.spec.ts',
-        file: 'seam.spec.ts',
-        line: 0,
-        column: 0,
-        specs: [
-          {
-            title: 'skips a missing attachment',
-            ok: true,
-            tags: [],
-            id: 'seam-spec-1',
-            file: 'seam.spec.ts',
-            line: 1,
-            column: 1,
-            tests: [
-              {
-                timeout: 30000,
-                annotations: [],
-                expectedStatus: 'passed',
-                projectId: 'chromium',
-                projectName: 'chromium',
-                status: 'expected',
-                results: [
-                  {
-                    status: 'passed',
-                    duration: 1,
-                    retry: 0,
-                    startTime: '2026-11-19T08:00:00.000Z',
-                    stdout: [],
-                    stderr: [],
-                    annotations: [],
-                    attachments: [
-                      {
-                        name: 'missing',
-                        contentType: 'text/plain',
-                        path: 'missing.txt',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-    errors: [],
-    stats: {
-      startTime: '2026-11-19T08:00:00.000Z',
-      duration: 1,
-      expected: 1,
-      unexpected: 0,
-      flaky: 0,
-      skipped: 0,
-    },
-  };
-}
-
 async function skippedAttachmentReport(): Promise<string> {
   const dir = await mkdtemp(path.join(tmpdir(), 'tolkira-seam-'));
   tempDirs.push(dir);
-  const file = path.join(dir, 'skipped.json');
-  await writeFile(
-    file,
-    JSON.stringify(playwrightReportWithMissingAttachment()),
-    'utf8',
-  );
-  return file;
+  return writeAttachmentReport(dir, [
+    { name: 'missing', contentType: 'text/plain', path: 'missing.txt' },
+  ]);
 }
 
 // The directive proves the caller boundary: the brand and run facts live on
 // LoadedRun, never on the options object. The function is never executed.
-function callerFactTypeChecks(run: LoadedRun): void {
+function callerFactTypeChecks(
+  run: LoadedRun,
+  comparison: BaselineComparison,
+  inputFiles: number,
+  inputBytes: number,
+): void {
+  const typedComparison: RenderReportOptions & {
+    comparison: BaselineComparison;
+  } = { comparison };
+  const typedInputFiles: RenderReportOptions & { inputFiles: number } = {
+    inputFiles,
+  };
+  const typedInputBytes: RenderReportOptions & { inputBytes: number } = {
+    inputBytes,
+  };
+
   // @ts-expect-error index is a loaded-run fact, not a render option.
   void renderHtml([], { index: undefined as never });
   // @ts-expect-error summary is a loaded-run fact, not a render option.
   void renderHtml([], { summary: undefined as never });
   // @ts-expect-error comparison is filled from the run.
-  void renderHtml([], { comparison: undefined as never });
+  void renderHtml([], { comparison: undefined });
   // @ts-expect-error provenance is a loaded-run fact, not a render option.
   void renderHtml([], { provenance: undefined as never });
   // @ts-expect-error skippedAttachments is a loaded-run fact.
   void renderHtml([], { skippedAttachments: undefined as never });
   // @ts-expect-error inputFiles is filled from the run.
-  void renderHtml([], { inputFiles: undefined as never });
+  void renderHtml([], { inputFiles: undefined });
   // @ts-expect-error inputBytes is filled from the run.
-  void renderHtml([], { inputBytes: undefined as never });
+  void renderHtml([], { inputBytes: undefined });
+  // @ts-expect-error a typed options variable cannot carry comparison.
+  void renderHtml([], typedComparison);
+  // @ts-expect-error a typed options variable cannot carry inputFiles.
+  void renderHtml([], typedInputFiles);
+  // @ts-expect-error a typed options variable cannot carry inputBytes.
+  void renderHtml([], typedInputBytes);
 
   // @ts-expect-error index is a loaded-run fact, not a render option.
   void renderRun(run, { index: undefined as never });
   // @ts-expect-error summary is a loaded-run fact, not a render option.
   void renderRun(run, { summary: undefined as never });
   // @ts-expect-error comparison is filled from the run.
-  void renderRun(run, { comparison: undefined as never });
+  void renderRun(run, { comparison: undefined });
   // @ts-expect-error provenance is a loaded-run fact, not a render option.
   void renderRun(run, { provenance: undefined as never });
   // @ts-expect-error skippedAttachments is a loaded-run fact.
   void renderRun(run, { skippedAttachments: undefined as never });
   // @ts-expect-error inputFiles is filled from the run.
-  void renderRun(run, { inputFiles: undefined as never });
+  void renderRun(run, { inputFiles: undefined });
   // @ts-expect-error inputBytes is filled from the run.
-  void renderRun(run, { inputBytes: undefined as never });
+  void renderRun(run, { inputBytes: undefined });
+  // @ts-expect-error a typed options variable cannot carry comparison.
+  void renderRun(run, typedComparison);
+  // @ts-expect-error a typed options variable cannot carry inputFiles.
+  void renderRun(run, typedInputFiles);
+  // @ts-expect-error a typed options variable cannot carry inputBytes.
+  void renderRun(run, typedInputBytes);
 }
 
 describe('report pipeline seam', () => {
@@ -198,6 +144,23 @@ describe('report pipeline seam', () => {
     expect(summarizeIndex).not.toHaveBeenCalled();
   });
 
+  it('normalises a builder throw into a stream Error event', async () => {
+    vi.mocked(indexRun).mockImplementationOnce(() => {
+      // A non-Error throw proves the callback normaliser, not Node's own catch.
+      const boom: unknown = 'builder boom';
+      throw boom;
+    });
+    const stream = new CucumberHtmlStream();
+    const error = await new Promise<Error>((resolve, reject) => {
+      stream.once('error', resolve);
+      stream.once('end', () => reject(new Error('expected a stream error')));
+      stream.end({} as Envelope);
+    });
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toBe('builder boom');
+  });
+
   it('neutralises a remote Markdown image once through renderHtml', async () => {
     const html = await renderHtml(await remoteImageEnvelopes(), {
       title: 'Remote image',
@@ -218,6 +181,23 @@ describe('report pipeline seam', () => {
     expect(sanitizeEnvelopes).not.toHaveBeenCalled();
     expect(indexRun).not.toHaveBeenCalled();
     expect(summarizeIndex).not.toHaveBeenCalled();
+  });
+
+  it('rejects an external attachment through the seam before rendering', async () => {
+    const envelopes = await parseFile(messagesFixture('screenshot.ndjson'));
+    envelopes.push({
+      externalAttachment: {
+        url: 'https://tolkira-probe.invalid/pixel.png',
+        mediaType: 'image/png',
+      },
+    });
+
+    expect(() => buildLoadedRun(envelopes)).toThrow(
+      'External attachments are not supported',
+    );
+    await expect(renderHtml(envelopes, { title: 'External' })).rejects.toThrow(
+      'External attachments are not supported',
+    );
   });
 
   it('keeps byte parity for the default report with the same input counts', async () => {
@@ -270,6 +250,30 @@ describe('report pipeline seam', () => {
 
     expect(actual).toBe(expected);
     expect(actual).toContain('class="baselinePanel"');
+  });
+
+  it('keeps byte parity with two history runs and a baseline', async () => {
+    const file = messagesFixture('screenshot.ndjson');
+    const history = await readHistory(fixturePath('history', 'two-runs.json'));
+    const baseline = projectSummary(await summarizeReport(file));
+    const run = buildLoadedRun(await parseFile(file), {
+      baseline,
+      ...(await inputFacts(file)),
+    });
+
+    const expected = await renderReport(file, {
+      title: 'Seam history baseline',
+      history,
+      baseline,
+    });
+    const actual = await renderRun(run, {
+      title: 'Seam history baseline',
+      history,
+    });
+
+    expect(actual).toContain('class="baselinePanel"');
+    expect(actual).toContain('id="trends-view"');
+    expect(actual).toBe(expected);
   });
 
   it('keeps byte parity with multi-file provenance', async () => {

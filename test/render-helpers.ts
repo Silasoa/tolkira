@@ -1,10 +1,25 @@
 import { readFile } from 'node:fs/promises';
-import { TestStepResultStatus } from '@cucumber/messages';
+import { TestStepResultStatus, type Envelope } from '@cucumber/messages';
 import { expect } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { parseMessages } from '../src/input/messages.js';
 import { renderHtml } from '../src/render/html.js';
-import { legacyFixture } from './fixtures.js';
+import { legacyFixture, messagesFixture } from './fixtures.js';
+
+export async function parseFile(file: string): Promise<Envelope[]> {
+  return parseMessages(await readFile(file, 'utf8'), file);
+}
+
+/** One fixture envelope whose feature description carries a remote image. */
+export async function remoteImageEnvelopes(): Promise<Envelope[]> {
+  const envelopes = await parseFile(messagesFixture('screenshot.ndjson'));
+  const feature = envelopes.find(
+    (envelope) => envelope.gherkinDocument?.feature,
+  )?.gherkinDocument?.feature;
+  if (!feature) throw new Error('fixture feature missing');
+  feature.description = 'Before ![logo](https://example.com/logo.png) after';
+  return envelopes;
+}
 
 // Shared setup for the split render suites. The default title keeps the
 // existing outline calls unchanged; other flows pass their own title.

@@ -22,10 +22,10 @@ Change: `report-pipeline-seam` (B-057). Internal refactor, no spec delta
 | Step | Command | Result |
 | --- | --- | --- |
 | Typecheck | `npx tsc --noEmit` | green |
-| Gate | `npm run check` | 105 files, 2,113 passed, 11 skipped; coverage 95.09/88.33/97.05/96.48 |
+| Gate | `npm run check` | 105 files, 2,116 passed, 11 skipped; coverage 95.09/88.35/97.06/96.48 |
 | Browser | `npm run test:e2e` | 478 passed, 8 skipped (PDF rows skipped in Firefox/WebKit by config) |
 | Package | `npm run package:check` | publint and attw green; 92 tarball entries |
-| Hygiene | `npm run hygiene` | ok, 910 tracked files, 544 commits |
+| Hygiene | `npm run hygiene` | ok, 914 tracked files, 545 commits checked; HEAD after the review-fix commit is 546 |
 
 Coverage floors unchanged; no expectation was weakened. The TDD-Red state was
 6 of 9 focused suites failing at import (0 tests collected there; 69 passed in
@@ -35,8 +35,10 @@ the migration/guard files) and 25 `tsc` errors, all on the missing API.
 
 - `dist/index.d.ts`: SHA-256 `24F07109…2F66`, 1,616 B, byte-identical.
 - `dist/cli.d.ts`: SHA-256 `39D03902…2667`, 171 B, byte-identical.
-- `dist/index.js`: same 20 exports, 365,482 B (+0.28 %); the esbuild bundle
-  bytes move because the implementation moved, as the contract allows.
+- `dist/index.js`: same 20 exports, 365,512 B, baseline 364,414 B, +1,098 B
+  (+0.301 %); the reviewed seam build was 365,482 B and the stream normaliser
+  fix adds 30 B. The esbuild bundle bytes move because the implementation
+  moved, as the contract allows.
 - CLI fixture (Messages + legacy, baseline, history, manifest): report
   123,080 B, CI file 555 B, manifest 991 B, stdout 9,433 B, stderr 0 B — all
   identical. History equal after pinning the wall-clock `recordedAt`.
@@ -54,14 +56,23 @@ the migration/guard files) and 25 `tsc` errors, all on the missing API.
 
 ## Shape
 
-- New `src/loaded-run.ts` 91 lines (limit 120); `src/render/html.ts` 97 lines
-  (pinned shell test limit 100); `src/run.ts` shrinks by the moved assembly.
+- New `src/loaded-run.ts` 95 lines (limit 120); `src/render/html.ts` 98 lines
+  (pinned shell test limit 100); `src/stream.ts` 37 lines; `src/options.ts` 58
+  lines. `src/run.ts` shrinks by the moved assembly.
+- Caller-facing options: `RenderCallOptions` (`src/options.ts`) extends
+  `RenderReportOptions` and types `comparison`, `inputFiles` and `inputBytes`
+  as `never`, so a typed options variable cannot smuggle a run fact;
+  `RenderOptions` stays the internal view type. `renderRun` and `renderHtml`
+  take `RenderCallOptions`.
 - One internal addition beyond the design: `runRenderOptions` in
   `src/options.ts` keeps `renderOptions` applied once while `html.ts` stays
   under its pinned shell-test limit. It is not exported from the package.
+- Stream: the flush builds the run inside the promise chain, so a builder
+  throw reaches the stream `Error` event through the same `Error` normaliser;
+  a non-Error builder throw is wrapped instead of emitted raw.
 - Diff surface as planned: `src/loaded-run.ts`, `run.ts`, `stream.ts`,
-  `render/html.ts`, `render/types.ts`, `options.ts` (helper), the five migrated
-  render tests, two new suites, `docs/ARCHITECTURE.md`,
+  `render/html.ts`, `render/types.ts`, `options.ts` (helper and caller type),
+  the five migrated render tests, two new suites, `docs/ARCHITECTURE.md`,
   `docs/AGENT-INTERFACE.md`, `DESIGN.md`. No CSS, client script, markup, i18n,
   summary, baseline, history, email, PDF or CI module changed.
 - `GLOSSARY.md` needed no change; "Loaded run" stays an internal term.

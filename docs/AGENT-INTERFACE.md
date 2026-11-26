@@ -555,13 +555,14 @@ after dedupe and skip and reports
 `Inputs exceed 100 MB in total. Split the run into smaller inputs or reduce the attachment payload.`
 The Details Run
 panel shows the input row only when both values are present; a direct render
-(`renderHtml`, or `renderRun` without supplied counts) and `CucumberHtmlStream`
-omit them, so their panel omits that row. The
-same panel shows the exact final report HTML bytes and the three largest
-attachments by decoded bytes. At 1 MiB and above the report row adds one-decimal
-MB in parentheses after the exact bytes. These are contributors, not a sum.
-`RenderReportOptions` is unchanged; `renderReport` computes the values
-internally.
+(`renderHtml`, or the internal `renderRun` over a run built without input
+counts) and `CucumberHtmlStream` omit them, so their panel omits that row.
+`renderRun` and the run facts it reads are internal builder details, not
+package API. The same panel shows the exact final report HTML bytes and the
+three largest attachments by decoded bytes. At 1 MiB and above the report row
+adds one-decimal MB in parentheses after the exact bytes. These are
+contributors, not a sum. The public `RenderReportOptions` is unchanged;
+`renderReport` computes the values internally.
 
 `history` is the aggregate run list the HTML was rendered with; it already
 contains the current run. `generateReport` appends the current run to
@@ -575,11 +576,11 @@ fields are additive.
 `baseline` is the validated `BaselineSummary` projection, never a path; the CLI
 is the only file reader. `generateReport`, `renderReport` and `summarizeReport`
 accept it and build the comparison once. The exported `BaselineRenderOptions`
-extends `RenderReportOptions` with that field. The render entries (`renderRun`
-over a loaded run and the `renderHtml` wrapper) and `CucumberHtmlStream` do not
-take a baseline in 0.6.0: they keep `RenderReportOptions`, an unknown `baseline`
-key is ignored, and
-the stream keeps its same-input-same-HTML contract. Read a baseline with your own
+extends `RenderReportOptions` with that field. The internal render entries
+(`renderRun` and the `renderHtml` wrapper) and `CucumberHtmlStream` do not take
+a baseline in 0.6.0: they accept the public render options, an unknown
+`baseline` key is ignored, and the stream keeps its same-input-same-HTML
+contract. Read a baseline with your own
 file handling and validate it before passing the projection; the exported type
 carries `schemaVersion`, the overall status and the scenario
 identity/status/execution fields. The report and summary embed baseline

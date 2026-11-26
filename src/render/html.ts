@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Envelope } from '@cucumber/messages';
 import { buildLoadedRun, type LoadedRun } from '../loaded-run.js';
-import { runRenderOptions, type RenderReportOptions } from '../options.js';
+import { runRenderOptions, type RenderCallOptions } from '../options.js';
 import { buildReportModel } from '../report/model.js';
 import { isLogoDataUri, isValidAccent } from '../validation.js';
 import { CLIENT_SCRIPT } from './client-bundle.js';
@@ -47,9 +47,10 @@ function tabBar(historyLength: number, t: Translator): string {
   return `<div class="views" role="tablist" aria-label="${t.t('report.views')}"><button class="view" id="view-report" type="button" role="tab" data-view="report" aria-selected="true" aria-controls="${DOM_IDS.reportView}">${t.t('report.tab')}</button><button class="view" id="view-analysis" type="button" role="tab" data-view="analysis" aria-selected="false" aria-controls="${DOM_IDS.analysisView}">${t.t('details.tab')}</button>${historyLength >= 2 ? `<button class="view" id="view-trends" type="button" role="tab" data-view="trends" aria-selected="false" aria-controls="${DOM_IDS.trendsView}">${t.t('trends.tab')}</button>` : ''}</div>`;
 }
 
+// `renderRun` trusts the run; `renderHtml` below is the direct/test wrapper.
 export async function renderRun(
   run: LoadedRun,
-  options: RenderReportOptions = {},
+  options: RenderCallOptions = {},
 ): Promise<string> {
   const viewOptions = runRenderOptions(run, options);
   const t = createTranslator(viewOptions.locale);
@@ -91,7 +92,7 @@ export async function renderRun(
 
 export async function renderHtml(
   envelopes: Envelope[],
-  options: RenderReportOptions = {},
+  options: RenderCallOptions = {},
 ): Promise<string> {
   return renderRun(buildLoadedRun(envelopes), options);
 }

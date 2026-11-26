@@ -598,7 +598,7 @@ describe('baseline API', () => {
     const plain = await renderHtml(envelopes, { title: 'Stream' });
     const baseline = validBaseline();
 
-    // @ts-expect-error renderHtml keeps RenderOptions; it takes no baseline.
+    // @ts-expect-error renderHtml takes no baseline; the key is not in its options.
     const ignored = await renderHtml(envelopes, { title: 'Stream', baseline });
     expect(ignored).toBe(plain);
 
