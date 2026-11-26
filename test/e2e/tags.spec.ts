@@ -314,15 +314,37 @@ test('repeats the header and keeps rows whole in print', async ({ page }) => {
     .locator('#analysis-view .tagTable')
     .evaluate((table) => {
       const head = table.querySelector('thead');
+      const headCell = table.querySelector('thead th');
       const row = table.querySelector('tbody tr');
+      const bodyCell = table.querySelector('tbody th');
+      const rows = table.querySelectorAll('tbody tr');
+      const last = rows[rows.length - 1];
+      const lastCell = last?.querySelector('td');
+      const lastHead = last?.querySelector('th');
       return {
         headDisplay: head ? getComputedStyle(head).display : '',
         rowBreak: row ? getComputedStyle(row).breakInside : '',
+        headRule: headCell
+          ? getComputedStyle(headCell).borderBottomWidth
+          : '',
+        bodyRule: bodyCell
+          ? getComputedStyle(bodyCell).borderBottomWidth
+          : '',
+        lastRule: lastCell
+          ? getComputedStyle(lastCell).borderBottomWidth
+          : '',
+        lastHeadRule: lastHead
+          ? getComputedStyle(lastHead).borderBottomWidth
+          : '',
       };
     });
 
   expect(printStyles.headDisplay).toBe('table-header-group');
   expect(printStyles.rowBreak).toBe('avoid');
+  expect(printStyles.headRule).toBe('1px');
+  expect(printStyles.bodyRule).toBe('1px');
+  expect(printStyles.lastRule).toBe('0px');
+  expect(printStyles.lastHeadRule).toBe('0px');
 });
 
 test('renders the German labels and verbatim tag names', async ({ page }) => {

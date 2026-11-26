@@ -13,7 +13,7 @@ const fixtures = [
   {
     name: 'messages screenshot',
     fixture: 'messages/screenshot.ndjson',
-    sha256: 'a5f0a18ee83646e6e4d566406eef068591f943aeb7e468fe38566e97dcc201d5',
+    sha256: 'aaf89399e88f20f710f3ecca076d0a904460b9afab9683d4121f210556ed9d2e',
   },
   {
     name: 'messages all statuses',
@@ -28,22 +28,22 @@ const fixtures = [
   {
     name: 'messages examples tables',
     fixture: 'messages/examples-tables.ndjson',
-    sha256: '85222cdaa70ffa664f3bbdcebdc59fb44d995a8619005e6f38d75bb89d54dcce',
+    sha256: '9a1894b9c58c7166d7fa68883e293932203477e370ea5e2405e1826c323180cc',
   },
   {
     name: 'legacy happy',
     fixture: 'legacy/happy.json',
-    sha256: 'afc2cc2ebf67da844a6d0bb1217e3f0f0e80b1d87ed070d14af907178e1429d7',
+    sha256: '5c320248f06217e3860426922f381dbc53dd785e769995ca6c84544b2acc8b00',
   },
   {
     name: 'legacy failed',
     fixture: 'legacy/failed.json',
-    sha256: 'b93ac40672be81ca54530ce95e12b9473763d4a4038e41b55db5f54fffa1d071',
+    sha256: '8ffad1c32c56a6c6eabf63b66fc441c758946950292802ef72029f4846517cf3',
   },
   {
     name: 'playwright real run',
     fixture: 'playwright/real-run.json',
-    sha256: '8366fed0ad1b4f2ffae308bc52b3bf8842e56ad0afee918c966622e123508d00',
+    sha256: 'e3c52a4300cdec6ea7fa1bc74f6aa31e7a6b4702d9b5264bdc8b7e8beef8ca39',
   },
   {
     name: 'playwright two files',
@@ -53,7 +53,7 @@ const fixtures = [
   {
     name: 'playwright skipped no steps',
     fixture: 'playwright/skipped-no-steps.json',
-    sha256: '8b22da12ce45a2efc3732afef564d0f11aeb6f2e4d3929fdfc575abcb2236ccf',
+    sha256: 'e93b916632f80520c954bceb380a817364cb81d1788e2f82269e9a46dbc31065',
   },
 ];
 
@@ -103,7 +103,7 @@ describe('render characterization', () => {
 
     expect(html.match(/<main\b/g) ?? []).toHaveLength(1);
     expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
-      '7da62053f4c8806ecedaf60dfe10b50bcd7d05e12532b035f84bd7d2ea829b94',
+      'eaf49a897797c4c6924f42aa10121292dc2e4b37b8c6006d16cb8ce20c9b87be',
     );
   });
 });

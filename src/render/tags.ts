@@ -52,7 +52,7 @@ export const TAG_TABLE_CSS =
   '.tagTable tbody th{text-align:left;color:var(--ink);font-size:.8125rem;font-weight:400;padding:.5rem .5rem .5rem 0;border-bottom:1px solid var(--line)}' +
   '.tagTable td{padding:.5rem .5rem .5rem 0;border-bottom:1px solid var(--line)}' +
   '.tagTable td:last-child,.tagTable thead th:last-child{text-align:right}' +
-  '.tagTable tr:last-child th,.tagTable tr:last-child td{border-bottom:0}' +
+  '.tagTable tbody tr:last-child th,.tagTable tbody tr:last-child td{border-bottom:0}' +
   '.tagTable .num{text-align:right;font-family:var(--font-mono);font-size:.75rem;font-variant-numeric:tabular-nums}';
 
 export function renderTagOverview(model: ReportModel, t: Translator): string {
