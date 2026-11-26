@@ -223,17 +223,18 @@ type CliPlanResult =
 export async function planCli(argv: string[]): Promise<CliPlanResult>;
 ```
 
-The first-commit `planOptions` returns the internal `CliOptions`: the
+The first-commit `planOptions` is exported for
+`test/cli-plan-options.test.ts`; it returns the internal `CliOptions`: the
 validated values from checks 1–23 (inputs, output paths, flags, parsed
 scalars, locale and CI format) before any path check or metadata/logo read.
 The raw `--meta`, `--max-size`, `--accent` and `--logo` values travel in
 `CliOptions` unparsed, so checks 32–35 can parse them later without reading
 argv again; only the parsed products (`metadata`, `maxSizeMb`, `accent`,
 `logoDataUri`) stay out of it. Actions are resolved inside `planOptions`
-(checks 2–4), so its exported result is the named
+(checks 2–4), and its exported result is the named
 `CliOptionsResult = { ok: true; action: 'help' | 'version' | 'capabilities' } |
 { ok: true; options: CliOptions } | { ok: false; kind: 'message'; message:
-string } | { ok: false; kind: 'usage' }`, and `planCli` maps the action arm to
+string } | { ok: false; kind: 'usage' }`; `planCli` maps the action arm to
 `CliAction`. `CliOptions` never crosses the execute seam; `planCli` builds
 `CliPlan` from it.
 
@@ -634,8 +635,9 @@ trail.
 
 #### One-time gate matrix (task 4.6)
 
-Rows 6–23 use the 1.1 input fixture; rows 1–5 use no input. All rows run with
-the frozen clock and English unless the row names another locale (row 19).
+Row 4 passes a placeholder positional; rows 6–23 use the 1.1 input fixture;
+rows 1–3 and 5 use no input. All rows run with the frozen clock and English
+unless the row names another locale (row 19).
 `r`, `e`, `ci`, `h` and `m` are gate-output paths; `b` is the baseline artifact
 recorded in 1.1 and only read here.
 

@@ -29,7 +29,7 @@ PIR/DXR blockers are closed.
 
 ## 2. TDD-Red (failing tests first)
 
-- [ ] 2.1a `test/cli-plan-options.test.ts`: the internal `planOptions` shape,
+- [ ] 2.1a `test/cli-plan-options.test.ts`: the exported `planOptions` shape,
   defaults, purity and the checks 1–23 single-defect messages, precedence and
   boundary classes. RED because `planOptions` does not exist; GREEN at the
   3.1b fallback. ≤2h.
@@ -37,10 +37,11 @@ PIR/DXR blockers are closed.
   stdout policy, exit policy, help/version/capabilities actions and purity.
   RED until 3.4/3.5. ≤2h. The checks 1–23 message table stays in 2.1a, not a
   second copy here.
-- [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 24–35, the
-  metadata → max-size → accent → logo order in one argv, repeated `--meta`
-  last-wins, the `--max-size` classes and the same- and cross-family
-  precedence pairs that involve 24–35.
+- [ ] 2.1c `test/cli-plan.test.ts`: the messages added by checks 32–35 (path
+  collisions 24–31 are pinned in 2.3), the metadata → max-size → accent → logo
+  order in one argv, `--meta` `=x`/`k=`/`k=v=w` plus last-wins, the
+  `--max-size` classes and the same- and cross-family precedence pairs that
+  involve 24–35.
   The `--pdf-timeout`/`--history-limit` boundary forms stay in 2.1a. RED for
   the full plan API; the expected strings are the baseline. ≤2h.
 - [ ] 2.3 `test/cli-plan-paths.test.ts`: identity, containment, peer
