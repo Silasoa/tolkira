@@ -5,6 +5,27 @@ Keep a Changelog and the project uses semantic versioning.
 
 ## [Unreleased]
 
+### Added
+
+- The Details view gains a server-rendered tag overview: one row per tag with
+  the executed scenario, failed and skipped counts, sorted by failed count then
+  scenario count and capped at 50 rows with the complete tag count when the cap
+  hides rows (B-059). It renders in the default, static and print forms, does not
+  react to the toolbar filter, and adds no panel when no rendered row carries a
+  tag. Report bytes change only for tagged runs; the summary, CI, email and
+  history bytes are unchanged.
+- `--capabilities` prints one deterministic schema-1 JSON document with the
+  version, Node range, accepted inputs, outputs, summary schema, locales, limits,
+  defaults and exit codes, each sourced from its single source and under
+  4,096 bytes. `--manifest <file>` writes a schema-1 run manifest with the
+  status, counts, attachments, skipped-attachment count, the artifacts written
+  before it and the first 10 failures; it is written last, atomically as `0600`,
+  uses relative paths with the documented cross-drive fallback, and alone
+  satisfies the at-least-one-output rule. The new
+  `docs/AGENT-SNIPPET.md` ships in the package and is linked from `llms.txt`
+  (B-062, B-063, B-064). The summary schema, report, PDF, email and CI bytes are
+  unchanged.
+
 ### Changed
 
 - The quality gate compiles with eleven strict TypeScript checks in two
@@ -28,9 +49,9 @@ Keep a Changelog and the project uses semantic versioning.
 - The repository enforces LF checkout line endings.
 - `npm run package:check` builds, packs once and checks that exact tarball: the
   required, unexpected and forbidden manifest paths, `publint --strict` and
-  `attw` with the node16 profile. `docs/README.md` is explicit in `files`, so npm 10 and npm 12
-  both pack 81 entries. It runs in the CI package job and before the staged
-  publish.
+  `attw` with the node16 profile. `docs/README.md` is explicit in `files`, so
+  npm 10 and npm 12 pack the same entries. It runs in the CI package job and
+  before the staged publish.
 - The release publishes the tarball it checked: `npm audit signatures`, a
   pinned npm 12.2.3, one `TOLKIRA_PACK_DIR=/tmp/pack` build, the CLI smoke on
   `tolkira-<version>.tgz`, then `npm stage publish` on that file. No step packs

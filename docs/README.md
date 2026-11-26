@@ -16,7 +16,8 @@ Start here for product, architecture, compatibility and agent-facing docs.
 - [Email summary](EMAIL.md) — opt-in HTML mail body, CLI/API, privacy and CI mail steps.
 - [PDF export](PDF.md) - opt-in Playwright Chromium PDF, install, `--pdf-timeout`, CLI/API and limits.
 - [Drop-in host validation](DROP-IN-VALIDATION.md) — real host projects for releases and major adapter/report changes.
-- [Agent interface](AGENT-INTERFACE.md) — JSON summary schema and CLI contract.
+- [Agent interface](AGENT-INTERFACE.md) — JSON summary schema, capabilities, manifest and CLI contract.
+- [Agent snippet](AGENT-SNIPPET.md) — copy-paste block for an `AGENTS.md`, a skill or a tool description.
 - [Glossary](../GLOSSARY.md) — shared terms for the model, report and agents.
 - [Contributing](../CONTRIBUTING.md) — local gate, commit hygiene and the
   release checklist.

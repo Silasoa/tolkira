@@ -4,9 +4,11 @@
 > and Playwright JSON into one self-contained, interactive HTML report or a
 > script-free `--static` report, plus an optional HTML email summary and an
 > optional Chromium PDF, and prints a stable JSON summary for CI and AI agents.
-> Opt-in aggregate history (`--history`, `--history-limit`) adds Trends, and a
-> two-run `--baseline` comparison diffs an earlier schema-2 summary. It requires
-> Node.js 22 or newer and runs offline with no server, CDN or telemetry.
+> `--capabilities` prints the installed surface and `--manifest` records the
+> run's files and first failures. Opt-in aggregate history (`--history`,
+> `--history-limit`) adds Trends, and a two-run `--baseline` comparison diffs an
+> earlier schema-2 summary. It requires Node.js 22 or newer and runs offline with
+> no server, CDN or telemetry.
 
 Package: https://www.npmjs.com/package/tolkira
 
@@ -19,7 +21,9 @@ License: MIT
 - [README](https://github.com/Silasoa/tolkira/blob/main/README.md): install,
   quick start, migration from cucumber-html-reporter and MCHR, decision matrix.
 - [Agent interface](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md):
-  CLI, API, JSON summary schema 2 and exit codes.
+  CLI, API, JSON summary schema 2, capabilities, manifest and exit codes.
+- [Agent snippet](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-SNIPPET.md):
+  copy-paste block for an `AGENTS.md`, a skill or a tool description.
 - [CI output](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md):
   GitHub and Azure annotations, Jenkins HTML Publisher, sharded reports,
   GitLab and step summaries, caps and exit codes.
@@ -49,6 +53,9 @@ License: MIT
 - Exit code 0 means the report was generated, not that the tests passed. Read
   `status` and `counts` from the summary.
 - Check `scenarios[].executed` before treating a scenario status as an outcome.
+- Use `tolkira --capabilities` for the installed inputs, outputs, limits and exit
+  codes, and `--manifest run.json` for the run's status, counts, written files
+  and first 10 failures; the manifest can be the only output.
 - Use `tolkira <inputs> --ci github` for GitHub annotations on stdout,
   `--ci azure` for Azure DevOps logging commands, or `--ci markdown` for a step
   summary or GitLab file. Messages are not redacted.

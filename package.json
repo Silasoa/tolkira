@@ -66,6 +66,7 @@
     "SECURITY.md",
     "docs/README.md",
     "docs/AGENT-INTERFACE.md",
+    "docs/AGENT-SNIPPET.md",
     "docs/CI.md",
     "docs/COMPATIBILITY.md",
     "docs/CUCUMBER-COMPATIBILITY.md",

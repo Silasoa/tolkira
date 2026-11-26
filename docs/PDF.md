@@ -88,7 +88,8 @@ no logo or Trends because `--logo` and `--history` require `--out`.
 ## CLI contract
 
 `--pdf` is another output, not a mode. It composes with `--out`, `--email`,
-`--json`, `--ci`/`--ci-out` and `--history`, and needs at least one input:
+`--json`, `--ci`/`--ci-out`, `--history` and `--manifest`, and needs at least one
+input:
 
 ```shell
 tolkira test-results/ --out report.html --pdf report.pdf
@@ -98,8 +99,8 @@ tolkira test-results/ --out report.html --pdf report.pdf --locale de
 tolkira test-results/ --pdf report.pdf --pdf-timeout 600000
 ```
 
-- At least one of `--out`, `--pdf`, `--json`, `--ci` or `--email` is required,
-  and `--pdf` needs a non-empty file path.
+- At least one of `--out`, `--pdf`, `--json`, `--ci`, `--email` or `--manifest`
+  is required, and `--pdf` needs a non-empty file path.
 - `--locale` is accepted with `--pdf` even without `--out` or `--email`. The PDF
   follows the report locale; the CLI, JSON and CI text stay English.
 - `--accent` applies to the in-memory report HTML used for the PDF.
@@ -108,14 +109,14 @@ tolkira test-results/ --pdf report.pdf --pdf-timeout 600000
 - `--pdf-timeout <ms>` overrides the render deadline. It requires `--pdf`,
   accepts a positive integer up to `2147483647` and rejects `0`, negative,
   fractional, non-numeric and leading-zero values with exit 2.
-- The write order is **report → PDF → email → history → `--ci-out` → stdout**.
-  The PDF is written before the email that names it, so a PDF failure exits 1,
-  names the PDF path, keeps an already written report and skips the email,
-  history, `--ci-out` and stdout. No partial PDF remains.
+- The write order is **report → PDF → email → history → `--ci-out` → manifest →
+  stdout**. The PDF is written before the email that names it, so a PDF failure
+  exits 1, names the PDF path, keeps an already written report and skips the
+  email, history, `--ci-out`, manifest and stdout. No partial PDF remains.
 - The PDF path is validated like the other outputs: it must not equal an input,
-  the logo, `--out`, `--ci-out`, `--history` or `--email`, and must not lie
-  inside an input directory. Paths are canonicalized, and Windows/macOS compare
-  case-insensitively. A collision exits 2 and writes nothing.
+  the logo, `--out`, `--ci-out`, `--history`, `--email` or `--manifest`, and must
+  not lie inside an input directory. Paths are canonicalized, and Windows/macOS
+  compare case-insensitively. A collision exits 2 and writes nothing.
 - `PDF written to <path>` is printed only when stdout is free. With `--json`
   (including `--json --ci-out`) or `--ci` on stdout, the machine bytes are
   unchanged and the PDF line is suppressed. With only `--ci-out` and no
@@ -200,8 +201,9 @@ Then: npx playwright-core install chromium-headless-shell
 A project-local Tolkira install is recommended. Or omit --pdf.
 ```
 
-An already written report stays. The email, history, `--ci-out` and stdout
-outputs are skipped because the PDF comes first; no temporary PDF remains.
+An already written report stays. The email, history, `--ci-out`, manifest and
+stdout outputs are skipped because the PDF comes first; no temporary PDF
+remains.
 
 ## CI example
 

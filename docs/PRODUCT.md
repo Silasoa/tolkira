@@ -88,6 +88,8 @@ it. The gap is the combination.
 - A "Needs attention" index with counts and links into the collapsed detail.
 - Feature rows with passed/attempted counts and proportion bars.
 - Feature-by-status matrix in Details.
+- Tag overview in Details: executed scenario, failed and skipped counts per
+  tag, failing tags first and capped at 50 rows.
 - Source strip for multi-file runs with real provenance.
 - Batched CLI edge fixes from the 0.1.2 audit.
 
@@ -176,9 +178,10 @@ it. The gap is the combination.
   Playwright Chromium: A4 portrait, 12 mm print CSS margins, light palette,
   fitted tables, no header/footer/URL/page numbers, Chromium-only; Letter/custom
   paper is not exposed. `--pdf-timeout <ms>` overrides the five-minute render
-  deadline. It composes with the report, email, history, JSON and CI outputs and
-  follows the report locale; a fresh page means no CLI filter state. The write
-  order is report → PDF → email → history → `--ci-out` → stdout. A missing engine
+  deadline. It composes with the report, email, history, JSON, CI and manifest
+  outputs and follows the report locale; a fresh page means no CLI filter state.
+  The write order is report → PDF → email → history → `--ci-out` → manifest →
+  stdout. A missing engine
   exits 1 with the install command. The PDF-only route has no logo or Trends
   (`--logo`/`--history` require `--out`). The default install and runtime
   dependency surface are unchanged; the package gains the PDF documentation. See

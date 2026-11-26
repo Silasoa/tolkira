@@ -199,8 +199,8 @@ not a claim of deletion.
 A baseline needs a surface that shows it: `--out`, `--pdf`, `--json` or
 `--ci markdown`. `--email` alone, `--ci github` alone and `--ci azure` alone are
 usage errors. The baseline path must not collide with an input, the logo,
-`--out`, `--pdf`, `--email`, `--history`, `--ci-out` or a path inside an input
-directory; a collision exits 2 before any read. A missing, unreadable,
+`--out`, `--pdf`, `--email`, `--history`, `--ci-out`, `--manifest` or a path
+inside an input directory; a collision exits 2 before any read. A missing, unreadable,
 non-regular, invalid or wrong-schema baseline exits 1 and writes nothing. The
 cap is 10 MiB (10,485,760 bytes); a summary larger than that cannot be a
 baseline.
@@ -382,18 +382,21 @@ file:
 
 `--ci-out` exists only for `--ci markdown`; GitHub and Azure annotations always
 own stdout, so `--ci azure --ci-out` is a usage error. A failed test run still
-exits 0 in every row.
+exits 0 in every row. `--manifest` adds no row: it writes its file last and
+prints `Manifest written to ...` only when stdout is free, so the JSON and CI
+bytes are unchanged.
 
 The human confirmation lines (`Report written to ...`,
-`PDF written to ...`, `Email written to ...`) are suppressed whenever CI text or
-the JSON summary owns stdout, so annotations, Markdown and JSON are never mixed
-with other output. `--email` and `--pdf` write their files whenever the command
-is accepted and change neither the CI text nor the JSON bytes. Their own
-confirmations appear only when stdout is free; `--json --ci-out` suppresses the
-PDF line too. The PDF is written after the report and before the email, history
-and CI file, so a PDF failure keeps the report and skips the later outputs;
-`PDF written to` appears between the report and email lines. `--pdf-timeout`
-overrides the PDF render deadline without changing any CI output.
+`PDF written to ...`, `Email written to ...` and `Manifest written to ...`) are
+suppressed whenever CI text or the JSON summary owns stdout, so annotations,
+Markdown and JSON are never mixed with other output. `--email`, `--pdf` and
+`--manifest` write their files whenever the command is accepted and change
+neither the CI text nor the JSON bytes. Their own confirmations appear only when
+stdout is free; `--json --ci-out` suppresses the PDF line too. The PDF is
+written after the report and before the email, history, CI file and manifest, so
+a PDF failure keeps the report and skips the later outputs; `PDF written to`
+appears between the report and email lines. `--pdf-timeout` overrides the PDF
+render deadline without changing any CI output.
 
 `--history-limit <n>` is orthogonal to the stdout rows: it needs `--history`,
 accepts 1 to 365 (default 30) and changes only how many aggregate runs are read,
@@ -407,8 +410,8 @@ early input warning is written on any run that resolves large inputs, including
 `--json` and `--ci`-only runs, and stays on stderr.
 
 `--ci-out` must not overwrite an input file, the logo, the `--out` file, the
-`--pdf` file or the
-`--email` file. The check resolves each path through its nearest existing
+`--pdf` file, the `--email` file or the `--manifest` file. The check resolves
+each path through its nearest existing
 ancestor, so a symlinked or junctioned directory cannot hide a target that does
 not exist yet, and it treats paths as the same file regardless of case on Windows
 and macOS. It runs before report generation, so a rejected combination writes

@@ -29,8 +29,8 @@ tolkira test-results/ --email email.html --locale de
 ## CLI and API
 
 `--email` is an output like `--out`, not a mode. It composes with `--out`,
-`--json`, `--ci`, `--ci-out` and `--pdf`, alone or together; `--ci-out` still
-requires `--ci markdown`. At least one input and a non-empty email path are
+`--json`, `--ci`, `--ci-out`, `--manifest` and `--pdf`, alone or together;
+`--ci-out` still requires `--ci markdown`. At least one input and a non-empty email path are
 required. The
 CLI confirms the file with `Email written to <path>` only when stdout is free
 (the email alone or with `--out`); with `--json` or `--ci` on stdout, the machine
@@ -48,14 +48,15 @@ accepts `--locale`. With only `--json` or `--ci`, it remains a usage
 error, and the CLI, JSON and CI text stay English.
 
 The email path is validated like the other outputs. It must not be empty, must
-not collide with an input, the logo, `--out`, `--ci-out`, `--history` or `--pdf`
-(resolved and case-aware on Windows and macOS), and must not be written inside an
-input directory, even when the target does not exist yet or is reached through a
-junction or symlink. It is written atomically after the report and the PDF. The
-order is
-report, PDF, email, history, `--ci-out`, stdout. On an email write failure the CLI
-exits 1, names the email path, keeps an already written report, skips the history
-and `--ci-out`, prints no JSON/CI stdout and leaves no temporary file behind. The
+not collide with an input, the logo, `--out`, `--ci-out`, `--history`, `--pdf` or
+`--manifest` (resolved and case-aware on Windows and macOS), and must not be
+written inside an input directory, even when the target does not exist yet or is
+reached through a junction or symlink. It is written atomically after the report
+and the PDF. The order is
+report, PDF, email, history, `--ci-out`, manifest, stdout. On an email write
+failure the CLI exits 1, names the email path, keeps an already written report,
+skips the history, `--ci-out` and `--manifest`, prints no JSON/CI stdout and
+leaves no temporary file behind. The
 `Email written to` confirmation strips control characters from the path.
 
 With `--pdf` the email note names the full artifact that exists: the `--out`

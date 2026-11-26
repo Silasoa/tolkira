@@ -79,6 +79,12 @@ tolkira test-results/ --out report.html --email email.html
 
 # Print an A4 PDF (needs the optional Playwright engine; see below)
 tolkira test-results/ --out report.html --pdf report.pdf
+
+# Print the installed machine surface as one JSON document
+tolkira --capabilities
+
+# Write a small run manifest beside the report
+tolkira test-results/ --out report.html --manifest run.json
 ```
 
 `--meta` values that are absolute `http` or `https` URLs render as links in the
@@ -160,9 +166,10 @@ does not print video/audio, and `--logo`/`--history` still require `--out`.
 `--pdf-timeout <ms>` overrides the five-minute render deadline. The optional
 engine is a dynamic import resolved beside Tolkira or in the project: the default
 install and runtime dependency surface, report, JSON and CI bytes are unchanged.
-The write order is report → PDF → email → history → `--ci-out` → stdout, so a PDF
-failure exits 1, keeps the report and skips later outputs. Common HTML reporters
-ship no PDF export, and Allure exports CSV; Playwright/CI teams already print
+The write order is report → PDF → email → history → `--ci-out` → manifest →
+stdout, so a PDF failure exits 1, keeps the report and skips later outputs.
+Common HTML reporters ship no PDF export, and Allure exports CSV; Playwright/CI
+teams already print
 through headless Chromium, which is the same engine route. See
 [PDF export](docs/PDF.md) for the install, API, costs and limits.
 
@@ -175,6 +182,11 @@ and the JSON summary:
 npm install --save-dev tolkira
 npx tolkira test-results/ --out report.html --email email.html --title "CI run" --json > summary.json
 ```
+
+`--capabilities` prints the installed inputs, outputs, limits and exit codes as
+one schema-1 JSON document, without an input. `--manifest run.json` adds a
+schema-1 manifest with the status, counts, files written before it and the first
+10 failures; it can be the only output.
 
 GitHub Actions step:
 
@@ -260,7 +272,9 @@ outcome. Upload report.html as the human-facing artifact.
 ```
 
 See [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md)
-for the full schema and exit codes.
+for the full schema and exit codes. A longer, version-agnostic copy-paste block
+for an `AGENTS.md`, a skill or a tool description is in
+[`docs/AGENT-SNIPPET.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-SNIPPET.md).
 
 ### CI annotations and step summaries
 
@@ -289,8 +303,9 @@ npx tolkira test-results/ --out report.html --ci markdown --ci-out tolkira-summa
 ```
 
 `--ci github` and `--ci azure` write to stdout only; `--ci-out` requires
-`--ci markdown`, is written atomically and must not overwrite an input, the logo
-or `--out`. Exit codes do not change: a failed test run still exits 0. See
+`--ci markdown`, is written atomically and must not overwrite an input, the logo,
+`--out`, `--email` or `--manifest`. Exit codes do not change: a failed test run
+still exits 0. See
 [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) for the
 GitHub, Azure DevOps, Jenkins, sharded and GitLab recipes, output caps and the
 unredacted-message warning.
@@ -339,7 +354,9 @@ unredacted-message warning.
 - **Copy failure.** Copy a failed scenario's feature, failed step and error as
   plain text for a ticket or an agent.
 - **A Details view when you need it.** Status distribution, a feature-by-status
-  matrix, run metadata (absolute http(s) values become links), the Run
+  matrix, a tag overview (executed scenario, failed and skipped counts per tag,
+  failing tags first, capped at 50 rows with the complete tag count), run
+  metadata (absolute http(s) values become links), the Run
   environment (producer, runtime, OS, CPU, protocol) and size contributors: the
   unique report files and their total on-disk bytes, decoded attachment bytes,
   the exact report HTML bytes (at 1 MiB and above, paired with one-decimal MB in
@@ -377,6 +394,8 @@ unredacted-message warning.
 - **A stable summary for agents.** `--json` and `summarizeReport()` return a
   versioned schema with counts, durations, scenarios, steps and failure
   messages. Messages outline rows carry an `example` coordinate.
+  `--capabilities` describes the installed surface and `--manifest` records the
+  run's files and first failures.
 - **Accessible by default.** Keyboard navigation, visible focus, text status
   labels as well as colour, dark mode and 200% zoom reflow. Accessibility is an
   ongoing effort; feedback is welcome.
@@ -657,7 +676,7 @@ for the mapping.
   future option.
 
 See [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md)
-for the dated limitations table (last verified 2026-11-24).
+for the dated limitations table (last verified 2026-11-26).
 
 ## Documentation
 
@@ -665,6 +684,8 @@ for the dated limitations table (last verified 2026-11-24).
 - [`llms.txt`](https://github.com/Silasoa/tolkira/blob/main/llms.txt) — short entry point for AI agents.
 - [`docs/AGENT-INTERFACE.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-INTERFACE.md) — JSON schema, CLI
   contract and exit codes.
+- [`docs/AGENT-SNIPPET.md`](https://github.com/Silasoa/tolkira/blob/main/docs/AGENT-SNIPPET.md) — copy-paste block for
+  an `AGENTS.md`, a skill or a tool description.
 - [`docs/CI.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CI.md) — GitHub and Azure annotations, Jenkins
   HTML Publisher, sharded reports, GitLab and step-summary output.
 - [`docs/EMAIL.md`](https://github.com/Silasoa/tolkira/blob/main/docs/EMAIL.md) — opt-in HTML email summary, CLI/API and
@@ -672,7 +693,7 @@ for the dated limitations table (last verified 2026-11-24).
 - [`docs/PDF.md`](https://github.com/Silasoa/tolkira/blob/main/docs/PDF.md) — opt-in PDF export, engine install, CLI/API,
   write order and limits.
 - [`docs/LIMITATIONS.md`](https://github.com/Silasoa/tolkira/blob/main/docs/LIMITATIONS.md) — dated limitations table
-  (last verified 2026-11-24).
+  (last verified 2026-11-26).
 - [`docs/CUCUMBER-COMPATIBILITY.md`](https://github.com/Silasoa/tolkira/blob/main/docs/CUCUMBER-COMPATIBILITY.md) — tested
   Cucumber producers and versions.
 - [`docs/JUNIT-XML.md`](https://github.com/Silasoa/tolkira/blob/main/docs/JUNIT-XML.md) — JUnit basic-mode mapping and

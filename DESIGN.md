@@ -113,7 +113,8 @@ describe the viewport, not the font.
 | Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |
 | Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
-| Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Run environment / Custom metadata blocks, agent summary |
+| Details | `.analysis` | Feature-by-status matrix, status distribution, tag overview, Run / Run environment / Custom metadata blocks, agent summary |
+| Tag overview | `.tagTable`, `.tableWrap` | Details panel after the analysis grid and before the run attachments: one row per tag with executed scenario, failed and skipped counts; failing tags first, then scenario count, then fixed code-unit order; a 50-row cap with the complete tag count when it hides rows; full width, scrolls inside the panel at 320 px, repeats its header in print and does not react to the toolbar filter |
 | Trends | `.trendsTable`, `.tableWrap`, `.spark` | Opt-in third view with two or more history runs: newest-first table of recorded time, title, status, passed/failed/skipped counts, scenario total, attempted pass rate, flaky count, flaky share and duration, plus a decorative pass-rate sparkline oldest to newest and a note on the tag-or-retry proxy. The newest row is marked `Current`; old runs without a `flaky` count show `—`; the table sits in a labelled, focusable region, spans the panel, keeps readable numeric cells behind a horizontal scroll at 320 px and prints with fixed columns; the sparkline is `aria-hidden` and skips runs without attempts |
 
 ### Renderer modules
@@ -129,6 +130,8 @@ describe the viewport, not the font.
   columns and the proxy note, and the pass-rate sparkline.
 - `triage.ts` - needs-attention index and source strip.
 - `matrix.ts` - feature-by-status matrix.
+- `tags.ts` - tag overview row builder (dedupe, executed-only counts, sort, cap)
+  and the panel, with `TAG_TABLE_CSS` injected only when it renders.
 - `attachments.ts` - image, text, video, log and file rendering.
 - `ci.ts` - CI header and detail rows.
 - `format.ts` - status, duration, date, bar, count, health and tag helpers.
@@ -139,8 +142,10 @@ describe the viewport, not the font.
   every `Intl.PluralRules` category and numeric `#` parameters.
 
 `report.ts`, `details.ts` and `trends.ts` are peers, as are `triage.ts`,
-`matrix.ts`, `attachments.ts` and `ci.ts`; a module imports only from a lower
-layer.
+`matrix.ts`, `tags.ts`, `attachments.ts` and `ci.ts`; a module imports only from
+a lower layer. `src/capabilities.ts` owns the schema-1 capabilities document and
+`src/artifacts.ts` owns the run manifest builder and artifact ledger; both are
+CLI-side and do not join the renderer layer order.
 
 ### Localisation
 

@@ -42,6 +42,20 @@ the same `ReportSummary`: no logo, scripts, images, network or SMTP, one 600 px
 table with inline styles. It stays opt-in; without the flag the one-file report
 default is unchanged.
 
+An opt-in run manifest (`--manifest <file>`) is the run's trail:
+`src/artifacts.ts` copies the summary status, counts and attachments, adds the
+skipped-attachment count and the artifacts written before it, and lists the first
+10 failed rows. The CLI writes it last, after report, PDF, email, history and
+`--ci-out`, through the same atomic `0600` writer; it stays opt-in and adds no
+file to a run without the flag. `--manifest` alone is a valid summary-only run.
+
+`--capabilities` is the discoverability door: `src/capabilities.ts` prints one
+schema-1 JSON document with the installed version, Node range, accepted inputs,
+outputs, summary schema, locales, limits, defaults and exit codes. Limits and
+schema values come from the modules that enforce them, so the document cannot
+drift from the runtime; the version and Node range are pinned to `package.json`
+by tests. It takes no input and no other option.
+
 ## Components
 
 ### `src/input/messages`
@@ -126,8 +140,10 @@ and is covered by real producer fixtures.
   while the preset chip state is active.
   The run percentage and feature pass text use attempted (non-skipped)
   scenarios. Below 560 px the triage collapses and the source strip hides.
-- Details tab: feature-by-status matrix, status distribution, environment and
-  the agent summary.
+- Details tab: feature-by-status matrix, status distribution, tag overview,
+  environment and the agent summary. The tag overview counts executed scenario
+  rows per tag, sorts failing tags first and caps at 50 rows with the complete
+  tag count; it is server-rendered and ignores the toolbar filter.
 - Trends tab (only with two or more history runs): newest-first table of the
   recorded runs with attempted pass rate, flaky count and flaky share, and a
   decorative pass-rate sparkline oldest to newest. One `passRate` helper in
@@ -157,16 +173,17 @@ and is covered by real producer fixtures.
   0.6.0 report.
 - Renderer module map (top to bottom; a module imports only lower layers, and
   same-layer modules never import each other — `report.ts`, `details.ts` and
-  `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `attachments.ts` and
-  `ci.ts`): `html.ts` owns the shell, CSP and `renderHtml` assembly; `report.ts`
-  owns the report header, toolbar, features, scenarios, steps, hooks and
-  feature-row chrome; `details.ts` owns the Details header, run/environment
-  panels and analysis layout; `trends.ts` owns the Trends header, the
-  recorded-runs table and the sparkline; `triage.ts` owns the needs-attention
-  index and source strip; `matrix.ts` owns the feature-by-status matrix;
-  `attachments.ts` owns image/text/video/log/file rendering; `ci.ts` owns the CI
-  header and detail rows; `baseline.ts` owns the comparison panel and the row
-  badges, and joins the precomputed change map by pickle id; `format.ts` owns
+  `trends.ts` are peers, as are `triage.ts`, `matrix.ts`, `tags.ts`,
+  `attachments.ts` and `ci.ts`): `html.ts` owns the shell, CSP and `renderHtml`
+  assembly; `report.ts` owns the report header, toolbar, features, scenarios,
+  steps, hooks and feature-row chrome; `details.ts` owns the Details header,
+  run/environment panels and analysis layout; `trends.ts` owns the Trends header,
+  the recorded-runs table and the sparkline; `triage.ts` owns the
+  needs-attention index and source strip; `matrix.ts` owns the
+  feature-by-status matrix; `tags.ts` owns the tag overview rows, sort/cap and
+  panel; `attachments.ts` owns image/text/video/log/file rendering; `ci.ts` owns
+  the CI header and detail rows; `baseline.ts` owns the comparison panel and the
+  row badges, and joins the precomputed change map by pickle id; `format.ts` owns
   status, duration, date, bar, count, health, pass-rate and tag helpers;
   `types.ts` owns `RenderOptions` (including the optional `history` list,
   `static` flag and internal comparison), `DisplayStatus` and `OrderedFeature`.
@@ -389,12 +406,34 @@ and is covered by real producer fixtures.
 - The public `generateReport`, `renderReport` and `summarizeReport` stay
   path-based and resolve first; the resolved list is not a package type.
 
+### `src/capabilities`
+
+- Owns the schema-1 capabilities document that `--capabilities` prints: name,
+  version, Node range, accepted input kinds in detection order, outputs (the
+  `CiFormat` union and `--manifest` included), summary schema, locales, limits,
+  defaults and exit codes.
+- Limits and schema values come from the modules that enforce them; the version
+  and Node range are pinned to `package.json` by tests, and the input and output
+  lists are proven against the detector and the `CiFormat` union. The document
+  is deterministic, has no timestamp or local path and stays under 4,096 bytes.
+
+### `src/artifacts`
+
+- Owns the schema-1 run manifest: the summary status, counts and attachments,
+  the skipped-attachment count, the artifacts written before it and the first 10
+  failed rows with their display URI and optional example coordinate.
+- Relative paths are computed against the manifest file's directory and joined
+  with `/`; across Windows drives the path as given is the fallback. The builder
+  writes no file; the CLI validates the path, keeps the artifact ledger in write
+  order and writes the manifest last through the shared atomic `0600` writer.
+
 ### `src/cli`
 
 - `tolkira <input...> [--out <file>] [--static] [--pdf <file>]`
   `[--pdf-timeout <ms>] [--email <file>] [--json]`
   `[--ci github|azure|markdown] [--ci-out <file>] [--history <file>]`
-  `[--history-limit <n>] [--baseline <file>] [--locale <tag>] [--title <title>]`
+  `[--history-limit <n>] [--baseline <file>] [--manifest <file>]`
+  `[--capabilities] [--locale <tag>] [--title <title>]`
   `[--meta key=value] [--logo <file>] [--accent <hex>] [--max-size <mb>]`.
 - Auto-detects Messages and legacy JSON by content, not by file extension.
 - Directories are scanned for `.json`, `.jsonl` and `.ndjson`, then sniffed by
@@ -405,12 +444,12 @@ and is covered by real producer fixtures.
 - `--ci` may run without `--out`; `--ci-out` is a standalone atomic Markdown
   file and is rejected for GitHub and Azure annotations.
 - `--history` requires `--out`. It is validated like an output path (inputs,
-  logo, `--out`, `--pdf`, `--ci-out`, `--email`, `--baseline` and input
-  directories, even when missing), read once before generation and written after
-  the HTML. `--history-limit <n>` requires `--history` and accepts a decimal
-  integer from 1 to 365 (default 30); the same limit goes to read, generate and
-  write. A history read or write failure exits 1 and names the file; a written
-  HTML stays in place.
+  logo, `--out`, `--pdf`, `--ci-out`, `--email`, `--baseline`, `--manifest` and
+  input directories, even when missing), read once before generation and written
+  after the HTML. `--history-limit <n>` requires `--history` and accepts a
+  decimal integer from 1 to 365 (default 30); the same limit goes to read,
+  generate and write. A history read or write failure exits 1 and names the
+  file; a written HTML stays in place.
 - `--baseline <file>` reads one earlier schema-2 summary, needs `--out`,
   `--pdf`, `--json` or `--ci markdown`, and is validated against every input and
   output path before any read. A missing, unreadable, non-regular, oversized,
@@ -419,22 +458,34 @@ and is covered by real producer fixtures.
 - `--email` is an output: alone, with `--out`, `--json`, `--ci` or `--ci-out`
   (`--ci-out` still requires `--ci markdown`). It is validated like an output
   path and must not collide with an input, the logo, `--out`, `--ci-out`,
-  `--history` or `--pdf`, and must not be written inside an input directory.
-  `--title` sets the heading/suggested subject and `--accent` the top border,
-  even standalone. The order is report, PDF, email, history, `--ci-out`, stdout.
-  An email write failure exits 1, names the email path, keeps the report and
-  skips later outputs; no temporary file remains.
+  `--history`, `--pdf` or `--manifest`, and must not be written inside an input
+  directory. `--title` sets the heading/suggested subject and `--accent` the top
+  border, even standalone. The order is report, PDF, email, history, `--ci-out`,
+  manifest, stdout. An email write failure exits 1, names the email path, keeps
+  the report and skips later outputs; no temporary file remains.
 - `--pdf <file>` is an output and can be the only one; the report HTML is then
   generated in memory. It composes with `--out`, `--email`, `--json`, `--ci` and
   `--history`. `--pdf-timeout <ms>` requires `--pdf` and accepts a positive
   integer up to 2,147,483,647; the value is passed to `renderPdf` as
   `timeoutMs`. The PDF is written atomically after the report and before the
-  email; the path is validated against inputs, the logo, `--out`, `--ci-out`,
-  `--history`, `--email` and input directories. A render or write failure exits
-  1, names the PDF path, keeps the report and skips later outputs; no partial PDF
-  remains and a raw engine error is capped at one 500-character line. A missing
-  optional engine exits 1 with install guidance. `--logo` and `--history` still
-  require `--out`; the PDF-only route has no logo or Trends.
+  email, history, CI file and manifest; the path is validated against inputs,
+  the logo, `--out`, `--ci-out`, `--history`, `--email`, `--manifest` and input
+  directories. A
+  render or write failure exits 1, names the PDF path, keeps the report and
+  skips later outputs; no partial PDF remains and a raw engine error is capped at
+  one 500-character line. A missing optional engine exits 1 with install
+  guidance. `--logo` and `--history` still require `--out`; the PDF-only route
+  has no logo or Trends.
+- `--manifest <file>` writes the schema-1 run manifest and can be the only
+  output, so it satisfies the at-least-one-output check alone. It is validated
+  against inputs, the logo, `--out`, `--pdf`, `--email`, `--history`, `--ci-out`,
+  `--baseline` and input directories before any write; an empty path exits 2.
+  It is written last, after `--ci-out`, through the shared atomic `0600` writer.
+  A write failure exits 1, names the manifest path, keeps earlier outputs, skips
+  later stdout and leaves no partial file.
+- `--capabilities` prints the schema-1 capabilities document and exits 0. It is
+  handled after `--help`/`--version` and before every input or output check; an
+  input or any other option exits 2 with the usage text and writes nothing.
 - `--locale <tag>` requires `--out`, `--pdf` or `--email`, defaults to `en` and
   validates exact then primary-subtag matches (`de-AT` -> `de`) before
   generation. Unknown or empty tags exit 2 with `en, de`. The requested canonical

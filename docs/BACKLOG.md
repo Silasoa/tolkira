@@ -59,10 +59,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-056 | Performance | P3 | At 5,000 scenarios the single-string renderer peaks at 310 MiB RSS and the report needs 1.80 s to finish loading (241,785 DOM nodes), while the official formatter peaks at 77 MiB and loads in 0.67 s; generation (604 ms) and output (10.8 MB, the smallest of the four) are competitive | Planned in the 0.7 performance pass: profile the 5,000 and 10,000 scenario render, prototype a chunked or streaming writer, and decide whether the single-string renderer stays; re-run `scripts/bench-compare.mjs` with the recorded host. A CI host or user hitting the memory or load limit moves it earlier. | - |
 | B-057 | Quality | P3 | The architecture review (`docs/research/architecture-2026-11.md`) rates 7 of 14 areas weak: status vocabulary in 8 modules, diverging sidecar readers, a 779-line CLI with a 461-line `runCli` and 38 `return 2` sites, a 14-field `RenderOptions` with double sanitising, path containment in 4 places and 12 files over 400 lines; the ponytail audit adds dead model fields and the `phase` export, copied `excerpt`/`readBounded` helpers, and unused `testRunFinished.success`; a second architecture pass (`docs/research/architecture-session-2026-11.md`) adds the server/browser filter-decision seam and the one ICU message parser, and refines the attachment ledger | After 0.6.1, one change at a time in the reviewed order: status vocabulary (S), durable sidecar reader (M), CLI plan/execute (M), report pipeline seam (M), input pipeline (L); never bundle a refactor with a behaviour or markup change. Fold the small cleanups into the sidecar and package steps; add the filter seam and message-format leaf after the input pipeline. | - |
 | B-058 | Security | P2 | A Playwright path attachment can embed any regular file under the input file's folder or the process working directory, because the report input controls the path; 0.6.1 documents the trust model and keeps the boundaries, and the audit rates it P1 | When report input can come from an untrusted source (a shared artifact, a fork PR) or a user asks for an attachment root allowlist; then add an explicit root/allowlist option as a 0.7 feature, never as a silent patch change. The 0.6.1 docs state the consequence. | - |
-| B-059 | Parity | P3 | The parity report (`docs/research/parity-2026-11.md`) finds no P0; cucumber-reporting has a tag overview with counts, while Tolkira has only the tag filter | Scoped in `openspec/changes/0.7-tag-overview`: a Details tag overview with executed scenario, failed and skipped counts, failing tags first and a 50-row cap. | - |
-| B-062 | Agent | P3 | There is no `capabilities --json`; an agent must scrape `--help` for the version, inputs, outputs, limits, schema and exit codes | Scoped in `openspec/changes/0.7-agent-surface`: `tolkira --capabilities` prints one schema-1 JSON document sourced from the enforcing constants. | - |
-| B-063 | Agent | P3 | A run leaves no artifact manifest or index; an agent must guess which files exist, their status, the first failures and the paths | 0.7: opt-in `--manifest` (schema-1 JSON: status, counts, warnings, artifacts, first failures) scoped in `openspec/changes/0.7-agent-surface`; the linked Markdown index moved to B-077. | - |
-| B-064 | Agent | P3 | `llms.txt` has no copy-paste agent block or skill link; an agent must assemble the usage rules itself | Scoped in `openspec/changes/0.7-agent-surface`: `docs/AGENT-SNIPPET.md`, linked from `llms.txt`, the docs map and the agent interface. | - |
 | B-065 | CLI | P3 | An `--out` file inside a scanned input directory with a supported extension is picked up as an input on the next run and blocks it | When the path policy is revisited with B-058; then exclude the explicit output paths from the input scan or fail early with a clear message, and add a directory-scan test. | - |
 | B-066 | Report | P3 | `src/render/html.ts:65-84` emits the German layout block for every non-English locale (`lang.split('-')[0] !== 'en'`), so a third locale would inherit German-only rules | When a third locale is added; then move language layout into the stylesheet pipeline and gate it by `:lang(de)` only, with a locale-CSS test for a non-English, non-German locale. | - |
 | B-067 | Security | P3 | The display-URI guarantee is one decode pass and a fixed home-segment rule, so a double-encoded separator or home segment, a `..` that cancels the home root, an encoded authority, an adjacent `home/home` pair (the second segment is taken for the user) or a Windows trailing space/dot after `Users` can keep a name-like segment on the Messages surfaces; a path of many malformed `%` segments costs about 0.8 s per MB per `displayUri` call (still linear, bounded by the 100 MB input cap) | When a producer emits double-encoded or Windows-canonicalised URIs, or a user/CI reports a name inside a display URI; then decode with a bounded loop and a cap, compare canonical Windows home names, and add the producer fixture. HTML keeps attachment and log bodies verbatim as evidence (never scrub); the compat sidecar keeps raw URIs because the old reporter needs them. | - |
@@ -136,6 +132,23 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-059 Tag overview** — resolved on 2026-11-26 in `0.7-tag-overview`: the
+  Details view renders a server-rendered tag table with executed scenario,
+  failed and skipped counts, failing tags first, a 50-row cap with the complete
+  tag count, default/static/print forms and no reaction to the toolbar filter.
+- **B-062 Capabilities document** — resolved on 2026-11-26 in
+  `0.7-agent-surface`: `tolkira --capabilities` prints one deterministic schema-1
+  JSON document under 4,096 bytes with the version, Node range, inputs, outputs,
+  summary schema, locales, limits, defaults and exit codes, each sourced from its
+  single source.
+- **B-063 Run manifest** — resolved on 2026-11-26 in `0.7-agent-surface`: opt-in
+  `--manifest <file>` writes a schema-1 manifest with status, counts,
+  attachments, warnings, artifacts in write order and the first 10 failures, last
+  before stdout, atomically as `0600`, alone satisfying the at-least-one-output
+  rule; the linked Markdown index stays B-077.
+- **B-064 Agent snippet** — resolved on 2026-11-26 in `0.7-agent-surface`:
+  `docs/AGENT-SNIPPET.md` ships in the package and is linked from `llms.txt`,
+  `docs/README.md` and the agent interface.
 - **B-060 Absolute scenario start** — resolved on 2026-11-26: the scenario
   detail already renders `Started: DD.MM.YYYY, HH:MM UTC` from the Messages
   `testCaseStarted.timestamp` and Playwright start times (`report.startedMeta`

@@ -1,6 +1,6 @@
 # Tolkira for agents
 
-Tolkira produces five things from the same input:
+Tolkira produces six things from the same input:
 
 - a self-contained HTML report for humans;
 - a stable JSON summary for programs and AI agents;
@@ -8,11 +8,14 @@ Tolkira produces five things from the same input:
   Markdown summary;
 - an opt-in HTML email summary for a status mail or chat message;
 - an opt-in PDF print archive when the optional Playwright Chromium engine is
-  installed.
+  installed;
+- an opt-in JSON manifest that lists the files the run wrote and the first
+  failures.
 
 The HTML report is the artifact. The JSON summary is the interface. The CI text
 is a presentation of that same summary. Do not parse the HTML to decide whether
-a test run passed.
+a test run passed. For a copy-paste block for an `AGENTS.md`, a skill or a tool
+description, see [`AGENT-SNIPPET.md`](AGENT-SNIPPET.md).
 
 ## CLI
 
@@ -27,6 +30,16 @@ Generate only the summary, without writing HTML:
 ```shell
 tolkira test-results/ --json
 ```
+
+Discover the installed machine surface and write a run manifest:
+
+```shell
+tolkira --capabilities
+tolkira test-results/ --out report.html --manifest run.json
+```
+
+At least one of `--out`, `--pdf`, `--email`, `--json`, `--ci` or `--manifest`
+is required; `--manifest` alone is a valid summary-only run.
 
 `--json` writes exactly one JSON document to stdout. Warnings and errors go to
 stderr. Exit codes are about report generation, not test status:
@@ -45,7 +58,167 @@ A failed `--out` write exits 1 and reports
 `Cannot write CI output to <target> (<code>)`. The target is one-lined, the Node
 error code appears when present, no `.tmp` name or UUID appears, and no partial
 file remains. A failed report write writes no later output; a failed CI write
-keeps an already written report and skips later stdout.
+keeps an already written report, skips the manifest and writes no later stdout.
+
+## Capabilities
+
+`tolkira --capabilities` prints one schema-1 JSON document and exits 0. It takes
+no input and no other option: a positional input or any other flag exits 2 with
+`--capabilities takes no input and no other option; run tolkira --capabilities
+alone`, followed by the usage text, and nothing is read or written. `--help` and
+`--version` keep precedence.
+
+```json
+{
+  "schemaVersion": 1,
+  "name": "tolkira",
+  "version": "0.6.1",
+  "node": ">=22",
+  "inputs": [
+    "cucumber-legacy-json",
+    "cucumber-messages",
+    "junit-xml",
+    "playwright-json"
+  ],
+  "outputs": [
+    { "kind": "report", "flag": "--out" },
+    { "kind": "pdf", "flag": "--pdf" },
+    { "kind": "email", "flag": "--email" },
+    { "kind": "json-summary", "flag": "--json" },
+    { "kind": "ci-github", "flag": "--ci github" },
+    { "kind": "ci-azure", "flag": "--ci azure" },
+    { "kind": "ci-markdown", "flag": "--ci markdown", "fileFlag": "--ci-out" },
+    { "kind": "history", "flag": "--history" },
+    { "kind": "manifest", "flag": "--manifest" }
+  ],
+  "summarySchemaVersion": 2,
+  "locales": ["en", "de"],
+  "limits": {
+    "inputTotalBytes": 104857600,
+    "inputWarnBytes": 52428800,
+    "attachmentBytes": 52428800,
+    "totalAttachmentBytes": 104857600,
+    "baselineBytes": 10485760,
+    "historyBytes": 1048576,
+    "historyLimitMax": 365
+  },
+  "defaults": {
+    "reportWarnMb": 10,
+    "pdfTimeoutMs": 300000,
+    "historyLimit": 30
+  },
+  "exitCodes": {
+    "generated": 0,
+    "inputOrWriteFailure": 1,
+    "usage": 2
+  }
+}
+```
+
+- Top-level keys are exactly this order; each `outputs` entry has `kind`,
+  `flag` and, for markdown, `fileFlag`.
+- Every value has one source. Limits come from their enforcing modules;
+  `summarySchemaVersion` and `locales` come from their constants. `version` is
+  the running package version (`tolkira --version`) and `node` is the package's
+  Node range, both pinned to `package.json` by tests. `inputs` lists the four
+  accepted input kinds in detection order, each proven by a `detectInput`
+  fixture. `outputs` mirrors the `CiFormat` union and names `--ci-out` as the
+  file form of `ci-markdown`. `defaults` (`reportWarnMb`, `pdfTimeoutMs`,
+  `historyLimit`) are overridable option defaults, not caps.
+- The document is deterministic: no timestamp, cwd, environment value or
+  unbounded array. It stays under 4,096 bytes.
+- `--static` and the other modifiers are not enumerated in schema 1; `--help`
+  and this document own them. A future additive schema can add them.
+
+## Run manifest
+
+`tolkira <inputs> --manifest <file>` writes a schema-1 JSON manifest of the run.
+It is opt-in and adds no file to a run without the flag. `--manifest` alone
+satisfies the at-least-one-output rule, so a summary-only run is valid:
+
+```shell
+tolkira test-results/ --manifest run.json
+tolkira test-results/ --out report.html --json --manifest run.json
+```
+
+```json
+{
+  "schemaVersion": 1,
+  "tool": { "name": "tolkira", "version": "0.6.1" },
+  "status": "failed",
+  "counts": {
+    "features": 1,
+    "scenarios": {
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "pending": 0,
+      "undefined": 0,
+      "ambiguous": 0,
+      "unknown": 0
+    },
+    "steps": {
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "pending": 0,
+      "undefined": 0,
+      "ambiguous": 0,
+      "unknown": 0
+    }
+  },
+  "attachments": { "total": 1, "bytes": 68 },
+  "warnings": { "skippedAttachments": 0 },
+  "artifacts": [
+    { "kind": "report", "path": "report.html" },
+    { "kind": "ci-markdown", "path": "summary.md" }
+  ],
+  "failures": [
+    {
+      "feature": "Checkout",
+      "name": "pays by card",
+      "example": "#1.2",
+      "uri": "features/checkout.feature"
+    }
+  ]
+}
+```
+
+- Keys are in this order: `schemaVersion`, `tool`, `status`, `counts`,
+  `attachments`, `warnings`, `artifacts`, `failures`. `status`, `counts` and
+  `attachments` are the summary values copied as-is, so counts cover executed
+  rows only and every status key is present. `tool.version` is the running
+  package version.
+- `warnings.skippedAttachments` is the run's skipped-attachment count, whether
+  or not that CLI path prints the stderr warning. The summary-only path does not
+  print the skipped-attachment warning but still reports the true count; it is
+  `0` when nothing was skipped.
+- `failures` holds the first 10 failed scenario rows in summary order, with the
+  display `uri` and the outline `example` coordinate when the row has one.
+  `counts.scenarios.failed` carries the complete number. A failed run hook with
+  no failed scenario leaves `failures` empty while `status` stays `failed`; the
+  status and counts are authoritative.
+- `artifacts` lists only files written before the manifest, once each, in write
+  order: `report`, `pdf`, `email`, `history`, `ci-markdown`. The JSON summary on
+  stdout and the manifest itself are not artifacts. Each `path` is relative to
+  the manifest file's directory with `/` separators; when no relative path
+  exists, such as across Windows drives, the path as given is the fallback. It
+  never contains the cwd and never names an input.
+- The document has no timestamp, attachment content or second copy of the
+  scenario rows. It is deterministic for the same run and options.
+- The path must be non-empty and is validated like every other output: it must
+  not name an input, the logo, `--out`, `--pdf`, `--email`, `--history`,
+  `--ci-out` or `--baseline`, and must not sit inside an input directory even
+  when it does not exist. A collision or empty path exits 2 before any write.
+  The file uses the same atomic `0600` writer as the other outputs.
+- Write order is report → PDF → email → history → `--ci-out` → manifest →
+  stdout. The manifest is the last file written. On a write failure the CLI
+  exits 1 with `Cannot write manifest to <path>`, keeps earlier outputs, skips
+  all later stdout including `--json`/`--ci`, and leaves no partial file.
+  `Manifest written to <path>` appears only when stdout is free; with `--json`
+  or `--ci` on stdout, the machine bytes are unchanged.
 
 ## CI output
 
@@ -77,8 +250,8 @@ tolkira test-results/ --out report.html --ci markdown --ci-out summary.md
   suppressed. With `--ci-out`, the file receives the CI text and stdout keeps
   its normal confirmation; with `--json`, stdout stays JSON only.
 - `--ci-out` requires `--ci markdown`, is written atomically as a standalone
-  file, and must not overwrite an input, the logo, `--out` or the `--email`
-  file. To add to
+  file, and must not overwrite an input, the logo, `--out`, the `--email` file or
+  the `--manifest` file. To add to
   `$GITHUB_STEP_SUMMARY`, append stdout with `>>`; do not point `--ci-out` at a
   shared file.
 - Exit codes are unchanged. A failed test run still exits 0; invalid
@@ -127,10 +300,10 @@ tolkira test-results/ --ci markdown --baseline previous.json
   a usage error (exit 2). GitHub and Azure annotation bytes do not change; the
   email stays current-run only.
 - A baseline path that names an input, the logo, `--out`, `--pdf`, `--email`,
-  `--history`, `--ci-out` or a path inside an input directory is a usage error
-  (exit 2) before any read. A missing, unreadable, non-regular, oversized,
-  invalid or wrong-schema baseline exits 1, names the file and writes nothing.
-  The cap is 10 MiB (10,485,760 bytes).
+  `--history`, `--ci-out`, `--manifest` or a path inside an input directory is a
+  usage error (exit 2) before any read. A missing, unreadable, non-regular,
+  oversized, invalid or wrong-schema baseline exits 1, names the file and
+  writes nothing. The cap is 10 MiB (10,485,760 bytes).
 - Match by feature name + scenario name. A unique key matches. A repeated group
   is paired in two passes: the outline example coordinate when every row on both
   sides carries `example`, then display URI for the genuinely unmatched remainder
@@ -192,11 +365,12 @@ tolkira test-results/ --email email.html --locale de
   artifact and is written first. With neither, it says that no full report is
   attached, so the mail never points at a file that does not exist.
 - The email path is validated like an output: no collision with an input, the
-  logo, `--out`, `--ci-out`, `--history` or `--pdf`, and no path inside an input
-  directory (including through a junction or symlink); an empty path exits 2 and
-  writes nothing. The write order is report, PDF, email, history, `--ci-out`,
-  stdout. A write failure exits 1, names the email path, keeps the report and
-  skips later outputs.
+  logo, `--out`, `--ci-out`, `--history`, `--pdf` or `--manifest`, and no path
+  inside an input directory (including through a junction or symlink); an empty
+  path exits 2 and writes nothing. The write order is report, PDF, email,
+  history, `--ci-out`, manifest, stdout. A write failure exits 1, names the
+  email path, keeps the report and skips the history, `--ci-out`, manifest and
+  stdout.
 - `Email written to <path>` is printed only when stdout is free. With `--json`
   or `--ci` on stdout, the machine bytes are unchanged and no email line is
   added; with `--ci-out` and no `--json`, the line is printed.
@@ -240,16 +414,16 @@ tolkira test-results/ --pdf report.pdf --pdf-timeout 600000
   follows the report locale while CLI/JSON/CI stay English. `--accent` applies.
 - Without `--out`, no report HTML is written. `--logo` and `--history` still
   require `--out` and exit 2.
-- Write order: **report → PDF → email → history → `--ci-out` → stdout**. A PDF
-  render or write failure exits 1, names the PDF path, keeps the report and skips
-  the email/history/`--ci-out`/stdout; no partial PDF remains. A missing engine
-  exits 1 with the install command.
+- Write order: **report → PDF → email → history → `--ci-out` → manifest →
+  stdout**. A PDF render or write failure exits 1, names the PDF path, keeps the
+  report and skips the email/history/`--ci-out`/manifest/stdout; no partial PDF
+  remains. A missing engine exits 1 with the install command.
 - `PDF written to <path>` is printed only when stdout is free, like the report and
   email lines. JSON/CI stdout stays byte-identical; `--json --ci-out` also
   suppresses the PDF line.
 - The PDF path is validated like an output: no collision with an input, the logo,
-  `--out`, `--ci-out`, `--history` or `--email`, and no path inside an input
-  directory; a collision exits 2.
+  `--out`, `--ci-out`, `--history`, `--email` or `--manifest`, and no path inside
+  an input directory; a collision exits 2.
 - The email with `--out` names the report; without `--out` it names the PDF
   because the PDF is written first.
 - The engine is optional and dynamically imported; the default install and
@@ -415,6 +589,8 @@ The package is ESM, Node.js 22 or newer, and has no network or telemetry code.
 | locale | `--locale <tag>` (`en` or `de`; needs `--out`, `--pdf` or `--email`) | `locale` string; default `en` |
 | email | `--email <file>` writes an HTML summary | `renderEmail(summary, options)` |
 | pdf | `--pdf <file>` prints the report with optional Playwright Chromium; `--pdf-timeout <ms>` (needs `--pdf`) overrides the deadline | `renderPdf(html, { timeoutMs })` |
+| capabilities | `--capabilities` prints the schema-1 machine document and exits; it takes no input and no other option | not applicable |
+| manifest | `--manifest <file>` writes a schema-1 run manifest; alone it satisfies the at-least-one-output rule | not applicable; the CLI owns the run |
 | size warning | `--max-size <mb>` (default 10) warns after rendering with the report HTML, report-file and decoded attachment sizes in MB; an advisory early input warning appears before parsing when the resolved inputs total at least 50 MiB | not applicable; the API returns HTML |
 | CI output | `--ci github\|azure\|markdown`, `--ci-out <file>` | not applicable; format the summary yourself |
 
@@ -603,11 +779,12 @@ Contract:
 - A missing file starts empty. Invalid JSON, a wrong schema version, an
   oversized file, a malformed entry or a write failure exits 1 and names the
   file. A bad file is never overwritten. The HTML is written first; a failed
-  history write leaves it in place and leaves no partial sidecar.
+  history write leaves it in place, leaves no partial sidecar and skips the
+  manifest.
 - `--history` follows the output-path rules: it must not name an input, the
-  logo, `--out`, `--pdf`, `--ci-out`, `--email` or a path inside an input
-  directory, even when the history file does not exist yet. `--baseline` is part
-  of that list.
+  logo, `--out`, `--pdf`, `--ci-out`, `--email`, `--manifest` or a path inside an
+  input directory, even when the history file does not exist yet. `--baseline`
+  is part of that list.
 - The CLI is the only automatic writer: it resolves inputs once and drives the
   internal `generateReportFromResolved` (report) and
   `summarizeReportFromResolved` (summary) entry points. The public API stays
@@ -636,7 +813,7 @@ The package exports `HistoryRun`, `HISTORY_SCHEMA_VERSION`,
 
 `--static` (API `static: true`) renders one script-free, all-expanded form of
 the report. It needs `--out` or `--pdf`; a `--static` run with only `--json`,
-`--ci` or `--email` exits 2 and writes nothing. Without a Trends section the
+`--ci`, `--email` or `--manifest` exits 2 and writes nothing. Without a Trends section the
 default report gains no static or Trends markup and remains the opt-in-free
 form; a default report with two or more history runs gains the Trends shell CSS.
 Every 0.6.0 default report also carries the 170 B measured scroll-offset script.
@@ -1006,7 +1183,8 @@ and uses the same display URI for an unnamed feature's heading; the summary
 
 1. Run the tests and keep the raw Cucumber JSON or Messages.
 2. Run `tolkira <inputs> --out report.html --json`; add `--email email.html`
-   when a status mail or chat message is part of the job.
+   when a status mail or chat message is part of the job, and
+   `--manifest run.json` when a later step must discover the written files.
 3. Parse stdout once. Filter on `executed` (or use `counts`) and use `status`,
    counts and `scenarios[].steps[].message` for diagnosis.
 4. If you need screenshots or the full Gherkin view, open `report.html`; do not
@@ -1066,6 +1244,10 @@ and uses the same display URI for an unnamed feature's heading; the summary
   from the current `--json` redirect and cache it as a CI artifact. The report
   becomes a two-run artifact (baseline + current). `renderHtml` and
   `CucumberHtmlStream` do not accept a baseline in 0.6.0.
+- `--capabilities` is input-free and read-only. The manifest is opt-in, has no
+  timestamp or input path, and its artifact paths are relative to the manifest
+  file except for the documented cross-drive fallback; it is not a second
+  summary and carries no scenario rows beyond the first 10 failures.
 - The email summary is opt-in and file-only. It has no sending, recipients,
   scheduling, `.eml` draft, logo, error snippets or redaction mode; the report
   basename (or the no-report note) is the only path-like content.
