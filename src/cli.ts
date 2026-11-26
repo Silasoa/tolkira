@@ -8,6 +8,7 @@ import {
 } from './artifacts.js';
 import { readBaseline, type BaselineSummary } from './baseline.js';
 import { capabilitiesJson } from './capabilities.js';
+import { planCli } from './cli/plan.js';
 import { formatCiOutput } from './ci.js';
 import { renderEmail, type EmailOptions } from './email.js';
 import {
@@ -19,7 +20,7 @@ import {
 } from './history.js';
 import { version } from './index.js';
 import { resolveInputFiles, scanInputBytes } from './input/load.js';
-import { outputOverwritesInput, samePath, writeAtomic } from './output.js';
+import { writeAtomic } from './output.js';
 import { renderPdf } from './pdf.js';
 import { generateReportFromResolved, summarizeRunFromResolved } from './run.js';
 import type { ReportSummary } from './summary.js';
@@ -31,18 +32,7 @@ import {
   earlyInputWarning,
   formatMegabytes,
 } from './warnings.js';
-import {
-  parseAccent,
-  parseMaxSize,
-  parseMetadata,
-} from './cli/args.js';
-import { planOptions } from './cli/plan.js';
-import { readLogo } from './cli/logo.js';
-import {
-  cannotExpressRelative,
-  conflictsWithInputs,
-  pathConflicts,
-} from './cli/paths.js';
+
 
 const USAGE = `Usage: tolkira <input...> [--out <file>] [--pdf <file>] [--email <file>] [options]
 
@@ -182,7 +172,7 @@ export async function runCli(
   argv: string[],
   io: CliIO = DEFAULT_IO,
 ): Promise<number> {
-  const planned = await planOptions(argv);
+  const planned = await planCli(argv);
   if (!planned.ok) {
     io.stderr(
       planned.kind === 'usage'
@@ -192,211 +182,40 @@ export async function runCli(
     return 2;
   }
 
-  if ('action' in planned) {
-    switch (planned.action) {
-      case 'help':
-        io.stdout(USAGE);
-        return 0;
-      case 'version':
-        io.stdout(`${version}\n`);
-        return 0;
-      case 'capabilities':
-        io.stdout(capabilitiesJson());
-        return 0;
-    }
+  const action = planned.action;
+  if (action.kind === 'help') {
+    io.stdout(USAGE);
+    return 0;
+  }
+  if (action.kind === 'version') {
+    io.stdout(`${version}\n`);
+    return 0;
+  }
+  if (action.kind === 'capabilities') {
+    io.stdout(capabilitiesJson());
+    return 0;
   }
 
-  const options = planned.options;
-  const inputs = options.inputs;
-  const output = options.report;
-  const pdfPath = options.pdf;
-  const emailPath = options.email;
-  const wantsJson = options.json;
-  const ciOut = options.ciOut;
-  const historyFile = options.history;
-  const baselineFile = options.baseline;
-  const manifestFile = options.manifest;
-  const logoFile = options.logo;
-  const title = options.title;
-  const staticReport = options.static;
-  const locale = options.locale;
-  const ci = options.ci;
-  const pdfTimeout = options.pdfTimeout;
-  const historyLimit = options.historyLimit;
-
-  if (manifestFile !== undefined) {
-    const collides =
-      (await pathConflicts(
-        manifestFile,
-        inputs,
-        logoFile,
-        output,
-        pdfPath,
-        ciOut,
-        emailPath,
-        historyFile,
-      )) ||
-      (baselineFile !== undefined && samePath(manifestFile, baselineFile));
-    if (collides) {
-      io.stderr(
-        `tolkira: --manifest must not overwrite an input file, the logo, ` +
-          `--out, --pdf, --email, --history, --ci-out or --baseline` +
-          `\n\n${USAGE}`,
-      );
-      return 2;
-    }
-
-    const artifacts: Array<[string, string | undefined]> = [
-      ['--out', output],
-      ['--pdf', pdfPath],
-      ['--email', emailPath],
-      ['--history', historyFile],
-      ['--ci-out', ciOut],
-    ];
-    for (const [flag, artifact] of artifacts) {
-      if (
-        artifact !== undefined &&
-        cannotExpressRelative(manifestFile, artifact)
-      ) {
-        io.stderr(
-          `tolkira: ${flag} ${oneLine(artifact)} cannot be expressed relative ` +
-            `to --manifest; pass an absolute ${flag} path\n\n${USAGE}`,
-        );
-        return 2;
-      }
-    }
-  }
-
-  if (
-    historyFile !== undefined &&
-    (await pathConflicts(
-      historyFile,
-      inputs,
-      logoFile,
-      output,
-      pdfPath,
-      ciOut,
-      emailPath,
-      baselineFile,
-    ))
-  ) {
-    io.stderr(
-      `tolkira: --history must not overwrite an input file, the logo, ` +
-        `--out, --pdf, --ci-out, --email or --baseline\n\n${USAGE}`,
-    );
-    return 2;
-  }
-
-  if (
-    baselineFile !== undefined &&
-    (await pathConflicts(
-      baselineFile,
-      inputs,
-      logoFile,
-      output,
-      pdfPath,
-      ciOut,
-      emailPath,
-      historyFile,
-    ))
-  ) {
-    io.stderr(
-      `tolkira: --baseline must not name an input file, the logo, ` +
-        `--out, --pdf, --email, --history or --ci-out\n\n${USAGE}`,
-    );
-    return 2;
-  }
-
-  if (
-    output &&
-    (await outputOverwritesInput(inputs, output, logoFile))
-  ) {
-    io.stderr(`tolkira: --out must not overwrite an input file\n\n${USAGE}`);
-    return 2;
-  }
-
-  if (ciOut !== undefined) {
-    if (output && samePath(ciOut, output)) {
-      io.stderr(`tolkira: --ci-out must not overwrite --out\n\n${USAGE}`);
-      return 2;
-    }
-    if (await outputOverwritesInput(inputs, ciOut, logoFile)) {
-      io.stderr(
-        `tolkira: --ci-out must not overwrite an input file or the logo` +
-          `\n\n${USAGE}`,
-      );
-      return 2;
-    }
-  }
-
-  if (emailPath !== undefined) {
-    if (output && samePath(emailPath, output)) {
-      io.stderr(`tolkira: --email must not overwrite --out\n\n${USAGE}`);
-      return 2;
-    }
-    if (ciOut !== undefined && samePath(emailPath, ciOut)) {
-      io.stderr(`tolkira: --email must not overwrite --ci-out\n\n${USAGE}`);
-      return 2;
-    }
-    if (await conflictsWithInputs(emailPath, inputs)) {
-      io.stderr(
-        `tolkira: --email must not overwrite an input file or directory` +
-          `\n\n${USAGE}`,
-      );
-      return 2;
-    }
-    if (await outputOverwritesInput(inputs, emailPath, logoFile)) {
-      io.stderr(
-        `tolkira: --email must not overwrite an input file or the logo` +
-          `\n\n${USAGE}`,
-      );
-      return 2;
-    }
-  }
-
-  if (pdfPath !== undefined) {
-    if (output && samePath(pdfPath, output)) {
-      io.stderr(`tolkira: --pdf must not overwrite --out\n\n${USAGE}`);
-      return 2;
-    }
-    if (ciOut !== undefined && samePath(pdfPath, ciOut)) {
-      io.stderr(`tolkira: --pdf must not overwrite --ci-out\n\n${USAGE}`);
-      return 2;
-    }
-    if (emailPath !== undefined && samePath(pdfPath, emailPath)) {
-      io.stderr(`tolkira: --pdf must not overwrite --email\n\n${USAGE}`);
-      return 2;
-    }
-    if (
-      logoFile !== undefined &&
-      samePath(pdfPath, logoFile)
-    ) {
-      io.stderr(`tolkira: --pdf must not overwrite the logo\n\n${USAGE}`);
-      return 2;
-    }
-    if (await conflictsWithInputs(pdfPath, inputs)) {
-      io.stderr(
-        `tolkira: --pdf must not overwrite an input file or directory` +
-          `\n\n${USAGE}`,
-      );
-      return 2;
-    }
-  }
-
-  let metadata: Record<string, string>;
-  let maxSizeMb: number;
-  let accent: string | undefined;
-  let logo: string | undefined;
-  try {
-    metadata = parseMetadata(options.meta);
-    maxSizeMb = parseMaxSize(options.maxSize);
-    accent = parseAccent(options.accent);
-    logo = logoFile ? await readLogo(logoFile) : undefined;
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    io.stderr(`tolkira: ${detail}\n\n${USAGE}`);
-    return 2;
-  }
+  const plan = action.plan;
+  const inputs = plan.inputs;
+  const output = plan.report;
+  const pdfPath = plan.pdf;
+  const emailPath = plan.email;
+  const wantsJson = plan.json;
+  const ciOut = plan.ciOut;
+  const historyFile = plan.history;
+  const baselineFile = plan.baseline;
+  const manifestFile = plan.manifest;
+  const title = plan.title;
+  const staticReport = plan.static;
+  const locale = plan.locale;
+  const ci = plan.ci;
+  const pdfTimeout = plan.pdfTimeout;
+  const historyLimit = plan.historyLimit;
+  const metadata = plan.metadata;
+  const maxSizeMb = plan.maxSizeMb;
+  const accent = plan.accent;
+  const logo = plan.logoDataUri;
 
   try {
     const resolvedInputs = await resolveInputFiles(inputs);
