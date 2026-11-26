@@ -123,8 +123,8 @@ written; an unknown flag keeps the normal unknown-option error. `--help` and
   the running package version (`tolkira --version`) and `node` is the package's
   Node range, both pinned to `package.json` by tests. `inputs` lists the four
   accepted input kinds in detection order, each proven by a `detectInput`
-  fixture. `outputs` lists the file outputs (report, PDF, email, history,
-  manifest) and the CI formats; `ci-markdown` names `--ci-out` as its file form.
+  fixture. `outputs` lists report, PDF, email, JSON summary, history, manifest
+  and the CI formats; `ci-markdown` names `--ci-out` as its file form.
   `defaults` (`reportWarnMb`, `pdfTimeoutMs`,
   `historyLimit`) are overridable option defaults, not caps.
 - The document is deterministic: no timestamp, cwd, environment value or

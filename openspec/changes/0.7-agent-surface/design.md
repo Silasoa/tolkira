@@ -87,8 +87,8 @@ boolean flag is the smaller change and the only new surface. Recorded decision.
   `MAX_TOTAL_ATTACHMENT_BYTES`, `BASELINE_MAX_BYTES`, `HISTORY_MAX_BYTES`,
   `HISTORY_LIMIT_MAX` and `INPUT_WARN_BYTES`. `inputs` lists the four accepted
   input kinds in detection order, each proven by a `detectInput` fixture;
-  `outputs` lists the file outputs and the CI formats; `ci-markdown` names
-  `--ci-out` as its file form. `defaults` is labelled separately from `limits`
+  `outputs` lists the file outputs (report, PDF, email, JSON summary, history,
+  manifest) and the CI formats; `ci-markdown` names `--ci-out` as its file form. `defaults` is labelled separately from `limits`
   because
   `--max-size`, `--pdf-timeout` and `--history-limit` are overridable defaults,
   not caps. The exit codes are the documented contract, pinned by a test that

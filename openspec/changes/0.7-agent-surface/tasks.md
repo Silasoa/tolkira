@@ -65,6 +65,7 @@
 - [ ] 6.1 `npm run hygiene` and `npm run check` are green; confirm the report,
   summary, CI and email bytes are unchanged (no report-level change, so e2e is
   not required; prove it with the characterization/bundle hash).
-- [ ] 6.2 `npm run package:check` packs the snippet; record the entry count.
+- [x] 6.2 `npm run package:check` packs the snippet; record the entry count.
+  86 entries on 2026-11-26 with `docs/AGENT-SNIPPET.md` and docs/README.md.
 - [ ] 6.3 Archive the change, sync the cli-api spec, push. No version bump,
   tag, stage or publish.
