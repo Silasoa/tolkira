@@ -2,15 +2,15 @@
 
 ## 1. Contract and pre-implementation review
 
-- [ ] 1.1 Finish the change contract: this file, `proposal.md`, `design.md`
+- [x] 1.1 Finish the change contract: this file, `proposal.md`, `design.md`
   and the `report-rendering` delta, including AC1-AC12 and the edge matrix.
-- [ ] 1.2 Run PIR and DXR in parallel over the corrected contract. PIR checks
+- [x] 1.2 Run PIR and DXR in parallel over the corrected contract. PIR checks
   parity and vision: the panel does not drop a parity feature, the detail is
   not duplicated, and the visual language is a work surface. DXR checks the
   module home, helper reuse, row link, test plan, static/print and host rows.
-- [ ] 1.3 Fold every blocker into the contract; record the verdicts in
+- [x] 1.3 Fold every blocker into the contract; record the verdicts in
   `gate.md`.
-- [ ] 1.4 Record the measured baseline: report bytes for one failed fixture,
+- [x] 1.4 Record the measured baseline: report bytes for one failed fixture,
   the current triage order, the current report CSS/token map, and the JSON/CI/
   email/manifest/history bytes.
 
