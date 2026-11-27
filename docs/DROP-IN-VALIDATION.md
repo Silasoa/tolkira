@@ -96,6 +96,78 @@ Tolkira view carries, record that functional gap.
 | Cucumber-JVM examples | 2026-11-24 | Pass (`0.6.0`) | Pin `f71480f`, `calculator-java-junit-jupiter` with a temp-only `cucumber.properties` adding `json:target/cucumber.json` (14,760 B): 3 features / 8 scenarios / 8 passed; 30 scenario steps + 6 background steps + 18 hooks = 54 results; Tolkira renders 36 step rows + 18 hooks and 18 text attachments / 498 B, report 94,666 B. Static 76,113 B with one `<main>`, no `<script>` and 37/37 details open; baseline 3 fixed plus one ambiguous legacy-JSON group; history 3 runs. No overflow, console errors or external requests. JDK 21.0.9 and Maven 3.9.9 were provisioned into the evidence directory; the 8/54 record reproduces, the earlier 9/52 one does not. |
 | `cucumber-html-reporter@7.2.0` reference | 2026-11-20 | Content PASS | Same fixture; screenshots at 1440/390; no visual parity; old install 144 packages / 7 vulnerabilities. The 0.5 shell was not compared to CHR. |
 
+**`0.7.0` pre-release run (2026-11-27, `ce105aa`).** All five required rows ran
+on the packed pre-release tarball `tolkira-0.6.1.tgz` (707,008 B, 94 entries,
+SHA-256 `DC4C0DBC0D8A75319D4B3F39000C59CFA0283937304AC43536E5CBEFA9C812F2`);
+the tarball carries the `0.6.1` version literal because the 0.7.0 bump follows
+this matrix. Windows 11 Pro, Node 26.13.1, npm 10.8.2, JDK 21.0.9 (JetBrains
+JBR) and Maven 3.9.9 for the two Java hosts (the system has only JRE 25 and no
+Maven), Docker daemon not running, Playwright 1.65.1 on Chromium (the Playwright
+host used its own 1.62.1 / Chromium 151) for the report checks. Screenshots at
+1440x900, 390x844 and 320 px at 200 % text were captured in the temporary
+evidence roots and are not committed. All rows were clean installs into
+temporary projects, no repo link.
+
+- **Seed-Test** `ce2cad8` (AI branch): `tsc -b` exit 0 and
+  `report.service.spec.ts` 35/35. Story: 1 feature / 3 scenarios (2 passed,
+  1 failed) / 12 step rows / 1 attachment 5,234 B, report 97,492 B; group:
+  2 features / 4 scenarios (3 passed, 1 failed) / 16 step rows / 2 attachments
+  10,468 B, report 115,210 B via sidecar and 116,191 B via directory; shim
+  story 98,075 B, group 116,660 B, group sidecar 21,579 B against the old
+  reporter's 21,580 B, deep-equal except one trailing LF. Static 76,459 B;
+  baseline 99,074 B (1 new failure, 1 fixed); history 97,519 / 101,290 /
+  101,672 B, three newest-first runs. 11 browser checks: exactly one `<main>`,
+  overflow −15 px (scrollbar gutter), 0 console/page errors, 0 http(s)
+  requests, search 3→1→3, inline PNGs loaded. The skipped-attachment notice was
+  not triggered (0 skipped attachments). Limits: per-story JSON synthetic (no
+  live backend/MongoDB), native old HTML compared by content counts only.
+- **Cucumber-js host** `@cucumber/cucumber@13.3.0`: `out.json` 3,302 B and
+  `out.ndjson` 9,974 B, 1 feature / 2 scenarios (1 passed, 1 failed) / 5 steps
+  / 2 attachments 140 B. Legacy JSON reports: 79,318 default, 58,418 static,
+  81,202 German, 80,711 baseline, 83,031 history; Messages: 79,636 / 58,736 /
+  81,545 / 81,029 / 83,349. Both summaries are 2,191 B and byte-identical; the
+  baseline summary is 2,464 B with 0 new / 1 still failing, the history sidecar
+  1,655 B / 2 runs. 30 browser combinations (5 forms × 2 inputs × 3 viewports):
+  one `<main>`, max overflow −15 px, zero console/page/http errors; row link
+  83.23×28 px at 1440/390 and 164.47×56 px at 320/200 %. The notice comment
+  appears once in all four scripted forms and not in static.
+- **Playwright movies-app** `5d2cdf0`, host Playwright 1.62.1 / Chromium 151:
+  full suite 123 tests (121 passed, 2 skipped, 0 failed/flaky/retries), 113
+  explicit steps, 5 host attachments / 161 B of which one has an empty body, so
+  Tolkira renders 4 / 161 B. Tolkira: 3 features / 123 scenarios / 121 passed /
+  2 skipped / 236 step rows, 123/123 scenario source lines match
+  `spec.file:spec.line`, 0 retries. Reports: 289,651 default, 269,496 static,
+  291,417 baseline, history 289,651 / 293,365 / 293,729 B. Baseline 0 new /
+  2 fixed / 0 still failing / 1 not in run; Trends 3 rows; tag panel 6 rows.
+  1440/390/320 at 200 % and print clean, one `<main>`, no overflow, 0
+  console/page errors and 0 external requests; static has 0 scripts and 131/131
+  details open. The first full host attempt hit one host-only timing flake
+  (`network-abort-search`); the clean full rerun is recorded. Native Playwright
+  HTML not compared; print checked by media emulation.
+- **Spring PetClinic** `500158f`: full `mvn -B test` with Docker disabled
+  (`DOCKER_HOST=tcp://127.0.0.1:1`) BUILD SUCCESS, 18 XMLs / 938,743 B: 79
+  tests / 77 passed / 2 skipped / 0 failed; the zero-test
+  `PostgresIntegrationTests` document is present. Tolkira: 20 features / 79
+  scenarios (77 passed, 2 skipped) / 79 step rows, 28 attachments / 69,184 B,
+  all 79 scenario names match, `PostgresIntegrationTests` appears in neither
+  JSON nor HTML. Reports: 284,753 default, 264,944 static, 290,459 baseline,
+  288,917 history; the JSON is 44,080 B in every form. Baseline 77 fixed / 0
+  new; history 3 runs plus Trends. 8 browser cases: one `<main>`, max overflow
+  −15 px, zero console/page errors and external requests. The XML and
+  attachment byte deltas against the 0.6.0 baseline (+1,189 / +1,283) are
+  run-specific absolute paths and timestamps, not content differences.
+- **Cucumber-JVM examples** `f71480f`, `calculator-java-junit-jupiter` with a
+  temp-only `cucumber.properties` adding `json:target/cucumber.json` (14,774 B):
+  8/8 scenarios passed; 30 scenario + 6 background + 18 hooks = 54 results.
+  Tolkira: 36 step rows + 18 hooks + 18 text attachments / 498 B; summary 3
+  features / 8/8 scenarios / 54/54 steps. Reports: 101,872 default, 81,674
+  static, 103,410 baseline, 105,985 three-run history. Static: one `<main>`, no
+  `<script>`, 37/37 details open; baseline 0 new / 2 fixed / 0 still failing
+  plus one ambiguous legacy-JSON group; Trends 3 rows. 1440x900 and 390x844:
+  no overflow, console/page errors or external requests. The default report is
+  7,206 B larger than the 0.6.0 reference at identical counts, the expected
+  0.7.0 shell growth (incident panel, notice, toolbar fix).
+
 **`0.6.1` release run (2026-11-25, tag `v0.6.1` at `3bd2c87`).** Release run
 `45649497193` passed: the Linux gate ran hygiene, check and the three-engine
 browser suite, the macOS gate ran the three-engine browser suite, and the
