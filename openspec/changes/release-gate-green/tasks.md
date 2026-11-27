@@ -7,9 +7,11 @@
 - [x] 1.3 Record the baseline: the failing CI jobs, the measured `.expand`
   layout (block at x=32, 268.03 px in a 241 px toolbar, document 320 px,
   scroll 305 px), the two unquoted commands, and the 21 unique failing e2e
-  tests (63 = 21 times 3 engines), each rendering a scripted report with the
-  toolbar; the `visual-evidence` static capture is proven by the next CI run.
-  B-075 commits first; this change re-pins on top of its notice bytes.
+  tests (63 = 21 times 3 engines), each rendering `empty-statuses.ndjson` with
+  the toolbar; the `visual-evidence` static capture is proven by the next CI
+  run. B-075 commits first; its final package state is 94 entries, 706,997 B,
+  SHA-256 `61D964DA…5779AD` (HEAD `83b3e56`), and this change re-pins on top of
+  its notice bytes.
 
 ## 2. TDD Red
 
@@ -35,8 +37,8 @@
   `src/render/report.css`; regenerate `styles.ts`.
 - [x] 3.2 Quote the absolute tarball path in `.github/workflows/ci.yml` and the
   release `package` job. Add `shellcheck --version` before actionlint in the
-  CI `workflows` job. Add one line to `CONTRIBUTING.md` that the local Windows
-  actionlint has no shellcheck and CI is the proof.
+  CI `workflows` job. Add one line to `CONTRIBUTING.md` that CI actionlint runs
+  with shellcheck and is the authoritative proof.
 - [x] 3.3 Re-pin the goldens and characterization hashes for the CSS bytes
   only; record the measured `.expand`, toolbar and document widths at
   320/200 % and 1440 px. Correct the archived B-074 and B-057 gate records
@@ -58,7 +60,8 @@
   both artifacts because the change is shell CSS only.
 - [ ] 4.4 Write `gate.md`; review with SCR, CR, UXR and DAR in parallel; fix
   findings with a delta re-check.
-- [ ] 4.5 Push and verify the three CI jobs (`e2e`, `workflows`, `check`) are
-  green on the pushed commit; that Linux run is the proof for the font-metric
-  overflow and the shellcheck finding.
+- [ ] 4.5 Push and verify the `hygiene`, `check`, `check-windows`, `package`,
+  `e2e`, `e2e-macos` and `workflows` CI jobs are green on the pushed commit,
+  with `e2e` and `e2e-macos` both covering the three engines; that Linux run is
+  the proof for the font-metric overflow and the shellcheck finding.
 - [ ] 4.6 Archive and sync the specs; no version bump, tag, stage or publish.

@@ -44,8 +44,9 @@ the fast local gate. The required root files include `THIRD-PARTY-NOTICES.md`,
 which carries the bundled component's MIT notice and must travel with the
 tarball. `npm run hygiene` checks tracked generated/local files,
 absolute local paths in docs and commit trailers; CI runs the same check on the
-committed tree. A local Windows actionlint has no shellcheck, so the CI
-`workflows` job is the authoritative shellcheck proof. `npm run bench:ansi`
+committed tree. actionlint runs in the CI `workflows` job with shellcheck on
+`PATH`; if a local actionlint has no shellcheck, install it, because the CI
+job is the authoritative proof. `npm run bench:ansi`
 measures `stripAnsi` on fixed message corpora and fails on the 500 ms production
 budget.
 

@@ -53,5 +53,5 @@ Both are small, verified fixes. They must land before any 0.7.0 tag.
 - Replacing actionlint/shellcheck or moving the gate off Linux.
 - The `NPM_TOKEN`/build-trust decisions from B-074.
 
-No GitHub issue exists; this is a release-gate fix recorded here and in
-`docs/BACKLOG.md`.
+No GitHub issue exists; this is a release-gate fix recorded here and in the
+changelog.

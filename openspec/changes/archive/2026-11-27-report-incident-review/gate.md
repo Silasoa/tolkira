@@ -160,5 +160,6 @@ rasters) are recorded as decisions with a 0.7.1 trigger in `docs/BACKLOG.md`.
 None. Every host row is green; no written exception is needed.
 
 Correction (2026-11-27): the local Windows e2e was green, but Linux at 320 px /
-200 % found 63 overflows (21 tests × 3 engines) from the longer expand labels.
-The toolbar wrap is fixed in `release-gate-green`.
+200 % found 63 overflows (21 tests × 3 engines, run 45922069336, `ad5b4c8`)
+from the longer expand labels. The toolbar wrap is fixed in
+`release-gate-green`, pending the Linux CI run on the pushed commit.

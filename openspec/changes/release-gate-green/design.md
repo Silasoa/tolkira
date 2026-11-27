@@ -11,13 +11,15 @@ width on Linux fonts, so the block widens the document by 12 px.
 
 Fix: `.expand { flex-wrap: wrap; justify-content: flex-end; }`. With wrapping,
 the block's min-content is one button, which fits; the buttons stack and stay
-end-aligned. Measured on Windows Chromium at 320 px / 200 % (`legacy/failed.json`):
-the block goes from 268.03 px / scroll 268 to 241 px / scroll 241 (the toolbar
-content width), with both buttons 241 px wide. The block sits at x=32; the
-toolbar content box is 241 px wide while the document is 320 px with
-`scrollbar-gutter: stable`, so the block's 27 px overflow was absorbed by the
-shell padding on Windows but became a 12 px page overflow on Linux fonts. The
-desktop line is unchanged because the two buttons fit there without wrapping.
+end-aligned. Measured on Windows Chromium at 320 px / 200 %
+(`empty-statuses.ndjson`, the fixture the e2e test renders): the block's width
+goes from 268.03 px to 241 px (the toolbar content width), with the document
+scroll width at 305 px in a 320 px window and both buttons 241 px wide. The
+block sits at x=32; the toolbar content box is 241 px wide while the document
+is 320 px with `scrollbar-gutter: stable`, so the block's 27 px overflow was
+absorbed by the shell padding on Windows but became a 12 px page overflow on
+Linux fonts. The desktop line is unchanged because the two buttons fit there
+without wrapping.
 
 The e2e assertion compares the block against the toolbar, not against itself:
 `expand.left >= toolbar.left - 1` and `expand.right <= toolbar.right + 1` at
@@ -43,8 +45,8 @@ forbids the bare absolute path word
 quoted lookalikes (digest file, verify echo, stage command) do not false-positive.
 The CI `workflows` job prints `shellcheck --version` before actionlint, so the
 shellcheck integration is visible; actionlint with shellcheck in CI is the
-authoritative check. The local Windows actionlint has no shellcheck, and the
-gate records that limitation in a committed doc line.
+authoritative check. The local Windows actionlint lacks shellcheck;
+`CONTRIBUTING.md` says to install it and treats CI as the proof.
 
 ## 3. Bytes and tests
 

@@ -98,6 +98,15 @@ Keep a Changelog and the project uses semantic versioning.
   instead of required `T | undefined`); neither is public API. The workflow
   changes are CI- and release-only.
 
+### Fixed
+
+- The toolbar expand/collapse controls wrap inside the toolbar at 320 px /
+  200 % text instead of widening the page (Linux CI run 45922069336, 63
+  overflows in 21 tests × 3 engines); workflow commands quote the versioned
+  tarball path and the CI `workflows` job prints the shellcheck version. Report
+  bytes grow by 40 CSS bytes plus the derived "Report HTML" size label
+  (B-057, B-074).
+
 ## [0.6.1] - 2026-11-25
 
 ### Fixed
