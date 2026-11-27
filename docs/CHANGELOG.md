@@ -105,9 +105,10 @@ Keep a Changelog and the project uses semantic versioning.
   added steps run inside it. Dev-only dependencies: `oxlint-tsgolint` 7.0.2008,
   Oxfmt 0.80.0 and `@vitest/coverage-v8` 5.1.1, with `oxlint` pinned to 1.94.0
   and `vitest` to 5.1.1.
-- No runtime dependency, CLI/API option, report byte or package entry change.
-  The only manifest/file-set change is the explicit `docs/README.md` entry in
-  `files`; public entries, runtime dependencies and runtime bytes are unchanged.
+- The quality-tooling slice adds no runtime dependency, CLI/API option or
+  package entry; its only manifest/file-set change is the explicit
+  `docs/README.md` entry in `files`, and public entries, runtime dependencies and
+  runtime bytes are unchanged there.
   Un-exporting the 17 knip findings changes some non-exported declaration files.
   Wrapped errors keep their `cause` internally, and the non-exported
   `renderOptions()` helper has a different inferred shape (five optional fields
