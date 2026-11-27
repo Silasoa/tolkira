@@ -65,4 +65,6 @@
   Result: SEC PASS; SCR/CR/DAR FAIL on enforcement and docs only, fixed in
   `0b0dcae`; SCR and DAR delta PASS, CR delta found the `- if:` form, fixed in
   `e091b2f`; CR confirmed the final tree.
-- [ ] 4.5 Commit and push; do not archive or change the version.
+- [x] 4.5 Commit and push; do not archive or change the version.
+  Result: three commits pushed to `origin/main` (`ad5b4c8..9ea6cb1`); no
+  version bump, tag, stage or publish.
