@@ -284,7 +284,7 @@ function highlightSearch(): void {
         continue;
       }
       if (
-        target.hasAttribute(SCENARIO_ATTRIBUTE) &&
+        target.tagName === 'DETAILS' &&
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion erases at build time and the bundle is pinned
         !(target as HTMLDetailsElement).open
       ) {
@@ -524,15 +524,11 @@ function failureText(button: HTMLElement): string {
           ...(examplesName ? { examplesName } : {}),
         };
       })()
-    : scenario
-      ? decodeScenario(scenario)
-      : { name: '', uri: '' };
+    : decodeScenario(root);
   const featureTitle = scope
     ? scope.getAttribute('data-copy-feature')
-    : scenario
-      ? scenario.closest<HTMLElement>('[data-feature]')?.querySelector('h2')
-          ?.textContent
-      : '';
+    : scenario?.closest<HTMLElement>('[data-feature]')?.querySelector('h2')
+        ?.textContent;
   const scenarioTitle = root.querySelector('.scenarioName, .incidentScenario');
   const scenarioName = facts.name || scenarioTitle?.textContent || '';
   const step = root.querySelector<HTMLElement>(

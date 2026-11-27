@@ -342,7 +342,9 @@ describe('scenario outlines', () => {
     ).toHaveLength(1);
     expect(html.match(/data-example="/g)).toHaveLength(3);
     expect(html.match(/<details class="scenario"/g)).toHaveLength(6);
-    expect(html.match(/class="scenario scenarioRowLink"/g)).toHaveLength(1);
+    expect(html.match(/class="scenarioButton scenarioRowLink"/g)).toHaveLength(
+      1,
+    );
     expect(html.match(/data-scenario-name="Eating cucumbers"/g)).toHaveLength(
       4,
     );

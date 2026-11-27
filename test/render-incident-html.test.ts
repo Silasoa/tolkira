@@ -66,9 +66,9 @@ function rootBlock(css: string, header: RegExp): string {
 }
 
 function declaration(block: string, property: string): string | undefined {
-  const match = new RegExp(`${property}\\s*:\\s*([^;{}]+)(?=[;}]|$)`).exec(
-    block,
-  );
+  const match = new RegExp(
+    `(?:^|[;{])\\s*${property}\\s*:\\s*([^;{}]+)(?=[;}]|$)`,
+  ).exec(block);
   return match?.[1]?.trim();
 }
 
@@ -241,6 +241,77 @@ describe('incident panel in the report forms', () => {
     }
   });
 
+  it('maps the incident badge, cause and lead to the status token', () => {
+    const css = reportCss();
+    const roles: Array<[string, RegExp, string]> = [
+      ['.incidentBadge.fail', /\.incidentBadge\.fail\s*\{/, '--fail'],
+      ['.incidentBadge.pending', /\.incidentBadge\.pending\s*\{/, '--pending'],
+      [
+        '.incidentBadge.undefined',
+        /\.incidentBadge\.undefined\s*\{/,
+        '--undefined',
+      ],
+      [
+        '.incidentBadge.ambiguous',
+        /\.incidentBadge\.ambiguous\s*\{/,
+        '--ambiguous',
+      ],
+    ];
+    for (const [name, header, roleToken] of roles) {
+      expect(declaration(rootBlock(css, header), 'color'), name).toBe(
+        `var(${roleToken})`,
+      );
+    }
+    for (const [name, status, causeToken] of [
+      ['fail', 'fail', '--fail'],
+      ['pending', 'pending', '--pending'],
+      ['undefined', 'undefined', '--undefined'],
+      ['ambiguous', 'ambiguous', '--ambiguous'],
+    ] as const) {
+      const cause = rootBlock(
+        css,
+        new RegExp(`\\.incident\\.${status} \\.incidentCause\\s*\\{`),
+      );
+      expect(
+        declaration(cause, 'border-color'),
+        `${name} cause border`,
+      ).toContain(`var(${causeToken})`);
+      const lead = rootBlock(
+        css,
+        new RegExp(`\\.incident\\.${status} \\.incidentErrorLead\\s*\\{`),
+      );
+      expect(declaration(lead, 'color'), `${name} lead`).toBe(
+        `var(${causeToken})`,
+      );
+    }
+  });
+
+  it('keeps the incident bordered and tinted and the shared panels bordered', () => {
+    const css = reportCss();
+    const incident = rootBlock(css, /\.incident\s*\{/);
+    const fail = rootBlock(css, /\.incident\.fail\s*\{/);
+    const undefinedIncident = rootBlock(css, /\.incident\.undefined\s*\{/);
+    const ambiguousIncident = rootBlock(css, /\.incident\.ambiguous\s*\{/);
+    const panel = rootBlock(css, /\.panel\s*\{/);
+    const source = rootBlock(css, /\.sourceItem\s*\{/);
+    const meta = rootBlock(css, /\.incidentMeta\s*\{/);
+
+    expect(declaration(incident, 'border')).toContain('1px solid');
+    expect(declaration(incident, 'background')).toBe('var(--surface-2)');
+    expect(declaration(fail, 'background')).toBe('var(--fail-soft)');
+    expect(declaration(undefinedIncident, 'background')).toBe(
+      'var(--undefined-soft)',
+    );
+    expect(declaration(ambiguousIncident, 'background')).toBe(
+      'var(--ambiguous-soft)',
+    );
+    expect(declaration(panel, 'border')).toBe('1px solid var(--line-strong)');
+    expect(declaration(panel, 'border-radius')).toBe('var(--radius)');
+    expect(declaration(source, 'border')).toBe('1px solid var(--line)');
+    expect(declaration(source, 'border-radius')).toBe('var(--radius-control)');
+    expect(declaration(meta, 'font-family')).toBe('var(--font-mono)');
+  });
+
   it('keeps text and status contrast at 4.5:1 on paper, surface-2 and surface-3', () => {
     const css = reportCss();
     const light = rootBlock(css, /:root\s*\{/);
@@ -330,9 +401,12 @@ describe('unchanged artifacts', () => {
     }
   });
 
-  it('keeps the client bundle unchanged until the copy-scope fix lands', () => {
+  it('pins the client bundle for the copy scope, scenario controls and list empty copy', () => {
+    expect(CLIENT_SCRIPT).toContain('data-copy-scope');
+    expect(CLIENT_SCRIPT).toContain('client.empty');
+    expect(CLIENT_SCRIPT).toContain('data-expand');
     expect(hash(CLIENT_SCRIPT)).toBe(
-      'fd67fde60a8a4e54377925b69de246f28d7f600be8dd15169e11ef9508af4df8',
+      '3dbc7eba926ebb4201d1953ad050be8afa6ca9f50ee3eec8377411ee3020e75b',
     );
   });
 });

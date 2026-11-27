@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { ESC, HOSTILE_ANSI, VISIBLE_ANSI } from '../ansi-payload.js';
 import { legacyFixture, messagesFixture } from '../fixtures.js';
+import { incidentJson } from '../render-incident-fixtures.js';
 import {
   readClipboard,
   removeReport,
@@ -17,18 +18,42 @@ const parametersFixture = messagesFixture('parameters.ndjson');
 const noMessageFixture = legacyFixture('failed-no-message.json');
 const examplesFixture = messagesFixture('examples-tables.ndjson');
 
-test('copies failure details', async ({ page }) => {
+test('copies failure details from a non-incident row', async ({ page }) => {
   await stubClipboard(page);
+  const input = await writeInput(
+    'row-copy.json',
+    incidentJson({
+      features: [
+        {
+          name: 'Checkout',
+          uri: 'features/checkout.feature',
+          scenarios: [
+            {
+              name: 'the incident failure',
+              status: 'failed',
+              message: 'Incident failure',
+            },
+            {
+              name: 'the row failure',
+              status: 'failed',
+              message: 'Row failure\n  at row.ts:7',
+            },
+          ],
+        },
+      ],
+    }),
+    'tolkira-copy-row-input-',
+  );
   const { dir, output } = await writeReport(
-    [fixture],
-    'Tolkira copy',
-    'tolkira-copy-e2e-',
+    [input.file],
+    'Tolkira row copy',
+    'tolkira-copy-row-e2e-',
   );
 
   try {
     await page.goto(reportUrl(output));
-    const failed = page.locator('#incident');
-    const copy = failed.locator('[data-copy-failure]');
+    const row = page.locator('details.scenario[data-status="failed"]').first();
+    const copy = row.locator('[data-copy-failure]');
     await expect(copy).toBeVisible();
     await copy.click();
     await expect(copy).toHaveText('Copied');
@@ -37,13 +62,13 @@ test('copies failure details', async ({ page }) => {
     );
 
     const copied = await readClipboard(page);
-    expect(copied).toContain('Feature: Screenshot attachment');
-    expect(copied).toContain('Scenario: Failing scenario');
-    expect(copied).toContain('URI: features/screenshot.feature');
-    expect(copied).toContain('Step: Then the assertion fails');
-    expect(copied).toContain('Error:\nExpected 1 to equal 2');
+    expect(copied).toContain('Feature: Checkout');
+    expect(copied).toContain('Scenario: the row failure');
+    expect(copied).toContain('URI: features/checkout.feature');
+    expect(copied).toContain('Error:\nRow failure');
   } finally {
     await removeReport(dir);
+    await removeReport(input.dir);
   }
 });
 

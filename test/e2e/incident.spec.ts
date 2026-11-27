@@ -221,6 +221,9 @@ test('shows the incident above the fold and links its row to the panel', async (
 
   const rowLink = page.locator('#scenario-1-1 a[href="#incident"]');
   await expect(rowLink).toHaveText(ROW_LABEL);
+  const rowLinkBox = await rowLink.boundingBox();
+  expect(rowLinkBox?.width, 'row link width').toBeGreaterThanOrEqual(60);
+  expect(rowLinkBox?.height, 'row link height').toBeLessThan(40);
   await expect(page.locator('#scenario-1-1')).toHaveAttribute(
     'data-scenario',
     '',
@@ -321,6 +324,63 @@ test('keeps the panel and its triage link under an active filter', async ({
   await expect(panel).toBeVisible();
 });
 
+test('keeps the panel under the failed-only and tag filters', async ({
+  page,
+}) => {
+  await page.goto(reportUrl(report(main).output));
+  const panel = page.locator('#incident');
+
+  await page.getByRole('button', { name: 'Failed only' }).click();
+  await expect(panel).toBeVisible();
+  await expect(page.locator('details.scenario#scenario-1-2')).toBeVisible();
+  await expect(page.locator('#scenario-1-3')).toBeHidden();
+  await expect(panel.locator('a[href^="#scenario-"]')).toHaveCount(0);
+
+  await page.reload();
+  await page.locator('[data-tag-filter]').selectOption('@billing');
+  await expect(panel).toBeVisible();
+  await expect(page.locator('#scenario-1-2')).toBeHidden();
+  await expect(panel.locator('a[href^="#scenario-"]')).toHaveCount(0);
+});
+
+test('keeps the row link inside its cell at 1440, 390 and 320 px at 200 %', async ({
+  page,
+}) => {
+  for (const [width, zoom] of [
+    [1440, false],
+    [390, false],
+    [320, true],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(reportUrl(report(main).output));
+    if (zoom) {
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '32px';
+      });
+    }
+    const fits = await page
+      .locator('#scenario-1-1 .scenarioButton')
+      .evaluate((button) => {
+        const link = button.querySelector<HTMLElement>('.scenarioLink');
+        if (!link) return false;
+        const linkBox = link.getBoundingClientRect();
+        const buttonBox = button.getBoundingClientRect();
+        return (
+          linkBox.left >= buttonBox.left - 1 &&
+          linkBox.right <= buttonBox.right + 1 &&
+          link.scrollWidth <= link.clientWidth + 1
+        );
+      });
+    expect(fits, `row link at ${width} px`).toBe(true);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+      `page overflow at ${width} px`,
+    ).toBeLessThanOrEqual(1);
+  }
+});
+
 test('renders the static form without controls or a lightbox', async ({
   page,
 }) => {
@@ -357,6 +417,8 @@ test('keeps the panel in print and in the PDF text', async ({
   );
   await expect(page.locator('.toolbar:visible')).toHaveCount(0);
   await expect(page.getByRole('link', { name: ROW_LABEL })).toBeVisible();
+  await expect(page.locator('[data-copy-failure]:visible')).toHaveCount(0);
+  await expect(page.locator('[data-copy-log]:visible')).toHaveCount(0);
 
   const pdf = await page.pdf({
     format: 'A4',
@@ -379,7 +441,7 @@ test('shows German labels and plurals with verbatim test data', async ({
   ).toBeVisible();
   await expect(panel).toContainText('Lauf fehlgeschlagen');
   await expect(panel).toContainText('erste Zahlung');
-  await expect(panel).toContainText('Kein Beleg angehängt.');
+  await expect(panel).toContainText('Kein Nachweis angehängt.');
   await expect(panel).toContainText('1 weiterer Zwischenfall in der Liste');
   await expect(page.locator('#scenario-1-1 a[href="#incident"]')).toHaveText(
     'Oben angezeigt',
@@ -462,6 +524,9 @@ test('shows the plural at 1 remaining and wraps at 320 px', async ({
 
   await expect(panel).toContainText('1 more incident in the list');
   await expect(panel).not.toContainText('more incidents in the list');
+  const rowLink = page.locator('#scenario-1-1 a[href="#incident"]');
+  await expect(rowLink).toBeVisible();
+  await expect(rowLink).toHaveText(ROW_LABEL);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
@@ -474,7 +539,7 @@ test('keeps the German no-evidence line at 320 px', async ({ page }) => {
   await page.goto(reportUrl(report(german).output));
 
   await expect(page.locator('#incident')).toContainText(
-    'Kein Beleg angehängt.',
+    'Kein Nachweis angehängt.',
   );
   expect(
     await page.evaluate(

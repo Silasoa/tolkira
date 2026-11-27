@@ -87,7 +87,7 @@ export function matrixTable(html: string): string {
 function scenarioRowStart(html: string, index: number): number {
   return Math.max(
     html.lastIndexOf('<details class="scenario"', index),
-    html.lastIndexOf('<div class="scenario scenarioRowLink"', index),
+    html.lastIndexOf('<div class="scenario" id=', index),
   );
 }
 
@@ -111,7 +111,7 @@ export function scenarioSummary(html: string, name: string): string {
   const start = scenarioRowStart(html, index);
   const contentStart = html.indexOf(
     '>',
-    html.indexOf('class="scenarioButton"', start),
+    html.indexOf('class="scenarioButton', start),
   );
   const ends = [
     html.indexOf('</summary>', contentStart),

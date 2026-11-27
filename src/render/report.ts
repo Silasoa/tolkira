@@ -317,7 +317,7 @@ function selectIncident(ordered: OrderedFeature[]): Incident | undefined {
 
 type IncidentCause =
   | { kind: 'failed'; label: string; message: string }
-  | { kind: 'diagnostic'; lead: string }
+  | { kind: 'diagnostic'; label: string; lead: string }
   | { kind: 'status' };
 
 function firstLine(message: string): string {
@@ -353,6 +353,7 @@ function incidentCause(scenario: ReportScenario): IncidentCause {
   if (step) {
     return {
       kind: 'diagnostic',
+      label: `${step.keyword.trim()} ${step.text}`.trim(),
       lead: step.status === 'ambiguous' ? AMBIGUOUS_LEAD : UNDEFINED_LEAD,
     };
   }
@@ -367,7 +368,7 @@ function incidentSummary(
   const badge =
     status === 'failed'
       ? t.t('report.incidentRunFailed')
-      : t.t('report.incidentAttention');
+      : t.t('triage.needsAttention');
   const change = baselineBadge(scenario.change, t);
   const source = scenarioSourceLabel(scenario);
   const started = scenario.startedAt
@@ -379,8 +380,8 @@ function incidentSummary(
     cause.kind === 'failed'
       ? `<p class="incidentCause"><span class="incidentCauseLabel">${t.t('triage.firstFailure')}</span> <span class="incidentCauseText">${escapeHtml(cause.label)}</span>${cause.message ? `<span class="incidentErrorLead">${escapeHtml(cause.message)}</span>` : ''}</p>`
       : cause.kind === 'diagnostic'
-        ? `<p class="incidentCause"><span class="incidentCauseLabel">${t.t('triage.firstFailure')}</span> <span class="incidentErrorLead">${t.t(cause.lead === AMBIGUOUS_LEAD ? 'report.diagnostic.ambiguous' : 'report.diagnostic.undefined')}</span></p>`
-        : `<p class="incidentCause"><span class="incidentCauseLabel">${t.t('triage.firstFailure')}</span> <span class="incidentCauseText">${statusLabel(status, t)}</span></p>`;
+        ? `<p class="incidentCause"><span class="incidentCauseText">${escapeHtml(cause.label)}</span><span class="incidentErrorLead">${t.t(cause.lead === AMBIGUOUS_LEAD ? 'report.diagnostic.ambiguousSummary' : 'report.diagnostic.undefined')}</span></p>`
+        : `<p class="incidentCause"><span class="incidentCauseText">${statusLabel(status, t)}</span></p>`;
   const remaining =
     count > 1
       ? `<p class="incidentMore">${t.t('report.incidentMore', { count: count - 1 })}</p>`
@@ -437,7 +438,11 @@ function scenarioSummary(
     ? `<span class="flakyBadge" aria-hidden="true">${escapeHtml(t.t('report.flakyBadge'))}</span> `
     : '';
   const changeBadge = baselineBadge(scenario.change, t);
-  return `${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${changeBadge}${flakyBadge}${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span>${linkLabel === undefined ? '<span class="chev" aria-hidden="true"></span>' : `<a class="scenarioLink" href="#incident">${escapeHtml(linkLabel)}</a>`}`;
+  const linkAria =
+    linkLabel === undefined
+      ? ''
+      : ` aria-label="${escapeHtml(`${scenarioLabel(scenario)} — ${linkLabel}`)}"`;
+  return `${statusCell}<span class="thumbCell">${image ? `<img class="thumb" src="${escapeHtml(image.dataUri ?? '')}" alt="" loading="lazy">` : ''}</span><span class="scenarioMain"><${heading} class="scenarioName">${visibleName}</${heading}><span class="scenarioSub">${changeBadge}${flakyBadge}${t.t('report.stepCount', { count: scenario.steps.length })}${hooks}${rowTags ? ` ${rowTags}` : ''}${source ? `<span class="scenarioSource">${escapeHtml(source)}</span>` : ''}</span></span><span class="rowRight">${durationLabel(scenario.durationMs, t)}${attachments}</span>${linkLabel === undefined ? '<span class="chev" aria-hidden="true"></span>' : `<a class="scenarioLink" href="#incident"${linkAria}>${escapeHtml(linkLabel)}</a>`}`;
 }
 
 function skippedAttachmentNotice(
@@ -466,6 +471,7 @@ function renderEarlierAttempts(
   scenario: ReportScenario,
   t: Translator,
   staticMode = false,
+  openAttachments = false,
 ): string {
   const attempts = scenario.earlierAttempts ?? [];
   if (attempts.length === 0) return '';
@@ -488,6 +494,7 @@ function renderEarlierAttempts(
             t.t('report.earlierAttemptImage', { count: attempt.attempt }),
             t,
             staticMode,
+            openAttachments,
           ),
         )
         .join('');
@@ -566,11 +573,11 @@ function renderScenarioDetail(
     .map((item) => item.html)
     .join('');
   const passedHooksGroup = passedHooks.length
-    ? `<details class="hookGroup"${staticMode ? ' open' : ''}><summary>${t.t('report.hookCount', { count: passedHooks.length })}</summary><ul class="hooks" aria-label="${t.t('report.passedHooks')}">${passedHooks.map((hook) => renderHook(hook, scenario.name, t, false, staticMode)).join('')}</ul></details>`
+    ? `<details class="hookGroup"${staticMode ? ' open' : ''}><summary>${t.t('report.hookCount', { count: passedHooks.length })}</summary><ul class="hooks" aria-label="${t.t('report.passedHooks')}">${passedHooks.map((hook) => renderHook(hook, scenario.name, t, false, staticMode, openAttachments)).join('')}</ul></details>`
     : '';
   const description = grouped ? '' : renderDescription(scenario.description, t);
   const extraAttachments = scenario.extraAttachments.length
-    ? `<div role="group" aria-label="${t.t('report.attachments')}"><p class="detailLabel">${t.t('report.attachments')}</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name, t, staticMode)).join('')}</div>`
+    ? `<div role="group" aria-label="${t.t('report.attachments')}"><p class="detailLabel">${t.t('report.attachments')}</p>${scenario.extraAttachments.map((attachment) => renderAttachment(attachment, scenario.name, t, staticMode, openAttachments)).join('')}</div>`
     : '';
   const scenarioMeta =
     grouped && scenario.outline
@@ -581,7 +588,12 @@ function renderScenarioDetail(
     description,
     inlineItems,
     passedHooksGroup,
-    earlierAttempts: renderEarlierAttempts(scenario, t, staticMode),
+    earlierAttempts: renderEarlierAttempts(
+      scenario,
+      t,
+      staticMode,
+      openAttachments,
+    ),
     extraAttachments,
     scenarioMeta,
     t,
@@ -647,7 +659,7 @@ function renderScenario(
     .join(' ');
   const id = scenarioId(featureIndex, scenarioIndex);
   if (scenario.id === incidentId) {
-    return `<div class="scenario scenarioRowLink" id="${id}" ${SCENARIO_ATTRIBUTE} ${attributes}><div class="scenarioButton">${scenarioSummary(scenario, heading, visibleName, image, rowTags, t, t.t('report.incidentShownAbove'))}</div></div>`;
+    return `<div class="scenario" id="${id}" ${SCENARIO_ATTRIBUTE} ${attributes}><div class="scenarioButton scenarioRowLink">${scenarioSummary(scenario, heading, visibleName, image, rowTags, t, t.t('report.incidentShownAbove'))}</div></div>`;
   }
   return `<details class="scenario" id="${id}" ${SCENARIO_ATTRIBUTE} ${attributes} ${open ? 'open' : ''}><summary class="scenarioButton">${scenarioSummary(scenario, heading, visibleName, image, rowTags, t)}</summary>${renderScenarioDetail(scenario, t, staticMode, grouped)}</details>`;
 }

@@ -257,7 +257,7 @@ export function scenarioSummaryFor(
   name: string,
 ): string {
   const rows = html.split(
-    /<details class="scenario"|<div class="scenario scenarioRowLink"/,
+    /<details class="scenario"|<div class="scenario" id=/,
   );
   for (const row of rows.slice(1)) {
     const tag = row.slice(0, row.indexOf('>'));

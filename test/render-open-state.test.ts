@@ -89,9 +89,9 @@ describe('default open state', () => {
     expect(
       html.match(/<details class="scenario"[^>]* open>/g) ?? [],
     ).toHaveLength(999);
-    expect(html.match(/class="scenario scenarioRowLink"/g) ?? []).toHaveLength(
-      1,
-    );
+    expect(
+      html.match(/class="scenarioButton scenarioRowLink"/g) ?? [],
+    ).toHaveLength(1);
     expect(html).toContain('id="incident"');
     expect(html.length).toBeLessThan(5 * 1024 * 1024);
   });

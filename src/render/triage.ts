@@ -45,16 +45,7 @@ function renderTriageRow(
     .join('');
   const more =
     failing.length > TRIAGE_SCENARIO_LIMIT
-      ? (() => {
-          const hidden = [
-            ...new Set(
-              failing
-                .slice(TRIAGE_SCENARIO_LIMIT)
-                .map((scenario) => statusLabel(scenario.status, t)),
-            ),
-          ].join(', ');
-          return `<li class="triageMore">${t.t('triage.moreInReport', { count: failing.length - TRIAGE_SCENARIO_LIMIT })}${hidden ? ` · ${escapeHtml(hidden)}` : ''}</li>`;
-        })()
+      ? `<li class="triageMore">${t.t('triage.moreInReport', { count: failing.length - TRIAGE_SCENARIO_LIMIT })}</li>`
       : '';
   const failed = failing.find((scenario) => scenario.status === 'failed');
   const failedStep = failed?.steps.find(

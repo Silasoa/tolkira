@@ -329,8 +329,15 @@ try {
   const openScenarios = (
     html.match(/<details class="scenario"[^>]* open>/g) ?? []
   ).length;
-  if (mode === 'non-passed' && openScenarios !== count) {
-    throw new Error(`Expected ${count} open scenarios, got ${openScenarios}.`);
+  const incidentLinks = (
+    html.match(
+      /<div class="scenario"[^>]*><div class="scenarioButton scenarioRowLink">/g,
+    ) ?? []
+  ).length;
+  if (mode === 'non-passed' && openScenarios + incidentLinks !== count) {
+    throw new Error(
+      `Expected ${count} open or linked scenarios, got ${openScenarios} open and ${incidentLinks} linked.`,
+    );
   }
   if (elapsedMs > maxMs) {
     throw new Error(
@@ -350,6 +357,7 @@ try {
         scenarios: count,
         steps: expectedSteps,
         openScenarios,
+        incidentLinks,
         elapsedMs,
         htmlBytes,
         htmlMb: Math.round((htmlBytes / 1024 / 1024) * 10) / 10,

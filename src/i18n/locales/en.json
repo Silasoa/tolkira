@@ -515,6 +515,10 @@
     "message": "Multiple matching step definitions found:",
     "description": "Lead text for an ambiguous step"
   },
+  "report.diagnostic.ambiguousSummary": {
+    "message": "Multiple matching step definitions found",
+    "description": "Incident summary lead for an ambiguous step, without the trailing colon"
+  },
   "report.diagnostic.undefined": {
     "message": "No step definition found.",
     "description": "Lead text for an undefined step without suggestions"
@@ -590,10 +594,6 @@
   "report.hookCount": {
     "message": "{count, plural, one {# hook} other {# hooks}}",
     "description": "Hook count in a scenario row"
-  },
-  "report.incidentAttention": {
-    "message": "Needs attention",
-    "description": "Incident badge for undefined, ambiguous and pending scenarios"
   },
   "report.incidentHeading": {
     "message": "What happened",

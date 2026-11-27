@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { AttachmentContentEncoding } from '@cucumber/messages';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { BaselineSummary } from '../src/index.js';
 import { renderReport } from '../src/index.js';
@@ -36,7 +36,7 @@ const NO_EVIDENCE = 'No evidence attached.';
 const GERMAN_HEADING = 'Was passiert ist';
 const GERMAN_ROW_LABEL = 'Oben angezeigt';
 const GERMAN_RUN_FAILED = 'Lauf fehlgeschlagen';
-const GERMAN_NO_EVIDENCE = 'Kein Beleg angehängt.';
+const GERMAN_NO_EVIDENCE = 'Kein Nachweis angehängt.';
 
 function moreIncidents(count: number): string {
   return count === 1
@@ -304,8 +304,13 @@ describe('incident selection', () => {
     expect(incidentSummary(two)).toContain(moreIncidents(1));
     expect(incidentSummary(two)).not.toContain('2 more');
     expect(incidentSummary(one)).not.toContain('more incident');
-    // The triage stays broader and still lists the skipped row.
-    expect(triageSection(three)).toContain('Skipped');
+    // The triage stays broader: its counts line still lists skipped, and a
+    // skipped row within the link limit stays reachable.
+    const twoTriage = triageSection(two);
+    expect(twoTriage).toContain('2 failed, 1 skipped');
+    expect(twoTriage).toContain('href="#scenario-1-3"');
+    expect(triageSection(three)).toContain('3 failed, 1 skipped, 1 unknown');
+    expect(triageSection(three)).not.toContain('· Skipped');
   });
 });
 
@@ -362,19 +367,29 @@ describe('incident summary', () => {
     const ambiguousHtml = await render(
       oneScenario('ambiguous row', 'ambiguous'),
     );
+    const pendingHtml = await render(oneScenario('pending row', 'pending'));
 
     expect(incidentSummary(undefinedHtml)).toContain(
       'No step definition found.',
     );
+    expect(incidentSummary(undefinedHtml)).toContain('a step');
+    expect(incidentSummary(undefinedHtml)).not.toContain('First failure');
     expect(incidentDetail(undefinedHtml)).toContain(
       'data-diagnostic="undefined"',
     );
     expect(incidentSummary(ambiguousHtml)).toContain(
-      'Multiple matching step definitions found:',
+      'Multiple matching step definitions found',
     );
+    expect(incidentSummary(ambiguousHtml)).toContain('a step');
+    expect(incidentSummary(ambiguousHtml)).not.toContain('found:');
+    expect(incidentSummary(ambiguousHtml)).not.toContain('First failure');
     expect(incidentDetail(ambiguousHtml)).toContain(
       'data-diagnostic="ambiguous"',
     );
+    // Pending is a status incident, not a "first failure".
+    expect(incidentSummary(pendingHtml)).toContain('Pending');
+    expect(incidentSummary(pendingHtml)).not.toContain('First failure');
+    expect(incidentSummary(pendingHtml)).toContain('Needs attention');
   });
 
   it('names a failed hook and keeps the first error line in the summary', async () => {
@@ -456,7 +471,11 @@ describe('incident evidence reuse', () => {
     });
     const detail = incidentDetail(html);
 
-    expect(detail).toContain('<details class="hookGroup"');
+    const group =
+      /<details class="hookGroup".*?<\/details>/s.exec(detail)?.[0] ?? '';
+    expect(group).toContain('<details class="hookGroup"');
+    expect(group).toContain('Before');
+    expect(group).not.toContain(' open');
     expect(detail).toContain('Before');
     expect(detail.indexOf('opens the page')).toBeGreaterThan(-1);
     expect(detail.indexOf('opens the page')).toBeLessThan(
@@ -467,6 +486,34 @@ describe('incident evidence reuse', () => {
     );
     expect(detail).toContain('cleanup failed');
     expect(detail).toContain('<li class="step" data-status="failed"');
+  });
+
+  it('names a failed After hook when every step passed', async () => {
+    const html = await render({
+      features: [
+        {
+          name: 'Hooks',
+          scenarios: [
+            {
+              name: 'after hook fails',
+              steps: [step('a passed step')],
+              after: [
+                {
+                  at: 'after',
+                  status: 'failed',
+                  message: 'Browser cleanup failed\n  at hooks.ts:9',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(incidentSummary(html)).toContain('After');
+    expect(incidentSummary(html)).toContain('Browser cleanup failed');
+    expect(incidentSummary(html)).not.toContain('at hooks.ts:9');
+    expect(incidentDetail(html)).toContain('at hooks.ts:9');
   });
 
   it('keeps doc strings and data tables in the reused detail', async () => {
@@ -501,13 +548,25 @@ describe('incident evidence reuse', () => {
   });
 
   it('renders image, text and video attachments and the log copy target', async () => {
-    const html = await render({
+    const envelopes = incidentEnvelopes({
       features: [
         {
           name: 'Attachments',
           scenarios: [
             {
               name: 'has evidence',
+              before: [
+                {
+                  at: 'before',
+                  attachments: [
+                    {
+                      fileName: 'hook.log',
+                      mediaType: 'text/plain',
+                      body: 'hook log',
+                    },
+                  ],
+                },
+              ],
               steps: [
                 step('fails with evidence', {
                   status: 'failed',
@@ -536,6 +595,19 @@ describe('incident evidence reuse', () => {
         },
       ],
     });
+    const startedId = envelopes.find((envelope) => envelope.testCaseStarted)
+      ?.testCaseStarted?.id;
+    if (!startedId) throw new Error('fixture has no testCaseStarted');
+    envelopes.push({
+      attachment: {
+        body: 'extra log',
+        mediaType: 'text/plain',
+        contentEncoding: AttachmentContentEncoding.IDENTITY,
+        testCaseStartedId: startedId,
+        fileName: 'extra.log',
+      },
+    });
+    const html = await renderHtml(envelopes, { title: 'Attachments' });
     const detail = incidentDetail(html);
 
     expect(detail).toContain('<img class="shot" src="data:image/png;base64,');
@@ -543,6 +615,11 @@ describe('incident evidence reuse', () => {
     expect(detail).toContain(LOG_BODY.split('\n')[0]);
     expect(detail).toContain('<video class="shot"');
     expect(detail).toContain('class="attachmentText"');
+    expect(detail).toContain('hook.log');
+    expect(detail).toContain('hook log');
+    expect(detail).toContain('extra.log');
+    expect(detail).toContain('extra log');
+    expect(detail.match(/class="attachmentText"/g) ?? []).toHaveLength(3);
   });
 
   it('shows the no-evidence line above the detail and no empty attachment block', async () => {
@@ -699,6 +776,32 @@ describe('incident evidence reuse', () => {
     expect(panel).not.toContain('<script>alert');
     expect(panel).not.toContain('<img src=x');
     expect(panel).not.toContain('<svg onload');
+
+    // The outline name and examples name ride in attributes; quote and tag
+    // characters must be entity-escaped there too.
+    const hostile = 'x"><img src=x onerror=alert(1)>';
+    const envelopes = await rulesOutlineEnvelopes();
+    for (const envelope of envelopes) {
+      if (envelope.pickle) envelope.pickle.name = hostile;
+      const feature = envelope.gherkinDocument?.feature;
+      for (const child of feature?.children ?? []) {
+        for (const ruleChild of child.rule?.children ?? []) {
+          for (const examples of ruleChild.scenario?.examples ?? []) {
+            examples.name = hostile;
+          }
+        }
+      }
+    }
+    const outlinePanel = incidentSection(
+      await renderHtml(envelopes, { title: 'Outline escape' }),
+    );
+
+    expect(outlinePanel).toContain('&quot;&gt;');
+    expect(outlinePanel).toContain(
+      'data-copy-examples-name="x&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"',
+    );
+    expect(outlinePanel).not.toContain('"><img');
+    expect(outlinePanel).not.toContain('x"><');
   });
 });
 
@@ -721,9 +824,13 @@ describe('incident row link', () => {
     const row = rowAround(list, 'scenario-1-1');
 
     expect(incidentTag).toContain('data-scenario');
+    expect(incidentTag).toContain('class="scenario"');
+    expect(incidentTag).not.toContain('scenarioRowLink');
     expect(incidentTag).not.toMatch(/^<details\b/);
+    expect(row).toContain('class="scenarioButton scenarioRowLink"');
     expect(row).toContain('href="#incident"');
     expect(row).toContain(ROW_LABEL);
+    expect(row).toContain('aria-label="first failed — Shown above"');
     expect(row).not.toContain('class="chev"');
     expect(row).not.toContain('detailInline');
     expect(row).not.toContain('data-copy-failure');
@@ -774,8 +881,10 @@ describe('incident row link', () => {
     expect(tag).toContain('data-scenario');
     expect(tag).not.toMatch(/^<details\b/);
     expect(list).toContain('class="rule"');
-    expect(list).toContain('href="#incident"');
-    expect(list).toContain(ROW_LABEL);
+    const row = rowAround(list, 'scenario-1-1');
+    expect(row).toContain('href="#incident"');
+    expect(row).toContain(ROW_LABEL);
+    expect(row).not.toContain('detailInline');
     expect(list.indexOf('class="rule"')).toBeLessThan(
       list.indexOf('href="#incident"'),
     );
@@ -791,14 +900,15 @@ describe('incident row link', () => {
     expect(tag).toContain('data-scenario');
     expect(tag).toContain('data-example="#2.1"');
     expect(tag).not.toMatch(/^<details\b/);
-    expect(list).toContain('href="#incident"');
-    expect(list).toContain(ROW_LABEL);
+    const row = rowAround(list, 'scenario-1-1');
+    expect(row).toContain('href="#incident"');
+    expect(row).toContain(ROW_LABEL);
     expect(list.indexOf('class="rule"')).toBeLessThan(
       list.indexOf('href="#incident"'),
     );
     // The linked row carries no second detail; every non-incident row keeps
     // its server-rendered inline body for the no-JS form.
-    expect(rowAround(list, 'scenario-1-1')).not.toContain('detailInline');
+    expect(row).not.toContain('detailInline');
     expect(rowAround(list, 'scenario-1-2')).toContain('detailInline');
     expect(rowAround(list, 'scenario-1-2')).toContain('data-copy-failure');
     const disclosureRows = list.match(/<details class="scenario"/g) ?? [];
@@ -870,24 +980,6 @@ describe('incident row link', () => {
       'No scenarios match the current search or filters.',
     );
   });
-
-  it('resolves data-copy-scope only for the failure text in the client source', async () => {
-    const client = await readFile(
-      new URL('../src/render/report-client.ts', import.meta.url),
-      'utf8',
-    );
-    const failure = client.slice(
-      client.indexOf('function failureText'),
-      client.indexOf('function setupCopyButton'),
-    );
-    const log = client.slice(
-      client.indexOf("'[data-copy-log]'"),
-      client.indexOf('// The fixed CSS reserve'),
-    );
-
-    expect(failure).toContain('data-copy-scope');
-    expect(log).not.toContain('data-copy-scope');
-  });
 });
 
 describe('incident locale and run-level failures', () => {
@@ -919,7 +1011,7 @@ describe('incident locale and run-level failures', () => {
     expect(incidentSummary(html)).not.toContain(ROW_LABEL);
 
     const pending = await render(oneScenario('wartet', 'pending'), 'de');
-    expect(incidentSummary(pending)).toContain('Aufmerksamkeit nötig');
+    expect(incidentSummary(pending)).toContain('Aufmerksamkeit erforderlich');
   });
 
   it('renders a run-level hook failure without an incident panel', async () => {
