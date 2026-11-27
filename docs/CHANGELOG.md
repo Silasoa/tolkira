@@ -7,6 +7,16 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Added
 
+- The Report view resolves the first scenario that needs attention in an
+  incident panel above the baseline and triage block. The panel carries that
+  scenario's full detail — steps, hooks, diagnostics, doc strings, data tables,
+  step/hook/extra attachments, earlier attempts and copy actions — and its
+  summary names the feature, scenario, status, first failing step and first
+  error line, or the diagnostic lead and baseline badge; further scenarios stay
+  in the triage block and the index with one localized remaining count. The
+  incident row links to the panel instead of rendering the detail twice. The
+  panel renders in the default, static, print and PDF forms and does not react
+  to the toolbar search or filters (B-057).
 - A scripted report carries the full MIT notice of the bundled
   `@cucumber/tag-expressions` 11.2.0 as one HTML comment after the last script,
   and the package ships `THIRD-PARTY-NOTICES.md`, required by the package
@@ -35,6 +45,12 @@ Keep a Changelog and the project uses semantic versioning.
 
 ### Changed
 
+- The report shell uses the Incident review visual language: chart-neutral
+  paper and ink, one system sans, mono for measurements, error text and paths,
+  compact chips, one-pixel rules and no new cards or shadows, so the failure
+  stays the loudest object on the page. Details, Trends and the static form
+  inherit the tokens. A scripted report grows by 5,833 B, the static report by
+  5,727 B and the client by 374 B (B-057).
 - The quality gate compiles with eleven strict TypeScript checks in two
   programs: the server and test sources with Node types, and the browser graph
   with no Node declarations, so a Node global in browser code fails.
