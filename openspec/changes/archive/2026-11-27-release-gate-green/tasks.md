@@ -68,10 +68,18 @@
   buttons 241×72 px stacked; at 1440/900 both controls one line at the right
   edge, page overflow −15 px; undoing the CSS declaration reproduces the
   B-075 HTML byte-for-byte; notices, link boxes, print and static unchanged.
-- [ ] 4.4 Write `gate.md`; review with SCR, CR, UXR and DAR in parallel; fix
+- [x] 4.4 Write `gate.md`; review with SCR, CR, UXR and DAR in parallel; fix
   findings with a delta re-check.
-- [ ] 4.5 Push and verify the `hygiene`, `check`, `check-windows`, `package`,
+  Result: SCR, CR and UXR PASS; DAR FAIL on docs only, fixed in `9f3d5c6`;
+  the CR minors are fixed in `35f37cf`; the SCR/CR/DAR delta re-checks pass and
+  the DAR scope corrections land with the gate record.
+- [x] 4.5 Push and verify the `hygiene`, `check`, `check-windows`, `package`,
   `e2e`, `e2e-macos` and `workflows` CI jobs are green on the pushed commit,
   with `e2e` and `e2e-macos` both covering the three engines; that Linux run is
   the proof for the font-metric overflow and the shellcheck finding.
-- [ ] 4.6 Archive and sync the specs; no version bump, tag, stage or publish.
+  Result: run `46006450649` on `6bd74fb` and run `46007782898` on `abc20a6`
+  are green on all eight jobs, including the three-engine Linux and macOS
+  `e2e` runs.
+- [x] 4.6 Archive and sync the specs; no version bump, tag, stage or publish.
+  Result: archived as `2026-11-27-release-gate-green`; both added requirements
+  synced into the main specs; no version bump, tag, stage or publish.

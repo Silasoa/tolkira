@@ -29,7 +29,8 @@ Commits on `main`:
 | `a31d38b` | `fix(report): keep the toolbar inside 320 px and quote workflow paths (B-057, B-074)` |
 | `9f3d5c6` | `docs(openspec): record the gate fix and correct its measurements (B-057, B-074)` |
 | `35f37cf` | `test(ci): measure 1440 at normal text and widen the path guard (B-057, B-074)` |
-| `HEAD` | gate record, spec scope note and the positive bare-path guard case |
+| `aad1feb` | `docs(openspec): record the release gate fix (B-057, B-074)` |
+| `abc20a6` | `test(ci): drop the redundant regex escape (B-057, B-074)` |
 
 `.expand` gains `flex-wrap: wrap; justify-content: flex-end;`; the minified
 stylesheet grows by 40 bytes. The tarball path is quoted in both workflows and
@@ -39,8 +40,8 @@ the CI `workflows` job prints `shellcheck --version` before actionlint.
 
 ### Gates
 
-- `npm run check`: 108 files, **2,187 passed / 11 skipped / 0 failed of
-  2,198**; coverage unchanged (95.13 / 88.51 / 97.09 / 96.52); typecheck,
+- `npm run check`: 108 files, **2,188 passed / 11 skipped / 0 failed of
+  2,199**; coverage unchanged (95.13 / 88.51 / 97.09 / 96.52); typecheck,
   lint, knip, format and build green.
 - Focused workflow tests: **34 passed** (was 30 before this change).
 - `npm run test:e2e` on Chromium, Firefox and WebKit: **518 passed / 10
@@ -78,11 +79,21 @@ installed notice file are unchanged; zero console/page/http errors.
 
 ### Pushed CI
 
-Run `46006450649` on `6bd74fb`: `hygiene`, `workflows`, `check` (22/24/26),
-`check-windows`, `package` and **`e2e`** green; `e2e-macos` was still running
-at record time and is covered by the final run on the pushed HEAD. The green
-Linux `e2e` job is the proof for the 320 px / 200 % font-metric overflow, and
-the green `workflows` job is the proof for `SC2086` with shellcheck on `PATH`.
+Run `46006450649` on `6bd74fb` (the commit that contains the CSS fix, the
+quoted paths and the shellcheck step): **all jobs green** — `hygiene`,
+`check` (22/24/26), `check-windows`, `package`, `e2e`, `e2e-macos` and
+`workflows`. The green Linux `e2e` job is the proof for the 320 px / 200 %
+font-metric overflow, and the green `workflows` job is the proof for `SC2086`
+with shellcheck on `PATH`.
+
+Run `46007604929` on `aad1feb` (this gate record, the spec scope note and the
+positive bare-path guard case) stopped at `lint`: oxlint flagged the escaped
+slash in the new guard's character class (`Unnecessary escape character '/'`).
+`abc20a6` drops the escape.
+
+Run **`46007782898` on `abc20a6`: all eight jobs green** on the final tree —
+`hygiene`, `check` (22/24/26), `check-windows`, `package`, `e2e`, `e2e-macos`
+and `workflows`.
 
 ## 4. Reviews
 
@@ -100,7 +111,9 @@ re-checks on `35f37cf` returned PASS for SCR and CR.
   now scopes the end-aligned requirement to 1440 and records it.
 - DAR: the six doc findings (changelog entry, actionlint wording, push matrix,
   measurement consistency, archived "fixed" claims, B-075 package state) were
-  fixed in `9f3d5c6`; the delta re-check passed.
+  fixed in `9f3d5c6`; the delta re-check on `35f37cf` asked for the 1440 px
+  text-size scope and the 21-test attribution, both corrected before the gate
+  record commit. PASS.
 
 ## 5. Exceptions
 
