@@ -108,6 +108,37 @@ function permissionsOf(jobText: string): string[] {
   return entries;
 }
 
+function topPermissionsOf(workflow: string): string[] {
+  const beforeJobs = workflow.slice(0, workflow.search(/^jobs:/m));
+  const lines = beforeJobs.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === 'permissions:');
+  if (start === -1) return [];
+  const entries: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const entry = /^ {2}([a-z-]+):\s*(\S+)\s*$/.exec(line);
+    if (!entry) break;
+    entries.push(`${entry[1]}: ${entry[2]}`);
+  }
+  return entries;
+}
+
+function withKeysOf(block: string): string[] {
+  const lines = block.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^\s*with:\s*$/.test(line));
+  if (start === -1) return [];
+  const indent =
+    (lines[start] ?? '').length - (lines[start] ?? '').trimStart().length;
+  const keys: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (!line.trim()) continue;
+    const lineIndent = line.length - line.trimStart().length;
+    if (lineIndent <= indent) break;
+    const key = /^\s*([a-z][a-z0-9-]*):/.exec(line);
+    if (key?.[1]) keys.push(key[1]);
+  }
+  return keys;
+}
+
 function concurrencyOf(workflow: string): string[] {
   const lines = workflow.split(/\r?\n/);
   const start = lines.findIndex((line) => line === 'concurrency:');
@@ -120,15 +151,18 @@ function concurrencyOf(workflow: string): string[] {
   return entries;
 }
 
-// Slice a step from the line that carries the marker to the next `- ` step.
+// Slice a full step: from its `- ` line to the next one, so a key above the
+// `uses:` line (such as an `if:` guard) is part of the block.
 function stepBlocks(jobText: string, marker: string): string[] {
   const lines = jobText.split(/\r?\n/);
-  return lines.flatMap((line, start) => {
+  return lines.flatMap((line, index) => {
     if (!/^\s*(?:-\s*)?uses:/.test(line) || !line.includes(marker)) return [];
+    let start = index;
+    while (start > 0 && !/^\s*-\s/.test(lines[start] ?? '')) start -= 1;
     let end = lines.length;
-    for (let index = start + 1; index < lines.length; index += 1) {
-      if (/^\s*-\s/.test(lines[index] ?? '')) {
-        end = index;
+    for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
+      if (/^\s*-\s/.test(lines[cursor] ?? '')) {
+        end = cursor;
         break;
       }
     }
@@ -196,22 +230,70 @@ describe('release job graph', () => {
   it('runs the tag guards before any install in the package job', async () => {
     const packageJob = job(await workflowJobs(), 'package');
     const commands = runCommands(packageJob);
-    const guard = commands.findIndex((command) =>
-      /^test "v.+ = "\$GITHUB_REF_NAME"$/.test(command),
+    const guard = commands.indexOf(
+      `test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"`,
     );
-    const tagOnMain = commands.findIndex((command) =>
-      command.includes(
+    const tagOnMain = commands.indexOf(
+      [
+        'git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main',
         'git merge-base --is-ancestor HEAD refs/remotes/origin/main',
-      ),
+      ].join('\n'),
     );
     const ci = commands.indexOf('npm ci');
 
     expect(guard, 'tag/version guard').toBeGreaterThanOrEqual(0);
+    expect(tagOnMain, 'tag-on-main guard').toBeGreaterThanOrEqual(0);
     expect(tagOnMain, 'tag-on-main guard').toBeGreaterThan(guard);
     expect(ci, 'npm ci step').toBeGreaterThan(tagOnMain);
     // A shallow clone cannot prove the ancestor relation; the fetch is full.
     expect(packageJob).toContain('fetch-depth: 0');
     expect(activeCommands(packageJob)).not.toContain('--depth');
+  });
+
+  it('gives the package job and the workflow only contents read', async () => {
+    const workflow = await readFile(workflowFile, 'utf8');
+    const packageJob = job(await workflowJobs(), 'package');
+
+    expect(permissionsOf(packageJob)).toEqual(['contents: read']);
+    expect(topPermissionsOf(workflow)).toEqual(['contents: read']);
+    expect(workflow.slice(0, workflow.search(/^jobs:/m))).not.toContain(
+      'id-token',
+    );
+  });
+
+  it('uploads both artifacts after signatures, check, smoke and SBOM', async () => {
+    const packageJob = job(await workflowJobs(), 'package');
+    const anchor = (needle: string): number => {
+      const index = packageJob.indexOf(needle);
+      expect(index, needle).toBeGreaterThanOrEqual(0);
+      return index;
+    };
+    const signatures = anchor('npm audit signatures');
+    const check = anchor('TOLKIRA_PACK_DIR=/tmp/pack npm run package:check');
+    const smoke = anchor(
+      'test/fixtures/legacy/minimal.json --out /tmp/report.html',
+    );
+    const sbom = anchor('npm sbom --sbom-format cyclonedx');
+    const lastGate = Math.max(signatures, check, smoke, sbom);
+
+    for (const marker of ['name: tolkira-release', 'name: tolkira-sbom']) {
+      expect(anchor(marker), marker).toBeGreaterThan(lastGate);
+    }
+  });
+
+  it('triggers on tags only, packs once and never runs npm pack', async () => {
+    const workflow = await readFile(workflowFile, 'utf8');
+    const commands = [...(await workflowJobs()).values()].flatMap((text) =>
+      runCommands(text),
+    );
+
+    expect(workflow).not.toMatch(/^\s*schedule:/m);
+    expect(
+      commands.filter((command) => command.includes('npm run package:check')),
+    ).toHaveLength(1);
+    expect(commands.filter((command) => /\bnpm pack\b/.test(command))).toEqual(
+      [],
+    );
   });
 
   it('checks, smokes and records the digest in order', async () => {
@@ -308,6 +390,11 @@ describe('release job graph', () => {
     expect(sbom).toContain('path: /tmp/pack/tolkira-sbom.cdx.json');
     expect(sbom).toContain('if-no-files-found: error');
     expect(sbom).toContain('retention-days: 14');
+
+    // `if-no-files-found` is not a condition; a disabled upload must fail.
+    for (const block of [releaseArtifact, sbom]) {
+      expect(block, 'upload if').not.toMatch(/^\s*if:/m);
+    }
   });
 });
 
@@ -345,6 +432,11 @@ describe('release publish job', () => {
     expect(downloads).toHaveLength(1);
     expect(downloads[0]).toContain('name: tolkira-release');
     expect(downloads[0]).toContain('path: /tmp/pack');
+    // Same-run artifact only: any other input would fetch another run.
+    expect(withKeysOf(downloads[0] ?? '')).toEqual(['name', 'path']);
+    expect(downloads[0]).not.toMatch(
+      /\b(run-id|github-token|repository|workflow)\s*:/,
+    );
 
     const stages = runCommands(publish).filter((command) =>
       /^npm stage publish\b/.test(command),

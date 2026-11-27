@@ -105,10 +105,13 @@ steps.
    upload fails if the file is missing. The SBOM covers the external runtime
    dependency tree from the lockfile and does not cover bundled code (B-075).
 4. The run pauses on the `release` environment. The maintainer approves the
-   deployment; only then does the `publish` job start and receive
-   `NPM_TOKEN`. That job has no checkout and no build: it downloads
+   deployment in the run's deployment review (the run page, Review deployments,
+   environment `release`); only then does the `publish` job start and receive
+   `NPM_TOKEN`. That job has no project checkout and no build: it downloads
    `tolkira-release`, verifies the tarball against the digest the `package` job
-   reported and stages that exact file. No step packs a second tarball.
+   reported and stages that exact file. No step packs a second tarball. The
+   `tolkira-release` artifact expires after 14 days, so a later approval needs a
+   fresh tag run.
 5. Approve or reject the staged package with the maintainer's 2FA.
 6. After approval, confirm `npm view tolkira@<version> version`, create the
    GitHub Release and attach the `tolkira-sbom` artifact.

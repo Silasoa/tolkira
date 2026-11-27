@@ -53,11 +53,17 @@ Keep a Changelog and the project uses semantic versioning.
   `attw` with the node16 profile. `docs/README.md` is explicit in `files`, so
   npm 10 and npm 12 pack the same entries. It runs in the CI package job and
   before the staged publish.
-- The release publishes the tarball it checked: `npm audit signatures`, a
-  pinned npm 12.2.3, one `TOLKIRA_PACK_DIR=/tmp/pack` build, the CLI smoke on
-  `tolkira-<version>.tgz`, then `npm stage publish` on that file. No step packs
-  a second tarball. The publish job records the tarball's SHA-256 after the
-  package check and verifies it immediately before staging (B-071).
+- The release publishes the tarball it checked, in a split workflow (B-074).
+  The non-privileged `package` job runs `npm audit signatures`, a pinned npm
+  12.2.3, one `TOLKIRA_PACK_DIR=/tmp/pack` build and package check, smokes
+  `tolkira-<version>.tgz`, records its bare-name SHA-256 and uploads the
+  tarball plus digest as `tolkira-release` and the SBOM as `tolkira-sbom`; it
+  runs with `contents: read` and no token or OIDC. The `publish` job downloads
+  that artifact, verifies the tarball against the package job's digest output
+  and stages that exact file with provenance behind the `release` environment
+  approval; no step packs a second tarball. Runs for one tag queue instead of
+  cancelling, an active `v*` tag ruleset blocks moving or deleting the tag, and
+  a bad release needs a new tag and patch version.
 - The CycloneDX SBOM is the production lockfile tree
   (`npm sbom --sbom-format cyclonedx --omit=dev --package-lock-only`), written
   to `tolkira-sbom.cdx.json` and uploaded as `tolkira-sbom`; it covers external

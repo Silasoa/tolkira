@@ -58,6 +58,20 @@ function stepBlocks(workflow: string, marker: string): string[] {
   });
 }
 
+// Slice a full step: from its `- ` line to the next one, so a key above the
+// marker line is part of the block.
+function stepAround(workflow: string, marker: string): string[] {
+  const lines = workflow.split(/\r?\n/);
+  return lines.flatMap((line, index) => {
+    if (!line.includes(marker)) return [];
+    let start = index;
+    while (start > 0 && !/^\s*-\s/.test(lines[start] ?? '')) start -= 1;
+    let end = index + 1;
+    while (end < lines.length && !/^\s*-\s/.test(lines[end] ?? '')) end += 1;
+    return [lines.slice(start, end).join('\n')];
+  });
+}
+
 describe('action pins', () => {
   it('pins every action to a 40-hex commit with a version comment', () => {
     const uses = [...actionUses(ci), ...actionUses(release)];
@@ -157,6 +171,22 @@ describe('npm token isolation', () => {
     const publish = jobBlock(release, 'publish');
     expect(publish).toContain('secrets.NPM_TOKEN');
     expect(jobBlock(release, 'package')).not.toContain('NPM_TOKEN');
+  });
+
+  it('maps NODE_AUTH_TOKEN once, on the stage step only', () => {
+    const workflowDir = path.join(repoRoot, '.github', 'workflows');
+    const occurrences = readdirSync(workflowDir)
+      .filter((name) => /\.ya?ml$/.test(name))
+      .flatMap((name) =>
+        readText(path.join('.github', 'workflows', name))
+          .split('NODE_AUTH_TOKEN')
+          .slice(1),
+      );
+
+    expect(occurrences).toHaveLength(1);
+    const steps = stepAround(release, 'NODE_AUTH_TOKEN');
+    expect(steps).toHaveLength(1);
+    expect(steps[0]).toContain('run: npm stage publish');
   });
 });
 

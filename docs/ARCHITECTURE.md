@@ -756,8 +756,9 @@ Test names, metadata, file names and attachments are untrusted input.
   no npm token or OIDC. The token-bearing `publish` job downloads that artifact,
   verifies the tarball against the package job's digest output immediately
   before `npm stage publish` and stages that exact file with provenance. It has
-  no checkout, install, build, pack or SBOM step and waits on the `release`
-  environment before it can use the token. An active `release-tags` ruleset
+  no project checkout or dependency install (`npm ci`) and no build, pack or
+  SBOM step, and it waits on the `release` environment before it can use the
+  token. An active `release-tags` ruleset
   blocks deleting or moving a `v*` tag, so a bad release needs a new patch
   version; runs for one tag queue instead of cancelling. npm 12.2.3 is pinned in
   both jobs, and no step packs a second tarball. The tag-on-main guard resolves

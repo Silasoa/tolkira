@@ -144,7 +144,7 @@ asks or a locale needs them:
   `refs/tags/v*` (no deletion, update or non-fast-forward, no bypass) and the
   `release` environment with the maintainer as required reviewer, `v*` as its
   only deployment tag and self-review allowed until a second maintainer joins.
-  Pinned by the 26 workflow tests in `test/release-workflow.test.ts` and
+  Pinned by the 30 workflow tests in `test/release-workflow.test.ts` and
   `test/workflow-config.test.ts`.
 - **B-059 Tag overview** — resolved on 2026-11-26 in `0.7-tag-overview`: the
   Details view renders a server-rendered tag table with executed scenario,
@@ -637,6 +637,16 @@ asks or a locale needs them:
 - **Test-helper duplication.** Shared test-helper work (view slices,
   attempt/tie streams, `cssBlocks`, the two CLI write wrappers) belongs to
   B-057; fold it into that refactor rather than opening a 0.6.1 finding.
+- **`NPM_TOKEN` as a repository secret.** The token stays a repository secret
+  mapped only by the `publish` job until a second maintainer or any
+  non-maintainer with workflow write access exists. Trigger: that second person
+  or access grant; then move it to a `release` environment secret so the
+  approval also scopes the secret.
+- **Digest trust in the release split.** The checked digest comes from the
+  `package` job, which runs `npm ci` and builds, so the split prevents replacing
+  the tarball after the digest is recorded, not a compromised build. Trigger: a
+  second runner or reviewer, or a reproducible-build requirement; then rebuild
+  independently and compare the digest, or move to npm trusted publishing.
 - **Residual test nits from the 0.6.1 review.** Small uncovered edge classes:
   `attempt: null` or boolean on a Messages start, a `--out` permission failure
   on Windows, a surrogate pair in the CI feature/URI/`--title` fields, and a
