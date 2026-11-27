@@ -239,6 +239,18 @@ describe('quoted versioned tarball path', () => {
     ];
     expect(lookalikes.filter((line) => bareTarballPath.test(line))).toEqual([]);
   });
+
+  it('catches the bare path before a separator or a line end', () => {
+    const bare = [
+      'npm install /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz',
+      'npm install /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz; echo done',
+      'test -f /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz && echo ok',
+      'cat /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz > /dev/null',
+    ];
+    expect(bare.filter((line) => bareTarballPath.test(line))).toHaveLength(
+      bare.length,
+    );
+  });
 });
 
 describe('dependabot', () => {

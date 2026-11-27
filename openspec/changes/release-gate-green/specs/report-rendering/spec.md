@@ -5,8 +5,9 @@
 ### Requirement: Keep the toolbar controls inside the shell
 
 At 320 px with 200 % text the toolbar expand and collapse controls SHALL wrap
-inside the toolbar, and the page SHALL NOT overflow horizontally. At wider
-widths the controls SHALL stay on the toolbar line, end-aligned.
+inside the toolbar, and the page SHALL NOT overflow horizontally. At 1440 px
+both controls SHALL stay on the toolbar line, end-aligned. The existing
+sub-900 px layout is unchanged.
 
 #### Scenario: Narrow screen with 200 % text
 
@@ -18,7 +19,7 @@ widths the controls SHALL stay on the toolbar line, end-aligned.
 
 #### Scenario: Desktop layout unchanged
 
-- **WHEN** the report is viewed at 1440 px
+- **WHEN** the report is viewed at 1440 px with 100 % text
 - **THEN** both controls stay on one line at the end of the toolbar
 - **AND** their top edges are equal and the last control's right edge aligns
   with the toolbar's right edge

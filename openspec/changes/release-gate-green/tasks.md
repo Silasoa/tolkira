@@ -7,9 +7,9 @@
 - [x] 1.3 Record the baseline: the failing CI jobs, the measured `.expand`
   layout (block at x=32, 268.03 px in a 241 px toolbar, document 320 px,
   scroll 305 px), the two unquoted commands, and the 21 unique failing e2e
-  tests (63 = 21 times 3 engines), each rendering `empty-statuses.ndjson` with
-  the toolbar; the `visual-evidence` static capture is proven by the next CI
-  run. B-075 commits first; its final package state is 94 entries, 706,997 B,
+  tests (63 = 21 times 3 engines, across 11 spec files), each rendering a
+  scripted report with the toolbar; the `visual-evidence` static capture is
+  proven by the next CI run. B-075 commits first; its final package state is 94 entries, 706,997 B,
   SHA-256 `61D964DA…5779AD` (HEAD `83b3e56`), and this change re-pins on top of
   its notice bytes.
 
@@ -45,19 +45,29 @@
   with a dated note about the local-actionlint and local-e2e gaps.
   Measured Windows Chromium, `empty-statuses.ndjson`, 200 % text at 320 px:
   document 320 / scroll 305, toolbar 32 → 273 (241 px), `.expand` 32 → 273
-  (241 px, was 268.03), both buttons 241 px wide, stacked. At 1440 px:
-  toolbar 116.5 → 1308.5 (1192 px), `.expand` 799.69 → 1308.5 (508.81 px),
-  both buttons share top 623.03, last right 1308.5. Differential: every
+  (241 px, was 268.03), both buttons 241 px wide, stacked. At 1440 px with
+  200 % text: toolbar 116.5 → 1308.5 (1192 px), `.expand` 799.69 → 1308.5
+  (508.81 px), both buttons share top 623.03, last right 1308.5; the host row
+  below records 1440 px at 100 % text. Differential: every
   pinned report differs only by the 40 CSS bytes and the derived
   "Report HTML" size (+40).
 
 ## 4. Verification and gate
 
-- [ ] 4.1 `npm run check`, `npm run hygiene`, `npm run package:check`.
-- [ ] 4.2 `npm run test:e2e` on Chromium, Firefox and WebKit.
-- [ ] 4.3 Targeted host row 2: cucumber-js legacy and Messages at 320 px /
+- [x] 4.1 `npm run check`, `npm run hygiene`, `npm run package:check`.
+  Result: 108 files, 2,187 passed / 11 skipped / 0 failed of 2,198; coverage
+  unchanged; hygiene green; package 94 entries, 707,008 B, SHA-256
+  `DC4C0DBC…12F2`.
+- [x] 4.2 `npm run test:e2e` on Chromium, Firefox and WebKit.
+  Result: 518 passed / 10 skipped on the three engines.
+- [x] 4.3 Targeted host row 2: cucumber-js legacy and Messages at 320 px /
   200 %, 390 px and 1440 px; record the artifacts and results. One row covers
   both artifacts because the change is shell CSS only.
+  Result: PASS on the package above. Default reports +40 B, static +40 B,
+  German +40 B; at 320/200 % toolbar and expand block share 32→273 px, both
+  buttons 241×72 px stacked; at 1440/900 both controls one line at the right
+  edge, page overflow −15 px; undoing the CSS declaration reproduces the
+  B-075 HTML byte-for-byte; notices, link boxes, print and static unchanged.
 - [ ] 4.4 Write `gate.md`; review with SCR, CR, UXR and DAR in parallel; fix
   findings with a delta re-check.
 - [ ] 4.5 Push and verify the `hygiene`, `check`, `check-windows`, `package`,
