@@ -73,7 +73,7 @@ written; an unknown flag keeps the normal unknown-option error. `--help` and
 {
   "schemaVersion": 1,
   "name": "tolkira",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "node": ">=22",
   "inputs": [
     "cucumber-legacy-json",
@@ -146,7 +146,7 @@ tolkira test-results/ --out report.html --json --manifest run.json
 ```json
 {
   "schemaVersion": 1,
-  "tool": { "name": "tolkira", "version": "0.6.1" },
+  "tool": { "name": "tolkira", "version": "0.7.0" },
   "status": "failed",
   "counts": {
     "features": 1,

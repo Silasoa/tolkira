@@ -614,14 +614,14 @@ describe('built CLI from a temporary esbuild bundle', () => {
         0,
         'stdout',
         6,
-        '87b241b275c591694846560e9879f50c9da3150f854efdabd782c539772f3033',
+        '967d9afb101346667166f2e76e81910bc190488d7d41d50ca0072e9d92f00e32',
       ],
       [
         ['--capabilities'],
         0,
         'stdout',
         1318,
-        '013d180c59d64916fffdd92643fafae8ff5e478b2e6bb2b599b9d1fc41df647c',
+        '5af9e512f8ebf3520ab161bd97c5802ba1f398af916b320f864e76e2d3fbcd8b',
       ],
       [
         [],

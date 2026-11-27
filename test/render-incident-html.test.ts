@@ -420,8 +420,9 @@ describe('unchanged artifacts', () => {
       expect(hash(email)).toBe(
         '181a24b5bd5e9a79360c586000eceb5ac3b030786a82439669344c73cc3f0f17',
       );
+      // The manifest carries tool.version, so this hash is re-pinned at a release.
       expect(hash(manifest)).toBe(
-        '711d5d8bd6c565c8a4ba49651646fe63fd77cb2a30079f558d886256649ebdfb',
+        'a17959fe210fc761ce18416065432a95aea944c64d33edc6e26fe9cbe9d3d2c7',
       );
       expect(hash(history)).toBe(
         '25b0d65a4d88d4b72086ddc602ecab4855919a2dd4a94f25dc4179950e6c3416',
