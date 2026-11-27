@@ -598,6 +598,22 @@ asks or a locale needs them:
   earlier row and the scenario meta as `Attempt 1` / `Attempt: 1`. Trigger: the
   0.7 parity bundle, a user reports the label, or a real report with duplicate
   retry values appears; then hide the label for a single attempt.
+- **Incident panel UX follow-ups.** The contract keeps the panel above the
+  triage and through toolbar filters, reuses the scenario detail (error box and
+  metadata included) and keeps the triage for a single incident. Four review
+  findings would change that behaviour and are deferred, not silently applied:
+  a no-match filter leaves the panel and its "N more incidents" line on screen
+  while the empty copy lands below the fold; the panel repeats the step error
+  and the feature/attempt/started meta of the reused detail; a one-incident run
+  shows the same scenario three times (panel, triage, row); the duplicate block
+  costs about 70 px of the first viewport. Trigger: 0.7.1, or a user reports the
+  panel as noisy or the empty state as missing; then decide the four together
+  in one report-rendering change, with the empty-state placement first.
+- **Incident copy and helper nits.** The source-grep test that pinned the copy
+  scope was replaced by the row-copy e2e; a negative "copy log ignores the
+  scope" check returns with the next copy change. `firstLine` exists in
+  `report.ts` and `triage.ts`, and the two incident test files each build their
+  own `incidentSection` slice; fold both into the B-057 test-helper pass.
 - **RTL `text-align`.** The new one-column `.metaList` rule uses
   `text-align:left`; switch to `start` when an RTL locale is added (fits
   B-066's locale trigger).
