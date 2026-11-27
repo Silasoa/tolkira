@@ -74,6 +74,68 @@ function expectStep(jobText: string, command: string): void {
   expect(runCommands(jobText)).toContain(command);
 }
 
+function usesLines(jobText: string): string[] {
+  return jobText.split(/\r?\n/).flatMap((line) => {
+    if (line.trim().startsWith('#')) return [];
+    const match = /^\s*(?:-\s*)?uses:\s+(.+)$/.exec(line);
+    return match?.[1] ? [match[1].trim()] : [];
+  });
+}
+
+function needsOf(jobText: string): string[] {
+  const line = jobText
+    .split(/\r?\n/)
+    .find((entry) => /^ {4}needs:/.test(entry));
+  if (line === undefined) return [];
+  return line
+    .replace(/^ {4}needs:\s*/, '')
+    .replaceAll(/[[\]]/g, '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+function permissionsOf(jobText: string): string[] {
+  const lines = jobText.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^ {4}permissions:\s*$/.test(line));
+  if (start === -1) return [];
+  const entries: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const entry = /^ {6}([a-z-]+):\s*(\S+)\s*$/.exec(line);
+    if (!entry) break;
+    entries.push(`${entry[1]}: ${entry[2]}`);
+  }
+  return entries;
+}
+
+function concurrencyOf(workflow: string): string[] {
+  const lines = workflow.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === 'concurrency:');
+  if (start === -1) return [];
+  const entries: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (!/^ {2}\S/.test(line)) break;
+    entries.push(line.trim());
+  }
+  return entries;
+}
+
+// Slice a step from the line that carries the marker to the next `- ` step.
+function stepBlocks(jobText: string, marker: string): string[] {
+  const lines = jobText.split(/\r?\n/);
+  return lines.flatMap((line, start) => {
+    if (!/^\s*(?:-\s*)?uses:/.test(line) || !line.includes(marker)) return [];
+    let end = lines.length;
+    for (let index = start + 1; index < lines.length; index += 1) {
+      if (/^\s*-\s/.test(lines[index] ?? '')) {
+        end = index;
+        break;
+      }
+    }
+    return [lines.slice(start, end).join('\n')];
+  });
+}
+
 describe('release workflow gate', () => {
   it('reads only active run lines', () => {
     const sample = [
@@ -116,100 +178,235 @@ describe('release workflow gate', () => {
     expect(macos).not.toContain('continue-on-error');
     expect(activeCommands(macos)).not.toContain('|| true');
   });
+});
 
-  it('starts publish only after both gates', async () => {
+describe('release job graph', () => {
+  it('builds and checks in a package job after both gate jobs', async () => {
+    const packageJob = job(await workflowJobs(), 'package');
+
+    expect(needsOf(packageJob).sort()).toEqual(['gate-linux', 'gate-macos']);
+    expect(packageJob).not.toContain('id-token');
+    expect(packageJob).not.toContain('NPM_TOKEN');
+    expect(packageJob).not.toContain('NODE_AUTH_TOKEN');
+    expect(activeCommands(packageJob)).not.toMatch(/npm stage publish/);
+    expect(packageJob).not.toContain('continue-on-error');
+    expect(activeCommands(packageJob)).not.toContain('|| true');
+  });
+
+  it('runs the tag guards before any install in the package job', async () => {
+    const packageJob = job(await workflowJobs(), 'package');
+    const commands = runCommands(packageJob);
+    const guard = commands.findIndex((command) =>
+      /^test "v.+ = "\$GITHUB_REF_NAME"$/.test(command),
+    );
+    const tagOnMain = commands.findIndex((command) =>
+      command.includes(
+        'git merge-base --is-ancestor HEAD refs/remotes/origin/main',
+      ),
+    );
+    const ci = commands.indexOf('npm ci');
+
+    expect(guard, 'tag/version guard').toBeGreaterThanOrEqual(0);
+    expect(tagOnMain, 'tag-on-main guard').toBeGreaterThan(guard);
+    expect(ci, 'npm ci step').toBeGreaterThan(tagOnMain);
+    // A shallow clone cannot prove the ancestor relation; the fetch is full.
+    expect(packageJob).toContain('fetch-depth: 0');
+    expect(activeCommands(packageJob)).not.toContain('--depth');
+  });
+
+  it('checks, smokes and records the digest in order', async () => {
+    const commands = runCommands(job(await workflowJobs(), 'package'));
+    const at = (label: string, match: (command: string) => boolean): number => {
+      const index = commands.findIndex((command) => match(command));
+      expect(index, label).toBeGreaterThanOrEqual(0);
+      return index;
+    };
+    const ci = at('npm ci step', (command) => command === 'npm ci');
+    const pin = at(
+      'npm pin',
+      (command) => command === 'npm install -g npm@12.2.3',
+    );
+    const signatures = at(
+      'signature check',
+      (command) => command === 'npm audit signatures',
+    );
+    const check = at(
+      'package check',
+      (command) =>
+        command === 'TOLKIRA_PACK_DIR=/tmp/pack npm run package:check',
+    );
+    const digest = at('digest', (command) =>
+      command.startsWith(
+        'cd /tmp/pack\nsha256sum "tolkira-$TOLKIRA_VERSION.tgz"',
+      ),
+    );
+    const install = at(
+      'tarball install',
+      (command) =>
+        command ===
+        'npm install -g --prefix /tmp/global /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz',
+    );
+    const smoke = at('smoke report', (command) =>
+      /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" test\/fixtures\/legacy\/minimal\.json --out \S+ --title "Package smoke test"$/.test(
+        command,
+      ),
+    );
+    const sbom = at(
+      'sbom',
+      (command) =>
+        command ===
+        'npm sbom --sbom-format cyclonedx --omit=dev --package-lock-only > /tmp/pack/tolkira-sbom.cdx.json',
+    );
+
+    expect(pin).toBeGreaterThan(ci);
+    expect(signatures).toBeGreaterThan(pin);
+    expect(check).toBeGreaterThan(signatures);
+    expect(digest).toBeGreaterThan(check);
+    expect(install).toBeGreaterThan(digest);
+    expect(smoke).toBeGreaterThan(install);
+    expect(sbom).toBeGreaterThan(smoke);
+
+    // The digest stays valid after the artifact round trip: bare file name.
+    expect(commands).toContain(
+      [
+        'cd /tmp/pack',
+        'sha256sum "tolkira-$TOLKIRA_VERSION.tgz" > "tolkira-$TOLKIRA_VERSION.sha256"',
+        `echo "value=$(cut -d' ' -f1 "tolkira-$TOLKIRA_VERSION.sha256")" >> "$GITHUB_OUTPUT"`,
+      ].join('\n'),
+    );
+  });
+
+  it('declares version and digest outputs for the publish job', async () => {
+    const packageJob = job(await workflowJobs(), 'package');
+
+    expect(packageJob).toMatch(/^ {4}outputs:\s*$/m);
+    expect(packageJob).toContain('version: ${{ steps.version.outputs.value }}');
+    expect(packageJob).toContain('sha256: ${{ steps.digest.outputs.value }}');
+    expect(packageJob).toContain('id: version');
+    expect(packageJob).toContain('id: digest');
+  });
+
+  it('uploads the checked tarball and digest as tolkira-release', async () => {
+    const packageJob = job(await workflowJobs(), 'package');
+    const uploads = stepBlocks(packageJob, 'actions/upload-artifact');
+
+    const releaseArtifact = uploads.find((block) =>
+      block.includes('name: tolkira-release'),
+    );
+    expect(releaseArtifact, 'tolkira-release upload').toBeDefined();
+    expect(releaseArtifact).toContain(
+      'tolkira-${{ steps.version.outputs.value }}.tgz',
+    );
+    expect(releaseArtifact).toContain(
+      'tolkira-${{ steps.version.outputs.value }}.sha256',
+    );
+    expect(releaseArtifact).toContain('if-no-files-found: error');
+    expect(releaseArtifact).toContain('retention-days: 14');
+
+    const sbom = uploads.find((block) => block.includes('name: tolkira-sbom'));
+    expect(sbom, 'tolkira-sbom upload').toBeDefined();
+    expect(sbom).toContain('path: /tmp/pack/tolkira-sbom.cdx.json');
+    expect(sbom).toContain('if-no-files-found: error');
+    expect(sbom).toContain('retention-days: 14');
+  });
+});
+
+describe('release publish job', () => {
+  it('starts only after the package job', async () => {
     const publish = job(await workflowJobs(), 'publish');
 
-    expect(publish).toMatch(/needs:\s*\[gate-linux,\s*gate-macos\]/);
+    expect(needsOf(publish)).toEqual(['package']);
     expect(publish).not.toContain('continue-on-error');
     expect(activeCommands(publish)).not.toContain('|| true');
   });
 
-  it('fails the decision table on a tag/version mismatch', async () => {
+  it('runs in the release environment with token-only permissions', async () => {
     const publish = job(await workflowJobs(), 'publish');
 
-    expectStep(
-      publish,
-      `test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"`,
+    expect(publish).toMatch(
+      /(?:environment:\s*release\b|environment:\s*\n\s+name:\s*release\b)/,
+    );
+    expect(permissionsOf(publish).sort()).toEqual([
+      'contents: read',
+      'id-token: write',
+    ]);
+    expect(publish).toContain(
+      'TOLKIRA_VERSION: ${{ needs.package.outputs.version }}',
+    );
+    expect(publish).toContain(
+      'TOLKIRA_SHA256: ${{ needs.package.outputs.sha256 }}',
     );
   });
 
-  it('fails the decision table when the tag is not on main', async () => {
+  it('downloads the release artifact into the pack directory', async () => {
+    const publish = job(await workflowJobs(), 'publish');
+    const downloads = stepBlocks(publish, 'actions/download-artifact');
+
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0]).toContain('name: tolkira-release');
+    expect(downloads[0]).toContain('path: /tmp/pack');
+
+    const stages = runCommands(publish).filter((command) =>
+      /^npm stage publish\b/.test(command),
+    );
+    expect(stages).toHaveLength(1);
+  });
+
+  it('allows only setup-node and the pinned download action', async () => {
+    const publish = job(await workflowJobs(), 'publish');
+    const uses = usesLines(publish);
+
+    expect(uses.map((line) => line.split('@')[0])).toEqual([
+      'actions/setup-node',
+      'actions/download-artifact',
+    ]);
+    expect(uses[0]).toMatch(/^actions\/setup-node@[0-9a-f]{40}\b/);
+    expect(uses[1]).toBe(
+      'actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0',
+    );
+  });
+
+  it('stages the downloaded tarball with the exact command list', async () => {
     const publish = job(await workflowJobs(), 'publish');
 
-    expectStep(
-      publish,
-      'git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main\ngit merge-base --is-ancestor HEAD refs/remotes/origin/main',
-    );
-    // A shallow clone cannot prove the ancestor relation; the fetch is full.
-    // `fetch-depth` is a `with:` key, not a run command.
-    expect(publish).toContain('fetch-depth: 0');
-    expect(activeCommands(publish)).not.toContain('--depth');
+    expect(runCommands(publish)).toEqual([
+      'test "v$TOLKIRA_VERSION" = "$GITHUB_REF_NAME"',
+      'npm install -g npm@12.2.3',
+      'cd /tmp/pack\necho "$TOLKIRA_SHA256  tolkira-$TOLKIRA_VERSION.tgz" | sha256sum -c -',
+      'npm stage publish "/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz" --provenance --access public',
+    ]);
   });
 
-  it('builds and packs once through the package check', async () => {
-    const commands = runCommands(job(await workflowJobs(), 'publish'));
-    // dist/ is gitignored: the package check builds before it packs.
-    const check = commands.indexOf(
-      'TOLKIRA_PACK_DIR=/tmp/pack npm run package:check',
-    );
-    expect(check, 'package check step').toBeGreaterThanOrEqual(0);
-    const ci = commands.indexOf('npm ci');
-    expect(ci, 'npm ci step').toBeGreaterThanOrEqual(0);
-    expect(ci).toBeLessThan(check);
-    // One pack source: no second build or pack step in the publish job.
-    expect(commands).not.toContain('npm run build');
-    expect(commands.filter((command) => /^npm pack\b/.test(command))).toEqual(
-      [],
-    );
-    expect(
-      commands.filter((command) => command.endsWith('npm run package:check')),
-    ).toHaveLength(1);
-  });
-
-  it('reaches the package smoke and stage step on a green tag', async () => {
-    const commands = runCommands(job(await workflowJobs(), 'publish'));
-    const order: Array<[string, RegExp]> = [
-      ['package check', /^TOLKIRA_PACK_DIR=\/tmp\/pack npm run package:check$/],
-      [
-        'digest',
-        /^sha256sum "\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz" > "\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.sha256"$/,
-      ],
-      [
-        'install',
-        /^npm install -g --prefix \/tmp\/global \/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz$/,
-      ],
-      ['binary', /^test -x \S+\/bin\/tolkira$/],
-      [
-        'global help',
-        /^\/\S+\/bin\/tolkira --help \| grep -q "Usage: tolkira"$/,
-      ],
-      [
-        'package help',
-        /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" --help$/,
-      ],
-      [
-        'smoke report',
-        /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" test\/fixtures\/legacy\/minimal\.json --out \S+report\.html --title "Package smoke test"$/,
-      ],
-      [
-        'smoke output',
-        /^test -s \S+report\.html && grep -q "Minimal feature" \S+report\.html$/,
-      ],
-      [
-        'verify',
-        /^sha256sum -c "\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.sha256"$/,
-      ],
-      [
-        'stage',
-        /^npm stage publish \/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz --provenance --access public$/,
-      ],
+  it('has no build, check or SBOM step in the token job', async () => {
+    const publish = job(await workflowJobs(), 'publish');
+    const commands = activeCommands(publish);
+    const forbidden: Array<[string, RegExp]> = [
+      ['checkout', /actions\/checkout/],
+      ['npm ci', /\bnpm ci\b/],
+      ['build', /npm run build/],
+      ['package check', /package:check/],
+      ['tarball install', /npm install -g --prefix/],
+      ['signature check', /npm audit signatures/],
+      ['sbom', /npm sbom/],
+      ['upload artifact', /actions\/upload-artifact/],
+      ['pack', /\bnpm pack\b/],
     ];
-    let previous = -1;
-    for (const [label, pattern] of order) {
-      const index = commands.findIndex((command) => pattern.test(command));
-      expect(index, label).toBeGreaterThan(previous);
-      previous = index;
+
+    for (const [label, pattern] of forbidden) {
+      expect(commands, label).not.toMatch(pattern);
     }
+    expect(publish).not.toContain('actions/checkout');
+    expect(publish).not.toContain('actions/upload-artifact');
+  });
+});
+
+describe('release serialization', () => {
+  it('queues runs per tag instead of cancelling them', async () => {
+    const workflow = await readFile(workflowFile, 'utf8');
+
+    expect(concurrencyOf(workflow)).toEqual([
+      'group: release-${{ github.ref }}',
+      'cancel-in-progress: false',
+    ]);
   });
 });

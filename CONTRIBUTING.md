@@ -91,24 +91,31 @@ steps.
 1. Create the `v<version>` tag on a green `main` commit whose `package.json`
    version matches the tag; the release workflow runs the Linux and macOS gates
    first. The tag-on-main guard resolves `refs/heads/main` explicitly, never an
-   ambiguous short name.
-2. The publish job verifies dependency signatures, installs the pinned npm
-   12.2.3 and runs `npm run package:check`, which builds, packs once and checks
-   that exact tarball. It smokes the same `tolkira-<version>.tgz` and records
-   its SHA-256 after the check.
+   ambiguous short name. The `release-tags` ruleset blocks deleting or moving a
+   `v*` tag, and the `release` environment only accepts `v*` tags.
+2. The non-privileged `package` job verifies dependency signatures, installs
+   the pinned npm 12.2.3 and runs `npm run package:check`, which builds, packs
+   once and checks that exact tarball. It smokes the same
+   `tolkira-<version>.tgz`, records its bare-name SHA-256 and uploads the
+   tarball plus digest as `tolkira-release`. The job runs with
+   `contents: read` and has no npm token or OIDC.
 3. The job generates a CycloneDX SBOM with
    `npm sbom --sbom-format cyclonedx --omit=dev --package-lock-only`, writes
    the fixed `tolkira-sbom.cdx.json`, and uploads it as `tolkira-sbom`; the
    upload fails if the file is missing. The SBOM covers the external runtime
    dependency tree from the lockfile and does not cover bundled code (B-075).
-4. Immediately before `npm stage publish`, the job verifies the recorded
-   SHA-256 against the tarball and stages that exact file; no step packs a
-   second tarball.
+4. The run pauses on the `release` environment. The maintainer approves the
+   deployment; only then does the `publish` job start and receive
+   `NPM_TOKEN`. That job has no checkout and no build: it downloads
+   `tolkira-release`, verifies the tarball against the digest the `package` job
+   reported and stages that exact file. No step packs a second tarball.
 5. Approve or reject the staged package with the maintainer's 2FA.
 6. After approval, confirm `npm view tolkira@<version> version`, create the
    GitHub Release and attach the `tolkira-sbom` artifact.
 
-Never re-stage after approval.
+Runs for one tag queue instead of cancelling, so two runs never stage at once.
+A bad release needs a new patch version: the tag cannot be moved or deleted, so
+fix the problem and cut the next patch. Never re-stage after approval.
 
 ## License
 

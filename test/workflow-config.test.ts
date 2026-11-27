@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -96,11 +96,13 @@ describe('checkout credentials', () => {
 });
 
 describe('release artifact', () => {
-  it('resolves one version and stages the packed tarball', () => {
+  it('resolves one version in the package job and stages the packed tarball', () => {
+    const releasePackage = jobBlock(release, 'package');
     const publish = jobBlock(release, 'publish');
+    expect(releasePackage).not.toBe('');
     expect(publish).not.toBe('');
-    expect(publish).toContain('TOLKIRA_VERSION');
-    expect(publish).toContain(
+    expect(releasePackage).toContain('TOLKIRA_VERSION');
+    expect(releasePackage).toContain(
       `echo "TOLKIRA_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"`,
     );
     expect(publish).toContain('tolkira-$TOLKIRA_VERSION.tgz');
@@ -122,17 +124,39 @@ describe('release artifact', () => {
   });
 
   it('verifies dependency signatures and uploads a CycloneDX SBOM', () => {
-    const publish = jobBlock(release, 'publish');
-    expect(publish).toContain('npm audit signatures');
-    expect(publish).toContain('npm sbom --sbom-format cyclonedx');
-    expect(publish).toContain('--package-lock-only');
-    expect(publish).toContain('tolkira-sbom.cdx.json');
-    const uploads = stepBlocks(publish, 'actions/upload-artifact');
+    const releasePackage = jobBlock(release, 'package');
+    expect(releasePackage).toContain('npm audit signatures');
+    expect(releasePackage).toContain('npm sbom --sbom-format cyclonedx');
+    expect(releasePackage).toContain('--package-lock-only');
+    expect(releasePackage).toContain('tolkira-sbom.cdx.json');
+    const uploads = stepBlocks(releasePackage, 'actions/upload-artifact');
     expect(uploads.length).toBeGreaterThan(0);
     const sbom = uploads.find((block) => block.includes('name: tolkira-sbom'));
     expect(sbom, 'sbom upload step').toBeDefined();
     expect(sbom).toContain('path: /tmp/pack/tolkira-sbom.cdx.json');
     expect(sbom).toContain('if-no-files-found: error');
+
+    const publish = jobBlock(release, 'publish');
+    expect(publish).not.toContain('npm audit signatures');
+    expect(publish).not.toContain('npm sbom');
+  });
+});
+
+describe('npm token isolation', () => {
+  it('maps NPM_TOKEN once and only in the release publish job', () => {
+    const workflowDir = path.join(repoRoot, '.github', 'workflows');
+    const occurrences = readdirSync(workflowDir)
+      .filter((name) => /\.ya?ml$/.test(name))
+      .flatMap((name) =>
+        readText(path.join('.github', 'workflows', name))
+          .split('NPM_TOKEN')
+          .slice(1),
+      );
+
+    expect(occurrences).toHaveLength(1);
+    const publish = jobBlock(release, 'publish');
+    expect(publish).toContain('secrets.NPM_TOKEN');
+    expect(jobBlock(release, 'package')).not.toContain('NPM_TOKEN');
   });
 });
 

@@ -67,7 +67,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-070 | Report | P3 | The native tag `<select>` clips a long selected label at 320 px with 200 % text zoom, so the active tag is unreadable in the control | When the next shell or 320 px change touches the tag filter; then let the selected label wrap or shorten with a `title`, and add a 320 px / 200 % browser assertion. | - |
 | B-072 | Tooling | P3 | The build is esbuild for the CLI and library plus two tsc declaration passes and a copy script; tsdown (Rolldown/Oxc, the tsup successor, shipped by Vite+) emits ESM/CJS, bundled declarations and package exports in one config | 0.7: replace the build with tsdown behind a separate OpenSpec change; acceptance: byte-identical public declarations and exports, same bin and shebang, same tarball file set, CLI smoke, e2e green, no report byte change. Revert is the old three scripts. | - |
 | B-073 | Verification | P3 | Release/CI hardening leaves verification work for 0.7: no CodeQL default setup for JS/TS (taint analysis for the HTML sinks), no dependency-review-action, no OpenSSF Scorecard, no property tests for the legacy JSON, Messages and JUnit XML parsers, no mutation run, and no knip MCP/LSP or repo skills | 0.7, in this order: CodeQL default setup, dependency-review-action for licence and diff policy, Scorecard; then `fast-check` 4.11 with `@fast-check/vitest` 0.6 property tests for the three parsers as a separate change (it will find bugs); StrykerJS when its Vitest 5 runner works upstream, on nightly/changed files only, never the PR gate; knip MCP/LSP and repo skills for the release and a new input adapter. No new weekly job: Dependabot keeps its existing weekly schedule and the signature/SBOM checks stay release-only. | - |
-| B-074 | Release | P2 | The token-bearing publish job also runs `npm ci` and stages in the same job, so a compromised dev dependency can replace the checked tarball after the digest; tag protection and a required-release environment are not enforced by the workflow | Before the next tag. Then split into a non-privileged package job (build, `package:check`, smoke, upload tarball + digest) and a token-only publish job (download, verify digest, stage); protect `v*` tags with a ruleset and require a reviewer on the release environment. | - |
 | B-075 | Legal | P2 | The client bundle includes `@cucumber/tag-expressions` 11.2.0 (MIT, Copyright (c) 2016 Cucumber Ltd and contributors), but `legalComments: 'none'` strips the notice; the SBOM covers external runtime dependencies only | Before the next publish. Then add the MIT notice to the shipped report/package (or preserve it in the bundle) and decide whether the SBOM lists bundled components; report bytes change, so use a separate change with the report gate. | - |
 | B-076 | Report | P3 | A retried Messages scenario shows the raw zero-based final attempt (`Attempt: 1`) next to `Earlier attempts (2)`, so the two labels use different numbering | When the next retry or attempt-label change touches the scenario meta; then label the final row positionally or print `Final attempt` and keep the earlier rows readable, with a report test. | - |
 | B-077 | Agent | P3 | A run leaves no linked Markdown index for an artifact folder; `--ci markdown --ci-out` writes the body but no links to the report, PDF, email or manifest | When an agent or user asks for a browsable artifact index; then add `--index` with the Markdown CI body, relative RFC 3986-encoded links and a pre-write cross-volume check, as drafted in the 0.7-agent-surface review history. | - |
@@ -134,6 +133,19 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-074 Release token isolation** — resolved on 2026-11-27 in
+  `release-token-isolation`: the release workflow splits into a non-privileged
+  `package` job (tag guards, `npm ci`, signatures, `package:check`, tarball
+  smoke, bare-name SHA-256, SBOM, `tolkira-release` and `tolkira-sbom`
+  artifacts, no token or OIDC) and a token-only `publish` job (environment
+  `release`, setup-node, artifact download, digest check against
+  `needs.package.outputs.sha256`, stage that exact file); runs for one tag queue
+  instead of cancelling. Repository settings: active `release-tags` ruleset on
+  `refs/tags/v*` (no deletion, update or non-fast-forward, no bypass) and the
+  `release` environment with the maintainer as required reviewer, `v*` as its
+  only deployment tag and self-review allowed until a second maintainer joins.
+  Pinned by the 26 workflow tests in `test/release-workflow.test.ts` and
+  `test/workflow-config.test.ts`.
 - **B-059 Tag overview** — resolved on 2026-11-26 in `0.7-tag-overview`: the
   Details view renders a server-rendered tag table with executed scenario,
   failed and skipped counts, failing tags first, a 50-row cap with the complete

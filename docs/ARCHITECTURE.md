@@ -750,12 +750,20 @@ Test names, metadata, file names and attachments are untrusted input.
   forbidden paths, then runs `publint --strict` and `attw` with the node16
   profile (the one `cjs-resolves-to-esm` ignore covers the ESM-only root). It
   runs in the CI package job and in the release, not in the local gate.
-- Release integrity: the publish job packs once, smokes that tarball, records
-  its SHA-256 and verifies it immediately before `npm stage publish`; npm 12.2.3
-  is pinned for the pack and the publish, and no step packs a second tarball.
-  The tag-on-main guard resolves `refs/heads/main` explicitly. The SBOM comes
-  from the lockfile production tree (`npm sbom --sbom-format cyclonedx
-  --omit=dev --package-lock-only`) and does not cover bundled code (B-075).
+- Release integrity: the non-privileged `package` job packs once, smokes that
+  tarball, records its SHA-256, uploads the tarball plus digest as
+  `tolkira-release` and uploads the SBOM; it runs with `contents: read` and has
+  no npm token or OIDC. The token-bearing `publish` job downloads that artifact,
+  verifies the tarball against the package job's digest output immediately
+  before `npm stage publish` and stages that exact file with provenance. It has
+  no checkout, install, build, pack or SBOM step and waits on the `release`
+  environment before it can use the token. An active `release-tags` ruleset
+  blocks deleting or moving a `v*` tag, so a bad release needs a new patch
+  version; runs for one tag queue instead of cancelling. npm 12.2.3 is pinned in
+  both jobs, and no step packs a second tarball. The tag-on-main guard resolves
+  `refs/heads/main` explicitly. The SBOM comes from the lockfile production tree
+  (`npm sbom --sbom-format cyclonedx --omit=dev --package-lock-only`) and does
+  not cover bundled code (B-075).
 - Dev-only exact pins: oxlint 1.94.0, oxlint-tsgolint 7.0.2008, Oxfmt 0.80.0,
   vitest 5.1.1, @vitest/coverage-v8 5.1.1, knip 6.48.0, publint 0.3.25 and
   @arethetypeswrong/cli 0.18.5.
