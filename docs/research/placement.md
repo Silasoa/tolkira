@@ -292,6 +292,10 @@ has not been announced anywhere.
   `awesome-playwright` unless a Playwright user asks for it.
 - Disclose AI assistance in each PR body. Keep the entry factual; no "best",
   "fastest", "revolutionary" or competitor comparisons.
+- Submitted 2026-11-27: [PR #650](https://github.com/atinfo/awesome-test-automation/pull/650)
+  adds Tolkira to `javascript-test-automation.md`, `## Reporting`, after
+  `cucumber-html-reporter`. Open; the queue is slow, so the TheJambo PR waits
+  two weeks.
 
 ### Step 4 — community answers (ongoing, reactive only)
 
