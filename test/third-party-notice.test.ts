@@ -15,9 +15,11 @@ const END = '\n-->';
 
 const require = createRequire(import.meta.url);
 const manifestPath = require.resolve(`${COMPONENT}/package.json`);
-const installedVersion = (
-  JSON.parse(readFileSync(manifestPath, 'utf8')) as { version: string }
-).version;
+const installedManifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+  version: string;
+  license: string;
+};
+const installedVersion = installedManifest.version;
 const installedLicense = readFileSync(
   join(dirname(manifestPath), 'LICENSE'),
   'utf8',
@@ -50,6 +52,7 @@ describe('third-party notice', () => {
     expect(start).toBeGreaterThan(html.indexOf('<body>'));
     expect(start).toBeGreaterThan(html.lastIndexOf('</script>'));
     expect(end).toBeLessThan(html.indexOf('</body>'));
+    expect(html.slice(end, html.indexOf('</body>')).trim()).toBe('');
   });
 
   it('states the installed component, copyright, permission and license', () => {
@@ -104,6 +107,7 @@ describe('third-party notice', () => {
     ) as { packages: Record<string, { version?: string }> };
     const lockedVersion = lock.packages[`node_modules/${COMPONENT}`]?.version;
     expect(lockedVersion, COMPONENT).toBe(installedVersion);
+    expect(installedManifest.license, COMPONENT).toBe('MIT');
 
     const noticeFile = readFileSync(
       fileURLToPath(new URL('../THIRD-PARTY-NOTICES.md', import.meta.url)),

@@ -65,8 +65,8 @@ test does not normalise silently.
 ## 4. Byte cost
 
 The notice is fixed, not per scenario: one comment of about 1.1 kB in every
-scripted report, zero in static reports. The client bundle, stylesheet and
-markup do not change. The Details "Report HTML" label reports the real file
+scripted report, zero in static reports. The visible markup, client bundle and
+stylesheet do not change. The Details "Report HTML" label reports the real file
 size, so it grows by the same amount; stripping the comment and restoring the
 old label reproduces the pre-change hash. Goldens and characterization hashes
 are re-pinned for the intended comment only; the static report keeps its

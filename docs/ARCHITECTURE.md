@@ -753,7 +753,8 @@ Test names, metadata, file names and attachments are untrusted input.
   profile (the one `cjs-resolves-to-esm` ignore covers the ESM-only root). It
   runs in the CI package job and in the release, not in the local gate.
   `THIRD-PARTY-NOTICES.md` is a required root file in the tarball; it records
-  the MIT notice of the bundled client code, while the SBOM stays the external
+  the MIT notice of `@cucumber/tag-expressions`, bundled into the report
+  client, `dist/index.js` and `dist/cli.js`, while the SBOM stays the external
   runtime tree.
 - Release integrity: the non-privileged `package` job packs once, smokes that
   tarball, records its SHA-256, uploads the tarball plus digest as

@@ -79,12 +79,21 @@
 
 ## 4. Verification and gate
 
-- [ ] 4.1 Run `npm run check` and `npm run hygiene`.
-- [ ] 4.2 Run `npm run test:e2e` on the three engines (report-level change).
-- [ ] 4.3 Run `npm run package:check`; record the new tarball size, entries and
+- [x] 4.1 Run `npm run check` and `npm run hygiene`.
+  Result: 108 files, 2,184 passed / 11 skipped / 0 failed of 2,195; coverage
+  95.13/88.51/97.09/96.52; hygiene green.
+- [x] 4.2 Run `npm run test:e2e` on the three engines (report-level change).
+  Result: 515 passed / 10 skipped on Chromium, Firefox and WebKit.
+- [x] 4.3 Run `npm run package:check`; record the new tarball size, entries and
   SHA-256.
-- [ ] 4.4 Host rows: a comment-only change has no rendered effect; record the
+  Result: 94 entries, 707,997 B, SHA-256 `61d964da…`.
+- [x] 4.4 Host rows: a comment-only change has no rendered effect; record the
   evidence for the exemption, or run row 2 if the gate owner wants it.
+  Result: exemption recorded in `gate.md` (static hash unchanged, differential
+  reproduces every old scripted hash, comment outside all scripts).
 - [ ] 4.5 Write `gate.md`; review with SCR, CR, DAR and SEC in parallel, fix
   findings with a delta re-check.
+  Result so far: SCR PASS with a tightened position assertion and a MODIFIED
+  skipped-attachment requirement (the "Clean report" byte sentence now names
+  the notice comment); CR/DAR pending.
 - [ ] 4.6 Commit and push; do not archive, bump, tag or publish.

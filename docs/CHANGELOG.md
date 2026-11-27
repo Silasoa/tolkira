@@ -11,7 +11,8 @@ Keep a Changelog and the project uses semantic versioning.
   `@cucumber/tag-expressions` 11.2.0 as one HTML comment after the last script,
   and the package ships `THIRD-PARTY-NOTICES.md`, required by the package
   check. Static reports, the client script, the stylesheet and the SBOM scope
-  are unchanged; a scripted report grows by 1,206 bytes (B-075).
+  are unchanged; a scripted report grows by about 1.2 kB (1,206 B on the
+  measured fixture; B-075).
 - The Details view gains a server-rendered tag overview: one row per tag with
   the executed scenario, failed and skipped counts, sorted by failed count then
   scenario count and capped at 50 rows with the complete tag count when the cap

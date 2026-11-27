@@ -39,7 +39,7 @@ carry MIT code without its copyright and permission notice.
   size. Stripping the comment and restoring the old label reproduces the
   pre-change hash; no other rendered path changes. Static reports, the client
   script, the stylesheet and the package's runtime surface are otherwise
-  unchanged. The tarball gains one file.
+  unchanged. The package gains the notice file and the module's declaration.
 - No runtime dependency, public API, CLI option or version change. No tag,
   stage or publish in this change.
 

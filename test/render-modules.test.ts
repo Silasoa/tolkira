@@ -84,7 +84,7 @@ describe('render modules', () => {
 
   it('keeps html.ts a shell', () => {
     const html = source('html');
-    // 100 lines plus the third-party-notice import in scripted reports.
+    // 99 lines, i.e. 100 split('\n') elements; capped below 101.
     expect(html.split('\n').length).toBeLessThan(101);
     expect(html).not.toMatch(
       /function\s+render\w*View\b|const\s+render\w*View\b/,

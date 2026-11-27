@@ -138,7 +138,7 @@ asks or a locale needs them:
   script, the package ships `THIRD-PARTY-NOTICES.md` as a required root file,
   and one drift test guards the installed license, the report constant and the
   notice file. Static reports and the SBOM scope are unchanged; a scripted
-  report grows by 1,206 bytes.
+  report grows by about 1.2 kB (1,206 B on the measured fixture).
 - **B-074 Release token isolation** — resolved on 2026-11-27 in
   `release-token-isolation`: the release workflow splits into a non-privileged
   `package` job (tag guards, `npm ci`, signatures, `package:check`, tarball
