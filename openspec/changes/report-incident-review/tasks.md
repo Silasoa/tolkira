@@ -119,8 +119,9 @@
   pins, artifact sizes and result. A red host blocks or needs a written,
   user-approved exception.
 - [ ] 4.5 Run `npm run package:check`; record the tarball entries and the
-  bundle delta. The only allowed client-bundle change is the copy-scope fix;
-  every other bundle and report byte delta is explained.
+  bundle delta. The client-bundle delta is limited to the copy scope, the
+  scenario-scoped expand/collapse and the list-scoped empty copy; every other
+  bundle and report byte delta is explained.
 - [ ] 4.6 Run the CMP parity comparison; only the intended report differences
   are allowed. Record the result.
 - [ ] 4.7 Write `gate.md`: commands, counts, coverage, report-size delta,

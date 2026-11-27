@@ -716,9 +716,9 @@ describe('incident row link', () => {
       ],
     });
     const list = featureList(html);
-    const incidentTag = openingTagAt(list, 'scenario-0-0');
-    const passedTag = openingTagAt(list, 'scenario-0-1');
-    const row = rowAround(list, 'scenario-0-0');
+    const incidentTag = openingTagAt(list, 'scenario-1-1');
+    const passedTag = openingTagAt(list, 'scenario-1-2');
+    const row = rowAround(list, 'scenario-1-1');
 
     expect(incidentTag).toContain('data-scenario');
     expect(incidentTag).not.toMatch(/^<details\b/);
@@ -728,9 +728,9 @@ describe('incident row link', () => {
     expect(row).not.toContain('detailInline');
     expect(row).not.toContain('data-copy-failure');
 
-    // The passed row keeps its native disclosure.
+    // The passed row keeps its native disclosure and inline body.
     expect(passedTag).toMatch(/^<details class="scenario"/);
-    expect(rowAround(list, 'scenario-0-1')).toContain('data-copy-failure');
+    expect(rowAround(list, 'scenario-1-2')).toContain('detailInline');
   });
 
   it('leaves other non-passing rows their disclosure and one detail each', async () => {
@@ -748,14 +748,18 @@ describe('incident row link', () => {
     });
     const list = featureList(html);
 
-    expect(openingTagAt(list, 'scenario-0-0')).not.toMatch(/^<details\b/);
-    expect(openingTagAt(list, 'scenario-0-1')).toMatch(
+    expect(openingTagAt(list, 'scenario-1-1')).not.toMatch(/^<details\b/);
+    expect(openingTagAt(list, 'scenario-1-2')).toMatch(
       /^<details class="scenario"/,
     );
-    expect(rowAround(list, 'scenario-0-1')).toContain('data-copy-failure');
-    expect(rowAround(list, 'scenario-0-1')).toContain('detailInline');
-    expect(list.match(/class="detailInline"/g) ?? []).toHaveLength(1);
+    expect(rowAround(list, 'scenario-1-2')).toContain('data-copy-failure');
+    expect(rowAround(list, 'scenario-1-2')).toContain('detailInline');
     expect(list.match(/data-copy-failure/g) ?? []).toHaveLength(1);
+    const disclosureRows = list.match(/<details class="scenario"/g) ?? [];
+    expect(disclosureRows).toHaveLength(2);
+    expect(list.match(/class="detailInline"/g) ?? []).toHaveLength(
+      disclosureRows.length,
+    );
     expect(list.match(/href="#incident"/g) ?? []).toHaveLength(1);
   });
 
@@ -792,8 +796,16 @@ describe('incident row link', () => {
     expect(list.indexOf('class="rule"')).toBeLessThan(
       list.indexOf('href="#incident"'),
     );
-    // Only the second failing outline row keeps a detail in the index.
-    expect(list.match(/class="detailInline"/g) ?? []).toHaveLength(1);
+    // The linked row carries no second detail; every non-incident row keeps
+    // its server-rendered inline body for the no-JS form.
+    expect(rowAround(list, 'scenario-1-1')).not.toContain('detailInline');
+    expect(rowAround(list, 'scenario-1-2')).toContain('detailInline');
+    expect(rowAround(list, 'scenario-1-2')).toContain('data-copy-failure');
+    const disclosureRows = list.match(/<details class="scenario"/g) ?? [];
+    expect(disclosureRows).toHaveLength(6);
+    expect(list.match(/class="detailInline"/g) ?? []).toHaveLength(
+      disclosureRows.length,
+    );
     expect(incidentSummary(html)).toContain(
       'These are failing #2.1 · Eating cucumbers',
     );
