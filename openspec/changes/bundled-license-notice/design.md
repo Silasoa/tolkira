@@ -64,7 +64,8 @@ test does not normalise silently.
 
 ## 4. Byte cost
 
-The notice is fixed, not per scenario: one comment of about 1.1 kB in every
+The notice is fixed, not per scenario: one comment of about 1.2 kB (1,206 B on
+the measured fixture) in every
 scripted report, zero in static reports. The visible markup, client bundle and
 stylesheet do not change. The Details "Report HTML" label reports the real file
 size, so it grows by the same amount; stripping the comment and restoring the

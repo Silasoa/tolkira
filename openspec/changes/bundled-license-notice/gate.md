@@ -21,11 +21,12 @@
 
 ## 2. Implementation
 
-One commit on `main`, not pushed at the time of this record:
+Two commits on `main`, not pushed at the time of this record:
 
 | Commit | Subject |
 | --- | --- |
 | `3a8f81c` | `feat(report): ship the bundled MIT notice (B-075)` |
+| `83b3e56` | `docs(report): close the notice review findings (B-075)` |
 
 `src/render/third-party-notice.ts` exports the notice as explicit `\n`-joined
 lines. `src/render/html.ts` appends it as one comment after the last script
@@ -53,23 +54,42 @@ No runtime dependency, public API, CLI option or version changed.
 - Differential: for all 10 scripted outputs, stripping the 1,206-byte block and
   restoring the previous "Report HTML" label reproduces the old hash exactly
   (e.g. `License size` 96,893 B / `c9da1b16…` → 95,687 B / `da396575…`).
-- `npm run package:check`: **94 entries**, **707,997 B**, SHA-256
-  `61d964da…`. The extra entry over the expected 93 is
+- `npm run package:check`: **94 entries**, **706,997 B**, SHA-256
+  `61D964DA…5779AD`. The extra entry over the expected 93 is
   `dist/render/third-party-notice.d.ts`, emitted by the declaration build and
   packed by `files: ["dist"]`; the module layout is required, so the file is
   kept and recorded.
 
 ### Host rows
 
-A comment-only change with a byte-identical static report and a differential
-that reproduces every old scripted hash has no rendered effect. No host row is
-required; the e2e matrix and the byte proofs cover the change. This is the
-recorded reason for the exemption.
+Host row 2 on the final package (`706,997 B`, 94 entries, SHA-256
+`61D964DA…5779AD`, HEAD `83b3e56`, clean install, CLI `0.6.1`): cucumber-js
+13.3.0 legacy JSON and Messages NDJSON, Chromium, print emulated. **PASS**.
+
+| Input | Artifact | Default | Static | Notice (scripted/static) |
+| --- | ---: | ---: | ---: | --- |
+| legacy `out.json` | 3,302 B | 79,278 B (+1,206) | 58,378 B (+0) | 1 / 0 |
+| Messages `out.ndjson` | 9,974 B | 79,596 B (+1,206) | 58,696 B (+0) | 1 / 0 |
+
+The scripted report has exactly one notice comment after the last `</script>`
+and directly before `</body>`; stripping it reproduces the earlier row-2 HTML
+byte-for-byte, and the static HTML hash is unchanged. The installed
+`THIRD-PARTY-NOTICES.md` equals the repo file. Summaries 2,191 B and identical,
+the row link 83.23 × 28 px at 1440/390 and 164.47 × 56 px at 320/200 % with
+0 px² status overlap, print and static forms green, zero console/page/http
+errors.
 
 ## 4. Reviews
 
-SCR, CR and legal PASS; DAR FAIL on docs only, fixed in this commit.
+SCR **PASS**, CR **PASS**, legal **PASS**, DAR **FAIL** on docs only. The
+findings were the 93→94 tarball wording, "visible markup", the exact
+1,206-byte figure (1,207 across a digit boundary), the `ARCHITECTURE` wording,
+the host-row record and the module-test comment. `83b3e56` fixes all of them,
+adds the exact "only whitespace before `</body>`" assertion and the manifest
+`license` field, and adds the MODIFIED skipped-attachment requirement so the
+"Clean report" byte sentence names the notice comment. No behaviour or byte
+changed; the two test tightenings pass.
 
 ## 5. Exceptions
 
-None. No tag, stage or publish happened.
+None. No tag, stage or publish happened. Host row 2 is recorded in §3.

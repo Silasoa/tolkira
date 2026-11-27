@@ -34,7 +34,8 @@ carry MIT code without its copyright and permission notice.
 
 ## Impact
 
-- Report bytes grow by one fixed comment (about 1.1 kB) and the Details
+- Report bytes grow by one fixed comment (about 1.2 kB; 1,206 B on the
+  measured fixture) and the Details
   "Report HTML" size label grows with it, because it reports the real file
   size. Stripping the comment and restoring the old label reproduces the
   pre-change hash; no other rendered path changes. Static reports, the client

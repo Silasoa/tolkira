@@ -74,7 +74,7 @@
     Tarball **94** entries (not 93) because the new
     `src/render/third-party-notice.ts` also emits
     `dist/render/third-party-notice.d.ts`, which `files: ["dist"]` packs:
-    707,997 B / SHA-256 `61d964da…` for 0.6.1. Docs, changelog and backlog
+    706,997 B / SHA-256 `61D964DA…5779AD` for 0.6.1. Docs, changelog and backlog
     updated; B-075 moved to Resolved.
 
 ## 4. Verification and gate
@@ -86,14 +86,17 @@
   Result: 515 passed / 10 skipped on Chromium, Firefox and WebKit.
 - [x] 4.3 Run `npm run package:check`; record the new tarball size, entries and
   SHA-256.
-  Result: 94 entries, 707,997 B, SHA-256 `61d964da…`.
+  Result: 94 entries, 706,997 B, SHA-256 `61D964DA…5779AD`.
 - [x] 4.4 Host rows: a comment-only change has no rendered effect; record the
   evidence for the exemption, or run row 2 if the gate owner wants it.
-  Result: exemption recorded in `gate.md` (static hash unchanged, differential
-  reproduces every old scripted hash, comment outside all scripts).
-- [ ] 4.5 Write `gate.md`; review with SCR, CR, DAR and SEC in parallel, fix
+  Result: row 2 ran on the final package and PASSED — scripted +1,206 B with
+  one notice comment, static +0 B and byte-identical, installed notice file
+  equals the repo file, summaries and link boxes unchanged, 0 px² overlap.
+- [x] 4.5 Write `gate.md`; review with SCR, CR, DAR and SEC in parallel, fix
   findings with a delta re-check.
-  Result so far: SCR PASS with a tightened position assertion and a MODIFIED
-  skipped-attachment requirement (the "Clean report" byte sentence now names
-  the notice comment); CR/DAR pending.
-- [ ] 4.6 Commit and push; do not archive, bump, tag or publish.
+  Result: SCR PASS (tightened position assertion, MODIFIED skipped-attachment
+  requirement), CR PASS, legal PASS, DAR FAIL on docs only; `83b3e56` fixes all
+  findings and the DAR delta re-check passes. No behaviour or byte changed.
+- [x] 4.6 Commit and push; do not archive, bump, tag or publish.
+  Result: pushed to `origin/main`; archived as
+  `2026-11-27-bundled-license-notice`; no version bump, tag, stage or publish.
