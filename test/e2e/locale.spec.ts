@@ -20,7 +20,7 @@ const historyFixture = fileURLToPath(
 );
 
 const EMPTY_RESULT =
-  'Keine Szenarien entsprechen der aktuellen Suche oder den Filtern.';
+  'Keine Szenarien in der Liste entsprechen der aktuellen Suche oder den Filtern.';
 const FAILED_ONLY = 'Nur fehlgeschlagene';
 const COPY_FAILURE = 'Fehlerdetails kopieren';
 
@@ -186,10 +186,14 @@ test('renders German test data verbatim and never as markup', async ({
   expect(text).toContain('Angenommen');
   expect(text).toContain('das Konto hat 1.000,00 € Guthaben');
   expect(text).toContain('@konto');
-  expect(text).toContain('„Nicht genügend Guthaben“');
   expect(text).toContain('<img src=x onerror="alert(1)">');
 
-  await expect(page.locator('#feature-list img[src="x"]')).toHaveCount(0);
+  const detail = await page
+    .locator('#incident')
+    .evaluate((element) => element.textContent ?? '');
+  expect(detail).toContain('„Nicht genügend Guthaben“');
+
+  await expect(page.locator('#report-view img[src="x"]')).toHaveCount(0);
 });
 
 test('round-trips the German failed-only URL state', async ({ page }) => {

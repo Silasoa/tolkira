@@ -27,7 +27,7 @@ test('copies failure details', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    const failed = page.locator('details[data-scenario][data-status="failed"]');
+    const failed = page.locator('#incident');
     const copy = failed.locator('[data-copy-failure]');
     await expect(copy).toBeVisible();
     await copy.click();
@@ -84,7 +84,7 @@ test('copies parameterised failure details with the matched argument', async ({
 
   try {
     await page.goto(reportUrl(output));
-    const failed = page.locator('details[data-scenario][data-status="failed"]');
+    const failed = page.locator('#incident');
     await expect(failed.locator('.param')).toHaveText('12');
     const copy = failed.locator('[data-copy-failure]');
     await expect(copy).toBeVisible();
@@ -130,9 +130,7 @@ test('copies failure details without terminal escape sequences', async ({
 
   try {
     await page.goto(reportUrl(output));
-    const copy = page.locator(
-      'details[data-scenario][data-status="failed"] [data-copy-failure]',
-    );
+    const copy = page.locator('#incident [data-copy-failure]');
     await expect(copy).toBeVisible();
     await copy.click();
     await expect(copy).toHaveText('Copied');
@@ -164,9 +162,7 @@ test('reports a failed clipboard copy', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    const copy = page.locator(
-      'details[data-scenario][data-status="failed"] [data-copy-failure]',
-    );
+    const copy = page.locator('#incident [data-copy-failure]');
     await expect(copy).toBeVisible();
     await copy.click();
     await expect(copy).toHaveText('Copy failed');
@@ -189,7 +185,7 @@ test('copies a failure without an error message', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    const copy = page.locator('[data-copy-failure]');
+    const copy = page.locator('#incident [data-copy-failure]');
     await expect(copy).toBeVisible();
     await copy.click();
     await expect(copy).toHaveText('Copied');
@@ -212,7 +208,7 @@ test('copies a grouped failure with example context', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    const row = page.locator('[data-scenario][data-example="#2.1"]');
+    const row = page.locator('#incident');
     await row.locator('[data-copy-failure]').click();
     const copied = await readClipboard(page);
 
@@ -269,9 +265,7 @@ for (const { name, uri, expected } of privacyUriCases) {
 
     try {
       await page.goto(reportUrl(output));
-      const copy = page.locator(
-        'details[data-scenario][data-status="failed"] [data-copy-failure]',
-      );
+      const copy = page.locator('#incident [data-copy-failure]');
       await expect(copy).toBeVisible();
       await copy.click();
       await expect(copy).toHaveText('Copied');

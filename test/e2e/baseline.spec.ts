@@ -177,9 +177,7 @@ test.describe('baseline comparison in the browser', () => {
       ).toBeVisible();
       await expect(page.getByText('Not in this run').first()).toBeVisible();
       await expect(page.getByText('refunds').first()).toBeVisible();
-      await expect(row(page, 'pays by card').locator('summary')).toContainText(
-        /new failure/i,
-      );
+      await expect(row(page, 'pays by card')).toContainText(/new failure/i);
       await expect(row(page, 'pays by cash').locator('summary')).toContainText(
         /fixed/i,
       );
