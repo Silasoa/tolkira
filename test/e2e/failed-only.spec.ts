@@ -494,6 +494,10 @@ test('keeps the expand block inside the toolbar at 320px and one line at 1440px'
     ).toBeLessThanOrEqual(1);
 
     await page.setViewportSize({ width: 1440, height: 900 });
+    // desktop phase measures at 100 % text; the 320 phase keeps 200 %
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '';
+    });
     const wide = await page.evaluate(() => {
       const toolbar = document
         .querySelector('.toolbar')

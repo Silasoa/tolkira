@@ -6,8 +6,8 @@ The 2.0 incident change renamed the expand buttons from "Expand all" /
 "Collapse all" to "Expand all scenarios" / "Collapse all scenarios" and kept
 `.expand { display: flex; margin-left: auto; }`. A flex container without
 `flex-wrap` has the sum of its items' min-content widths as its own min-content.
-At 320 px / 200 % text the two labels' longest words exceed the shell content
-width on Linux fonts, so the block widens the document by 12 px.
+At 320 px / 200 % text the combined min-content of both buttons exceeds the
+shell content width on Linux fonts, so the block widens the document by 12 px.
 
 Fix: `.expand { flex-wrap: wrap; justify-content: flex-end; }`. With wrapping,
 the block's min-content is one button, which fits; the buttons stack and stay
