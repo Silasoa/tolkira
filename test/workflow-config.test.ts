@@ -187,6 +187,7 @@ describe('npm token isolation', () => {
     const steps = stepAround(release, 'NODE_AUTH_TOKEN');
     expect(steps).toHaveLength(1);
     expect(steps[0]).toContain('run: npm stage publish');
+    expect(steps[0]).toContain('NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}');
   });
 });
 

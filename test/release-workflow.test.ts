@@ -283,11 +283,20 @@ describe('release job graph', () => {
 
   it('triggers on tags only, packs once and never runs npm pack', async () => {
     const workflow = await readFile(workflowFile, 'utf8');
+    const lines = workflow.split(/\r?\n/);
     const commands = [...(await workflowJobs()).values()].flatMap((text) =>
       runCommands(text),
     );
 
+    const permissions = lines.indexOf('permissions:');
+    const on = lines.indexOf('on:');
+    expect(on, 'on block').toBeGreaterThanOrEqual(0);
+    expect(permissions, 'top-level permissions').toBeGreaterThan(on);
+    const trigger = lines.slice(on + 1, permissions);
+    while (trigger.at(-1) === '') trigger.pop();
+    expect(trigger).toEqual(['  push:', '    tags:', "      - 'v*'"]);
     expect(workflow).not.toMatch(/^\s*schedule:/m);
+    expect(workflow).not.toMatch(/^\s+branches:/m);
     expect(
       commands.filter((command) => command.includes('npm run package:check')),
     ).toHaveLength(1);
@@ -393,7 +402,7 @@ describe('release job graph', () => {
 
     // `if-no-files-found` is not a condition; a disabled upload must fail.
     for (const block of [releaseArtifact, sbom]) {
-      expect(block, 'upload if').not.toMatch(/^\s*if:/m);
+      expect(block, 'upload if').not.toMatch(/^\s*(?:-\s*)?if:/m);
     }
   });
 });
