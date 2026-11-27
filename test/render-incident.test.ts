@@ -619,7 +619,7 @@ describe('incident evidence reuse', () => {
     expect(detail).toContain('hook log');
     expect(detail).toContain('extra.log');
     expect(detail).toContain('extra log');
-    expect(detail.match(/class="attachmentText"/g) ?? []).toHaveLength(3);
+    expect(detail.match(/class="attachmentText" open/g) ?? []).toHaveLength(3);
   });
 
   it('shows the no-evidence line above the detail and no empty attachment block', async () => {

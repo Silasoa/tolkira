@@ -123,7 +123,9 @@ incident panel remains visible. The triage's first-incident link points at the
 panel (`#incident`); the rest point at their rows. The selected incident id is
 passed to `renderTriage` as a parameter; the selector stays in `report.ts`, so
 no import cycle is introduced. The client changes are the failure copy scope,
-the scenario-scoped expand/collapse controls and the list-scoped empty copy.
+the scenario-scoped expand/collapse controls, the list-scoped empty copy and
+the row highlight guard (behaviour preserved: the incident row is no longer an
+open `<details>`, so the guard follows the markup).
 
 The panel detail stays open and is not a disclosure; the toolbar's expand and
 collapse controls are scoped to the scenario rows ("scenarios") so they do not
@@ -243,7 +245,7 @@ the README hero screenshot is refreshed with raster provenance.
 - Duplication with the triage is navigation, not evidence; the triage stays.
 - Report bytes: the detail moves, it is not duplicated; the size delta is
   measured. JSON/CI/email/manifest/history bytes stay unchanged; the client
-  bundle changes only by the three small client deltas, measured.
+  bundle changes only by the four small client deltas, measured.
 - CMP parity records only the intended report differences.
 
 ## 9. Acceptance criteria
@@ -269,7 +271,7 @@ the README hero screenshot is refreshed with raster provenance.
   baseline badge; the remaining-count line renders when several incidents
   exist.
 - AC6: Default, static, print and PDF render the panel; it is not filtered; no
-  new client script or network request is added; the three small client
+  new client script or network request is added; the four small client
   deltas keep the copy actions working.
 - AC7: No evidence yields the localized no-evidence line; attachments use the
   existing safe path; escaping is unchanged.
@@ -283,7 +285,7 @@ the README hero screenshot is refreshed with raster provenance.
   contrast holds on paper, surface-2 and surface-3, including status text, in
   light, dark and print.
 - AC11: Report HTML changes by design; summary, JSON, CI, email, manifest and
-  history bytes are unchanged; the client bundle changes only by the three
+  history bytes are unchanged; the client bundle changes only by the four
   small client deltas, measured; the report-size delta is recorded; characterization
   hashes are re-pinned per commit; host rows 1-5, the three-engine matrix and
   CMP are recorded.

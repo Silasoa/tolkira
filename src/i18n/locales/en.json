@@ -849,7 +849,7 @@
   },
   "triage.needsAttention": {
     "message": "Needs attention",
-    "description": "Triage heading and accessible navigation name"
+    "description": "Triage heading, accessible navigation name and non-failed incident badge"
   },
   "triage.scenarioCount": {
     "message": "{count, plural, one {# scenario} other {# scenarios}}",

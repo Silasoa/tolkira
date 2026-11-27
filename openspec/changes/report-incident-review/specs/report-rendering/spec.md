@@ -48,8 +48,9 @@ in that set.
   set
 - **AND** the others stay reachable through the triage block and the index
 - **AND** no selector and no new script are added; the client changes are the
-  failure copy scope, scenario-scoped expand/collapse and the list-scoped empty
-  copy
+  failure copy scope, scenario-scoped expand/collapse, the list-scoped empty
+  copy and the row highlight guard (behaviour preserved: the incident row is no
+  longer an open `<details>`, so the guard follows the markup)
 
 #### Scenario: Mixed skipped and failed rows
 

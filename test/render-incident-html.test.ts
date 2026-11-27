@@ -281,7 +281,7 @@ describe('incident panel in the report forms', () => {
         new RegExp(`\\.incident\\.${status} \\.incidentErrorLead\\s*\\{`),
       );
       expect(declaration(lead, 'color'), `${name} lead`).toBe(
-        `var(${causeToken})`,
+        name === 'ambiguous' ? 'var(--ink-2)' : `var(${causeToken})`,
       );
     }
   });
@@ -310,6 +310,36 @@ describe('incident panel in the report forms', () => {
     expect(declaration(source, 'border')).toBe('1px solid var(--line)');
     expect(declaration(source, 'border-radius')).toBe('var(--radius-control)');
     expect(declaration(meta, 'font-family')).toBe('var(--font-mono)');
+  });
+
+  it('keeps every incident lead at 4.5:1 on its panel background', () => {
+    const css = reportCss();
+    const light = rootBlock(css, /:root\s*\{/);
+    const dark = rootBlock(
+      css,
+      /@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)\s*\{\s*:root\s*\{/,
+    );
+    const print = rootBlock(css, /@media\s+print\s*\{\s*:root\s*\{/);
+    const leads = [
+      ['fail', '--fail', '--fail-soft'],
+      ['pending', '--pending', '--pending-soft'],
+      ['undefined', '--undefined', '--undefined-soft'],
+      ['ambiguous', '--ink-2', '--ambiguous-soft'],
+    ] as const;
+
+    for (const [mode, block] of [
+      ['light', light],
+      ['dark', dark],
+      ['print', print],
+    ] as const) {
+      expect(block, mode).not.toBe('');
+      for (const [name, text, background] of leads) {
+        expect(
+          contrast(token(block, text), token(block, background)),
+          `${mode} ${name} lead`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 
   it('keeps text and status contrast at 4.5:1 on paper, surface-2 and surface-3', () => {
@@ -401,7 +431,7 @@ describe('unchanged artifacts', () => {
     }
   });
 
-  it('pins the client bundle for the copy scope, scenario controls and list empty copy', () => {
+  it('pins the client bundle for the copy scope, scenario controls, list empty copy and row highlight guard', () => {
     expect(CLIENT_SCRIPT).toContain('data-copy-scope');
     expect(CLIENT_SCRIPT).toContain('client.empty');
     expect(CLIENT_SCRIPT).toContain('data-expand');

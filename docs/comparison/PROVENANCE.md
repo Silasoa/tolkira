@@ -23,7 +23,13 @@ row-link and status-token fixes.
   `test/fixtures/messages/screenshot.ndjson`, title `Tolkira report`, with its
   inline PNG moved from the passing scenario's step to the failing scenario's
   failed step so the incident panel shows the screenshot as evidence. The base
-  fixture itself attaches the image to the passing scenario.
+  fixture itself attaches the image to the passing scenario. Reproduce the
+  derived input and report end to end:
+
+  ```sh
+  node -e 'const fs=require("node:fs");const lines=fs.readFileSync("test/fixtures/messages/screenshot.ndjson","utf8").trim().split(/\r?\n/).map((line)=>JSON.parse(line));const failed=lines.find((line)=>line.testStepFinished?.testStepResult?.status==="FAILED").testStepFinished;const attachment=lines.find((line)=>line.attachment).attachment;attachment.testCaseStartedId=failed.testCaseStartedId;attachment.testStepId=failed.testStepId;fs.writeFileSync("screenshot-failed.ndjson",lines.map((line)=>JSON.stringify(line)).join("\n")+"\n")'
+  node dist/cli.js screenshot-failed.ndjson --out report.html --title "Tolkira report"
+  ```
 - `tolkira-0.7-report.png` is the byte-identical viewport capture of
   `new-shell-screenshot.png`; it is a development snapshot, not a release hero.
 - `overview.png` is the 0.6-era composite from 2026-11-04. It predates the

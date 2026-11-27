@@ -37,13 +37,15 @@ Tracking: no remote issue; this is the 0.7 redesign slice under B-057.
   affected by the toolbar search or status/tag filters and has no CTA into the
   filtered index. The client changes are the failure copy scope (failure copy
   only; the log copy keeps its attachment details), the scenario-scoped
-  expand/collapse controls and the list-scoped empty copy; the bundle delta is
-  measured. The expand/collapse controls are scoped to scenario rows so the
-  panel stays open; the filtered empty copy names the list; the triage's first
-  link points at the panel.
+  expand/collapse controls, the list-scoped empty copy and the row highlight
+  guard (behaviour preserved: the incident row is no longer an open
+  `<details>`, so the guard follows the markup); the bundle delta is measured.
+  The expand/collapse controls are scoped to scenario rows so the panel stays
+  open; the filtered empty copy names the list; the triage's first link points
+  at the panel.
 - When several scenarios need attention, the panel shows the first and a
   localized remaining count; the rest stay in the triage block and the index.
-  No selector and no new script; those three small client deltas are the only
+  No selector and no new script; those four small client deltas are the only
   client change.
 - Render the panel in the default, static, print and PDF forms.
 - Apply the Incident review visual language in a **separate commit** from the
@@ -54,8 +56,9 @@ Tracking: no remote issue; this is the 0.7 redesign slice under B-057.
   inherit the tokens. Each commit re-pins the report characterization hashes.
 
 Out of scope: no summary, JSON, CI, email, manifest or history schema change; no
-new client script file (three small existing-client changes: failure copy scope,
-scenario-scoped expand/collapse, list-scoped empty copy); no input,
+new client script file (four small existing-client changes: failure copy scope,
+scenario-scoped expand/collapse, list-scoped empty copy, row highlight guard);
+no input,
 attachment-policy or path change; no Details/Trends layout change beyond shared
 tokens; no removal of the triage block; no run-level hook panel
 (BeforeAll/AfterAll stay in the existing run hooks section); no dependency; no
@@ -77,5 +80,6 @@ tokens. There is no second copy of the detail; a screenshot still appears as
 the row thumbnail and in the panel detail, exactly as today's open row renders
 it, and that duplicated payload is measured with a screenshot fixture. The JSON
 summary, CI output, email, manifest and history bytes stay unchanged. The
-client bundle changes only by the three small client deltas, measured. Every host row and
+client bundle changes only by the four small client deltas, measured. Every
+host row and
 the three-engine browser matrix apply because the report shell changes.

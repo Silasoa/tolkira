@@ -39,8 +39,10 @@
   elevated/shadowed container. Add a contrast assertion over paper,
   surface-2, surface-3 and the status text in light, dark and print. Prove
   summary, JSON, CI, email, manifest and history bytes unchanged; the client
-  bundle delta is explained by the three allowed client changes: the failure
-  copy scope, scenario-scoped expand/collapse and the list-scoped empty copy.
+  bundle delta is explained by the four allowed client changes: the failure
+  copy scope, scenario-scoped expand/collapse, the list-scoped empty copy and
+  the row highlight guard (behaviour preserved; the incident row is no longer
+  an open `<details>`, so the guard follows the markup).
 - [x] 2.4 Write `test/e2e/incident.spec.ts`: above-the-fold minimum (summary,
   status, first failing step and the first error line), row link keyboard and
   focus, copy failure/log inside the panel with the feature title, scenario
@@ -91,14 +93,15 @@
 - [x] 3.6 Re-pin characterization hashes for the intended report change; prove
   the summary, JSON, CI, email, manifest and history bytes unchanged and record
   the report-size delta with a screenshot fixture (thumbnail plus panel image).
-  Measured with `--title "Incident review size"` and no other options:
-  `legacy/failed.json` 89,878 → 94,300 B (+4,422 B, +4.9 %);
-  `messages/screenshot.ndjson` 94,831 → 99,184 B (+4,353 B, +4.6 %). The
-  minified stylesheet grew by the token and panel rules; the screenshot fixture
-  adds the panel chrome while the detail moves out of the row, so the image is
-  still embedded once in the detail plus the row thumbnail. The client bundle
-  moved 15,438 → 15,831 B (+393 B): the failure copy scope plus the scenario-
-  scoped expand/collapse handler.
+  Measured with `--title "Incident review size"` and no other options, at the
+  final fix commit: `legacy/failed.json` 89,878 → 95,716 B (+5,838 B, +6.5 %);
+  `messages/screenshot.ndjson` 94,831 → 100,563 B (+5,732 B, +6.0 %). The
+  minified stylesheet grew by the token, panel and per-status rules; the
+  screenshot fixture adds the panel chrome while the detail moves out of the
+  row, so the image is still embedded once in the detail plus the row
+  thumbnail. Every added byte is a fixed cost; the only per-report growth is
+  one row `aria-label`. The client bundle moved 15,438 → 15,812 B (+374 B):
+  the failure copy scope plus the scenario-scoped expand/collapse handler.
 
 ## 4. Verification and gate
 
@@ -119,8 +122,10 @@
   user-approved exception.
 - [ ] 4.5 Run `npm run package:check`; record the tarball entries and the
   bundle delta. The client-bundle delta is limited to the copy scope, the
-  scenario-scoped expand/collapse and the list-scoped empty copy; every other
-  bundle and report byte delta is explained.
+  scenario-scoped expand/collapse, the list-scoped empty copy and the row
+  highlight guard (behaviour preserved; the incident row is no longer an open
+  `<details>`, so the guard follows the markup); every other bundle and report
+  byte delta is explained.
 - [ ] 4.6 Run the CMP parity comparison; only the intended report differences
   are allowed. Record the result.
 - [ ] 4.7 Write `gate.md`: commands, counts, coverage, report-size delta,

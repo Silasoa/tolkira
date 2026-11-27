@@ -332,6 +332,7 @@ test('keeps the panel under the failed-only and tag filters', async ({
 
   await page.getByRole('button', { name: 'Failed only' }).click();
   await expect(panel).toBeVisible();
+  await expect(page.locator('#scenario-1-1')).toBeVisible();
   await expect(page.locator('details.scenario#scenario-1-2')).toBeVisible();
   await expect(page.locator('#scenario-1-3')).toBeHidden();
   await expect(panel.locator('a[href^="#scenario-"]')).toHaveCount(0);
@@ -339,6 +340,7 @@ test('keeps the panel under the failed-only and tag filters', async ({
   await page.reload();
   await page.locator('[data-tag-filter]').selectOption('@billing');
   await expect(panel).toBeVisible();
+  await expect(page.locator('#scenario-1-1')).toBeVisible();
   await expect(page.locator('#scenario-1-2')).toBeHidden();
   await expect(panel.locator('a[href^="#scenario-"]')).toHaveCount(0);
 });
@@ -372,6 +374,22 @@ test('keeps the row link inside its cell at 1440, 390 and 320 px at 200 %', asyn
         );
       });
     expect(fits, `row link at ${width} px`).toBe(true);
+    const overlap = await page
+      .locator('#scenario-1-1 .scenarioButton')
+      .evaluate((button) => {
+        const link = button.querySelector<HTMLElement>('.scenarioLink');
+        const status = button.querySelector<HTMLElement>('.statusCell');
+        if (!link || !status) return false;
+        const a = link.getBoundingClientRect();
+        const b = status.getBoundingClientRect();
+        return !(
+          a.right <= b.left + 1 ||
+          a.left >= b.right - 1 ||
+          a.bottom <= b.top + 1 ||
+          a.top >= b.bottom - 1
+        );
+      });
+    expect(overlap, `row link overlap at ${width} px`).toBe(false);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,
@@ -449,6 +467,27 @@ test('shows German labels and plurals with verbatim test data', async ({
   await expect(
     panel.getByText('Fehlgeschlagen', { exact: true }).first(),
   ).toBeVisible();
+
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '32px';
+  });
+  const overlap = await page
+    .locator('#scenario-1-1 .scenarioButton')
+    .evaluate((button) => {
+      const link = button.querySelector<HTMLElement>('.scenarioLink');
+      const status = button.querySelector<HTMLElement>('.statusCell');
+      if (!link || !status) return false;
+      const a = link.getBoundingClientRect();
+      const b = status.getBoundingClientRect();
+      return !(
+        a.right <= b.left + 1 ||
+        a.left >= b.right - 1 ||
+        a.bottom <= b.top + 1 ||
+        a.top >= b.bottom - 1
+      );
+    });
+  expect(overlap, 'German row link overlap at 320 px / 200 %').toBe(false);
 });
 
 test('renders dark mode with readable panel text', async ({ page }) => {
