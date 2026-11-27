@@ -10,6 +10,9 @@ when the optional Playwright Chromium engine is installed.
 
 ![Tolkira report showing the incident panel with the failed scenario, its error and an inline screenshot](docs/comparison/tolkira-0.7-report.png)
 
+*Development snapshot of the 0.7 Incident review shell; the current release is
+v0.6.1.*
+
 Current release: **v0.6.1** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 
 > **How this is built:** Tolkira is human-directed and largely AI-generated.

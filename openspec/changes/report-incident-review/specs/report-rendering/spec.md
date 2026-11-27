@@ -47,8 +47,9 @@ in that set.
   their rows; the triage may list additional skipped rows beyond the incident
   set
 - **AND** the others stay reachable through the triage block and the index
-- **AND** no selector and no new script are added; the copy-scope fix is the
-  only client change
+- **AND** no selector and no new script are added; the client changes are the
+  failure copy scope, scenario-scoped expand/collapse and the list-scoped empty
+  copy
 
 #### Scenario: Mixed skipped and failed rows
 
@@ -77,7 +78,7 @@ in that set.
 - **AND** the triage and source strip keep their existing client hiding
 - **AND** the filtered empty state is scoped to the feature index and says no
   scenarios in the list match
-- **AND** the copy-scope fix does not change filtering
+- **AND** the client changes do not change filtering
 
 #### Scenario: Expand and collapse controls
 

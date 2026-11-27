@@ -39,7 +39,8 @@
   elevated/shadowed container. Add a contrast assertion over paper,
   surface-2, surface-3 and the status text in light, dark and print. Prove
   summary, JSON, CI, email, manifest and history bytes unchanged; the client
-  bundle delta is the copy-scope fix only.
+  bundle delta is explained by the three allowed client changes: the failure
+  copy scope, scenario-scoped expand/collapse and the list-scoped empty copy.
 - [x] 2.4 Write `test/e2e/incident.spec.ts`: above-the-fold minimum (summary,
   status, first failing step and the first error line), row link keyboard and
   focus, copy failure/log inside the panel with the feature title, scenario
@@ -106,13 +107,11 @@
 - [x] 4.2 Run `npm run check` (typecheck, lint, knip, format, build, coverage)
   and `npm run hygiene`.
   Result: i18n, assets, typecheck, lint, knip, format and build passed; the
-  unit/coverage run has 2,157 passed, 11 skipped and 3 failed of 2,171 tests.
-  Three Red tests in
-  `test/render-incident.test.ts` remain red because they assume 0-based
-  `scenarioId`s and count closed-row `.detailInline` bodies, which contradicts
-  the existing 1-based anchors (`#scenario-1-1` in the Red e2e) and the
-  server-rendered body every `<details>` needs for no-JS opening. They were not
-  edited or skipped. `npm run hygiene` is green.
+  unit/coverage run has 2,162 passed, 11 skipped and 0 failed of 2,173 tests.
+  Correction: the earlier record of three Red tests was stale; `5654f8f`
+  corrected their 0-based ids to the existing 1-based anchors and their
+  closed-row `.detailInline` count to one server-rendered body per disclosure
+  row. No test is skipped or loosened. `npm run hygiene` is green.
 - [ ] 4.3 Run `npm run test:e2e` on Chromium, Firefox and WebKit; viewports
   320, 390, 768, 1024, 1440 and 320 at 200 % text zoom.
 - [ ] 4.4 Run host rows 1-5 from `docs/DROP-IN-VALIDATION.md`; record host,

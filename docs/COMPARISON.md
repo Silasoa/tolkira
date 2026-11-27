@@ -27,7 +27,8 @@ compares the report shell and migration content only; `--static`, history and
 
 ## Screenshots
 
-Overview: [`overview.png`](comparison/overview.png).
+Overview: `overview.png` is the 0.6-era composite and is not part of this 0.7
+comparison; the table below shows the current shell.
 All images are in [`docs/comparison/`](comparison/).
 
 | Mode | Old reporter | Tolkira |
@@ -35,8 +36,8 @@ All images are in [`docs/comparison/`](comparison/).
 | Scenario, expanded | [`old-scenario-expanded.png`](comparison/old-scenario-expanded.png) | [`new-shell-scenario-expanded.png`](comparison/new-shell-scenario-expanded.png) |
 | Story, expanded | [`old-story-expanded.png`](comparison/old-story-expanded.png) | [`new-shell-story-expanded.png`](comparison/new-shell-story-expanded.png) |
 | Group, expanded | [`old-group-expanded.png`](comparison/old-group-expanded.png) | [`new-shell-group-expanded.png`](comparison/new-shell-group-expanded.png) |
-| Failed story, expanded | [`old-failed-expanded.png`](comparison/old-failed-expanded.png) | [`new-shell-failed.png`](comparison/new-shell-failed.png) |
-| Screenshot attachment | [`old-screenshot-expanded.png`](comparison/old-screenshot-expanded.png) | [`new-shell-screenshot.png`](comparison/new-shell-screenshot.png) |
+| Failed story, expanded | [`old-failed-expanded.png`](comparison/old-failed-expanded.png) | [`new-shell-failed-expanded.png`](comparison/new-shell-failed-expanded.png) |
+| Screenshot attachment (incident panel) | [`old-screenshot-expanded.png`](comparison/old-screenshot-expanded.png) | [`new-shell-screenshot.png`](comparison/new-shell-screenshot.png) |
 | Offline, story | [`old-story-offline.png`](comparison/old-story-offline.png) | [`new-shell-story-offline.png`](comparison/new-shell-story-offline.png) |
 
 ## What works
@@ -61,8 +62,8 @@ All images are in [`docs/comparison/`](comparison/).
 
 - Old story report: about 100 kB, but with four remote dependencies.
 - Tolkira story report: one HTML file with CSS and script inline and no
-  network dependency. The stylesheet source is 50,569 B; every report embeds
-  its 43,924 B minified form, 6,645 B (13 %) smaller.
+  network dependency. The stylesheet source is 51,961 B; every report embeds
+  its 45,203 B minified form.
 - Tolkira stress run (`npm run stress -- <count>`):
   - 1,000 scenarios / 3,000 steps: about 0.22 s, 1.4 MB HTML.
   - 5,000 scenarios / 15,000 steps: about 0.42 s, 6.9 MB HTML.

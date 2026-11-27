@@ -73,7 +73,8 @@ and the old English fallback map is gone.
 | What happened | Was passiert ist |
 | Shown above | Oben angezeigt |
 | Run failed | Lauf fehlgeschlagen |
-| Needs attention | Aufmerksamkeit nötig |
+| Needs attention | Aufmerksamkeit erforderlich |
+| No evidence attached | Kein Nachweis angehängt |
 
 The address form is impersonal; avoid `du` and `Sie`. The full
 `Fehlgeschlagen` chip is used and wraps; there is no short form. `de` is the

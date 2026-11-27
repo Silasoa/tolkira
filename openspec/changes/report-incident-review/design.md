@@ -122,7 +122,8 @@ feature index: its copy says no scenarios **in the list** match and the
 incident panel remains visible. The triage's first-incident link points at the
 panel (`#incident`); the rest point at their rows. The selected incident id is
 passed to `renderTriage` as a parameter; the selector stays in `report.ts`, so
-no import cycle is introduced. The copy-scope fix is the only client change.
+no import cycle is introduced. The client changes are the failure copy scope,
+the scenario-scoped expand/collapse controls and the list-scoped empty copy.
 
 The panel detail stays open and is not a disclosure; the toolbar's expand and
 collapse controls are scoped to the scenario rows ("scenarios") so they do not
@@ -242,7 +243,7 @@ the README hero screenshot is refreshed with raster provenance.
 - Duplication with the triage is navigation, not evidence; the triage stays.
 - Report bytes: the detail moves, it is not duplicated; the size delta is
   measured. JSON/CI/email/manifest/history bytes stay unchanged; the client
-  bundle changes only by the copy-scope fix, measured.
+  bundle changes only by the three small client deltas, measured.
 - CMP parity records only the intended report differences.
 
 ## 9. Acceptance criteria
@@ -268,8 +269,8 @@ the README hero screenshot is refreshed with raster provenance.
   baseline badge; the remaining-count line renders when several incidents
   exist.
 - AC6: Default, static, print and PDF render the panel; it is not filtered; no
-  new client script or network request is added; the one copy-scope fix keeps
-  the copy actions working.
+  new client script or network request is added; the three small client
+  deltas keep the copy actions working.
 - AC7: No evidence yields the localized no-evidence line; attachments use the
   existing safe path; escaping is unchanged.
 - AC8: English and German catalogs carry every new key; plurals use the
@@ -282,8 +283,8 @@ the README hero screenshot is refreshed with raster provenance.
   contrast holds on paper, surface-2 and surface-3, including status text, in
   light, dark and print.
 - AC11: Report HTML changes by design; summary, JSON, CI, email, manifest and
-  history bytes are unchanged; the client bundle changes only by the
-  copy-scope fix, measured; the report-size delta is recorded; characterization
+  history bytes are unchanged; the client bundle changes only by the three
+  small client deltas, measured; the report-size delta is recorded; characterization
   hashes are re-pinned per commit; host rows 1-5, the three-engine matrix and
   CMP are recorded.
 - AC12: The toolbar's expand/collapse controls are scoped to scenario rows; the

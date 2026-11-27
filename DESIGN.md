@@ -66,8 +66,9 @@ Use the token names, never raw colours.
 | `--radius`, `--shadow` | Shared 6 px panel radius; no elevation (`none`) |
 
 The Incident review palette is chart-neutral paper and ink with compact chips
-and one-pixel rules. Status colours keep their role; every text role holds at
-least 4.5:1 contrast on paper, surface-2 and surface-3 in light, dark and print.
+and one-pixel rules. Status colours keep their role; every text role used holds
+at least 4.5:1 contrast on paper, surface-2 and surface-3 in light, dark and
+print (ink, ink-2, muted, accent-text, pass, fail, pending and undefined).
 The ANSI palette is unchanged.
 
 Dark mode is a token override under `prefers-color-scheme: dark`; it never
