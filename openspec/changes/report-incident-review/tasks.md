@@ -110,43 +110,67 @@
 - [x] 4.2 Run `npm run check` (typecheck, lint, knip, format, build, coverage)
   and `npm run hygiene`.
   Result: i18n, assets, typecheck, lint, knip, format and build passed; the
-  unit/coverage run has 2,162 passed, 11 skipped and 0 failed of 2,173 tests.
+  unit/coverage run has 2,163 passed, 11 skipped and 0 failed of 2,174 tests;
+  coverage 95.13/88.51/97.09/96.52.
   Correction: the earlier record of three Red tests was stale; `5654f8f`
   corrected their 0-based ids to the existing 1-based anchors and their
   closed-row `.detailInline` count to one server-rendered body per disclosure
   row. No test is skipped or loosened. `npm run hygiene` is green.
-- [ ] 4.3 Run `npm run test:e2e` on Chromium, Firefox and WebKit; viewports
+- [x] 4.3 Run `npm run test:e2e` on Chromium, Firefox and WebKit; viewports
   320, 390, 768, 1024, 1440 and 320 at 200 % text zoom.
-- [ ] 4.4 Run host rows 1-5 from `docs/DROP-IN-VALIDATION.md`; record host,
+  Result: 515 passed, 10 skipped across the three engines; the incident box
+  and no-overlap checks run at 1440, 390 and 320 at 200 % in English and
+  German, plus print and the failed-only/tag filters.
+- [x] 4.4 Run host rows 1-5 from `docs/DROP-IN-VALIDATION.md`; record host,
   pins, artifact sizes and result. A red host blocks or needs a written,
   user-approved exception.
-- [ ] 4.5 Run `npm run package:check`; record the tarball entries and the
+  Result: all seven rows PASS on the final tarball (Seed-Test story/group,
+  cucumber-js legacy/Messages, Playwright, PetClinic, Cucumber-JVM); the link
+  is 83.23 × 28 px at 1440/390, 164.47 × 56 px at 320/200 %, 0 px² overlap;
+  table in `gate.md` §3.
+- [x] 4.5 Run `npm run package:check`; record the tarball entries and the
   bundle delta. The client-bundle delta is limited to the copy scope, the
   scenario-scoped expand/collapse, the list-scoped empty copy and the row
   highlight guard (behaviour preserved; the incident row is no longer an open
   `<details>`, so the guard follows the markup); every other bundle and report
   byte delta is explained.
-- [ ] 4.6 Run the CMP parity comparison; only the intended report differences
+  Result: 92 entries, 702,942 B, SHA-256 `1BFD0A65…EA95`; inline client
+  15,812 B (+374 B); no other bundle change.
+- [x] 4.6 Run the CMP parity comparison; only the intended report differences
   are allowed. Record the result.
-- [ ] 4.7 Write `gate.md`: commands, counts, coverage, report-size delta,
-  byte-parity evidence, host rows and CMP, including the two implementation
-  commits.
-- [ ] 4.8 Run the Impeccable manual detector
+  Result: PASS; only the panel, row link and named client copy differ. Three
+  doc nits (CSS bytes, screenshot pair, reproduce step) fixed in `be22ae3`.
+- [x] 4.7 Write `gate.md`: commands, counts, coverage, report-size delta,
+  byte-parity evidence, host rows and CMP, including the implementation, fix
+  and docs commits.
+- [x] 4.8 Run the Impeccable manual detector
   (`impeccable detect --json --changed`) over the changed report UI once,
   fix mechanical findings and record the rest for the reviewers.
-- [ ] 4.9 Run the Impeccable finish review over the rendered report
+  Result: three `side-tab` warnings on `.attachmentWarning` and `.diagnostic`,
+  both older than this change; accepted without a fix.
+- [x] 4.9 Run the Impeccable finish review over the rendered report
   (desktop/mobile, light/dark/print), record the verdict, and attach raster
   provenance to every shipping screenshot (README hero included).
+  Result: both blockers fixed and pinned (320 row, ambiguous lead); the four
+  contract-conflicting UX findings are recorded for 0.7.1; every shipping
+  raster has provenance.
 
 ## 5. Reviews
 
-- [ ] 5.1 Run UXR, SCR, CR, DAR, STR, SEC, PCA and ILA in parallel on the
+- [x] 5.1 Run UXR, SCR, CR, DAR, STR, SEC, PCA and ILA in parallel on the
   implementation commits; CMP after the report change.
-- [ ] 5.2 A failing review spawns a fixer, then a delta re-check; every
+  Result: ten verdicts recorded in `gate.md` §4; two fixer batches and a
+  targeted confirmation closed every finding.
+- [x] 5.2 A failing review spawns a fixer, then a delta re-check; every
   finding is fixed, filed or recorded with a trigger.
-- [ ] 5.3 Commit and push after every completed step with a conventional
+  Result: `02b81d6`/`0e05698` and `be22ae3` fix the findings; the four
+  contract-conflicting UX findings are decisions with a 0.7.1 trigger in
+  `docs/BACKLOG.md`.
+- [x] 5.3 Commit and push after every completed step with a conventional
   message and the B-057/change reference; run `npm run hygiene` before every
   commit. Do not archive, bump the version, tag or publish.
+  Result: eight commits, hygiene green, pushed after this record; no version
+  bump, tag, stage or publish.
 
 ## Deferred
 

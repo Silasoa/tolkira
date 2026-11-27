@@ -614,6 +614,11 @@ asks or a locale needs them:
   scope" check returns with the next copy change. `firstLine` exists in
   `report.ts` and `triage.ts`, and the two incident test files each build their
   own `incidentSection` slice; fold both into the B-057 test-helper pass.
+- **Narrow print page at 200 % text.** On a 320 px print page with 200 % text
+  the German status pill wraps; the gated A4 print and the whole screen
+  viewport matrix (including 320 px at 200 %) are clean. Trigger: the next
+  print or status-pill change; then give the pill a print rule or drop the
+  label beside the dot.
 - **RTL `text-align`.** The new one-column `.metaList` rule uses
   `text-align:left`; switch to `start` when an RTL locale is added (fits
   B-066's locale trigger).
