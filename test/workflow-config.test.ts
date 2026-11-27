@@ -224,7 +224,7 @@ describe('workflow lint job', () => {
 
 describe('quoted versioned tarball path', () => {
   const bareTarballPath =
-    /(?:^|\s)\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz(?![\w.\/-])/;
+    /(?:^|\s)\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz(?![\w./-])/;
 
   it('forbids the bare absolute path word in both workflows', () => {
     expect(ci, 'ci.yml').not.toMatch(bareTarballPath);
