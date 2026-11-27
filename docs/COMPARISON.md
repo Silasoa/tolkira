@@ -4,10 +4,10 @@ This is a visual and functional comparison between the older
 `cucumber-html-reporter@7.2.0` (bootstrap theme) and Tolkira, using the Seed-Test
 report options and equivalent scenario, story and group inputs.
 
-**Scope (verified 2026-11-24 for Tolkira 0.6.0).** This page compares the report
-shell and migration content only; `--static`, history and `--baseline` are not
-compared here (see [`README.md`](../README.md), [`CI.md`](CI.md) and
-[`AGENT-INTERFACE.md`](AGENT-INTERFACE.md)).
+**Scope (verified 2026-11-27 for the 0.7 Incident review shell).** This page
+compares the report shell and migration content only; `--static`, history and
+`--baseline` are not compared here (see [`README.md`](../README.md),
+[`CI.md`](CI.md) and [`AGENT-INTERFACE.md`](AGENT-INTERFACE.md)).
 
 ## Method
 
@@ -21,8 +21,9 @@ compared here (see [`README.md`](../README.md), [`CI.md`](CI.md) and
   equivalent Cucumber inputs: one scenario (`minimal`), one story (`happy`) and
   a group (`happy` + `unhappy` + `minimal`).
 - Old reporter: `cucumber-html-reporter@7.2.0`, `theme: bootstrap`.
-- Tolkira: 0.6.0 shell, simple report shell, no external assets; the scope note
-  above applies.
+- Tolkira: 0.7 Incident review shell (development snapshot), simple report
+  shell, no external assets; the scope note above applies. Raster provenance is
+  in [`comparison/PROVENANCE.md`](comparison/PROVENANCE.md).
 
 ## Screenshots
 
@@ -60,8 +61,8 @@ All images are in [`docs/comparison/`](comparison/).
 
 - Old story report: about 100 kB, but with four remote dependencies.
 - Tolkira story report: one HTML file with CSS and script inline and no
-  network dependency. The stylesheet source is 46,344 B; every report embeds
-  its 40,290 B minified form, 6,054 B (13 %) smaller.
+  network dependency. The stylesheet source is 50,569 B; every report embeds
+  its 43,924 B minified form, 6,645 B (13 %) smaller.
 - Tolkira stress run (`npm run stress -- <count>`):
   - 1,000 scenarios / 3,000 steps: about 0.22 s, 1.4 MB HTML.
   - 5,000 scenarios / 15,000 steps: about 0.42 s, 6.9 MB HTML.

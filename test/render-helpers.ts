@@ -84,11 +84,18 @@ export function matrixTable(html: string): string {
   return html.slice(start, html.indexOf('</table>', start));
 }
 
+function scenarioRowStart(html: string, index: number): number {
+  return Math.max(
+    html.lastIndexOf('<details class="scenario"', index),
+    html.lastIndexOf('<div class="scenario scenarioRowLink"', index),
+  );
+}
+
 export function scenarioOpeningTag(html: string, name: string): string {
   const marker = `data-scenario-name="${name}"`;
   const index = html.indexOf(marker);
   expect(index, `scenario ${name}`).toBeGreaterThan(-1);
-  const start = html.lastIndexOf('<details class="scenario"', index);
+  const start = scenarioRowStart(html, index);
   return html.slice(start, html.indexOf('>', index) + 1);
 }
 
@@ -101,11 +108,17 @@ export function scenarioSummary(html: string, name: string): string {
   const marker = `data-scenario-name="${name}"`;
   const index = html.indexOf(marker);
   if (index < 0) return '';
-  const start = html.lastIndexOf('<details class="scenario"', index);
-  return html.slice(
-    html.indexOf('>', start) + 1,
-    html.indexOf('</summary>', index),
+  const start = scenarioRowStart(html, index);
+  const contentStart = html.indexOf(
+    '>',
+    html.indexOf('class="scenarioButton"', start),
   );
+  const ends = [
+    html.indexOf('</summary>', contentStart),
+    html.indexOf('</div>', contentStart),
+  ].filter((position) => position >= 0);
+  const end = Math.min(...ends);
+  return html.slice(contentStart + 1, end);
 }
 
 export function sectionAt(html: string, start: number): string {

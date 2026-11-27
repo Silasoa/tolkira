@@ -132,11 +132,11 @@
     "description": "Button that copies a log attachment"
   },
   "client.empty": {
-    "message": "No scenarios match the current search or filters.",
-    "description": "Empty result message in the browser report"
+    "message": "No scenarios in the list match the current search or filters.",
+    "description": "Empty result message in the browser report; the incident panel stays visible"
   },
   "client.emptyPreset": {
-    "message": "No failed scenarios match the current search or filters. Unexecuted rows are hidden by Failed only.",
+    "message": "No failed scenarios in the list match the current search or filters. Unexecuted rows are hidden by Failed only.",
     "description": "Empty result message while the Failed only preset is active"
   },
   "client.logCopied": {
@@ -148,7 +148,7 @@
     "description": "Live-region message when copying a log fails"
   },
   "client.searchNote": {
-    "message": "{expanded} of {visible} matches expanded. Use Expand all to open the rest.",
+    "message": "{expanded} of {visible} matches expanded. Use Expand all scenarios to open the rest.",
     "description": "Search note when the opening cap hides matched scenarios"
   },
   "client.visibleCount": {
@@ -500,8 +500,8 @@
     "description": "Synthetic label before the attempt number"
   },
   "report.collapseAll": {
-    "message": "Collapse all",
-    "description": "Button that closes every scenario"
+    "message": "Collapse all scenarios",
+    "description": "Button that closes every scenario row; the incident panel stays open"
   },
   "report.copyFailure": {
     "message": "Copy failure",
@@ -544,8 +544,8 @@
     "description": "Screen-reader text before an examples block name"
   },
   "report.expandAll": {
-    "message": "Expand all",
-    "description": "Button that opens every scenario"
+    "message": "Expand all scenarios",
+    "description": "Button that opens every scenario row; the incident panel stays open"
   },
   "report.failedOnly": {
     "message": "Failed only",
@@ -591,9 +591,33 @@
     "message": "{count, plural, one {# hook} other {# hooks}}",
     "description": "Hook count in a scenario row"
   },
+  "report.incidentAttention": {
+    "message": "Needs attention",
+    "description": "Incident badge for undefined, ambiguous and pending scenarios"
+  },
+  "report.incidentHeading": {
+    "message": "What happened",
+    "description": "Heading of the incident panel above the report index"
+  },
+  "report.incidentMore": {
+    "message": "{count, plural, one {# more incident in the list} other {# more incidents in the list}}",
+    "description": "Remaining incidents after the first; only the incident set is counted"
+  },
+  "report.incidentNoEvidence": {
+    "message": "No evidence attached.",
+    "description": "Line above the incident detail when the scenario has no attachments"
+  },
+  "report.incidentRunFailed": {
+    "message": "Run failed",
+    "description": "Incident badge for a failed scenario"
+  },
+  "report.incidentShownAbove": {
+    "message": "Shown above",
+    "description": "Index row link that points at the incident panel"
+  },
   "report.noMatches": {
-    "message": "No scenarios match the current search or filters.",
-    "description": "Empty result message rendered with the report"
+    "message": "No scenarios in the list match the current search or filters.",
+    "description": "Empty result message for the feature index; the incident panel stays visible"
   },
   "report.noScenarios": {
     "message": "No scenarios in this report.",

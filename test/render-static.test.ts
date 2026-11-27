@@ -367,9 +367,9 @@ describe('default report guard', () => {
     expect(script).not.toEqual(["'none'"]);
     expect(script.some((value) => value.startsWith("'sha256-"))).toBe(true);
 
-    expect(hasAttribute(scenarioOpeningTag(html, 'Failing'), 'open')).toBe(
-      true,
-    );
+    const incidentRow = scenarioOpeningTag(html, 'Failing');
+    expect(incidentRow).not.toMatch(/^<details/);
+    expect(html).toContain('id="incident"');
     const passed = scenarioOpeningTag(html, 'Passing');
     expect(hasAttribute(passed, 'open')).toBe(false);
     expect(hasAttribute(passed, 'data-status')).toBe(true);

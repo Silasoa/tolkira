@@ -241,7 +241,7 @@ test('combines the preset with search and keeps blank rows hidden', async ({
     );
     await expect(page.locator('#empty-results')).toBeVisible();
     await expect(page.locator('#empty-results')).toHaveText(
-      'No failed scenarios match the current search or filters. Unexecuted rows are hidden by Failed only.',
+      'No failed scenarios in the list match the current search or filters. Unexecuted rows are hidden by Failed only.',
     );
 
     await search.fill('Failed scenario');
@@ -399,7 +399,7 @@ test('keeps the preset inert without JavaScript', async ({ browser }) => {
     await expect(preset(page)).toHaveAttribute('aria-pressed', 'false');
     await preset(page).click();
     await expect(preset(page)).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('details.scenario[hidden]')).toHaveCount(0);
+    await expect(page.locator('[data-scenario][hidden]')).toHaveCount(0);
     await expect(heading(page, 'Passed scenario')).toBeVisible();
     await expect(heading(page, 'Failed scenario')).toBeVisible();
     await expect(heading(page, 'Blank unexecuted scenario')).toBeVisible();

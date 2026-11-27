@@ -235,20 +235,20 @@ test('counts only newly opened rows against the search cap', async ({
 
   try {
     await page.goto(reportUrl(output));
-    await expect(page.locator('details.scenario[open]')).toHaveCount(10);
+    await expect(page.locator('details.scenario[open]')).toHaveCount(9);
 
     const search = page.locator('input[data-search]');
     await search.fill('@a');
     await expect(page.locator('#tolkira-live')).toHaveText(
       '30 of 30 scenarios visible',
     );
-    await expect(page.locator('details.scenario[open]')).toHaveCount(30);
+    await expect(page.locator('details.scenario[open]')).toHaveCount(28);
     await expect(page.locator('#tolkira-search-note')).toContainText(
       '20 of 30 matches expanded',
     );
 
     await search.fill('');
-    await expect(page.locator('details.scenario[open]')).toHaveCount(10);
+    await expect(page.locator('details.scenario[open]')).toHaveCount(9);
   } finally {
     await removeReport(dir);
     await removeReport(input.dir);
@@ -463,8 +463,8 @@ test('ignores empty, unknown and uppercase URL parameters', async ({
 
   try {
     await page.goto(reportUrl(output, '?query=&hide=&hide=unknown&tag='));
-    await expect(page.locator('details.scenario')).toHaveCount(4);
-    await expect(page.locator('details.scenario[hidden]')).toHaveCount(0);
+    await expect(page.locator('[data-scenario]')).toHaveCount(4);
+    await expect(page.locator('[data-scenario][hidden]')).toHaveCount(0);
     await expect(page.locator('input[data-search]')).toHaveValue('');
     await expect(
       page.locator('button.filter[data-filter-status="passed"]'),
@@ -472,7 +472,7 @@ test('ignores empty, unknown and uppercase URL parameters', async ({
     await expect(page.locator('#empty-results')).toBeHidden();
 
     await page.goto(reportUrl(output, '?HIDE=passed'));
-    await expect(page.locator('details.scenario[hidden]')).toHaveCount(0);
+    await expect(page.locator('[data-scenario][hidden]')).toHaveCount(0);
     await expect(
       page.locator('button.filter[data-filter-status="passed"]'),
     ).toHaveAttribute('aria-pressed', 'true');
@@ -496,7 +496,7 @@ test('keeps the static report readable without JavaScript', async ({
   try {
     await page.goto(reportUrl(output, '?query=alpha%20one&hide=passed'));
 
-    await expect(page.locator('details.scenario')).toHaveCount(4);
+    await expect(page.locator('[data-scenario]')).toHaveCount(4);
     await expect(page.locator('input[data-search]')).toHaveValue('');
     await expect(
       page.locator('button.filter[data-filter-status="passed"]'),

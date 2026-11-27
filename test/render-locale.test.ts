@@ -96,10 +96,14 @@ describe('German report rendering', () => {
     expect(german).toContain('<span>Tag</span>');
     expect(german).toContain('<option value="">Alle Tags</option>');
     expect(german).toContain('>Nur fehlgeschlagene</button>');
-    expect(german).toContain('data-expand="all">Alle ausklappen</button>');
-    expect(german).toContain('data-expand="none">Alle einklappen</button>');
     expect(german).toContain(
-      '<div class="empty" id="empty-results" hidden>Keine Szenarien entsprechen der aktuellen Suche oder den Filtern.</div>',
+      'data-expand="all">Alle Szenarien ausklappen</button>',
+    );
+    expect(german).toContain(
+      'data-expand="none">Alle Szenarien einklappen</button>',
+    );
+    expect(german).toContain(
+      '<div class="empty" id="empty-results" hidden>Keine Szenarien in der Liste entsprechen der aktuellen Suche oder den Filtern.</div>',
     );
     expect(german).toContain(
       '<p class="foot">Erstellt von Tolkira. Eine Datei. Keine Netzwerkanfragen. Anhänge sind eingebettet, wenn verfügbar.</p>',

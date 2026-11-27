@@ -13,47 +13,47 @@ const fixtures = [
   {
     name: 'messages screenshot',
     fixture: 'messages/screenshot.ndjson',
-    sha256: '2ad5baf9a2ffc1b74db4176e590663bc4defe79c92d666375d717a718c0c53c8',
+    sha256: '76e0a8132d03d6546a60c3eedf620165cff704fc227bf49511e387d0abd28e52',
   },
   {
     name: 'messages all statuses',
     fixture: 'messages/all-statuses.ndjson',
-    sha256: '43014dbdc985da0d59c2edf31b94f6375dfe37ffcd113ae278a48bb15b1a8946',
+    sha256: '449db3d192200c91e45d6e47b8301bb73e241b2579f139ae7d02f52dde166909',
   },
   {
     name: 'messages empty statuses',
     fixture: 'messages/empty-statuses.ndjson',
-    sha256: '324d053a955cf91c5324d6ceb6c9a9e97676b7b2bd742ab223fc1fea8313b813',
+    sha256: 'd043fa8e6428d7a9d2b8a32fb3cfc74b58a15e8c892d75a789afae3ca6543a17',
   },
   {
     name: 'messages examples tables',
     fixture: 'messages/examples-tables.ndjson',
-    sha256: 'e521029907b2049aca7bc193633f2b091c1c1b92beb767bba4bf224b8be01ec1',
+    sha256: 'fd6213d6f5d5fe88aaff18e241e1beeb4e6612a405f01f412167295d10a10167',
   },
   {
     name: 'legacy happy',
     fixture: 'legacy/happy.json',
-    sha256: 'f27901089742260ba2bef42f20cdaaae3491fdc581e80502e87eeb9dc67d9b8d',
+    sha256: '82dae5021f85e54d987fb69708f42caf5db2eb7a8afd0da276fb1fd81ee6719e',
   },
   {
     name: 'legacy failed',
     fixture: 'legacy/failed.json',
-    sha256: 'e4c3eaeac5471be27f89601b3827dbe10095c889be3b8e948664930674de155c',
+    sha256: '882223ce2a234287782c1e3516c2bea87729c521bf4fd9ecb1683fc82f0d1727',
   },
   {
     name: 'playwright real run',
     fixture: 'playwright/real-run.json',
-    sha256: '34f6202a6de9c62129c8c7ed6ce43b0f7e21964cc8b97f0241ea6d7f799bd283',
+    sha256: 'ff4ef3a07e898d99f805cb0de58385abc2d9d2b2c5cd4fe77793422685752c29',
   },
   {
     name: 'playwright two files',
     fixture: 'playwright/two-files.json',
-    sha256: '7dc2335107bcbef3bb4b54c71c0d18eca39ca34dada02a79ac4bffe462460cba',
+    sha256: '151a14f212406ddaeeed6fed91054d1e09e37e35f134029d6be4ade4496df31c',
   },
   {
     name: 'playwright skipped no steps',
     fixture: 'playwright/skipped-no-steps.json',
-    sha256: 'e38006b36d7afc7f89fef01b533f2cf7614c57b78c702611c45870f0f6e8e580',
+    sha256: '97c72547caebfb9b96c2b68aa591e6c50316f1a757d0371a7fefe47f4d6d6da4',
   },
 ];
 
@@ -103,7 +103,7 @@ describe('render characterization', () => {
 
     expect(html.match(/<main\b/g) ?? []).toHaveLength(1);
     expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
-      '4252629f6a7c07debe45be03c74cc3f68b44230f6d5b031706502f7289d27e96',
+      '2e531bee1f05d69fb292203b2e1858cc0f1957a87a7c079ecac1f20188e58b7e',
     );
   });
 });

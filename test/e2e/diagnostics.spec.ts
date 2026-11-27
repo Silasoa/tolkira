@@ -40,7 +40,7 @@ test('shows undefined-step snippets and finds them by search', async ({
     await expect(scenario).toHaveAttribute('open', '');
 
     await search.fill('No step definition found.');
-    await expect(page.locator('details.scenario:visible')).toHaveCount(4);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(4);
     await expect(scenario).toBeVisible();
   } finally {
     await removeReport(dir);
@@ -59,25 +59,26 @@ test('shows ambiguous definitions with relative sources', async ({ page }) => {
     const scenario = page.locator(
       '[data-scenario-name="Multiple step definitions for a step"]',
     );
-    await expect(scenario).toHaveAttribute('open', '');
-    await expect(scenario.locator('.diagnosticLead')).toHaveText(
+    const panel = page.locator('#incident');
+    await expect(panel).toBeVisible();
+    await expect(panel.locator('.diagnosticLead')).toHaveText(
       'Multiple matching step definitions found:',
     );
-    await expect(scenario.locator('.definitionPattern')).toHaveCount(2);
-    await expect(scenario.locator('.definitionPattern').first()).toHaveText(
+    await expect(panel.locator('.definitionPattern')).toHaveCount(2);
+    await expect(panel.locator('.definitionPattern').first()).toHaveText(
       '^a (.*?) with (.*?)$',
     );
-    await expect(scenario.locator('.definitionSource').first()).toHaveText(
+    await expect(panel.locator('.definitionSource').first()).toHaveText(
       'samples/ambiguous/ambiguous.ts:3',
     );
-    await expect(scenario.locator('.definitionSource').nth(1)).toHaveText(
+    await expect(panel.locator('.definitionSource').nth(1)).toHaveText(
       'samples/ambiguous/ambiguous.ts:7',
     );
 
     await page
       .getByRole('searchbox', { name: /Search/ })
       .fill('Multiple matching step definitions found:');
-    await expect(page.locator('details.scenario:visible')).toHaveCount(1);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(1);
     await expect(scenario).toBeVisible();
   } finally {
     await removeReport(dir);

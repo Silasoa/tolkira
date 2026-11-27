@@ -177,16 +177,20 @@ and is covered by real producer fixtures.
   `attachments.ts` and `ci.ts`): `html.ts` owns the shell, CSP, `renderRun` (the
   trusted entry over a loaded run) and the `renderHtml` wrapper that builds one
   loaded run and delegates; `report.ts` owns the report header, toolbar,
-  features, scenarios,
-  steps, hooks and feature-row chrome; `details.ts` owns the Details header,
+  incident panel and selector, features, scenarios,
+  steps, hooks and feature-row chrome; the incident panel reuses the shared
+  scenario detail builder (`scenarioBody`) and wraps it in a copy scope;
+  `details.ts` owns the Details header,
   run/environment panels and analysis layout; `trends.ts` owns the Trends header,
   the recorded-runs table and the sparkline; `triage.ts` owns the
-  needs-attention index and source strip; `matrix.ts` owns the
+  needs-attention index and source strip, taking the selected incident id as a
+  parameter so its first incident link points at the panel; `matrix.ts` owns the
   feature-by-status matrix; `tags.ts` owns the tag overview rows, sort/cap and
   panel; `attachments.ts` owns image/text/video/log/file rendering; `ci.ts` owns
   the CI header and detail rows; `baseline.ts` owns the comparison panel and the
   row badges, and joins the precomputed change map by pickle id; `format.ts` owns
-  status, duration, date, bar, count, health, pass-rate and tag helpers;
+  status, duration, date, bar, count, health, pass-rate, tag and shared
+  `scenarioLabel` helpers;
   `types.ts` owns the view-facing `RenderOptions` (`renderRun` fills
   `comparison` and both input counts from the loaded run), `DisplayStatus` and
   `OrderedFeature`.
@@ -212,13 +216,18 @@ and is covered by real producer fixtures.
   block. The browser bundle contains no non-English catalog. See
   [`docs/I18N.md`](I18N.md).
 - `src/render/report.css` is the stylesheet source; `scripts/build-styles.mjs`
-  minifies it into `src/render/styles.ts` for the inline report. The baseline
+  minifies it into `src/render/styles.ts` for the inline report. The 0.7
+  Incident review tokens (paper/ink, 6 px radius, one-pixel rules, compact
+  type) and the incident panel live here; no new stylesheet. The baseline
   panel and badges live in `src/render/baseline.css`, minified into a second
   `BASELINE_CSS` constant and appended only when a comparison is supplied, so
   adding it does not change `report.css` or a report without a baseline; the
   0.6.1 shell rules are separate.
 - `src/render/search.ts` carries the tag-expression, URL-state and open-state
-  helpers; `src/render/report-client.ts` is the browser script.
+  helpers; `src/render/report-client.ts` is the browser script. Its incident
+  change resolves the nearest `data-copy-scope` only for the failure text; the
+  log copy keeps its attachment `details`. Expand/collapse scopes to scenario
+  rows.
   `src/render/print-script.ts` is the static print lifecycle, imported only by
   `html.ts` and embedded as a second CSP-hashed inline script.
   `src/render/dom-contract.ts` owns the scenario data attributes, the shared IDs

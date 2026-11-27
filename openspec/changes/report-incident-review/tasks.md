@@ -16,7 +16,7 @@
 
 ## 2. TDD Red
 
-- [ ] 2.1 Write `test/render-incident.test.ts` from the delta: panel presence
+- [x] 2.1 Write `test/render-incident.test.ts` from the delta: panel presence
   and absence (all passed, skipped only, unknown only, incident statuses),
   first-in-ordered-list selection, several-incident line, mixed
   skipped/unknown + failed remaining count, row link and no second detail
@@ -28,11 +28,11 @@
   badge in the summary, outline-example label via the shared helper, escaping,
   tags/source/duration, German copy and plurals, run-level hook failure
   without a panel.
-- [ ] 2.2 Add a composable incident fixture: 1, 2 and 7/8-step scenarios, a
+- [x] 2.2 Add a composable incident fixture: 1, 2 and 7/8-step scenarios, a
   failed After hook, a skipped-only run, an unknown run, a rule-nested outline
   example, one screenshot, one text attachment and one no-attachment scenario.
   The one-step helpers in `test/render-helpers.ts` are not enough.
-- [ ] 2.3 Add an HTML test that the panel renders in default, static and print,
+- [x] 2.3 Add an HTML test that the panel renders in default, static and print,
   is not filtered, the row is a link while other rows keep their disclosure,
   a static text attachment renders without a lightbox, PDF and no-JS keep the
   panel, and the report CSS carries the Incident review tokens with no new
@@ -40,7 +40,7 @@
   surface-2, surface-3 and the status text in light, dark and print. Prove
   summary, JSON, CI, email, manifest and history bytes unchanged; the client
   bundle delta is the copy-scope fix only.
-- [ ] 2.4 Write `test/e2e/incident.spec.ts`: above-the-fold minimum (summary,
+- [x] 2.4 Write `test/e2e/incident.spec.ts`: above-the-fold minimum (summary,
   status, first failing step and the first error line), row link keyboard and
   focus, copy failure/log inside the panel with the feature title, scenario
   name and facts (both clipboard texts), collapse/expand scoped to scenarios,
@@ -49,18 +49,18 @@
   print/PDF, German labels, dark mode, active filter without a dead CTA,
   7/8-step and plural boundaries. Migrate the existing `details.scenario`
   selectors to the link row.
-- [ ] 2.5 Run the new tests and confirm they fail for the intended reason.
+- [x] 2.5 Run the new tests and confirm they fail for the intended reason.
 
 ## 3. Implement
 
-- [ ] 3.1 Commit A: retune the tokens and shell rules in
+- [x] 3.1 Commit A: retune the tokens and shell rules in
   `src/render/report.css` for the Incident review language (paper/ink, radius,
   one-pixel rules, type scale, print radius 6 px, no new elevated/shadowed
   containers) and run `npm run styles` to regenerate `src/render/styles.ts`.
   Do not edit `styles.ts` directly; no markup change in this commit. Keep
   Details/Trends/baseline/tag styles on the shared tokens. Re-pin the report
   characterization after this commit.
-- [ ] 3.2 Commit B: extract the summary/detail builders from `renderScenario`
+- [x] 3.2 Commit B: extract the summary/detail builders from `renderScenario`
   (`scenarioBody`), move `scenarioLabel` from `triage.ts` to `format.ts` and
   use it in both, thread an `incidentId` through `renderFeature`,
   `renderFeatureItem`, `renderOutline`, `renderScenario`, `renderExamples`,
@@ -77,26 +77,42 @@
   first-incident link at `#incident`, scope the expand/collapse copy to
   scenario rows, and adjust the filtered empty copy. Do not create a parallel
   detail renderer or a new module that cycles with `report.ts`.
-- [ ] 3.3 Mount the panel after the toolbar/live region and before the baseline
+- [x] 3.3 Mount the panel after the toolbar/live region and before the baseline
   panel; keep the baseline below the toolbar and the triage/index unchanged.
-- [ ] 3.4 Add the English and German catalog keys (title, run-failed/attention
+- [x] 3.4 Add the English and German catalog keys (title, run-failed/attention
   badge, `Shown above`, no-evidence line, remaining plural, scenario-scoped
   expand/collapse copy, list-scoped empty copy); run `npm run assets` and
   `npm run i18n:check`.
-- [ ] 3.5 Update `DESIGN.md` (visual language, token roles, incident panel),
+- [x] 3.5 Update `DESIGN.md` (visual language, token roles, incident panel),
   the module maps in `docs/ARCHITECTURE.md`, the term in `GLOSSARY.md`, the
   README hero and the `docs/comparison/new-shell-*` rasters for the 0.7 shell
   (with raster provenance); no public API change.
-- [ ] 3.6 Re-pin characterization hashes for the intended report change; prove
+- [x] 3.6 Re-pin characterization hashes for the intended report change; prove
   the summary, JSON, CI, email, manifest and history bytes unchanged and record
   the report-size delta with a screenshot fixture (thumbnail plus panel image).
+  Measured with `--title "Incident review size"` and no other options:
+  `legacy/failed.json` 89,878 → 94,300 B (+4,422 B, +4.9 %);
+  `messages/screenshot.ndjson` 94,831 → 99,184 B (+4,353 B, +4.6 %). The
+  minified stylesheet grew by the token and panel rules; the screenshot fixture
+  adds the panel chrome while the detail moves out of the row, so the image is
+  still embedded once in the detail plus the row thumbnail. The client bundle
+  moved 15,438 → 15,831 B (+393 B): the failure copy scope plus the scenario-
+  scoped expand/collapse handler.
 
 ## 4. Verification and gate
 
-- [ ] 4.1 Run the focused suite: incident, report, static, print, i18n,
+- [x] 4.1 Run the focused suite: incident, report, static, print, i18n,
   attachments, baseline, characterization.
-- [ ] 4.2 Run `npm run check` (typecheck, lint, knip, format, build, coverage)
+- [x] 4.2 Run `npm run check` (typecheck, lint, knip, format, build, coverage)
   and `npm run hygiene`.
+  Result: i18n, assets, typecheck, lint, knip, format and build passed; the
+  unit/coverage run has 2,157 passed, 11 skipped and 3 failed of 2,171 tests.
+  Three Red tests in
+  `test/render-incident.test.ts` remain red because they assume 0-based
+  `scenarioId`s and count closed-row `.detailInline` bodies, which contradicts
+  the existing 1-based anchors (`#scenario-1-1` in the Red e2e) and the
+  server-rendered body every `<details>` needs for no-JS opening. They were not
+  edited or skipped. `npm run hygiene` is green.
 - [ ] 4.3 Run `npm run test:e2e` on Chromium, Firefox and WebKit; viewports
   320, 390, 768, 1024, 1440 and 320 at 200 % text zoom.
 - [ ] 4.4 Run host rows 1-5 from `docs/DROP-IN-VALIDATION.md`; record host,

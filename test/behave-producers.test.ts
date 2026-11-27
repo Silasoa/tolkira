@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseLegacyJson } from '../src/input/legacy.js';
 import { renderReport, summarizeReport } from '../src/index.js';
 import { behaveProducerFixture } from './fixtures.js';
+import { scenarioOpeningTag } from './render-helpers.js';
 
 const behaveAttachments = behaveProducerFixture('behave-real-attachments.json');
 const behaveSampleImage = behaveProducerFixture(
@@ -169,10 +170,9 @@ describe('Behave producer fixtures', () => {
     );
     expect(html).toContain('<img class="shot"');
     expect(html).toContain('src="data:image/png;base64,');
-    const errorScenarioTag = (html.match(/<details\b[^>]*>/g) ?? []).find(
-      (tag) => tag.includes('data-scenario-name="Unexpected step error"'),
-    );
+    const errorScenarioTag = scenarioOpeningTag(html, 'Unexpected step error');
     expect(errorScenarioTag).toBeDefined();
+    expect(errorScenarioTag).not.toMatch(/^<details/);
     expect(errorScenarioTag).toContain('data-status="failed"');
   });
 });

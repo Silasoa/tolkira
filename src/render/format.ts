@@ -171,6 +171,15 @@ export function scenarioSourceLabel(scenario: ReportScenario): string {
   return line === undefined ? uri : `${uri}:${line}`;
 }
 
+/** Outline rows carry the examples name and number before the scenario name. */
+export function scenarioLabel(scenario: ReportScenario): string {
+  const outline = scenario.outline;
+  if (!outline) return scenario.name;
+  const number = `#${outline.examplesIndex + 1}.${outline.exampleIndex + 1}`;
+  const examples = outline.examplesName ? `${outline.examplesName} ` : '';
+  return `${examples}${number} · ${scenario.name}`.trim();
+}
+
 export function featureSourceLabel(
   feature: ReportFeature,
   t: Translator,

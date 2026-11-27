@@ -138,6 +138,7 @@ export function renderAttachment(
   context: string | undefined,
   t: Translator,
   staticMode = false,
+  open = false,
 ): string {
   const name = escapeHtml(attachment.fileName);
   const media = escapeHtml(attachment.mediaType);
@@ -158,7 +159,7 @@ export function renderAttachment(
     return `<figure class="attachment"><audio controls src="${escapeHtml(attachment.dataUri)}"></audio><figcaption>${name} (${media})</figcaption></figure>`;
   }
   if (attachment.kind === 'text' && attachment.text !== undefined) {
-    return `<details class="attachmentText"${staticMode ? ' open' : ''}><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t, staticMode)}</details>`;
+    return `<details class="attachmentText"${staticMode || open ? ' open' : ''}><summary>${name} (${media})</summary>${textAttachmentBody(attachment, t, staticMode)}</details>`;
   }
   const bytes = t.t('format.bytes', { count: attachment.bytes });
   if (attachment.dataUri) {

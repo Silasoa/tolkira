@@ -67,7 +67,7 @@ test('filters by tag', async ({ page }) => {
     await expect(tagFilter.locator('option')).toHaveCount(6);
 
     await tagFilter.selectOption('@testScenarioOutline');
-    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(2);
     await expect(page.getByRole('status')).toContainText(
       '2 of 6 scenarios visible',
     );
@@ -78,7 +78,7 @@ test('filters by tag', async ({ page }) => {
     await expect(page.locator('details.scenario:visible[open]')).toHaveCount(0);
 
     await tagFilter.selectOption('');
-    await expect(page.locator('details.scenario:visible')).toHaveCount(6);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(6);
     await expect(page.getByRole('status')).toContainText(
       '6 of 6 scenarios visible',
     );
@@ -189,7 +189,7 @@ test('opens a collapsed feature when searching', async ({ page }) => {
       .fill('Minimal scenario');
     await expect(minimal).toBeVisible();
     await expect(
-      page.locator('details.scenario').filter({ hasText: 'Minimal scenario' }),
+      page.locator('[data-scenario]').filter({ hasText: 'Minimal scenario' }),
     ).toHaveAttribute('open', '');
   } finally {
     await removeReport(dir);
@@ -266,17 +266,17 @@ test('caps search auto-open at 20 newly opened rows', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    await expect(page.locator('[data-scenario][open]')).toHaveCount(5);
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(4);
     await page
       .getByRole('searchbox', { name: 'Search scenarios' })
       .fill('Scenario');
-    await expect(page.locator('[data-scenario][open]')).toHaveCount(25);
-    await expect(page.locator('[data-scenario]:not([open])')).toHaveCount(5);
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(23);
+    await expect(page.locator('[data-scenario]:not([open])')).toHaveCount(7);
     await expect(page.locator('#tolkira-search-note')).toHaveText(
-      '20 of 30 matches expanded. Use Expand all to open the rest.',
+      '20 of 30 matches expanded. Use Expand all scenarios to open the rest.',
     );
     await page.getByRole('searchbox', { name: 'Search scenarios' }).fill('');
-    await expect(page.locator('[data-scenario][open]')).toHaveCount(5);
+    await expect(page.locator('[data-scenario][open]')).toHaveCount(4);
   } finally {
     await removeReport(dir);
     await removeReport(input.dir);

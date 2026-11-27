@@ -29,9 +29,9 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
       .locator('.triageScenario')
       .filter({ hasText: 'These are failing #2.1' })
       .click();
-    const failed = page.locator('[data-scenario][data-example="#2.1"]');
-    await expect(failed).toHaveAttribute('open', '');
-    await expect(failed.locator('summary')).toBeFocused();
+    const failed = page.locator('#incident');
+    await expect(failed).toBeVisible();
+    await expect(failed).toBeFocused();
 
     await expect(
       page.locator(
@@ -42,45 +42,45 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
       page.locator(
         '[data-example="#2.1"][data-scenario-name="Eating cucumbers"]',
       ),
-    ).toHaveAttribute('open', '');
+    ).toBeVisible();
 
     const search = page.getByRole('searchbox', { name: /Search/ });
     await search.fill('Eating cucumbers with <friends> friends');
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
-    await expect(page.locator('details.scenario:visible')).toHaveCount(3);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(3);
 
     await search.fill('These are failing');
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
-    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(2);
 
     await search.fill('');
     const tagFilter = page.locator('select[data-tag-filter]');
     await tagFilter.selectOption('@passing');
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
-    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(2);
 
     await tagFilter.selectOption('@failing');
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
-    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(2);
     await expect(
-      page.locator('details.scenario:visible .exampleNo').first(),
+      page.locator('[data-scenario]:visible .exampleNo').first(),
     ).toHaveText('#2.1');
 
     await tagFilter.selectOption('');
-    await expect(page.locator('details.scenario:visible')).toHaveCount(7);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(7);
     await expect(
-      page.locator('details.scenario:visible .exampleNo').first(),
+      page.locator('[data-scenario]:visible .exampleNo').first(),
     ).toHaveText('#1.1');
 
     const failedFilter = page.locator(
       'button.filter[data-filter-status="failed"]',
     );
     await failedFilter.click();
-    await expect(page.locator('details.scenario:visible')).toHaveCount(5);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(5);
     await expect(page.locator('section.outline:visible')).toHaveCount(2);
     await expect(page.locator('section.examples:visible')).toHaveCount(2);
     await failedFilter.click();
@@ -89,11 +89,11 @@ test('groups outlines and keeps triage, search and tag filters usable', async ({
       'button.filter[data-filter-status="passed"]',
     );
     await passedFilter.click();
-    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(2);
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
     await expect(page.locator('section.examples:visible')).toHaveCount(1);
     await passedFilter.click();
-    await expect(page.locator('details.scenario:visible')).toHaveCount(7);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(7);
   } finally {
     await removeReport(dir);
   }

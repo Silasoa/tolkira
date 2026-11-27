@@ -749,7 +749,7 @@ test('prints the failed-only filter, its marker and full Details and Trends', as
   expect(marker.width, 'print filter marker width').toBeGreaterThan(1);
 
   const visibleStatuses = await page.evaluate(() =>
-    [...document.querySelectorAll<HTMLElement>('#report-view details.scenario')]
+    [...document.querySelectorAll<HTMLElement>('#report-view [data-scenario]')]
       .filter((element) => !element.hidden)
       .map((element) => element.dataset.status ?? ''),
   );

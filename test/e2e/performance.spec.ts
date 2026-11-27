@@ -19,7 +19,7 @@ test('loads and searches a 1,000-row non-passed report within budget', async ({
   try {
     const loadStarted = Date.now();
     await page.goto(reportUrl(output));
-    await expect(page.locator('details.scenario[open]')).toHaveCount(1000);
+    await expect(page.locator('details.scenario[open]')).toHaveCount(999);
     expect(Date.now() - loadStarted).toBeLessThan(10_000);
 
     const searchStarted = Date.now();

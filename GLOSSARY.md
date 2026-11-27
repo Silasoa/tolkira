@@ -69,6 +69,11 @@ and the old English fallback map is gone.
 | Still failing | Weiterhin fehlgeschlagen |
 | Not in this run | Nicht in diesem Lauf |
 | Ambiguous group | Mehrdeutige Gruppe |
+| Incident | Zwischenfall |
+| What happened | Was passiert ist |
+| Shown above | Oben angezeigt |
+| Run failed | Lauf fehlgeschlagen |
+| Needs attention | Aufmerksamkeit nötig |
 
 The address form is impersonal; avoid `du` and `Sie`. The full
 `Fehlgeschlagen` chip is used and wraps; there is no short form. `de` is the
@@ -160,7 +165,23 @@ theme, logo.
 
 **Triage index** — the "Needs attention" block above the feature list. It shows
 non-passing features with counts and up to three scenario links; five rows are
-visible and up to fifteen more sit behind a disclosure.
+visible and up to fifteen more sit behind a disclosure. Its first incident link
+points at the incident panel; the rest point at their scenario rows.
+
+**Incident panel** — the tinted, full-border block below the toolbar and above
+the baseline and triage for the first executed scenario in the ordered list
+whose final status is `failed`, `undefined`, `ambiguous` or `pending`. It names
+the feature, scenario, status, first failing step or diagnostic lead, the first
+error line, tags, source, attempt, start and baseline badge, then reuses the
+existing scenario detail. It is server-rendered, stays visible under every
+toolbar filter and has no call to action into the filtered index. `skipped` and
+`unknown` alone do not trigger it.
+
+**Incident row link** — the index row of the scenario resolved by the incident
+panel. It keeps its status, name, tags, thumbnail, duration and `scenarioId`
+anchor but replaces the disclosure with a localized `Shown above` link to the
+panel, so the detail is rendered once. Other non-passing rows keep their native
+disclosure.
 
 **Source strip** — per-input cards above the feature list for multi-file runs
 with real provenance. Each card shows the input's worst status, counts and a
@@ -361,11 +382,13 @@ envelope, shown escaped inside an undefined step.
 source reference, shown inside an ambiguous step.
 
 **Auto-expansion** — the report opens features and executed scenarios whose
-status is not `passed` by default. Passed scenarios stay collapsed unless they
+status is not `passed` by default, except the incident row, whose detail lives
+in the open incident panel. Passed scenarios stay collapsed unless they
 carry an image; unexecuted rows stay collapsed and show no outcome. A feature
 whose scenarios are all unexecuted opens; a mixed feature does not open just
-because it contains an unexecuted row. Text search and a valid tag expression
-still open at most 20 rows.
+because it contains an unexecuted row. The toolbar controls expand or collapse
+scenario rows and leave the incident panel open. Text search and a valid tag
+expression still open at most 20 rows.
 
 **Provenance** — the input file a feature came from. Tolkira only uses it when
 the feature URI belongs to exactly one input; shared or missing provenance

@@ -156,7 +156,7 @@ test('shows the flaky badge and tagged run count at 1440 and 320', async ({
   );
 
   try {
-    const flakyRow = page.locator('details.scenario:has(.flakyBadge)');
+    const flakyRow = page.locator('[data-scenario]:has(.flakyBadge)');
     const flakyMeta = page.locator('#report-view .meta .flakyMeta');
     const counts = page.locator('#report-view .counts');
 
@@ -170,9 +170,9 @@ test('shows the flaky badge and tagged run count at 1440 and 320', async ({
         'aria-hidden',
         'true',
       );
-      await expect(
-        flakyRow.locator('summary.scenarioButton .statusText'),
-      ).toHaveText('Passed');
+      await expect(flakyRow.locator('.scenarioButton .statusText')).toHaveText(
+        'Passed',
+      );
       await expect(
         flakyRow.locator('.tag').filter({ hasText: '@flaky' }),
       ).toBeVisible();
@@ -217,11 +217,11 @@ test('renders a legacy screenshot in the browser', async ({ page }) => {
       page.locator('img[src^="data:image/png"]').first(),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Collapse all' }).click();
+    await page.getByRole('button', { name: 'Collapse all scenarios' }).click();
     await expect(
       page.locator('#report-view').getByText('attachment.png'),
     ).toBeHidden();
-    await page.getByRole('button', { name: 'Expand all' }).click();
+    await page.getByRole('button', { name: 'Expand all scenarios' }).click();
     await expect(
       page.locator('#report-view').getByText('attachment.png'),
     ).toBeVisible();

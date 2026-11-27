@@ -182,27 +182,21 @@ test('keeps every overview count when toolbar filters hide scenarios', async ({
   await page.getByRole('tab', { name: 'Report' }).click();
   const search = page.getByRole('searchbox', { name: 'Search scenarios' });
   await search.fill('ohne Deckung');
-  await expect(
-    page.locator('#report-view details.scenario:visible'),
-  ).toHaveCount(1);
+  await expect(page.locator('[data-scenario]:visible')).toHaveCount(1);
   await detailsTab(page);
   expect(await overviewRows(page)).toEqual(before);
 
   await page.getByRole('tab', { name: 'Report' }).click();
   await search.fill('');
   await page.locator('button[data-filter-status="passed"]').click();
-  await expect(
-    page.locator('#report-view details.scenario:visible'),
-  ).toHaveCount(1);
+  await expect(page.locator('[data-scenario]:visible')).toHaveCount(1);
   await detailsTab(page);
   expect(await overviewRows(page)).toEqual(before);
 
   await page.getByRole('tab', { name: 'Report' }).click();
   await page.locator('button[data-filter-status="passed"]').click();
   await page.locator('select[data-tag-filter]').selectOption('@fehler');
-  await expect(
-    page.locator('#report-view details.scenario:visible'),
-  ).toHaveCount(1);
+  await expect(page.locator('[data-scenario]:visible')).toHaveCount(1);
   await detailsTab(page);
   expect(await overviewRows(page)).toEqual(before);
 });

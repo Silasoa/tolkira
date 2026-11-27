@@ -74,9 +74,10 @@ describe('parity diagnostics rendering', () => {
       title: 'Legacy ambiguous',
     });
 
-    expect(scenarioOpeningTag(html, 'Ambiguous legacy step')).toContain(
-      ' open>',
+    expect(scenarioOpeningTag(html, 'Ambiguous legacy step')).not.toMatch(
+      /^<details/,
     );
+    expect(html).toContain('id="incident"');
     expect(html).toContain('data-diagnostic="ambiguous"');
     expect(html).toContain('Multiple matching step definitions found:');
     expect(html).not.toContain('class="definitions"');

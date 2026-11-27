@@ -25,10 +25,14 @@ optional Details view, never in the way of the failure.
   second signal.
 - **Evidence first.** A screenshot or attachment is part of the failure, not
   decoration.
-- **Native disclosure.** Use `<details>`/`<summary>` with a visible chevron;
-  search and filters open the features that contain matches.
-- **Density with air.** Compact rows, but never cramped; 0.9375 rem body,
-  0.75–0.875 rem metadata, 0.6875 rem minimum for functional text.
+- **Incident first.** The first scenario in the ordered list with status
+  failed, undefined, ambiguous or pending is resolved above the index in an
+  incident panel; its detail is not duplicated in the row, which becomes a
+  link. Other non-passing rows keep their native disclosure.
+- **Native disclosure.** Use `<details>`/`<summary>` with a visible chevron for
+  the index rows; search and filters open the features that contain matches.
+- **Density with air.** Compact rows, but never cramped; 0.875 rem body,
+  0.6875 rem metadata, 0.6875 rem minimum for functional text.
 - **Accessible by default.** WCAG 2.2 AA, keyboard focus, reduced motion,
   200 % page zoom and 200 % text zoom, no colour-only status, no horizontal
   page scroll.
@@ -46,16 +50,25 @@ Use the token names, never raw colours.
 | `--paper` | Page surface |
 | `--canvas` | Page background |
 | `--surface-2` | Secondary surface, row hover, panels |
+| `--surface-3` | Tertiary surface, chips, table headers |
 | `--ink` | Primary text |
+| `--ink-2` | Strong secondary text |
 | `--muted` | Secondary text, labels, captions |
 | `--line`, `--line-strong` | Hairline rules and control borders |
-| `--accent`, `--accent-soft` | Brand, current selection, primary action |
+| `--accent`, `--accent-text`, `--accent-soft` | Non-text accent, accent text, soft tint |
 | `--pass`, `--pass-soft` | Passed |
 | `--fail`, `--fail-soft` | Failed |
 | `--pending`, `--pending-soft` | Pending |
 | `--undefined`, `--undefined-soft` | Undefined / missing step definition |
+| `--ambiguous`, `--ambiguous-soft` | Ambiguous |
 | `--skipped`, `--skipped-soft` | Skipped |
-| `--radius`, `--shadow` | Panel radius and one elevation |
+| `--unknown`, `--unknown-soft` | Unknown |
+| `--radius`, `--shadow` | Shared 6 px panel radius; no elevation (`none`) |
+
+The Incident review palette is chart-neutral paper and ink with compact chips
+and one-pixel rules. Status colours keep their role; every text role holds at
+least 4.5:1 contrast on paper, surface-2 and surface-3 in light, dark and print.
+The ANSI palette is unchanged.
 
 Dark mode is a token override under `prefers-color-scheme: dark`; it never
 changes layout.
@@ -63,10 +76,10 @@ changes layout.
 ## Type
 
 - System sans for body and display; system mono only for measurements,
-  durations, file paths and error text.
-- Body 0.9375 rem, line-height 1.5–1.55.
-- Row title 0.8125–0.875 rem/600; metadata 0.6875–0.75 rem; step text
-  0.75–0.8125 rem.
+  durations, file paths, source, error text and code.
+- Body 0.875 rem/1.5; run title 1.65 rem/1.08 at 650.
+- Feature title 1 rem at 650; scenario name 0.8125 rem at 550; metadata
+  0.6875 rem; mono 0.6875 rem for measurements.
 - Sentence case everywhere. No tracked capitals, no emoji icons.
 - No fluid display headings in the report shell; fixed rem steps.
 
@@ -106,11 +119,12 @@ describe the viewport, not the font.
 | Top bar / tabs | `.topbar`, `.views`, `.view` | Report and Details, plus Trends when the report carries two or more history runs; active tab is a text state, not a card; one scrollable tab row on narrow screens |
 | Run header | `.runHead`, `.health` | Title, metadata, pass rate, segmented status bar |
 | Attachment notice | `.noticeShell`, `.attachmentWarning` | One shared warning above all views when path attachments were skipped; uses the pending tokens; hidden when the count is zero |
-| Toolbar | `.toolbar`, `.search`, `.filter`, `.presetFilter` | Search and status filters; search opens matching features and scenarios; status chips only for present statuses; the `Failed only` preset appears when failed plus another present status, or when an unexecuted row can be hidden |
-| Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure |
+| Toolbar | `.toolbar`, `.search`, `.filter`, `.presetFilter` | Search and status filters; search opens matching features and scenarios; status chips only for present statuses; the `Failed only` preset appears when failed plus another present status, or when an unexecuted row can be hidden. Expand/collapse scopes to scenario rows and keeps the incident panel open |
+| Incident panel | `.incident`, `.incidentDetail` | First incident in the ordered list; full-border tinted block below the toolbar and above the baseline and triage; summary names feature, scenario, status, first failing step or diagnostic lead, tags, source, attempt, start and baseline badge; reused `scenarioBody` detail; no index CTA and no filter effect |
+| Triage index | `.triage` | Needs-attention rows with status text, counts and up to three scenario links; five rows visible, up to fifteen more behind a disclosure; the first incident link points at `#incident`, the rest at their rows |
 | Source strip | `.sources` | Per-input cards for multi-file runs with real provenance; status, counts and a proportion bar; hidden at 560 px or narrower. The Report row's source badge hides at 900 px or narrower, so the Details matrix keeps the source label |
 | Feature | `details.feature` | Native disclosure; status, name, counts, proportion bar, source badge (file path or `N spec files`), URI |
-| Scenario | `details.scenario` | Fixed thumbnail gutter, status, name, tags, steps, duration |
+| Scenario | `details.scenario`, `.scenarioRowLink` | Fixed thumbnail gutter, status, name, tags, steps, duration; the incident row keeps its status, thumbnail and `scenarioId` anchor as a link to the panel with `Shown above` and no second detail |
 | Step | `.step` | Status glyph plus screen-reader label, keyword, text, error, doc string, focusable table, attachments |
 | Attachment | `.shot`, `.fileText`, `.fileLink` | Images inline; text in `<pre>`; binary as download; alt names the scenario and step |
 | Details | `.analysis` | Feature-by-status matrix, status distribution, Run / Run environment / Custom metadata blocks, tag overview, run attachments, agent summary |
@@ -243,8 +257,9 @@ stay unchanged. A standard summary stays under 100 KB.
 - Status is never colour-only: scenario badges carry text, step markers carry a
   shape glyph plus a screen-reader label, and forced-colours mode keeps the
   glyph, marker border and disclosure chevron visible.
-- The failure is open by default; screenshot-bearing scenarios and their
-  features also open; everything else is scannable when collapsed.
+- The incident panel is open by default and unchanged by filters; other
+  non-passing rows keep their native disclosure; screenshot-bearing scenarios
+  and their features also open; everything else is scannable when collapsed.
 - No right-click-only actions; use visible buttons or a `…` menu. Keyboard and
   touch must reach the same actions.
 - No modal for a task that inline disclosure can solve.
@@ -278,6 +293,8 @@ template strings. A local utility layer is fine when it removes repetition.
 Direction A is implemented in production:
 
 - warm paper tokens, hairline sections and monospace measurements;
+- incident panel above the triage for the first failed, undefined, ambiguous
+  or pending scenario, with a link row in the index and shared detail;
 - fixed thumbnail gutter on every scenario row, also on mobile;
 - chevrons, failed-first disclosures and search that opens matching features;
 - exception-first Report order, a triage index and a source strip;

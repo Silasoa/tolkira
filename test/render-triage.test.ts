@@ -73,7 +73,7 @@ describe('triage overview', () => {
     expect(html).toContain('Needs attention');
     expect(html).toContain('4 of 11 scenarios need attention.');
     expect(html).toContain('href="#feature-1"');
-    expect(html).toContain('href="#scenario-1-1"');
+    expect(html).toContain('href="#incident"');
     expect(html).toContain('href="#scenario-2-1"');
     expect(html).toContain('1 failed');
     expect(html).toContain('2 undefined, 1 pending');

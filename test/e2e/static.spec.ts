@@ -153,7 +153,7 @@ test.describe('static report without scripting', () => {
   }) => {
     const base = reportUrl(report(english).output);
     await page.goto(base);
-    const total = await page.locator('details.scenario').count();
+    const total = await page.locator('[data-scenario]').count();
     expect(total).toBeGreaterThan(0);
 
     for (const search of [
@@ -168,7 +168,7 @@ test.describe('static report without scripting', () => {
       await expect(page.locator('input[data-search]')).toHaveCount(0);
       await expect(page.locator('mark')).toHaveCount(0);
       expect(
-        await page.locator('details.scenario:visible').count(),
+        await page.locator('[data-scenario]:visible').count(),
         `${search} visible rows`,
       ).toBe(total);
     }

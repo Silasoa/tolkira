@@ -45,11 +45,11 @@ test('renders rules, backgrounds and outlines together', async ({ page }) => {
     await search.fill('Rule setup');
     await expect(rule).toBeVisible();
     await expect(page.locator('section.outline:visible')).toHaveCount(1);
-    await expect(page.locator('details.scenario:visible')).toHaveCount(4);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(4);
 
     await search.fill('Feature setup');
     await expect(page.locator('section.outline:visible')).toHaveCount(2);
-    await expect(page.locator('details.scenario:visible')).toHaveCount(7);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(7);
   } finally {
     await removeReport(dir);
   }
@@ -78,12 +78,12 @@ test('filters rules by search, status and tag', async ({ page }) => {
     await search.fill('tagged rule');
     await expect(ruleOne).toBeVisible();
     await expect(ruleTwo).toBeHidden();
-    await expect(page.locator('details.scenario:visible')).toHaveCount(2);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(2);
 
     await search.fill('@some-tag');
     await expect(ruleTwo).toBeVisible();
     await expect(ruleOne).toBeHidden();
-    await expect(page.locator('details.scenario:visible')).toHaveCount(1);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(1);
 
     await search.fill('');
     const tagFilter = page.locator('select[data-tag-filter]');
@@ -103,13 +103,13 @@ test('filters rules by search, status and tag', async ({ page }) => {
     await passedFilter.click();
     await expect(ruleOne).toBeVisible();
     await expect(ruleTwo).toBeHidden();
-    await expect(page.locator('details.scenario:visible')).toHaveCount(1);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(1);
     await expect(
       page.locator('[data-scenario-name="tagged scenario"]'),
     ).toBeVisible();
 
     await passedFilter.click();
-    await expect(page.locator('details.scenario:visible')).toHaveCount(3);
+    await expect(page.locator('[data-scenario]:visible')).toHaveCount(3);
     await expect(ruleOne).toBeVisible();
     await expect(ruleTwo).toBeVisible();
   } finally {

@@ -377,7 +377,7 @@ describe('parity rules rendering', () => {
     expect(model.counts.scenarios).toEqual(summary.counts.scenarios);
     expect(model.counts.steps).toEqual(summary.counts.steps);
     expect(model.counts.features).toBe(summary.counts.features);
-    expect(html.match(/<details class="scenario"/g)).toHaveLength(
+    expect(html.match(/data-scenario-name="/g)).toHaveLength(
       model.scenarios.length,
     );
 

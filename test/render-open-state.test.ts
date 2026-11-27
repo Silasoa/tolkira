@@ -20,13 +20,9 @@ describe('default open state', () => {
     });
 
     expect(featureOpeningTag(html)).toContain(' open>');
-    for (const name of [
-      'Failing',
-      'Pending',
-      'Skipped',
-      'Undefined',
-      'Ambiguous',
-    ]) {
+    expect(scenarioOpeningTag(html, 'Failing')).not.toMatch(/^<details/);
+    expect(html).toContain('id="incident"');
+    for (const name of ['Pending', 'Skipped', 'Undefined', 'Ambiguous']) {
       expect(scenarioOpeningTag(html, name), name).toContain(' open>');
     }
     expect(scenarioOpeningTag(html, 'Passing')).not.toContain(' open>');
@@ -92,7 +88,11 @@ describe('default open state', () => {
 
     expect(
       html.match(/<details class="scenario"[^>]* open>/g) ?? [],
-    ).toHaveLength(1000);
+    ).toHaveLength(999);
+    expect(html.match(/class="scenario scenarioRowLink"/g) ?? []).toHaveLength(
+      1,
+    );
+    expect(html).toContain('id="incident"');
     expect(html.length).toBeLessThan(5 * 1024 * 1024);
   });
 });

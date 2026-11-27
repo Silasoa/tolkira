@@ -8,7 +8,7 @@ are embedded where available; the report names any it had to skip. There is no
 server, no CDN and no telemetry. An opt-in PDF export reuses the same print view
 when the optional Playwright Chromium engine is installed.
 
-![Tolkira report showing a failed scenario, its error and an inline screenshot](docs/comparison/tolkira-0.6.0-report.png)
+![Tolkira report showing the incident panel with the failed scenario, its error and an inline screenshot](docs/comparison/tolkira-0.7-report.png)
 
 Current release: **v0.6.1** - [npm](https://www.npmjs.com/package/tolkira) - [Changelog](https://github.com/Silasoa/tolkira/blob/main/docs/CHANGELOG.md)
 

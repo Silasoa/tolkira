@@ -445,7 +445,9 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 )) {
   button.addEventListener('click', () => {
     const open = button.getAttribute('data-expand') === 'all';
-    for (const feature of features) feature.open = open;
+    // Revealing every scenario may need its feature open; collapsing leaves
+    // the feature groups alone so the incident row link stays visible.
+    if (open) for (const feature of features) feature.open = true;
     for (const scenario of scenarios) scenario.open = open;
   });
 }
@@ -499,20 +501,45 @@ function writeClipboard(text: string, done: (ok: boolean) => void): void {
 }
 
 function failureText(button: HTMLElement): string {
+  const scope = button.closest<HTMLElement>('[data-copy-scope]');
   const scenario = button.closest<HTMLDetailsElement>(
     `[${SCENARIO_ATTRIBUTE}]`,
   );
-  if (!scenario) return '';
-  const facts = decodeScenario(scenario);
-  const feature = scenario.closest<HTMLElement>('[data-feature]');
-  const featureTitle = feature?.querySelector('h2');
-  const scenarioTitle = scenario.querySelector('.scenarioName');
+  const root = scope ?? scenario;
+  if (!root) return '';
+  const facts: {
+    name: string;
+    uri: string;
+    example?: string;
+    examplesName?: string;
+  } = scope
+    ? (() => {
+        const example = scope.getAttribute('data-copy-example') ?? undefined;
+        const examplesName =
+          scope.getAttribute('data-copy-examples-name') ?? '';
+        return {
+          name: scope.getAttribute('data-copy-scenario') ?? '',
+          uri: scope.getAttribute('data-copy-uri') ?? '',
+          ...(example === undefined ? {} : { example }),
+          ...(examplesName ? { examplesName } : {}),
+        };
+      })()
+    : scenario
+      ? decodeScenario(scenario)
+      : { name: '', uri: '' };
+  const featureTitle = scope
+    ? scope.getAttribute('data-copy-feature')
+    : scenario
+      ? scenario.closest<HTMLElement>('[data-feature]')?.querySelector('h2')
+          ?.textContent
+      : '';
+  const scenarioTitle = root.querySelector('.scenarioName, .incidentScenario');
   const scenarioName = facts.name || scenarioTitle?.textContent || '';
-  const step = scenario.querySelector<HTMLElement>(
+  const step = root.querySelector<HTMLElement>(
     `.step[${STATUS_ATTRIBUTE}="failed"]`,
   );
   const hook = !step
-    ? scenario.querySelector<HTMLElement>(`.hook[${STATUS_ATTRIBUTE}="failed"]`)
+    ? root.querySelector<HTMLElement>(`.hook[${STATUS_ATTRIBUTE}="failed"]`)
     : null;
   const keyword = step?.querySelector('.kw')?.textContent?.trim() ?? '';
   const text = step?.querySelector('.stepText')?.textContent ?? '';
@@ -525,7 +552,7 @@ function failureText(button: HTMLElement): string {
     ? `${translate('client.clipboardHook')} `
     : `${translate('client.clipboardStep')} `;
   const lines = [
-    `${translate('client.clipboardFeature')} ${featureTitle?.textContent ?? ''}`,
+    `${translate('client.clipboardFeature')} ${featureTitle ?? ''}`,
     `${translate('client.clipboardScenario')} ${scenarioName}`,
   ];
   if (facts.example) {

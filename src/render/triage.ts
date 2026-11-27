@@ -1,8 +1,4 @@
-import type {
-  ReportFeature,
-  ReportModel,
-  ReportScenario,
-} from '../report/model.js';
+import type { ReportFeature, ReportModel } from '../report/model.js';
 import { worstExecutedStatus } from '../report/status.js';
 import { featureId, scenarioId } from './dom-contract.js';
 import { escapeHtml } from './escape.js';
@@ -13,6 +9,7 @@ import {
   featureBar,
   featureSourceLabel,
   hookLabel,
+  scenarioLabel,
   statusClass,
   statusLabel,
 } from './format.js';
@@ -30,6 +27,7 @@ interface TriageEntry extends OrderedFeature {
 function renderTriageRow(
   { feature, scenarios, index }: TriageEntry,
   t: Translator,
+  incidentId?: string,
 ): string {
   const failing = executedOnly(scenarios).filter(
     (scenario) => scenario.status !== 'passed',
@@ -38,12 +36,25 @@ function renderTriageRow(
     .slice(0, TRIAGE_SCENARIO_LIMIT)
     .map((scenario) => {
       const scenarioIndex = scenarios.indexOf(scenario);
-      return `<li><a class="triageScenario" href="#${scenarioId(index, scenarioIndex)}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status, t)}</span><span>${escapeHtml(scenarioLabel(scenario))}</span></a></li>`;
+      const href =
+        scenario.id === incidentId
+          ? '#incident'
+          : `#${scenarioId(index, scenarioIndex)}`;
+      return `<li><a class="triageScenario" href="${href}"><span class="triageStatus ${statusClass(scenario.status)}">${statusLabel(scenario.status, t)}</span><span>${escapeHtml(scenarioLabel(scenario))}</span></a></li>`;
     })
     .join('');
   const more =
     failing.length > TRIAGE_SCENARIO_LIMIT
-      ? `<li class="triageMore">${t.t('triage.moreInReport', { count: failing.length - TRIAGE_SCENARIO_LIMIT })}</li>`
+      ? (() => {
+          const hidden = [
+            ...new Set(
+              failing
+                .slice(TRIAGE_SCENARIO_LIMIT)
+                .map((scenario) => statusLabel(scenario.status, t)),
+            ),
+          ].join(', ');
+          return `<li class="triageMore">${t.t('triage.moreInReport', { count: failing.length - TRIAGE_SCENARIO_LIMIT })}${hidden ? ` · ${escapeHtml(hidden)}` : ''}</li>`;
+        })()
       : '';
   const failed = failing.find((scenario) => scenario.status === 'failed');
   const failedStep = failed?.steps.find(
@@ -69,6 +80,7 @@ export function renderTriage(
   features: OrderedFeature[],
   t: Translator,
   staticMode = false,
+  incidentId?: string,
 ): string {
   const attention = features
     .map((entry, index) => ({ ...entry, index }))
@@ -93,9 +105,11 @@ export function renderTriage(
       ).length,
     0,
   );
-  const rows = shown.map((entry) => renderTriageRow(entry, t)).join('');
+  const rows = shown
+    .map((entry) => renderTriageRow(entry, t, incidentId))
+    .join('');
   const restBlock = rest.length
-    ? `<details class="triageRest"${staticMode ? ' open' : ''}><summary>${t.t('triage.showMore', { count: rest.length })}</summary><ol class="triageList">${rest.map((entry) => renderTriageRow(entry, t)).join('')}</ol></details>`
+    ? `<details class="triageRest"${staticMode ? ' open' : ''}><summary>${t.t('triage.showMore', { count: rest.length })}</summary><ol class="triageList">${rest.map((entry) => renderTriageRow(entry, t, incidentId)).join('')}</ol></details>`
     : '';
   const remainder =
     attention.length > TRIAGE_FEATURE_LIMIT
@@ -154,12 +168,4 @@ export function renderSourceStrip(model: ReportModel, t: Translator): string {
       ? `<p class="triageMore">${t.t('triage.moreInputs', { count: remainder })}</p>`
       : '';
   return `<section class="sources" aria-labelledby="sources-heading" data-sources><h2 id="sources-heading">${t.t('triage.sources')}</h2><ul class="sourceList">${items}</ul>${more}</section>`;
-}
-
-function scenarioLabel(scenario: ReportScenario): string {
-  const outline = scenario.outline;
-  if (!outline) return scenario.name;
-  const number = `#${outline.examplesIndex + 1}.${outline.exampleIndex + 1}`;
-  const examples = outline.examplesName ? `${outline.examplesName} ` : '';
-  return `${examples}${number} · ${scenario.name}`.trim();
 }

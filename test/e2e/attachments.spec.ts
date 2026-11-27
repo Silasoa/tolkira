@@ -49,7 +49,7 @@ test('does not execute HTML attachments', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    await page.getByRole('button', { name: 'Expand all' }).click();
+    await page.getByRole('button', { name: 'Expand all scenarios' }).click();
     const attachment = page.getByText(/attachment\.html/).first();
     await expect(attachment).toBeVisible();
     await attachment.click();
@@ -102,7 +102,7 @@ test('keeps each example attachment on its own row', async ({ page }) => {
 
   try {
     await page.goto(reportUrl(output));
-    const rows = page.locator('details.scenario');
+    const rows = page.locator('[data-scenario]');
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0).locator('.thumb')).toBeVisible();
     await expect(rows.nth(1).locator('.thumb')).toBeVisible();
@@ -157,7 +157,7 @@ test('shows the skipped-attachment notice in the shell and on the scenario at 14
     );
 
     const scenario = page.locator(
-      'details.scenario[data-scenario-name="attachment test"]',
+      '[data-scenario][data-scenario-name="attachment test"]',
     );
     const scenarioWarning = scenario.locator('.attachmentWarning');
     const feature = page.locator('details.feature').first();

@@ -250,19 +250,25 @@ export function panelRegion(html: string): string {
   return html.slice(start, end);
 }
 
-/** The `<summary>` of the scenario row matching a display URI and name. */
+/** The row header of the scenario matching a display URI and name. */
 export function scenarioSummaryFor(
   html: string,
   uri: string,
   name: string,
 ): string {
-  for (const row of html.split('<details class="scenario"').slice(1)) {
+  const rows = html.split(
+    /<details class="scenario"|<div class="scenario scenarioRowLink"/,
+  );
+  for (const row of rows.slice(1)) {
     const tag = row.slice(0, row.indexOf('>'));
     if (
       tag.includes(`data-uri="${uri}"`) &&
       tag.includes(`data-scenario-name="${name}"`)
     ) {
-      return row.slice(0, row.indexOf('</summary>'));
+      const ends = [row.indexOf('</summary>'), row.indexOf('</div>')].filter(
+        (position) => position >= 0,
+      );
+      return row.slice(0, Math.min(...ends));
     }
   }
   return '';
