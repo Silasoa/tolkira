@@ -6,6 +6,7 @@ const rootFiles = [
   'package.json',
   'README.md',
   'LICENSE',
+  'THIRD-PARTY-NOTICES.md',
   'llms.txt',
   'DESIGN.md',
   'SECURITY.md',
@@ -45,6 +46,7 @@ const packageJson = {
     'llms.txt',
     'DESIGN.md',
     'LICENSE',
+    'THIRD-PARTY-NOTICES.md',
     'SECURITY.md',
     ...docsFiles,
     'GLOSSARY.md',
@@ -92,6 +94,39 @@ describe('packed manifest', () => {
       readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
     ) as { files?: string[] };
     expect(real.files).toContain('docs/README.md');
+  });
+
+  it('lists THIRD-PARTY-NOTICES.md in the real package files', () => {
+    const real = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    ) as { files?: string[] };
+    expect(real.files).toContain('THIRD-PARTY-NOTICES.md');
+  });
+
+  it('rejects both pack-list shapes without THIRD-PARTY-NOTICES.md', () => {
+    const withoutNotice = packedPaths.filter(
+      (entry) => entry !== 'package/THIRD-PARTY-NOTICES.md',
+    );
+    // Even a manifest that forgot the file must not let the tarball pass.
+    const manifestWithoutNotice = {
+      files: packageJson.files.filter(
+        (file) => file !== 'THIRD-PARTY-NOTICES.md',
+      ),
+    };
+    const shapes: [string, unknown][] = [
+      ['npm 10', npm10Shape(withoutNotice)],
+      ['npm 12', npm12Shape(withoutNotice)],
+    ];
+
+    for (const [name, packed] of shapes) {
+      const errors = verifyPackList(packEntries(packed), manifestWithoutNotice);
+      expect(
+        errors.some((error) =>
+          error.includes('missing required path: THIRD-PARTY-NOTICES.md'),
+        ),
+        name,
+      ).toBe(true);
+    }
   });
 
   it('fails the npm 12 80-entry list without docs/README.md', () => {

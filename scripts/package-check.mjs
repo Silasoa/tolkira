@@ -16,6 +16,7 @@ const requiredRootFiles = [
   'package.json',
   'README.md',
   'LICENSE',
+  'THIRD-PARTY-NOTICES.md',
   'llms.txt',
   'DESIGN.md',
   'SECURITY.md',

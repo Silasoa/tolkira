@@ -13,6 +13,7 @@ import { PRINT_SCRIPT } from './print-script.js';
 import { renderReportView } from './report.js';
 import { BASELINE_CSS, REPORT_CSS } from './styles.js';
 import { TAG_TABLE_CSS } from './tags.js';
+import { THIRD_PARTY_NOTICE } from './third-party-notice.js';
 import { renderTrendsView, TRENDS_SHELL_CSS } from './trends.js';
 
 function inlineScriptHashes(html: string): string[] {
@@ -85,7 +86,7 @@ export async function renderRun(
   const lightbox = staticMode
     ? ''
     : `<dialog class="lightbox" id="${DOM_IDS.lightbox}" aria-label="${t.t('lightbox.label')}"><button class="lightboxClose" type="button" data-lightbox-close>${t.t('lightbox.close')}</button><img alt=""></dialog>`;
-  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div>${staticMode ? '' : tabBar(history.length, t)}</div></header><p class="sr" id="${DOM_IDS.copyLive}" aria-live="polite"></p>${notice}<main>${renderReportView(model, viewOptions, t, staticMode)}${renderAnalysisView(model, viewOptions, run.summary, t, staticMode)}${trends}</main>${lightbox}${messages}${clientScript}${printScript}`;
+  const body = `<header class="topbar"><div class="topbarInner"><div class="brand">${logo}tol<span>kira</span></div>${staticMode ? '' : tabBar(history.length, t)}</div></header><p class="sr" id="${DOM_IDS.copyLive}" aria-live="polite"></p>${notice}<main>${renderReportView(model, viewOptions, t, staticMode)}${renderAnalysisView(model, viewOptions, run.summary, t, staticMode)}${trends}</main>${lightbox}${messages}${clientScript}${printScript}${clientScript ? `\n<!--\n${THIRD_PARTY_NOTICE}\n-->\n` : ''}`;
   const html = `<!doctype html>\n<html lang="${escapeHtml(t.lang)}" dir="${t.dir}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escapeHtml(viewOptions.title)}</title>\n${csp(inlineScriptHashes(body))}\n<style>${REPORT_CSS}${accent}${localeCss}${trends ? TRENDS_SHELL_CSS : ''}${viewOptions.comparison ? BASELINE_CSS : ''}${tagTableCss}</style>\n</head>\n<body>${body}</body>\n</html>`;
   return applyReportSize(html, t);
 }

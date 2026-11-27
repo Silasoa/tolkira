@@ -67,7 +67,6 @@ product ideas. Nothing is silently discarded: every finding is either **fixed**,
 | B-070 | Report | P3 | The native tag `<select>` clips a long selected label at 320 px with 200 % text zoom, so the active tag is unreadable in the control | When the next shell or 320 px change touches the tag filter; then let the selected label wrap or shorten with a `title`, and add a 320 px / 200 % browser assertion. | - |
 | B-072 | Tooling | P3 | The build is esbuild for the CLI and library plus two tsc declaration passes and a copy script; tsdown (Rolldown/Oxc, the tsup successor, shipped by Vite+) emits ESM/CJS, bundled declarations and package exports in one config | 0.7: replace the build with tsdown behind a separate OpenSpec change; acceptance: byte-identical public declarations and exports, same bin and shebang, same tarball file set, CLI smoke, e2e green, no report byte change. Revert is the old three scripts. | - |
 | B-073 | Verification | P3 | Release/CI hardening leaves verification work for 0.7: no CodeQL default setup for JS/TS (taint analysis for the HTML sinks), no dependency-review-action, no OpenSSF Scorecard, no property tests for the legacy JSON, Messages and JUnit XML parsers, no mutation run, and no knip MCP/LSP or repo skills | 0.7, in this order: CodeQL default setup, dependency-review-action for licence and diff policy, Scorecard; then `fast-check` 4.11 with `@fast-check/vitest` 0.6 property tests for the three parsers as a separate change (it will find bugs); StrykerJS when its Vitest 5 runner works upstream, on nightly/changed files only, never the PR gate; knip MCP/LSP and repo skills for the release and a new input adapter. No new weekly job: Dependabot keeps its existing weekly schedule and the signature/SBOM checks stay release-only. | - |
-| B-075 | Legal | P2 | The client bundle includes `@cucumber/tag-expressions` 11.2.0 (MIT, Copyright (c) 2016 Cucumber Ltd and contributors), but `legalComments: 'none'` strips the notice; the SBOM covers external runtime dependencies only | Before the next publish. Then add the MIT notice to the shipped report/package (or preserve it in the bundle) and decide whether the SBOM lists bundled components; report bytes change, so use a separate change with the report gate. | - |
 | B-076 | Report | P3 | A retried Messages scenario shows the raw zero-based final attempt (`Attempt: 1`) next to `Earlier attempts (2)`, so the two labels use different numbering | When the next retry or attempt-label change touches the scenario meta; then label the final row positionally or print `Final attempt` and keep the earlier rows readable, with a report test. | - |
 | B-077 | Agent | P3 | A run leaves no linked Markdown index for an artifact folder; `--ci markdown --ci-out` writes the body but no links to the report, PDF, email or manifest | When an agent or user asks for a browsable artifact index; then add `--index` with the Markdown CI body, relative RFC 3986-encoded links and a pre-write cross-volume check, as drafted in the 0.7-agent-surface review history. | - |
 | B-078 | Security | P3 | The 2 MB logo cap is a pre-`stat` check and `readFile` is unbounded, so a FIFO, device node, symlink swap or growth between `stat` and read can block or exhaust memory; today's contract keeps the pre-split behaviour | The first time report input or logo paths can be attacker-influenced, or when B-058's untrusted-input work starts; then open the file, read at most `MAX_LOGO_BYTES + 1` bytes from the handle and reject the extra byte. | - |
@@ -133,6 +132,13 @@ asks or a locale needs them:
 
 ## Resolved
 
+- **B-075 Bundled license notice** — resolved on 2026-11-27 in
+  `bundled-license-notice`: every scripted report appends the installed MIT
+  notice of `@cucumber/tag-expressions` 11.2.0 as one comment after the last
+  script, the package ships `THIRD-PARTY-NOTICES.md` as a required root file,
+  and one drift test guards the installed license, the report constant and the
+  notice file. Static reports and the SBOM scope are unchanged; a scripted
+  report grows by 1,206 bytes.
 - **B-074 Release token isolation** — resolved on 2026-11-27 in
   `release-token-isolation`: the release workflow splits into a non-privileged
   `package` job (tag guards, `npm ci`, signatures, `package:check`, tarball

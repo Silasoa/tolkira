@@ -200,8 +200,8 @@ and is covered by real producer fixtures.
   `client-i18n.ts` owns the browser formatter for the embedded `client.*` block,
   with every `Intl.PluralRules` category and numeric `#` parameters. `escape.ts`,
   `dom-contract.ts`, `markdown.ts`, `ansi.ts`, `styles.ts`, `client-bundle.ts`,
-  `search.ts`, `report-client.ts`, `i18n.ts` and `client-i18n.ts` are shared
-  foundation, importable from every layer.
+  `third-party-notice.ts`, `search.ts`, `report-client.ts`, `i18n.ts` and
+  `client-i18n.ts` are shared foundation, importable from every layer.
   `src/attachment.ts` is a shared leaf below the renderer;
   `render/attachments.ts` reads the `textFormat` it produced.
 - `src/i18n/locales/<tag>.json` are the catalog sources; `en.json` carries a
@@ -235,7 +235,9 @@ and is covered by real producer fixtures.
   `scripts/build-search.mjs` bundles
   `report-client.ts` and its helpers into one `CLIENT_SCRIPT` artifact in
   `src/render/client-bundle.ts`; `renderRun` hashes both inline scripts into
-  the CSP. `npm run assets` regenerates the generated modules.
+  the CSP. A scripted report appends the bundled component's MIT notice as one
+  comment after the last script; a static report embeds no client script and
+  carries none. `npm run assets` regenerates the generated modules.
 - Adds a small shell: visible title, optional logo and accent colour, system
   dark mode.
 - No CDN, no external fonts, no network requests.
@@ -750,6 +752,9 @@ Test names, metadata, file names and attachments are untrusted input.
   forbidden paths, then runs `publint --strict` and `attw` with the node16
   profile (the one `cjs-resolves-to-esm` ignore covers the ESM-only root). It
   runs in the CI package job and in the release, not in the local gate.
+  `THIRD-PARTY-NOTICES.md` is a required root file in the tarball; it records
+  the MIT notice of the bundled client code, while the SBOM stays the external
+  runtime tree.
 - Release integrity: the non-privileged `package` job packs once, smokes that
   tarball, records its SHA-256, uploads the tarball plus digest as
   `tolkira-release` and uploads the SBOM; it runs with `contents: read` and has

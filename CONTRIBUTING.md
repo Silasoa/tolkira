@@ -40,7 +40,9 @@ fail. `npm run lint:dead` is knip with the explicit entries in `knip.json`; a
 new unused file, export, type or dependency fails it. `npm run package:check`
 builds, packs once and checks that exact tarball (manifest, `publint --strict`
 and `attw`); it is a required CI check and runs before a release, not inside
-the fast local gate. `npm run hygiene` checks tracked generated/local files,
+the fast local gate. The required root files include `THIRD-PARTY-NOTICES.md`,
+which carries the bundled component's MIT notice and must travel with the
+tarball. `npm run hygiene` checks tracked generated/local files,
 absolute local paths in docs and commit trailers; CI runs the same check on the
 committed tree. `npm run bench:ansi` measures `stripAnsi` on fixed message
 corpora and fails on the 500 ms production budget.
