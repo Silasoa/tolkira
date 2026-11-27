@@ -1,0 +1,129 @@
+# Spec Delta
+
+## MODIFIED Requirements
+
+### Requirement: Publish the artifact that was checked
+
+The release SHALL pack once in a non-privileged `package` job and upload the
+tarball plus its SHA-256 as one artifact. The token-bearing `publish` job SHALL
+download that artifact, verify the digest immediately before
+`npm stage publish` and stage that exact file. `publish` SHALL NOT pack,
+build, run `npm ci`, check the package or smoke it. Both jobs SHALL use the
+same pinned npm, and runs for one tag SHALL be serialized.
+
+#### Scenario: The staged file is the checked file
+
+- **WHEN** the package check passes and the smoke test runs in the package job
+- **THEN** the smoke test installs the tarball from the pack directory
+- **AND** the package job records the tarball's SHA-256 and uploads the tarball
+  and digest as `tolkira-release`
+- **AND** the publish job downloads that artifact, verifies the digest and
+  passes the exact path to `npm stage publish`
+- **AND** no step runs `npm stage publish .`
+
+#### Scenario: A check failure blocks staging
+
+- **WHEN** the manifest, publint, attw or the CLI smoke fails
+- **THEN** the package job stops
+- **AND** no release artifact is uploaded and nothing is staged
+
+#### Scenario: Tag guards still run first
+
+- **WHEN** the tag does not match the package version or is not on
+  `refs/heads/main`
+- **THEN** the package job fails before any install or pack
+- **AND** the guard resolved the full `refs/heads/main` ref, not a short name
+- **AND** the existing gate jobs still have to be green
+
+#### Scenario: A tampered artifact cannot be staged
+
+- **WHEN** the downloaded tarball's SHA-256 differs from the digest the package
+  job reported
+- **THEN** the publish job stops
+- **AND** nothing is staged
+
+#### Scenario: One run per tag stages
+
+- **WHEN** two workflow runs exist for the same tag
+- **THEN** they queue instead of staging concurrently
+- **AND** no run is cancelled between the digest check and the stage
+
+### Requirement: Verify dependency signatures and attach an SBOM
+
+The release SHALL run `npm audit signatures` and generate a CycloneDX SBOM in
+the `package` job, after `npm ci` and before the tarball upload. The SBOM SHALL
+cover the lockfile's external runtime tree, not bundled code (B-075), and SHALL
+be uploaded as `tolkira-sbom` with `if-no-files-found: error`.
+
+#### Scenario: A bad signature blocks the release
+
+- **WHEN** an installed dependency fails signature verification
+- **THEN** the package job stops
+- **AND** no release artifact is uploaded and nothing is staged
+
+#### Scenario: The SBOM is available
+
+- **WHEN** the package job reaches the SBOM step
+- **THEN** the CycloneDX file `tolkira-sbom.cdx.json` is written from the
+  lockfile production tree for the package version
+- **AND** it is uploaded as the `tolkira-sbom` artifact
+- **AND** the upload fails if the file is missing
+
+#### Scenario: No scheduled maintenance job
+
+- **WHEN** the workflows are inspected
+- **THEN** no schedule runs the signature check or the SBOM
+- **AND** both run only in the release workflow
+
+## ADDED Requirements
+
+### Requirement: Keep the npm token out of the build job
+
+Only the `publish` job SHALL have `id-token: write` and map `NPM_TOKEN`. The
+`package` job SHALL run with `contents: read`, SHALL NOT receive the npm token
+or `id-token: write`, and SHALL be the only job that checks out the repository,
+installs dependencies, builds, packs or smokes the package. The `publish` job
+SHALL reference the `release` environment.
+
+#### Scenario: The token-bearing job has no build inputs
+
+- **WHEN** the release workflow is inspected
+- **THEN** the `publish` job has no checkout, `npm ci`, build, pack, package
+  check, smoke, signature check or SBOM step
+- **AND** it downloads the `tolkira-release` artifact and verifies its digest
+- **AND** it is the only job with `id-token: write` and `NPM_TOKEN`
+
+#### Scenario: The package job cannot deploy
+
+- **WHEN** the `package` job is inspected
+- **THEN** its permissions are `contents: read` only
+- **AND** it does not reference `secrets.NPM_TOKEN` or `id-token: write`
+
+### Requirement: Protect release tags and gate the publish
+
+The repository SHALL protect `refs/tags/v*` with an active ruleset that blocks
+deletion, updates and non-fast-forward changes. It SHALL define a `release`
+environment that only accepts `v*` tags and requires the maintainer as
+reviewer. The `publish` job SHALL reference that environment. Self-review MAY
+stay allowed while the project has one maintainer; the setting and the trigger
+to disable it SHALL be recorded.
+
+#### Scenario: A release tag cannot be moved or deleted
+
+- **WHEN** a ruleset on the repository is read back
+- **THEN** an active tag ruleset covers `refs/tags/v*`
+- **AND** it blocks deletion, update and non-fast-forward
+- **AND** no bypass actor is configured
+
+#### Scenario: The publish waits for approval
+
+- **WHEN** a `v*` tag starts the release workflow and both gates pass
+- **THEN** the publish job waits on the `release` environment
+- **AND** the maintainer approves the deployment before the npm token is used
+- **AND** a tag outside `v*` cannot deploy to that environment
+
+#### Scenario: The settings are recorded
+
+- **WHEN** a release is prepared
+- **THEN** the ruleset and environment read-back is in the change gate record
+- **AND** the self-review decision names its trigger to change
