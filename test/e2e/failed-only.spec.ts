@@ -447,3 +447,80 @@ test('fits the preset without horizontal overflow across viewports', async ({
     await removeReport(dir);
   }
 });
+
+test('keeps the expand block inside the toolbar at 320px and one line at 1440px', async ({
+  page,
+}) => {
+  const { dir, output } = await writeReport(
+    [emptyStatusesFixture],
+    'Toolbar expand geometry',
+    'tolkira-toolbar-expand-',
+  );
+
+  try {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto(reportUrl(output));
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    const narrow = await page.evaluate(() => {
+      const rect = (selector: string): DOMRect => {
+        const box = document.querySelector(selector)?.getBoundingClientRect();
+        if (!box) throw new Error(`missing ${selector}`);
+        return box;
+      };
+      const toolbar = rect('.toolbar');
+      const expand = rect('.expand');
+      return {
+        toolbarLeft: toolbar.left,
+        toolbarRight: toolbar.right,
+        expandLeft: expand.left,
+        expandRight: expand.right,
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+
+    expect(
+      narrow.expandLeft,
+      'expand left edge inside the toolbar',
+    ).toBeGreaterThanOrEqual(narrow.toolbarLeft - 1);
+    expect(
+      narrow.expandRight,
+      'expand right edge inside the toolbar',
+    ).toBeLessThanOrEqual(narrow.toolbarRight + 1);
+    expect(
+      narrow.overflow,
+      'overflow at 320px with 200% text',
+    ).toBeLessThanOrEqual(1);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const wide = await page.evaluate(() => {
+      const toolbar = document
+        .querySelector('.toolbar')
+        ?.getBoundingClientRect();
+      const buttons = [...document.querySelectorAll('.expand button')].map(
+        (button) => button.getBoundingClientRect(),
+      );
+      if (!toolbar || buttons.length !== 2) {
+        throw new Error('expected a toolbar with two expand buttons');
+      }
+      return {
+        toolbarRight: toolbar.right,
+        firstTop: buttons[0]?.top ?? Number.NaN,
+        secondTop: buttons[1]?.top ?? Number.NaN,
+        lastRight: buttons[1]?.right ?? Number.NaN,
+      };
+    });
+
+    expect(
+      Math.abs(wide.firstTop - wide.secondTop),
+      'expand buttons share a top edge',
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(wide.lastRight - wide.toolbarRight),
+      'last expand button ends at the toolbar right edge',
+    ).toBeLessThanOrEqual(1);
+  } finally {
+    await removeReport(dir);
+  }
+});

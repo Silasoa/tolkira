@@ -87,7 +87,7 @@ jobs:
       - name: Check the packed package
         run: TOLKIRA_PACK_DIR=/tmp/pack npm run package:check
       - name: Install the checked tarball # zizmor: ignore[adhoc-packages] -- the checked tarball is the smoke-test input
-        run: npm install -g --prefix /tmp/global /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz
+        run: npm install -g --prefix /tmp/global "/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz"
       - run: test -x /tmp/global/bin/tolkira
       - run: |
           /tmp/global/bin/tolkira --help | grep -q "Usage: tolkira"
@@ -201,6 +201,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Print the shellcheck version
+        run: shellcheck --version
       - name: Install actionlint
         run: |
           curl -fsSL -o "$RUNNER_TEMP/actionlint.tar.gz" https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz

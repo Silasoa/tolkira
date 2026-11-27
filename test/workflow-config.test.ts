@@ -204,6 +204,41 @@ describe('workflow lint job', () => {
     expect(block).toContain('--offline');
     expect(block).toContain('--persona=regular');
   });
+
+  it('prints the shellcheck version before actionlint runs', () => {
+    const block = jobBlock(ci, 'workflows');
+    const shellcheck = block.indexOf('shellcheck --version');
+    const actionlint = block.search(
+      /^\s*"?\$RUNNER_TEMP\/actionlint"?(?=\s|$)/m,
+    );
+
+    expect(shellcheck, 'shellcheck --version in the workflows job').not.toBe(
+      -1,
+    );
+    expect(actionlint, 'actionlint invocation in the workflows job').not.toBe(
+      -1,
+    );
+    expect(shellcheck, 'shellcheck before actionlint').toBeLessThan(actionlint);
+  });
+});
+
+describe('quoted versioned tarball path', () => {
+  const bareTarballPath =
+    /(?:^|\s)\/tmp\/pack\/tolkira-\$TOLKIRA_VERSION\.tgz(?=\s|$)/;
+
+  it('forbids the bare absolute path word in both workflows', () => {
+    expect(ci, 'ci.yml').not.toMatch(bareTarballPath);
+    expect(release, 'release.yml').not.toMatch(bareTarballPath);
+  });
+
+  it('accepts the quoted digest, verify and stage forms', () => {
+    const lookalikes = [
+      'sha256sum "/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz"',
+      'echo "$TOLKIRA_SHA256  tolkira-$TOLKIRA_VERSION.tgz" | sha256sum -c -',
+      'npm stage publish "/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz" --provenance --access public',
+    ];
+    expect(lookalikes.filter((line) => bareTarballPath.test(line))).toEqual([]);
+  });
 });
 
 describe('dependabot', () => {

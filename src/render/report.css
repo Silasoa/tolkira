@@ -109,7 +109,7 @@ img, video { max-width: 100%; height: auto; }
 .filter.presetFilter[data-filter-preset="failed"][aria-pressed="true"] { color: var(--paper); background: var(--ink); border-color: var(--ink); border-radius: 999px; }
 .filter[data-filter-status="pending"][aria-pressed="true"] { color: var(--pending); border-color: color-mix(in oklab, var(--pending) 30%, var(--line)); background: var(--pending-soft); }
 .filter[data-filter-status="undefined"][aria-pressed="true"] { color: var(--undefined); border-color: color-mix(in oklab, var(--undefined) 30%, var(--line)); background: var(--undefined-soft); }
-.expand { display: flex; gap: 0.25rem; margin-left: auto; }
+.expand { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; margin-left: auto; }
 .expand button { min-height: 1.875rem; padding: 0 0.5rem; border: 0; background: transparent; color: var(--muted); font-size: 0.75rem; text-decoration: underline; text-underline-offset: 0.16em; }
 .live { margin: 0.625rem 0 0; color: var(--muted); font-size: 0.75rem; }
 .searchNote { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.75rem; }

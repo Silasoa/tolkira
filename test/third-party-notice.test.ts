@@ -87,7 +87,7 @@ describe('third-party notice', () => {
 
     expect(html).not.toContain(SENTINEL);
     expect(createHash('sha256').update(html, 'utf8').digest('hex')).toBe(
-      'a9fdb994abb81eccd7e014912b4f0eb9c3ffc333c9e5a16ba7222846c145d1e9',
+      'f27526a86b16a38a4d519d6802db13bb4d941282898c588fe21bbad900ab6224',
     );
   });
 

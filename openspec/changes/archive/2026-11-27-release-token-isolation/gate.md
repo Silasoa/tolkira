@@ -112,3 +112,7 @@ reproducible builds).
 
 None. The actionlint and zizmor runs are local with the same pins as CI; the
 `workflows` CI job re-runs both on the push.
+
+Correction (2026-11-27): the local Windows actionlint had no shellcheck, so
+this gate missed `SC2086` on the unquoted tarball path; CI found it. The
+quoting is fixed in `release-gate-green`.

@@ -89,7 +89,7 @@ jobs:
           sha256sum "tolkira-$TOLKIRA_VERSION.tgz" > "tolkira-$TOLKIRA_VERSION.sha256"
           echo "value=$(cut -d' ' -f1 "tolkira-$TOLKIRA_VERSION.sha256")" >> "$GITHUB_OUTPUT"
       - name: Install the checked tarball # zizmor: ignore[adhoc-packages] -- the checked tarball is the smoke-test input
-        run: npm install -g --prefix /tmp/global /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz
+        run: npm install -g --prefix /tmp/global "/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz"
       - run: test -x /tmp/global/bin/tolkira
       - run: |
           /tmp/global/bin/tolkira --help | grep -q "Usage: tolkira"

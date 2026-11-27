@@ -335,7 +335,7 @@ describe('release job graph', () => {
       'tarball install',
       (command) =>
         command ===
-        'npm install -g --prefix /tmp/global /tmp/pack/tolkira-$TOLKIRA_VERSION.tgz',
+        'npm install -g --prefix /tmp/global "/tmp/pack/tolkira-$TOLKIRA_VERSION.tgz"',
     );
     const smoke = at('smoke report', (command) =>
       /^node "\$TOLKIRA_ROOT\/tolkira\/dist\/cli\.js" test\/fixtures\/legacy\/minimal\.json --out \S+ --title "Package smoke test"$/.test(
